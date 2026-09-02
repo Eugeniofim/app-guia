@@ -1,0 +1,7 @@
+{
+  "name": "app-guia",
+  "private": true,
+  "scripts": {
+    "test": "sh testes/todos.sh"
+  }
+}
