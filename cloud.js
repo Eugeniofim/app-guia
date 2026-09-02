@@ -114,6 +114,9 @@ let nuvemJaCarregada = false;
 
 let pushT = null;
 function cloudPushState() {
+  /* Modo prototipo: nao existe nuvem. Sem esta saida, cada edicao do prospect
+     cairia no catch e empilharia um item na fila do localStorage, para sempre. */
+  if (!SUPA_URL) return;
   /* TRAVA CONTRA PERDA TOTAL
      Aparelho sem passeio nenhum + nuvem ainda nao lida = navegador recem
      limpo, nao "ela apagou tudo". Publicar isso apagaria o catalogo dela.
@@ -293,6 +296,9 @@ async function cloudPull() {
 
 /* ---------- relógio de sincronização ---------- */
 function cloudStart(onChange) {
+  /* Modo prototipo: sem banco, o laco de reconexao ficaria tentando a cada
+     15s ate o fim da sessao, sem nunca ter para onde ir. */
+  if (!SUPA_URL) return;
   let booted = false;
   const tick = async () => {
     const r = await cloudPull();

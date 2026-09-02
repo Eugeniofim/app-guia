@@ -1,0 +1,43 @@
+{
+  "slug": "doris",
+  "nome": "Doris",
+  "negocio": "Paris com Doris",
+  "cidade": "Paris, França",
+  "prefixo": "PD",
+  "badge": "Guia em português",
+  "regioes": [["paris", "Paris", "Paris"], ["arredores", "Arredores", "Day trips"]],
+  "tagline": {
+    "pt": "Passeios a pé por Paris, em português. Grupos pequenos, no seu ritmo.",
+    "en": "Walking tours of Paris in Portuguese. Small groups, at your pace."
+  },
+  "bio": {
+    "pt": "Sou brasileira e faço passeios a pé por Paris, em português. Grupos pequenos, no seu ritmo, longe do roteiro de ônibus.\n\nCaminho pelo Marais, pela Île de la Cité e pelas margens do Sena — e conto a história que não cabe na plaquinha do museu.\n\nNo fim do passeio você leva as fotos.",
+    "en": "I am Brazilian and I run walking tours of Paris in Portuguese. Small groups, at your pace, far from the bus itinerary.\n\nI walk the Marais, the Île de la Cité and the banks of the Seine — telling the story that does not fit on the museum plaque.\n\nYou take the photos home."
+  },
+  "passeios": [
+    {
+      "nome": { "pt": "Paris a pé · Marais e Île de la Cité", "en": "Paris on foot · Marais and Île de la Cité" },
+      "desc": { "pt": "Três horas pelo Paris que as pessoas atravessam sem ver. Do Marais medieval à Île de la Cité, com parada para café.",
+                "en": "Three hours through the Paris people walk past without seeing. From the medieval Marais to the Île de la Cité, with a coffee stop." },
+      "encontro": "Place des Vosges, sob as arcadas",
+      "duracao": "3h", "preco": 45, "modo": "pp", "tipo": "walk", "regiao": "paris",
+      "unsplash": "1522093007474-d86e9bf7ba6f"
+    },
+    {
+      "nome": { "pt": "Paris à noite · as pontes e as luzes", "en": "Paris by night · bridges and lights" },
+      "desc": { "pt": "A cidade muda de cor quando as luzes acendem. Duas horas pelas pontes do Sena, no melhor horário para fotografar.",
+                "en": "The city changes colour when the lights come on. Two hours along the Seine bridges, at the best hour for photographs." },
+      "encontro": "Pont Alexandre III, lado direito",
+      "duracao": "2h", "preco": 55, "modo": "pp", "tipo": "walk", "regiao": "paris",
+      "unsplash": "1499856871958-5b9627545d1a"
+    },
+    {
+      "nome": { "pt": "Ensaio de fotos · sua viagem em Paris", "en": "Photo session · your trip in Paris" },
+      "desc": { "pt": "Uma hora de ensaio nos cantos de Paris que ninguém fotografa em fila. As fotos editadas chegam em até 5 dias.",
+                "en": "A one-hour session in the corners of Paris nobody queues to photograph. Edited photos within 5 days." },
+      "encontro": "Combinado por mensagem, conforme o bairro",
+      "duracao": "1h", "preco": 190, "modo": "session", "tipo": "photo", "regiao": "paris",
+      "unsplash": "1549144511-f099e773c147"
+    }
+  ]
+}

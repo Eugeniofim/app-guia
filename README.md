@@ -31,3 +31,25 @@ fotos neutras. O guia limpa tudo em Ajustes quando começa de verdade.
    `STRIPE_SECRET_KEY` (chave restrita da conta Stripe **do cliente**) e
    `APP_ORIGEM` (o endereço onde o app vai ficar).
 5. Publicar, e rodar `npm test` antes de cada publicação.
+
+## Protótipo para prospect
+
+O link `https://guia.eugeniofim.com/?g=<slug>` abre o app já com o nome, a
+cidade e os passeios da pessoa. É o que transforma "eu faço apps" em "olha o
+seu app pronto".
+
+Para montar um:
+
+1. Escrever `prospects/fontes/<slug>.json` com o que se vê no Instagram da
+   pessoa: nome, negócio, cidade e dois ou três passeios com preço. Cada
+   passeio leva um `unsplash` (o id da foto da **cidade** dela).
+2. `python3 gerar-prospecto.py prospects/fontes/<slug>.json`
+3. `git push` — o link fica no ar em cerca de um minuto.
+
+**Todo protótipo mostra uma faixa fixa dizendo que é uma proposta, que não é
+o site oficial da pessoa e que nenhuma reserva ali é real.** O link é
+público e leva o nome de alguém de verdade com preços que nós inventamos.
+`testes/prospecto.test.js` falha se essa faixa sumir.
+
+Fotos: sempre da **cidade** da pessoa, de licença livre (Unsplash), nunca as
+fotos dela — republicar foto dos outros numa página pública é problema.
