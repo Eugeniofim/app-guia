@@ -25,6 +25,10 @@ Coupon     {code, pct, until, oncePerPerson, uses:[email]}
    O config.js da o valor inicial; o guia edita nos Ajustes e o que vale e
    o que esta em DB.settings. Nada disto vem gravado no codigo. */
 const GUIA_CFG = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.guia) || {};
+/* Sem banco no config.js o app e uma DEMONSTRACAO: tudo vive no aparelho de
+   quem esta olhando e nada sai dali. Meia duzia de telas mudam por causa
+   disto, entao a pergunta mora num lugar so. */
+function temNuvem() { return !!(typeof APP_CONFIG !== 'undefined' && APP_CONFIG && APP_CONFIG.supabaseUrl); }
 const PREFIXO = (GUIA_CFG.prefixo || 'RS').toUpperCase();
 function _cfgSettings() { return (typeof DB !== 'undefined' && DB && DB.settings) || {}; }
 function guiaNome() { return _cfgSettings().admName || GUIA_CFG.nome || 'Guia'; }
@@ -264,8 +268,7 @@ function load() {
     /* Sem nuvem configurada (config.js vazio) o app e um prototipo: nasce com
        os passeios de exemplo, e nao existe nuvem para onde empurra-los.
        Com nuvem, aparelho novo comeca VAZIO e recebe o que esta la. */
-    const semNuvem = !(typeof APP_CONFIG !== 'undefined' && APP_CONFIG && APP_CONFIG.supabaseUrl);
-    DB = semNuvem ? _seed() : _blank();
+    DB = temNuvem() ? _blank() : _seed();
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
   }
   DB.settings = fillSettings(DB.settings);

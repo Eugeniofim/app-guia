@@ -895,6 +895,17 @@ const ADM_TABS = [
    não recebe nada da nuvem. Sem este aviso o painel mostraria uma lista
    vazia como se não houvesse reserva — mentira em silêncio, o pior tipo. */
 function noAuthBanner() {
+  /* DEMONSTRACAO: nao ha o que proteger — os dados nunca saem do aparelho de
+     quem esta olhando, e nao existe conta para criar. O aviso vermelho de
+     "qualquer um entra no seu painel" assustaria o prospect a toa, e o botao
+     levaria a uma tela de login sem banco atras. */
+  if (typeof temNuvem === 'function' && !temNuvem()) {
+    return `<div class="alert nolog demo">
+      <b>👋 ${t('demoTit')}</b>
+      <p>${t('demoTxt')}</p>
+      <p><b>${t('demoTxt2')}</b></p>
+    </div>`;
+  }
   if (typeof isLoggedIn === 'function' && isLoggedIn()) return '';
   return `<div class="alert bad nolog">
     <b>⚠ ${t('nlTitle')}</b>
@@ -955,7 +966,7 @@ function viewAdm(tab, arg) {
 
 /* ---- Hoje ---- */
 function admToday() {
-  if (!DB.settings.authRequired && !isLoggedIn() && !admToday._asked) {
+  if (temNuvem() && !DB.settings.authRequired && !isLoggedIn() && !admToday._asked) {
     admToday._asked = true;
     setTimeout(() => {
       if (confirm(t('protectWhy') + '\n\n' + t('protectNow') + '?')) go('/login');

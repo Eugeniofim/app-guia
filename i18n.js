@@ -691,8 +691,13 @@ const STR = {
   oFriend:    { pt: 'Indicação', en: 'Referral' },
 
   /* demonstração */
+  demoTit:    { pt: 'Você está no painel — este é o lado de quem trabalha', en: 'You are in the panel — this is the working side' },
+  demoTxt:    { pt: 'Mexa em tudo à vontade: crie um passeio, mude um preço, abra uma reserva. É uma demonstração, então nada sai deste aparelho e nada é enviado para ninguém.',
+                en: 'Try anything: create a tour, change a price, open a booking. This is a demo, so nothing leaves this device and nothing is sent to anyone.' },
+  demoTxt2:   { pt: 'No seu app de verdade esta área fica trancada pela sua senha, e só você entra.',
+                en: 'In your real app this area is locked behind your password, and only you get in.' },
   demoOn:     { pt: 'Modo demonstração', en: 'Demo mode' },
-  demoWhat:   { pt: 'O app está com passeios e clientes de exemplo para você experimentar tudo funcionando. Quando {guia} quiser começar de verdade, é só limpar.', en: 'The app has sample tours and clients so you can try everything. When o guia is ready to start for real, just clear it.' },
+  demoWhat:   { pt: 'O app está com passeios e clientes de exemplo para você experimentar tudo funcionando. Quando quiser começar de verdade, é só limpar.', en: 'The app has sample tours and clients so you can try everything. When you are ready to start for real, just clear it.' },
   demoClear:  { pt: 'Limpar tudo e começar do zero', en: 'Clear everything and start fresh' },
   demoConfirm:{ pt: 'Isto apaga TODOS os passeios, reservas e clientes de exemplo — em todos os aparelhos. Não dá para desfazer. Continuar?', en: 'This deletes ALL sample tours, bookings and clients — on every device. This cannot be undone. Continue?' },
   demoCleared:{ pt: 'Pronto. App zerado — crie o seu primeiro passeio.', en: 'Done. App is empty — create your first tour.' },

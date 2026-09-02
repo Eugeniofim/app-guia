@@ -86,10 +86,11 @@ ok('cloud.js le o banco de APP_CONFIG', /SUPA_URL\s*=\s*\(typeof APP_CONFIG/.tes
 ok('sem nuvem configurada nada vai para a rede', /if \(!SUPA_URL\) return Promise\.reject/.test(cloud));
 ok('sw.js guarda config.js no cache', /'\.\/config\.js'/.test(sw));
 const store = fs.readFileSync(path.join(RAIZ, 'store.js'), 'utf8');
-ok('sem nuvem, aparelho novo nasce com os passeios de exemplo (prototipo)',
-  /semNuvem \? _seed\(\) : _blank\(\)/.test(store), 'um prospect abriria um app vazio');
-ok('com nuvem, aparelho novo nasce VAZIO e recebe o que esta la',
-  /semNuvem = !\(typeof APP_CONFIG/.test(store), 'seria o bug antigo: demo por cima dos passeios reais');
+ok('aparelho novo: com nuvem nasce VAZIO, sem nuvem nasce com os exemplos',
+  /temNuvem\(\) \? _blank\(\) : _seed\(\)/.test(store),
+  'com nuvem seria o bug antigo (demo por cima dos passeios reais); sem nuvem o prospect abriria um app vazio');
+ok('temNuvem() responde pelo config.js, nao por um banco escrito no codigo',
+  /function temNuvem\(\)[^\n]*APP_CONFIG\.supabaseUrl/.test(store));
 ok('config.js do template esta vazio',
   /supabaseUrl:\s*''/.test(fs.readFileSync(path.join(RAIZ, 'config.js'), 'utf8')));
 
