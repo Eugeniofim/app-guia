@@ -1,0 +1,43 @@
+{
+  "slug": "sandra",
+  "nome": "Sandra",
+  "negocio": "Sonhando Roma",
+  "cidade": "Roma, Itália",
+  "prefixo": "SR",
+  "badge": "Guia em português",
+  "regioes": [["roma", "Roma", "Rome"], ["arredores", "Arredores", "Day trips"]],
+  "tagline": {
+    "pt": "Roma em português, sem fila e sem grupo de quarenta.",
+    "en": "Rome in Portuguese, no queues and no group of forty."
+  },
+  "bio": {
+    "pt": "Sou brasileira e guio em Roma. Grupos pequenos, no seu ritmo, com tempo para perguntar.\n\nCaminho pela Roma antiga, pelo Vaticano e pelas ruas onde a cidade continua viva depois que os ônibus vão embora.\n\nVocê leva as fotos do passeio.",
+    "en": "I am Brazilian and I guide in Rome. Small groups, at your pace, with time for questions.\n\nI walk ancient Rome, the Vatican, and the streets where the city keeps living after the coaches leave.\n\nYou take the photos home."
+  },
+  "passeios": [
+    {
+      "nome": { "pt": "Roma antiga a pé · Coliseu e Fórum", "en": "Ancient Rome on foot · Colosseum and Forum" },
+      "desc": { "pt": "Três horas pela Roma que virou o mundo. Coliseu, Fórum e Palatino, com as histórias que não cabem na plaquinha.",
+                "en": "Three hours through the Rome that shaped the world. Colosseum, Forum and Palatine, with the stories that do not fit on the plaque." },
+      "encontro": "Metrô Colosseo, na saída",
+      "duracao": "3h", "preco": 55, "modo": "pp", "tipo": "walk", "regiao": "roma",
+      "unsplash": "1552832230-c0197dd311b5"
+    },
+    {
+      "nome": { "pt": "Vaticano · Basílica e Praça de São Pedro", "en": "Vatican · Basilica and St Peter's Square" },
+      "desc": { "pt": "Meio dia no menor país do mundo. A praça, a basílica e o que olhar primeiro quando tudo é grande demais.",
+                "en": "Half a day in the smallest country in the world. The square, the basilica, and what to look at first when everything is too large." },
+      "encontro": "Praça de São Pedro, sob a colunata direita",
+      "duracao": "4h", "preco": 65, "modo": "pp", "tipo": "day", "regiao": "roma",
+      "unsplash": "1531572753322-ad063cecc140"
+    },
+    {
+      "nome": { "pt": "Roma ao entardecer · ensaio de fotos", "en": "Rome at dusk · photo session" },
+      "desc": { "pt": "Uma hora na luz que faz Roma virar cartão-postal. As fotos editadas chegam em até 5 dias.",
+                "en": "One hour in the light that turns Rome into a postcard. Edited photos within 5 days." },
+      "encontro": "Ponte Sant'Angelo, lado do castelo",
+      "duracao": "1h", "preco": 200, "modo": "session", "tipo": "photo", "regiao": "roma",
+      "unsplash": "1529260830199-42c24126f198"
+    }
+  ]
+}

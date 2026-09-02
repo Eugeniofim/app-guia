@@ -1,0 +1,80 @@
+{
+  "nome": "Júlia",
+  "negocio": "Dicas de Veneza",
+  "cidade": "Veneza, Itália",
+  "badge": "Guia em português",
+  "prefixo": "DV",
+  "regioes": [
+    [
+      "veneza",
+      "Veneza",
+      "Venice"
+    ],
+    [
+      "ilhas",
+      "Ilhas",
+      "Islands"
+    ]
+  ],
+  "bio": {
+    "pt": "Sou brasileira e vivo em Veneza. Faço passeios a pé, em português, longe da fila da Praça São Marcos.\n\nCaminho por Cannaregio, pelo gueto e pelos canais onde ainda mora gente — e explico como a cidade funciona de verdade.\n\nVocê leva as fotos do passeio.",
+    "en": "I am Brazilian and I live in Venice. I run walking tours in Portuguese, far from the queue at St Mark's.\n\nI walk Cannaregio, the ghetto and the canals where people still live — and explain how the city actually works.\n\nYou take the photos home."
+  },
+  "tagline": {
+    "pt": "A Veneza que fica depois que o barco de turista vai embora.",
+    "en": "The Venice that stays after the tour boat leaves."
+  },
+  "passeios": [
+    {
+      "nome": {
+        "pt": "Veneza a pé · Cannaregio e o gueto",
+        "en": "Venice on foot · Cannaregio and the ghetto"
+      },
+      "desc": {
+        "pt": "Duas horas e meia pela Veneza onde as pessoas moram. O primeiro gueto do mundo, os canais silenciosos e nenhuma fila.",
+        "en": "Two and a half hours through the Venice where people live. The first ghetto in the world, quiet canals, and no queues."
+      },
+      "preco": 50,
+      "modo": "pp",
+      "tipo": "walk",
+      "regiao": "veneza",
+      "duracao": "2h30",
+      "encontro": "Estação Santa Lucia, na saída principal",
+      "foto": "prospects/fotos/julia-1.jpg"
+    },
+    {
+      "nome": {
+        "pt": "Grande Canal ao entardecer",
+        "en": "Grand Canal at dusk"
+      },
+      "desc": {
+        "pt": "Duas horas acompanhando o Grande Canal na melhor luz do dia, com as histórias dos palácios que ninguém conta.",
+        "en": "Two hours along the Grand Canal in the best light of the day, with the palace stories nobody tells."
+      },
+      "preco": 60,
+      "modo": "pp",
+      "tipo": "walk",
+      "regiao": "veneza",
+      "duracao": "2h",
+      "encontro": "Ponte da Accademia, lado Dorsoduro",
+      "foto": "prospects/fotos/julia-2.jpg"
+    },
+    {
+      "nome": {
+        "pt": "Ensaio de fotos ao amanhecer",
+        "en": "Photo session at sunrise"
+      },
+      "desc": {
+        "pt": "Uma hora com Veneza vazia, antes de a cidade acordar. É a única hora em que dá para fotografar sem ninguém atrás.",
+        "en": "One hour with Venice empty, before the city wakes. The only hour when you can photograph with nobody behind you."
+      },
+      "preco": 180,
+      "modo": "session",
+      "tipo": "photo",
+      "regiao": "veneza",
+      "duracao": "1h",
+      "encontro": "Combinado por mensagem, conforme o bairro",
+      "foto": "prospects/fotos/julia-3.jpg"
+    }
+  ]
+}

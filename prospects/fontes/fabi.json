@@ -1,0 +1,43 @@
+{
+  "slug": "fabi",
+  "nome": "Fabi",
+  "negocio": "Fabi Zavatta · Tour e Transfer",
+  "cidade": "Lisboa e Porto, Portugal",
+  "prefixo": "FZ",
+  "badge": "Guia e transfer em português",
+  "regioes": [["lisboa", "Lisboa", "Lisbon"], ["porto", "Porto", "Porto"]],
+  "tagline": {
+    "pt": "Portugal em português, do aeroporto ao último miradouro.",
+    "en": "Portugal in Portuguese, from the airport to the last viewpoint."
+  },
+  "bio": {
+    "pt": "Sou brasileira e trabalho entre Lisboa e Porto. Faço o passeio e faço o transfer, então você não precisa procurar duas pessoas.\n\nGrupos pequenos, carro próprio, e o roteiro ajustado ao seu tempo — não ao do ônibus.\n\nAs fotos do dia vão junto.",
+    "en": "I am Brazilian and I work between Lisbon and Porto. I do the tour and the transfer, so you do not need to find two people.\n\nSmall groups, my own car, and an itinerary that fits your time rather than a coach schedule.\n\nThe photos from the day come with it."
+  },
+  "passeios": [
+    {
+      "nome": { "pt": "Lisboa a pé · Alfama e os miradouros", "en": "Lisbon on foot · Alfama and the viewpoints" },
+      "desc": { "pt": "Três horas subindo e descendo a Lisboa de verdade. Alfama, Baixa e as vistas que valem a ladeira.",
+                "en": "Three hours up and down the real Lisbon. Alfama, Baixa and the views that are worth the climb." },
+      "encontro": "Praça do Comércio, junto ao arco",
+      "duracao": "3h", "preco": 45, "modo": "pp", "tipo": "walk", "regiao": "lisboa",
+      "unsplash": "1585208798174-6cedd86e019a"
+    },
+    {
+      "nome": { "pt": "Porto e o Douro · dia inteiro", "en": "Porto and the Douro · full day" },
+      "desc": { "pt": "Dia inteiro no Porto, com a Ribeira, uma cave de vinho do Porto e tempo de sobra para almoçar sem correr. Transporte incluído.",
+                "en": "A full day in Porto, with the Ribeira, a port wine cellar and enough time for a slow lunch. Transport included." },
+      "encontro": "Onde você estiver hospedada, combinado antes",
+      "duracao": "8h", "preco": 130, "modo": "pp", "tipo": "day", "regiao": "porto",
+      "unsplash": "1555881400-74d7acaacd8b"
+    },
+    {
+      "nome": { "pt": "Lisboa ao pôr do sol · ensaio de fotos", "en": "Lisbon at sunset · photo session" },
+      "desc": { "pt": "Uma hora de ensaio na hora dourada, entre telhados e o Tejo. As fotos editadas chegam em até 5 dias.",
+                "en": "A one-hour session in golden light, between rooftops and the Tagus. Edited photos within 5 days." },
+      "encontro": "Miradouro combinado por mensagem",
+      "duracao": "1h", "preco": 170, "modo": "session", "tipo": "photo", "regiao": "lisboa",
+      "unsplash": "1580323956656-26bbb1206e34"
+    }
+  ]
+}
