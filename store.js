@@ -260,7 +260,14 @@ function load() {
      inventado por cima do dela. Antes isto semeava a demonstracao e o save()
      empurrava para a nuvem: bastava ela instalar no celular para os passeios
      reais virarem os ficticios. A demonstracao so volta pelo botao no ADM. */
-  if (!DB || !DB.tours) { DB = _blank(); localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
+  if (!DB || !DB.tours) {
+    /* Sem nuvem configurada (config.js vazio) o app e um prototipo: nasce com
+       os passeios de exemplo, e nao existe nuvem para onde empurra-los.
+       Com nuvem, aparelho novo comeca VAZIO e recebe o que esta la. */
+    const semNuvem = !(typeof APP_CONFIG !== 'undefined' && APP_CONFIG && APP_CONFIG.supabaseUrl);
+    DB = semNuvem ? _seed() : _blank();
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  }
   DB.settings = fillSettings(DB.settings);
   return DB;
 }
