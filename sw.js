@@ -4,7 +4,7 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'guia-v1.53.0';
+const VERSION = 'guia-v1.54.0';
 const CORE = [
   './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './store.js', './auth.js', './logo.js', './cloud.js', './i18n.js', './prospecto.js', './tokens.css',
   './manifest.webmanifest', './capa.jpg', './home.jpg', './og.jpg', './guia.jpg', './exemplo-1.jpg', './exemplo-2.jpg', './exemplo-3.jpg',
