@@ -50,7 +50,23 @@ def gera(entrada: pathlib.Path) -> pathlib.Path:
                 print(f'  foto {i}: {alvo.name}  {alvo.stat().st_size // 1024} KB')
             else:
                 print(f'  foto {i}: FALHOU (id {p["unsplash"]}) — o passeio fica sem foto')
+        # roteiro parada a parada — e o que mais encanta guia, e o que faltava
+        # nos prototipos ate agora. Cada parada pode ter a propria foto.
+        paradas = []
+        for j, q in enumerate(p.get('paradas', []), start=1):
+            foto_p = ''
+            if q.get('unsplash'):
+                alvo = FOTOS / f'{slug}-{i}-{j}.jpg'
+                if baixa(q['unsplash'], alvo):
+                    foto_p = f'prospects/fotos/{slug}-{i}-{j}.jpg'
+            paradas.append({
+                't': q.get('hora', ''), 'ph': foto_p,
+                'lat': q.get('lat', 0), 'lng': q.get('lng', 0),
+                'n': q['n'], 'd': q['d'],
+            })
+
         passeios.append({
+            'paradas':  paradas,
             'nome':     p['nome'],
             'desc':     p['desc'],
             'preco':    p.get('preco', 45),

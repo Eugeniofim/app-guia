@@ -1,0 +1,198 @@
+{
+  "nome": "Tania",
+  "negocio": "Paris Sensacional",
+  "cidade": "Paris, França",
+  "badge": "Guia em português",
+  "prefixo": "PS",
+  "regioes": [
+    [
+      "paris",
+      "Paris",
+      "Paris"
+    ],
+    [
+      "arredores",
+      "Arredores",
+      "Day trips"
+    ]
+  ],
+  "bio": {
+    "pt": "Sou brasileira e vivo em Paris. Não faço o passeio da fila e da foto rápida: te levo para viver a cidade como quem mora nela.\n\nMercado de bairro, queijo comprado no balcão, o bistrô que não está no guia, e as pontes quando as luzes acendem.\n\nEm português, no seu ritmo, e com bom humor — que é meio caminho andado.",
+    "en": "I am Brazilian and I live in Paris. I do not do the queue-and-quick-photo tour: I take you to live the city the way locals do.\n\nA neighbourhood market, cheese bought over the counter, the bistro that is not in the guidebook, and the bridges as the lights come on.\n\nIn Portuguese, at your pace, and with good humour — which is half the journey."
+  },
+  "tagline": {
+    "pt": "A Paris dos parisienses, em português e com bom humor.",
+    "en": "The Paris of Parisians, in Portuguese and in good humour."
+  },
+  "passeios": [
+    {
+      "paradas": [
+        {
+          "t": "10h00",
+          "ph": "prospects/fotos/tania-1-1.jpg",
+          "lat": 48.8567,
+          "lng": 2.3053,
+          "n": {
+            "pt": "O mercado de rua",
+            "en": "The street market"
+          },
+          "d": {
+            "pt": "Começamos onde o parisiense faz a compra da semana. Eu apresento você aos vendedores e a gente prova o que estiver bom naquele dia.",
+            "en": "We start where Parisians do their weekly shopping. I introduce you to the sellers and we taste whatever is good that day."
+          }
+        },
+        {
+          "t": "11h00",
+          "ph": "prospects/fotos/tania-1-2.jpg",
+          "lat": 48.8556,
+          "lng": 2.3086,
+          "n": {
+            "pt": "A queijaria",
+            "en": "The cheesemonger"
+          },
+          "d": {
+            "pt": "Cinco queijos, do mais suave ao que assusta. Você vai descobrir que gosta de pelo menos um que jurava odiar.",
+            "en": "Five cheeses, from the mildest to the frightening one. You will find you like at least one you swore you hated."
+          }
+        },
+        {
+          "t": "12h00",
+          "ph": "prospects/fotos/tania-1-3.jpg",
+          "lat": 48.853,
+          "lng": 2.333,
+          "n": {
+            "pt": "O bistrô",
+            "en": "The bistro"
+          },
+          "d": {
+            "pt": "Terminamos sentados, com entrada e prato do dia. É aqui que a conversa fica boa e eu solto as dicas que não cabem no Instagram.",
+            "en": "We finish sitting down, with a starter and the dish of the day. This is where the conversation gets good and I share the tips that do not fit on Instagram."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Paris Gourmet · mercado, queijos e bistrô",
+        "en": "Gourmet Paris · market, cheese and bistro"
+      },
+      "desc": {
+        "pt": "Três horas comendo Paris de verdade. Mercado de bairro, queijaria, padaria e um bistrô sem turista na porta. As provas estão incluídas.",
+        "en": "Three hours eating the real Paris. A neighbourhood market, a cheesemonger, a bakery and a bistro with no tourists at the door. Tastings included."
+      },
+      "preco": 95,
+      "modo": "pp",
+      "tipo": "walk",
+      "regiao": "paris",
+      "duracao": "3h",
+      "encontro": "Rue Cler, em frente à floricultura",
+      "foto": "prospects/fotos/tania-1.jpg"
+    },
+    {
+      "paradas": [
+        {
+          "t": "19h30",
+          "ph": "prospects/fotos/tania-2-1.jpg",
+          "lat": 48.8639,
+          "lng": 2.3134,
+          "n": {
+            "pt": "Pont Alexandre III",
+            "en": "Pont Alexandre III"
+          },
+          "d": {
+            "pt": "A ponte mais exagerada de Paris, e ela sabe disso. Feita para uma exposição de 1900 e nunca mais desmontada.",
+            "en": "The most extravagant bridge in Paris, and it knows it. Built for an exhibition in 1900 and never taken down."
+          }
+        },
+        {
+          "t": "20h30",
+          "ph": "prospects/fotos/tania-2-2.jpg",
+          "lat": 48.86,
+          "lng": 2.3266,
+          "n": {
+            "pt": "Os cais do Sena",
+            "en": "The Seine quays"
+          },
+          "d": {
+            "pt": "Descemos até a água. É a Paris onde os parisienses realmente passam a noite de verão, com garrafa e conversa.",
+            "en": "We go down to the water. This is where Parisians actually spend a summer evening, with a bottle and conversation."
+          }
+        },
+        {
+          "t": "21h00",
+          "ph": "prospects/fotos/tania-2-3.jpg",
+          "lat": 48.8584,
+          "lng": 2.2945,
+          "n": {
+            "pt": "A hora em que a torre pisca",
+            "en": "The hour the tower sparkles"
+          },
+          "d": {
+            "pt": "Terminamos no melhor ponto para ver o cintilar da hora cheia. Dura cinco minutos e vale a caminhada inteira.",
+            "en": "We finish at the best spot to watch the hourly sparkle. It lasts five minutes and is worth the whole walk."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Paris à noite · as pontes acesas",
+        "en": "Paris by night · the lit bridges"
+      },
+      "desc": {
+        "pt": "Duas horas pelo Sena na hora em que a cidade troca de cor. As pontes, os cais e as histórias que ninguém conta de dia.",
+        "en": "Two hours along the Seine at the hour the city changes colour. The bridges, the quays and the stories nobody tells by day."
+      },
+      "preco": 65,
+      "modo": "pp",
+      "tipo": "walk",
+      "regiao": "paris",
+      "duracao": "2h",
+      "encontro": "Pont Alexandre III, lado dos Inválidos",
+      "foto": "prospects/fotos/tania-2.jpg"
+    },
+    {
+      "paradas": [
+        {
+          "t": "1",
+          "ph": "",
+          "lat": 48.8619,
+          "lng": 2.2886,
+          "n": {
+            "pt": "A gente se encontra e conversa",
+            "en": "We meet and talk"
+          },
+          "d": {
+            "pt": "Dez minutos antes de qualquer foto. Preciso saber o que você quer levar dessa viagem.",
+            "en": "Ten minutes before any photo. I need to know what you want to take home from this trip."
+          }
+        },
+        {
+          "t": "2",
+          "ph": "prospects/fotos/tania-3-2.jpg",
+          "lat": 48.8556,
+          "lng": 2.2986,
+          "n": {
+            "pt": "A hora dourada",
+            "en": "Golden hour"
+          },
+          "d": {
+            "pt": "Quarenta minutos com a luz do fim de tarde. Sem pose forçada: você andando e eu registrando.",
+            "en": "Forty minutes in late-afternoon light. No forced poses: you walking and me shooting."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Ensaio de fotos · a sua Paris",
+        "en": "Photo session · your Paris"
+      },
+      "desc": {
+        "pt": "Uma hora de ensaio nos cantos que não têm fila. As fotos editadas chegam em até 5 dias.",
+        "en": "A one-hour session in the corners with no queues. Edited photos within 5 days."
+      },
+      "preco": 210,
+      "modo": "session",
+      "tipo": "photo",
+      "regiao": "paris",
+      "duracao": "1h",
+      "encontro": "Combinado por mensagem, conforme o bairro",
+      "foto": "prospects/fotos/tania-3.jpg"
+    }
+  ]
+}
