@@ -209,6 +209,17 @@ const STR = {
   edTrfMalas:  { pt: 'Malas', en: 'Luggage' },
   edTrfSinal:  { pt: 'Sinal', en: 'Deposit' },
   edTrfAdd:    { pt: '+ linha', en: '+ row' },
+  edIng:       { pt: 'Ingressos (somados na reserva, pela idade)', en: 'Tickets (added at booking, by age)' },
+  edIngWhy:    { pt: 'Como no seu PDF. Ex.: Museus do Vaticano — grátis até 6 anos, reduzido €15 até 18, inteiro €25. Adulto paga o inteiro. "Da guia" é o seu ingresso, cobrado uma vez. "No dia" aparece para o cliente mas fica fora do total.',
+                 en: 'As in your PDF. E.g. Vatican Museums — free up to 6, reduced €15 up to 18, full €25. Adults pay full. "Guide" is your own ticket, charged once. "On the day" is shown but left out of the total.' },
+  edIngNome:   { pt: 'Ingresso', en: 'Ticket' },
+  edIngGratis: { pt: 'Grátis até (idade)', en: 'Free up to (age)' },
+  edIngRed:    { pt: 'Reduzido €', en: 'Reduced €' },
+  edIngRedAte: { pt: 'Reduzido até (idade)', en: 'Reduced up to (age)' },
+  edIngInteiro:{ pt: 'Inteiro €', en: 'Full €' },
+  edIngGuia:   { pt: 'Da guia €', en: 'Guide €' },
+  edIngDia:    { pt: 'No dia', en: 'On the day' },
+  edIngAdd:    { pt: '+ ingresso', en: '+ ticket' },
   edKids:      { pt: 'Aceita crianças (menores de 18)', en: 'Children welcome (under 18)' },
   edKidsWhy:   { pt: 'Desmarcado, a reserva pede só adultos e avisa que o passeio é para maiores de 18.', en: 'Unticked, the booking asks for adults only and says the tour is 18+.' },
   edIdadeMin:  { pt: 'Idade mínima', en: 'Minimum age' },
@@ -244,6 +255,20 @@ const STR = {
                  en: 'If the hotel is outside the centre, or the group splits between two hotels, Ingrid will quote it on WhatsApp.' },
   trfCentroSim:{ pt: 'Sim, no centro', en: 'Yes, in the centre' },
   trfCentroNao:{ pt: 'Não, ou mais de uma parada', en: 'No, or more than one stop' },
+  ingPagina:   { pt: 'Os ingressos são somados na reserva, pela idade de cada pessoa.', en: 'Tickets are added at booking, by each person’s age.' },
+  idadesTit:   { pt: 'Idade de cada criança', en: 'Age of each child' },
+  idadesPorque:{ pt: 'Idade de cada criança — o ingresso muda com a idade', en: 'Age of each child — ticket prices depend on it' },
+  idadesFalta: { pt: 'Escolha a idade de cada criança para somar os ingressos.', en: 'Pick each child’s age to add up the tickets.' },
+  criancaN:    { pt: 'Criança {n}', en: 'Child {n}' },
+  idadePh:     { pt: 'idade', en: 'age' },
+  menos1:      { pt: 'menos de 1 ano', en: 'under 1' },
+  ano:         { pt: 'ano', en: 'year' },
+  anos:        { pt: 'anos', en: 'years' },
+  ingGratis:   { pt: '{n} grátis', en: '{n} free' },
+  ingGuia:     { pt: '+ {v} da guia', en: '+ {v} for the guide' },
+  ingNoDia:    { pt: 'pago no dia, fora do total', en: 'paid on the day, not in the total' },
+  ingAviso:    { pt: 'Ingressos pelo valor mínimo: com pouca disponibilidade eles podem subir. A Ingrid confirma o valor antes de comprar.',
+                 en: 'Tickets at the minimum price: with low availability they can go up. Ingrid confirms before buying.' },
   adultsLbl:   { pt: 'Adultos', en: 'Adults' },
   adultsSub:   { pt: '18 anos ou mais', en: '18 or older' },
   kidsLbl:     { pt: 'Crianças', en: 'Children' },
@@ -906,7 +931,13 @@ function t(key, vars) {
   return s;
 }
 function setLang(l) { LANG = l; DB.settings.lang = l; save(); }
-function eur(n) { return '€ ' + Number(n).toLocaleString(LANG === 'pt' ? 'pt-BR' : 'en-GB'); }
+/* Valor redondo sem centavos (€ 420); com centavos, sempre os dois (€ 1,50 —
+   nao "€ 1,5", que foi como os fones do Vaticano apareceram). */
+function eur(n) {
+  const v = Number(n), redondo = Number.isInteger(Math.round(v * 100) / 100) && v % 1 === 0;
+  return '€ ' + v.toLocaleString(LANG === 'pt' ? 'pt-BR' : 'en-GB',
+    redondo ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 function fmtDate(iso) {
   const d = new Date(iso + 'T12:00:00');
   return LANG === 'pt'

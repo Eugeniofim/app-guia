@@ -647,24 +647,11 @@ function lerGrupo() {
   })).map(g => ({ nome: g.nome.trim(), nasc: g.nasc.trim() })).filter(g => g.nome);
 }
 
-/* A TABELA DO TRANSFER NA TELA DO CLIENTE — a tabela de 2026 dela, linha a
-   linha: quantas pessoas, que veiculo e quantas malas, dia e noite. Fechada
-   por padrao: sao 38 linhas, e quem quer saber o preco usa a reserva, que
-   mostra so as duas opcoes da quantidade dele. */
-function transferHtml(x) {
-  const ls = (x.transfer && x.transfer.linhas) || [];
-  if (!ls.length) return '';
-  const paxTxt = (n) => n <= 2 ? t('trfPax12') : t('trfPaxN', { n });
-  return `<details class="ptab"><summary>${t('trfTable')}</summary>
-    <p class="ptabhelp">${t('trfHours')}</p>
-    <table class="trftab"><thead><tr><th>${t('trfColQuem')}</th><th>${t('trfDay')}</th><th>${t('trfNight')}</th></tr></thead>
-    <tbody>${ls.map((l, i) => `<tr class="${i > 0 && ls[i - 1].pax === l.pax ? 'mesmo' : 'novo'}">
-      <td><b>${i > 0 && ls[i - 1].pax === l.pax ? '' : paxTxt(+l.pax)}</b>
-        <small>${esc(l.veiculo)} · ${esc(l.malas)}</small></td>
-      <td>${eur(l.dia)}</td><td>${eur(l.noite)}</td></tr>`).join('')}</tbody></table>
-    <p class="ptabbig">${t('trfSinalTabela')}</p>
-  </details>`;
-}
+/* A TABELA DE PRECOS NAO APARECE MAIS NA PAGINA DO PASSEIO.
+
+   Pedido da Ingrid (18/09/2026): "prefiro que eles vejam somente na hora que
+   preenchem quantas pessoas sao e quantos adultos e criancas". O cliente ve
+   o "a partir de" no cartao e o valor exato do grupo DELE na reserva. */
 
 /* --- quantas pessoas: adultos e criancas ---
    Ela decide, por passeio, se aceita menores de 18 e se ha idade minima.
@@ -687,11 +674,42 @@ function pessoasHtml(x, S) {
   return `<div class="pessoas">
     ${linha('a', cri ? t('adultsLbl') : t('peopleLbl'), cri ? t('adultsSub') : '', S.adultos)}
     ${cri ? linha('c', t('kidsLbl'), t('kidsSub'), S.criancas) : ''}
+    ${cri && S.criancas ? `<div class="idades">
+      <small>${t((x.ingressos || []).length ? 'idadesPorque' : 'idadesTit')}</small>
+      <div class="idrow">${Array.from({ length: S.criancas }, (_, i) => `
+        <label class="idsel"><span>${t('criancaN', { n: i + 1 })}</span>
+          <select data-idade="${i}" aria-label="${t('criancaN', { n: i + 1 })}">
+            <option value="">${t('idadePh')}</option>
+            ${Array.from({ length: 18 }, (_, k) => `<option value="${k}" ${String(S.idades[i]) === String(k) ? 'selected' : ''}>${k === 0 ? t('menos1') : k + ' ' + (k === 1 ? t('ano') : t('anos'))}</option>`).join('')}
+          </select></label>`).join('')}</div>
+    </div>` : ''}
     ${!cri ? `<p class="why">${t('noKids')}</p>` : (+x.idadeMin ? `<p class="why">${t('minAge', { n: +x.idadeMin })}</p>` : '')}
   </div>`;
 }
 
+/* As linhas dos ingressos no resumo da reserva: quanto, por que, e o aviso
+   de que o valor e o minimo (o PDF dela diz que pode subir conforme a
+   disponibilidade). */
+function ingressosResumo(x, S, ing) {
+  if (!(x.ingressos || []).length) return '';
+  const falta = S.criancas && Array.from({ length: S.criancas }, (_, i) => S.idades[i]).some(v => v === '' || v === undefined || v === null);
+  if (falta) return `<p class="why ingfalta">🎟️ ${t('idadesFalta')}</p>`;
+  const nome = (o) => (o && (o[LANG] || o.pt)) || '';
+  const det = (l) => Object.keys(l.porValor).map(Number).sort((a, b) => b - a)
+    .map(v => v === 0 ? t('ingGratis', { n: l.porValor[v] }) : l.porValor[v] + ' × ' + eur(v)).join(' · ')
+    + (l.guia ? ' · ' + t('ingGuia', { v: eur(l.guia) }) : '');
+  return `<div class="ingbox">
+    ${ing.linhas.map(l => `<div class="quebra"><span>🎟️ ${esc(nome(l.nome))}<small>${det(l)}</small></span><b>${eur(l.valor)}</b></div>`).join('')}
+    ${ing.noDia.map(l => `<div class="quebra dia"><span>${esc(nome(l.nome))}<small>${t('ingNoDia')} · ${det(l)}</small></span><b>${eur(l.valor)}</b></div>`).join('')}
+    <p class="why">${t('ingAviso')}</p>
+  </div>`;
+}
+
 function ligaPessoas(x, S, root) {
+  $$('[data-idade]', root).forEach(sel => sel.onchange = () => {
+    S.idades[+sel.dataset.idade] = sel.value === '' ? '' : +sel.value;
+    renderBook();
+  });
   $$('[data-cnt]', root).forEach(b => b.onclick = () => {
     const d = +b.dataset.d, k = b.dataset.cnt;
     let ad = S.adultos, cr = S.criancas;
@@ -699,6 +717,7 @@ function ligaPessoas(x, S, root) {
     const teto = tetoPessoas(x, S);
     if (ad + cr > teto) return toast(t(x.priceMode === 'tabela' || x.priceMode === 'transfer' ? 'bigGroup' : 'maxNote', { n: teto }));
     S.adultos = ad; S.criancas = cr; S.pax = ad + cr;
+    S.idades = (S.idades || []).slice(0, cr);
     S.opcao = 0; S.discount = 0; S.coupon = null;
     renderBook();
   });
@@ -744,26 +763,6 @@ function msgOrcamento(x, S) {
   const partes = [t('orcOi'), nome, S.date ? fmtDate(S.date) + (S.time ? ' · ' + S.time : '') : '', quem];
   if (x.priceMode === 'transfer' && S.noCentro === false) partes.push(t('orcForaCentro'));
   return partes.filter(Boolean).join('\n');
-}
-
-/* A TABELA NA TELA DO CLIENTE.
-
-   E a peca que tira a pergunta "quanto fica para 5 pessoas?" do WhatsApp
-   dela. Sem isto, a tabela existiria so dentro do painel e ela continuaria
-   respondendo a mao — que e exatamente o trabalho que o app veio tirar. */
-function tabelaHtml(x) {
-  const ate = tabelaAte(x);
-  if (!ate) return '';
-  const linhas = [];
-  for (let n = 1; n <= ate; n++) {
-    const v = tabelaPreco(x, n);
-    if (v > 0) linhas.push(`<tr><td>${n} ${n === 1 ? t('person') : t('people')}</td><td>${eur(v)}</td></tr>`);
-  }
-  return `<details class="ptab"><summary>${t('priceTable')}</summary>
-    <p class="ptabhelp">${t('priceTableHelp')}</p>
-    <table><tbody>${linhas.join('')}</tbody></table>
-    <p class="ptabbig">${t('bigGroup', { n: ate })}</p>
-  </details>`;
 }
 
 /* ordem dos filtros da vitrine; so aparece o tipo que o guia realmente vende */
@@ -873,7 +872,7 @@ function cancelaTxt(x) {
 function viewTour(id) {
   const x = Tours.get(id);
   if (!x) return go('/tours');
-  const S = viewTour._s = { tour: x, date: null, time: null, cap: 0, pax: x.priceMode === 'session' ? 1 : 2, adultos: x.priceMode === 'session' ? 1 : 2, criancas: 0, opcao: 0, noCentro: null, step: 1, coupon: null, discount: 0, policy: x.payPolicy === 'split' ? 'split' : 'full' };
+  const S = viewTour._s = { tour: x, date: null, time: null, cap: 0, pax: x.priceMode === 'session' ? 1 : 2, adultos: x.priceMode === 'session' ? 1 : 2, criancas: 0, idades: [], opcao: 0, noCentro: null, step: 1, coupon: null, discount: 0, policy: x.payPolicy === 'split' ? 'split' : 'full' };
 
   const stops = Array.isArray(x.stops) ? x.stops : [];
   const L = a => (a && (a[LANG] || a.pt)) || '';
@@ -960,7 +959,7 @@ function viewTour(id) {
             <b>${x.priceMode === 'tabela' ? `<u class="fromlbl">${t('fromPrice')}</u> ` : ''}${eur(precoVitrine(x))}</b>
             <small>${unidadePreco(x)}</small>
             ${linhaReais(precoVitrine(x))}
-            ${x.priceMode === 'tabela' ? tabelaHtml(x) : x.priceMode === 'transfer' ? transferHtml(x) : ''}
+            ${(x.ingressos || []).length ? `<p class="pbing">🎟️ ${t('ingPagina')}</p>` : ''}
             ${x.priceLate && x.earlySeats && x.priceMode !== 'session'
               ? `<span class="pbearly">${t('earlyNote', { n: x.earlySeats, v: eur(x.priceLate) })}</span>` : ''}
           </div>
@@ -1165,7 +1164,9 @@ function renderBook() {
           ? `<em class="pearly">${t('earlyNote', { n: x.earlySeats, v: eur(x.priceLate) })}</em>` : '')
       + linhaReais(valorEmDestaque);
   const base = pr.total;
-  const total = base - S.discount;
+  /* ingressos por idade, somados — e ela quem compra, com antecedencia */
+  const ing = ingressosDe(x, S.adultos, S.idades);
+  const total = base - S.discount + ing.total;
 
   if (S.step === 1) {
     const today = isoToday();
@@ -1221,6 +1222,7 @@ function renderBook() {
           ? `<div class="quebra"><span>${t('closedPrice', { n: S.pax })}</span><b>${eur(pr.total)}</b></div>`
           : (pr.linhas && pr.linhas.length > 1) ? pr.linhas.map(l =>
           `<div class="quebra"><span>${t('linhaPreco', { qtd: l.qtd, valor: eur(l.valor) })}</span><b>${eur(l.qtd * l.valor)}</b></div>`).join('') : ''}
+        ${ingressosResumo(x, S, ing)}
         <div class="tot"><span>${t('total')}</span><b>${eur(total)}</b></div>
         ${linhaReais(total)}
         ${(x.min > 1 && S.pax < x.min) ? `<p class="why">${t('minAviso', { n: x.min })}</p>` : ''}
@@ -1247,6 +1249,10 @@ function renderBook() {
       else $('#cbad').textContent = t('couponBad');
     };
     $('#next2').onclick = () => {
+      if ((x.ingressos || []).length && S.criancas &&
+          Array.from({ length: S.criancas }, (_, i) => S.idades[i]).some(v => v === '' || v === undefined || v === null)) {
+        return toast(t('idadesFalta'));
+      }
       if (precisaOrcamento(x, S, pr)) {
         return window.open(waLink(msgOrcamento(x, S)), '_blank');
       }
@@ -1304,7 +1310,7 @@ function renderBook() {
           tourId: x.id, date: S.date, time: S.time, name, email, whats,
           insta: $('#fI').value.trim(), pax: S.pax, coupon: S.coupon,
           consent: $('#fOptin').checked, opcao: S.opcao, group: lerGrupo(),
-          adultos: S.adultos, criancas: S.criancas,
+          adultos: S.adultos, criancas: S.criancas, idades: S.idades.slice(0, S.criancas),
           policy: (x.priceMode === 'transfer' && pr.sinal) ? 'sinal' : splitAllowed ? S.policy : 'full', origin: 'site',
         });
         S.step = 4; renderBook();
@@ -1526,6 +1532,34 @@ function trfLinhaEd(l) {
     <td><button type="button" class="mini ico" data-trfdel aria-label="${t('edRemove')}">×</button></td>
   </tr>`;
 }
+/* Ingresso de um passeio, como no PDF dela: "€25 por adulto, €15 ate 19
+   anos, gratuito ate 7 anos" vira gratis ate 6, reduzido €15 ate 18,
+   inteiro €25. O ingresso da guia (Sao Pedro: "+ €7 da guia") e cobrado uma
+   vez. "Pago no dia" fica fora do total (os fones). */
+function ingLinhaEd(g) {
+  const v = (x) => x === undefined || x === null ? '' : esc(String(x));
+  return `<tr>
+    <td><input class="in" value="${v(g.nome && g.nome.pt)}" placeholder="Museus do Vaticano" aria-label="${t('edIngNome')}"></td>
+    <td><input class="ig" type="number" min="0" max="99" value="${v(g.gratisAte)}" placeholder="—" aria-label="${t('edIngGratis')}"></td>
+    <td><input class="ir" type="number" min="0" step="0.5" value="${v(g.reduzido)}" placeholder="—" aria-label="${t('edIngRed')}"></td>
+    <td><input class="ira" type="number" min="0" max="99" value="${v(g.reduzidoAte)}" placeholder="—" aria-label="${t('edIngRedAte')}"></td>
+    <td><input class="ii" type="number" min="0" step="0.5" value="${v(g.inteiro)}" aria-label="${t('edIngInteiro')}"></td>
+    <td><input class="igu" type="number" min="0" step="0.5" value="${v(g.guia)}" placeholder="—" aria-label="${t('edIngGuia')}"></td>
+    <td style="text-align:center"><input class="idia" type="checkbox" ${g.noDia ? 'checked' : ''} aria-label="${t('edIngDia')}"></td>
+    <td><button type="button" class="mini ico" data-ingdel aria-label="${t('edRemove')}">×</button></td>
+  </tr>`;
+}
+function lerIngLinhas() {
+  const num = (v) => v === '' ? null : +v;
+  return $$('#ingRows tr').map(tr => {
+    const q = (c) => (tr.querySelector('.' + c) || {}).value ?? '';
+    const nome = String(q('in')).trim();
+    return { nome: { pt: nome, en: nome }, gratisAte: num(q('ig')), reduzido: +q('ir') || 0,
+             reduzidoAte: num(q('ira')), inteiro: +q('ii') || 0, guia: +q('igu') || 0,
+             noDia: !!(tr.querySelector('.idia') || {}).checked };
+  }).filter(g => g.nome.pt && (g.inteiro > 0 || g.reduzido > 0));
+}
+
 function lerTrfLinhas() {
   return $$('#trfRows tr').map(tr => {
     const q = (c) => (tr.querySelector('.' + c) || {}).value || '';
@@ -1602,6 +1636,15 @@ function admTourEdit(id) {
           </table></div>
           <button type="button" class="mini" id="trfAdd">${t('edTrfAdd')}</button>
         </div>
+
+        <div class="rulesep"></div>
+        <b>${t('edIng')}</b>
+        <p class="why">${t('edIngWhy')}</p>
+        <div class="trfedit-wrap"><table class="trfedit ingedit">
+          <thead><tr><th>${t('edIngNome')}</th><th>${t('edIngGratis')}</th><th>${t('edIngRed')}</th><th>${t('edIngRedAte')}</th><th>${t('edIngInteiro')}</th><th>${t('edIngGuia')}</th><th>${t('edIngDia')}</th><th></th></tr></thead>
+          <tbody id="ingRows">${(x.ingressos || []).map(ingLinhaEd).join('')}</tbody>
+        </table></div>
+        <button type="button" class="mini" id="ingAdd">${t('edIngAdd')}</button>
 
         <div class="rulesep"></div>
         <b>${t('edEarly')}</b>
@@ -1787,6 +1830,10 @@ function admTourEdit(id) {
     $('#trfWrap').classList.toggle('hide', e.target.value !== 'transfer');
     $('#tabWrap').classList.toggle('hide', e.target.value !== 'tabela');
   };
+  $('#ingAdd').onclick = () => $('#ingRows').insertAdjacentHTML('beforeend', ingLinhaEd({}));
+  $('#ingRows').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ingdel]'); if (b) b.closest('tr').remove();
+  });
   $('#trfAdd').onclick = () => $('#trfRows').insertAdjacentHTML('beforeend', trfLinhaEd({}));
   $('#trfRows').addEventListener('click', (e) => {
     const b = e.target.closest('[data-trfdel]'); if (b) b.closest('tr').remove();
@@ -1823,6 +1870,7 @@ function admTourEdit(id) {
       price: +$('#fPrice').value || 0, priceMode: $('#fMode').value,
       tabela: $$('.ftab').sort((p, q) => +p.dataset.i - +q.dataset.i).map(el => +el.value || 0),
       transfer: { linhas: lerTrfLinhas() },
+      ingressos: lerIngLinhas(),
       criancas: $('#fKids').checked, idadeMin: Math.max(0, +$('#fIdadeMin').value || 0),
       min: +$('#fMin').value || 1, max: +$('#fMax').value || 1,
       payPolicy: $('#fPay').value,

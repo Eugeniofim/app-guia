@@ -120,6 +120,52 @@ function transferAte(x) {
   return ls.reduce((m, l) => Math.max(m, +l.pax || 0), 0);
 }
 
+/* ---------- ingressos por idade ----------
+
+   Pedido da Ingrid (18/09/2026): "teria como ja somar o valor de ingressos
+   por idade?". Os ingressos nao estao no valor do passeio, e o preco muda com
+   a idade — no Vaticano, crianca ate 6 nao paga, jovem ate 18 paga €15 e
+   adulto €25. Ela compra os ingressos com antecedencia, entao precisa saber
+   o valor certo na hora da reserva.
+
+   x.ingressos = [{ nome:{pt,en}, gratisAte, reduzido, reduzidoAte, inteiro,
+                    guia, noDia }]
+     gratisAte   = ate esta idade (inclusive) nao paga
+     reduzido    = valor reduzido, ate reduzidoAte (inclusive)
+     inteiro     = o resto, e todo adulto
+     guia        = o ingresso da propria guia, cobrado uma vez (Sao Pedro)
+     noDia       = pago no dia, fora do total (os fones do Vaticano)
+
+   Adulto nao informa idade: paga o inteiro. */
+function precoIngresso(g, idade) {
+  const a = idade === null || idade === undefined ? 99 : +idade;
+  const tem = (v) => v !== null && v !== undefined && v !== '';
+  if (tem(g.gratisAte) && a <= +g.gratisAte) return 0;
+  if (+g.reduzido > 0 && tem(g.reduzidoAte) && a <= +g.reduzidoAte) return +g.reduzido;
+  return +g.inteiro || 0;
+}
+
+function ingressosDe(x, adultos, idades) {
+  const ings = Array.isArray(x.ingressos) ? x.ingressos : [];
+  const pessoas = Array(Math.max(0, +adultos || 0)).fill(null)
+    .concat((idades || []).map(v => (v === '' || v === null || v === undefined) ? null : +v));
+  const linhas = [], noDia = [];
+  let total = 0, totalDia = 0;
+  for (const g of ings) {
+    const porValor = {};
+    let soma = 0;
+    for (const idade of pessoas) {
+      const v = precoIngresso(g, idade);
+      soma += v; porValor[v] = (porValor[v] || 0) + 1;
+    }
+    const guia = +g.guia || 0;
+    soma += guia;
+    const linha = { nome: g.nome, valor: soma, porValor, guia };
+    if (g.noDia) { noDia.push(linha); totalDia += soma; } else { linhas.push(linha); total += soma; }
+  }
+  return { linhas, total, noDia, totalDia };
+}
+
 /* ---------- preco por numero de pessoas ----------
 
    A Ingrid nao cobra por pessoa nem um valor unico: ela tem uma tabela com
@@ -285,6 +331,9 @@ function _seed() {
       ],
       photo: 'fotos/coliseu.jpg',
       tagline: { pt: 'O coração da Roma imperial', en: 'The heart of imperial Rome' },
+      ingressos: [
+        { nome: { pt: 'Coliseu, Fórum e Palatino', en: 'Colosseum, Forum and Palatine' }, gratisAte: 17, inteiro: 18 },
+      ],
       price: 420, priceMode: 'tabela',
       tabela: [420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420],
       min: 1, max: 20, payPolicy: 'split', status: 'live', order: 1,
@@ -314,6 +363,9 @@ function _seed() {
       ],
       photo: 'fotos/forum2.jpg',
       tagline: { pt: 'Coliseu, Palatino e Fórum, sem pressa', en: 'Colosseum, Palatine and Forum, unhurried' },
+      ingressos: [
+        { nome: { pt: 'Coliseu, Fórum e Palatino', en: 'Colosseum, Forum and Palatine' }, gratisAte: 17, inteiro: 18 },
+      ],
       price: 510, priceMode: 'tabela',
       tabela: [510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510],
       min: 1, max: 20, payPolicy: 'split', status: 'live', order: 2,
@@ -343,6 +395,10 @@ function _seed() {
       ],
       photo: 'fotos/museus.jpg',
       tagline: { pt: 'Dos museus à Capela Sistina', en: 'From the museums to the Sistine Chapel' },
+      ingressos: [
+        { nome: { pt: 'Museus do Vaticano', en: 'Vatican Museums' }, gratisAte: 6, reduzido: 15, reduzidoAte: 18, inteiro: 25 },
+        { nome: { pt: 'Fones de ouvido', en: 'Headsets' }, inteiro: 1.5, noDia: true },
+      ],
       price: 420, priceMode: 'tabela',
       tabela: [420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420, 420],
       min: 1, max: 20, payPolicy: 'split', status: 'live', order: 3,
@@ -372,6 +428,11 @@ function _seed() {
       ],
       photo: 'fotos/spedro-int.jpg',
       tagline: { pt: 'Museus, Sistina e São Pedro num dia só', en: 'Museums, Sistine and St Peter’s in one day' },
+      ingressos: [
+        { nome: { pt: 'Museus do Vaticano', en: 'Vatican Museums' }, gratisAte: 6, reduzido: 15, reduzidoAte: 18, inteiro: 25 },
+        { nome: { pt: 'Basílica de São Pedro', en: 'St Peter’s Basilica' }, inteiro: 7, guia: 7 },
+        { nome: { pt: 'Fones de ouvido', en: 'Headsets' }, inteiro: 1.5, noDia: true },
+      ],
       price: 510, priceMode: 'tabela',
       tabela: [510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510, 510],
       min: 1, max: 20, payPolicy: 'split', status: 'live', order: 4,
@@ -401,6 +462,9 @@ function _seed() {
       ],
       photo: 'fotos/latrao.jpg',
       tagline: { pt: 'As basílicas papais, com motorista', en: 'The papal basilicas, with a driver' },
+      ingressos: [
+        { nome: { pt: 'Fones de ouvido', en: 'Headsets' }, inteiro: 1.5, noDia: true },
+      ],
       price: 490, priceMode: 'tabela',
       tabela: [490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490, 490],
       min: 1, max: 20, payPolicy: 'split', status: 'live', order: 5,
@@ -433,6 +497,10 @@ function _seed() {
       ],
       photo: 'fotos/spedro.jpg',
       tagline: { pt: 'As quatro basílicas papais', en: 'All four papal basilicas' },
+      ingressos: [
+        { nome: { pt: 'Basílica de São Pedro', en: 'St Peter’s Basilica' }, inteiro: 7, guia: 7 },
+        { nome: { pt: 'Fones de ouvido', en: 'Headsets' }, inteiro: 1.5, noDia: true },
+      ],
       price: 580, priceMode: 'tabela',
       tabela: [580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580, 580],
       min: 1, max: 20, payPolicy: 'split', status: 'live', order: 6,
@@ -1382,7 +1450,7 @@ let DB = null;
 
    So vale para a DEMONSTRACAO e sem nuvem: dados de verdade nunca sao
    trocados por exemplo. Os pedidos de roteiro feitos no aparelho ficam. */
-const SEED_VER = 4;   /* 4: vitrine com foto em todas as paradas (18/09/2026) */
+const SEED_VER = 5;   /* 5: ingressos por idade (18/09/2026) */
 
 function load() {
   try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
@@ -1516,7 +1584,7 @@ const Bookings = {
   get(id) { return DB.bookings.find(b => b.id === id); },
   byCode(code) { return DB.bookings.find(b => b.code === code); },
 
-  create({ tourId, date, time, name, email, whats, insta, pax, coupon, policy, origin, consent, opcao, group, adultos, criancas }) {
+  create({ tourId, date, time, name, email, whats, insta, pax, coupon, policy, origin, consent, opcao, group, adultos, criancas, idades }) {
     const tour = Tours.get(tourId);
     /* Tem que ser o MESMO calculo que a tela mostrou. tour.price * pax ignora
        o preco escalonado (195 para as 3 primeiras, 225 depois) e gravava a
@@ -1531,7 +1599,10 @@ const Bookings = {
       const v = Coupons.validate(coupon, email);
       if (v.ok) { discount = Math.round(base * v.coupon.pct) / 100 * 1; discount = Math.round(base * v.coupon.pct / 100); couponCode = v.coupon.code; }
     }
-    const total = base - discount;
+    /* ingressos por idade: somados ao total, porque e ela quem compra */
+    const nAdultos = Number.isFinite(+adultos) && adultos !== undefined ? +adultos : pax;
+    const ing = ingressosDe(tour, nAdultos, idades || []);
+    const total = base - discount + ing.total;
     const b = {
       id: uid(), code: bookCode(), tourId, date, time,
       name, email, whats, insta: insta || '', pax, total,
@@ -1540,6 +1611,8 @@ const Bookings = {
          para ela saber quem e crianca (ingresso, cadeirinha, ritmo). */
       adultos: Number.isFinite(+adultos) && adultos !== undefined ? +adultos : pax,
       criancas: +criancas || 0,
+      idades: (idades || []).map(v => (v === '' || v == null) ? null : +v),
+      ingressos: ing.total || ing.totalDia ? { linhas: ing.linhas, total: ing.total, noDia: ing.noDia, totalDia: ing.totalDia } : null,
       veiculo: pr0.veiculo || '', malas: pr0.malas || '',
       /* Transfer: o que se paga antes e o SINAL da tabela dela, nao a metade.
          O resto e no dia. */
