@@ -924,7 +924,7 @@ function viewTour(id) {
       <ol class="stopgrid">
         ${stops.map((p, i) => `
           <li class="stopcardc">
-            ${p.ph ? `<span class="scph" style="background-image:url(${esc(p.ph)})" role="img" aria-label="${esc(L(p.n))}"></span>`
+            ${p.ph ? `<span class="scph" style="background-image:url(${esc(p.ph)})" role="img" aria-label="${esc(L(p.n))}">${p.cr ? `<small class="sccr">📷 ${esc(p.cr)}</small>` : ''}</span>`
                    : `<span class="scph none" aria-hidden="true"></span>`}
             <div class="scbody">
               <span class="scnum2">${i + 1}</span>
