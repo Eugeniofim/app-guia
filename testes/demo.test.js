@@ -92,5 +92,18 @@ ok('nenhuma frase em ingles ficou com palavra em portugues (' + ingles.length + 
   ok('no painel a faixa sobe para cima da barra de abas',
     /function faixaAcimaDaBarra/.test(appTxt) && /rail\.offsetHeight \+ 'px'/.test(appTxt));
 }
+
+/* --- o primeiro desenho da tela vem DEPOIS de tudo que ele usa ---
+   Estava no meio do arquivo: abrir direto na aba Clientes dava tela branca
+   ("Cannot access 'ICO' before initialization"). 18/09/2026. */
+{
+  const appTxt = fs.readFileSync(SERVE + '/app.js', 'utf8');
+  const fim = appTxt.trimEnd().endsWith('route();');
+  const declaracoes = [...appTxt.matchAll(/^(const|let) [A-Za-z_$]+/gm)].map(m => m.index);
+  const ultimaDecl = Math.max(...declaracoes);
+  const ultimoRoute = appTxt.lastIndexOf('\nroute();');
+  ok('o app termina desenhando a tela (route() no fim do arquivo)', fim);
+  ok('nenhum const/let de nivel de arquivo vem depois do primeiro desenho', ultimaDecl < ultimoRoute);
+}
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\ntudo passou');
 process.exit(falhas ? 1 : 0);

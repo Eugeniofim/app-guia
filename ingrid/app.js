@@ -432,7 +432,7 @@ function msgRoteiro(ped) {
   const nome = (lista, v) => { const o = lista.find(z => z[0] === v); return o ? (en ? o[2] : o[1]) : v; };
   const d = (iso) => iso ? fmtDate(iso) : '';
   const L = [];
-  L.push(en ? 'Hi Ingrid! I would like a tailor-made trip:' : 'Olá, Ingrid! Quero montar um roteiro personalizado:');
+  L.push(en ? 'Hi ' + guiaNome() + '! I would like a tailor-made trip:' : 'Olá, ' + guiaNome() + '! Quero montar um roteiro personalizado:');
   L.push('');
   if (ped.ini || ped.fim) L.push((en ? '🗓 Dates: ' : '🗓 Datas: ') + [d(ped.ini), d(ped.fim)].filter(Boolean).join(' → '));
   const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
@@ -2832,8 +2832,6 @@ function admSettings() {
   else if (r.tipo === 'signup') location.hash = '#/adm/today';
 })();
 
-route();
-
 
 /* =====================================================
    AGENDA — o mês do guia
@@ -3292,3 +3290,11 @@ route();
   };
   if (document.body) poe(); else addEventListener('DOMContentLoaded', poe);
 })();
+
+/* PRIMEIRO DESENHO DA TELA — no FIM do arquivo, de proposito.
+
+   Ficava no meio, antes de "const ICO" e "let pendingSync". Quem abria o app
+   direto numa aba que usa os icones (Clientes) — recarregando a pagina, ou
+   pelo atalho do celular, que reabre na ultima tela — via a tela em branco:
+   "Cannot access 'ICO' before initialization". Achado em 18/09/2026. */
+route();

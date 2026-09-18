@@ -2136,8 +2136,6 @@ function admSettings() {
   else if (r.tipo === 'signup') location.hash = '#/adm/today';
 })();
 
-route();
-
 
 /* =====================================================
    AGENDA — o mês do guia
@@ -2572,3 +2570,11 @@ cloudStart((r) => {
   if (isBusyEditing()) { pendingSync = true; return; }
 route();
 });
+
+/* PRIMEIRO DESENHO DA TELA — no FIM do arquivo, de proposito.
+
+   Ficava no meio, antes de "const ICO" e "let pendingSync". Quem abria o app
+   direto numa aba que usa os icones (Clientes) — recarregando a pagina, ou
+   pelo atalho do celular, que reabre na ultima tela — via a tela em branco:
+   "Cannot access 'ICO' before initialization". Achado em 18/09/2026. */
+route();
