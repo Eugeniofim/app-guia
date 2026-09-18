@@ -4,10 +4,17 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'guia-v1.55.0';
+const VERSION = 'ingrid-v1.56.0';
 const CORE = [
-  './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './store.js', './auth.js', './logo.js', './cloud.js', './i18n.js', './prospecto.js', './tokens.css',
-  './manifest.webmanifest', './capa.jpg', './home.jpg', './og.jpg', './guia.jpg', './exemplo-1.jpg', './exemplo-2.jpg', './exemplo-3.jpg',
+  './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './store.js', './auth.js', './logo.js', './cloud.js', './i18n.js', './tokens.css', './manifest.webmanifest', './capa.jpg', './home.jpg', './og.jpg', './guia.jpg',
+  /* a arte da Ingrid: o selo e as capas do portfolio. Vao para o cache
+     porque sao a cara do app — sem elas, offline, a vitrine fica cinza. */
+  './arte/capa-conexao.jpg', './arte/capa-cruzeiro.jpg', './arte/capa-marca.jpg',
+  './arte/capa-roma.jpg', './arte/capa-transfer.jpg', './arte/foto-amalfi.jpg',
+  './arte/foto-assis.jpg', './arte/foto-bracciano.jpg', './arte/foto-castelli.jpg',
+  './arte/foto-civita.jpg', './arte/foto-pompeia.jpg', './arte/foto-tivoli.jpg',
+  './arte/foto-toscana-norte.jpg', './arte/foto-toscana-sul.jpg', './arte/logo-ingrid-escuro.png',
+  './arte/logo-ingrid.png',
 ];
 
 self.addEventListener('install', (e) => {
@@ -19,7 +26,9 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('guia-') && k !== VERSION).map((k) => caches.delete(k))))
+      /* so as versoes antigas deste app: a demonstracao mora no mesmo endereco
+         e tem o cache dela */
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('ingrid-') && k !== VERSION).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
