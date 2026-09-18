@@ -215,6 +215,7 @@ function _blank() {
 function _seed() {
   const db = _blank();
   db.demo = true;
+  db.seedVer = SEED_VER;
 
   /* A apresentacao dela. Nada aqui foi inventado: e o que esta no portfolio
      (as sete secoes) e no Instagram dela ("Receptivo em toda a Italia",
@@ -1212,8 +1213,26 @@ function fillSettings(s) {
 }
 
 let DB = null;
+/* Versao dos dados de DEMONSTRACAO. Sobe quando o catalogo de exemplo muda.
+
+   Sem isto, quem abriu o link uma vez fica para sempre com os dados daquele
+   dia: o navegador guarda a demonstracao e nunca mais olha o catalogo novo.
+   Aconteceu em 18/09/2026 — a v1.57 trouxe a tabela de transfer de 2026 e
+   os links de parceira, e quem tinha aberto a v1.56 continuava vendo o
+   transfer antigo (que nem funcionava mais) e nenhum link.
+
+   So vale para a DEMONSTRACAO e sem nuvem: dados de verdade nunca sao
+   trocados por exemplo. Os pedidos de roteiro feitos no aparelho ficam. */
+const SEED_VER = 2;
+
 function load() {
   try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
+  if (DB && DB.demo && !temNuvem() && (+DB.seedVer || 1) < SEED_VER) {
+    const pedidos = DB.pedidos || [];
+    DB = _seed();
+    DB.pedidos = pedidos;
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  }
   /* O app esta em producao. Aparelho novo (ou navegador limpo) tem que
      comecar VAZIO e receber o que esta na nuvem — nunca publicar um catalogo
      inventado por cima do dela. Antes isto semeava a demonstracao e o save()
