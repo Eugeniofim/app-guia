@@ -292,8 +292,23 @@ function route() {
   else if (p[0] === 'tours') viewShowcase();
   else if (p[0] === 'tour')  viewTour(p[1]);
   else                       viewHub();
+  document.body.classList.toggle('em-adm', p[0] === 'adm');
+  faixaAcimaDaBarra();
   scrollTo(0, 0);
 }
+
+/* A faixa do rodape (proposta / demonstracao) e a barra de abas do painel
+   ficam as duas presas embaixo no celular — e a faixa, por cima, tapava as
+   abas: no painel so aparecia "Hoje". Dentro do painel a faixa sobe e fica
+   logo acima da barra. (18/09/2026) */
+function faixaAcimaDaBarra() {
+  const f = document.querySelector('.protobar'); if (!f) return;
+  const rail = document.querySelector('.rail');
+  const presaEmbaixo = document.body.classList.contains('em-adm') && rail &&
+    getComputedStyle(rail).position === 'fixed';
+  f.style.bottom = presaEmbaixo ? rail.offsetHeight + 'px' : '0px';
+}
+addEventListener('resize', faixaAcimaDaBarra);
 
 /* barra de idioma do cliente */
 function langBar(cls) {

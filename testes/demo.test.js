@@ -82,5 +82,15 @@ const suspeitas = ingles.filter(s =>
 ok('nenhuma frase em ingles ficou com palavra em portugues (' + ingles.length + ' conferidas)',
   suspeitas.length === 0, suspeitas.slice(0, 3).join(' | '));
 
+
+/* --- a faixa do rodape nao pode tapar as abas do painel no celular ---
+   Aconteceu em 18/09/2026: no celular o painel so mostrava "Hoje", porque a
+   faixa (proposta / demonstracao) ficava por cima da barra de abas. */
+{
+  const appTxt = fs.readFileSync(SERVE + '/app.js', 'utf8');
+  ok('o roteador marca quando esta no painel', /classList\.toggle\('em-adm', p\[0\] === 'adm'\)/.test(appTxt));
+  ok('no painel a faixa sobe para cima da barra de abas',
+    /function faixaAcimaDaBarra/.test(appTxt) && /rail\.offsetHeight \+ 'px'/.test(appTxt));
+}
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\ntudo passou');
 process.exit(falhas ? 1 : 0);

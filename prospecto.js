@@ -93,6 +93,8 @@ function prospectoBarra(nome) {
   el.innerHTML = '<b>Proposta</b> — demonstração feita' + esc(quem) +
     ' por Ti Artes. Não é o site oficial, e nenhuma reserva aqui é real.';
   document.body.appendChild(el);
+  /* no celular, dentro do painel, sobe acima da barra de abas */
+  if (typeof faixaAcimaDaBarra === 'function') faixaAcimaDaBarra();
 }
 
 (async function prospecto() {
