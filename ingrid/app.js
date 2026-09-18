@@ -182,13 +182,38 @@ function toast(msg) {
 }
 
 /* ---------- tutorial de balões ---------- */
+/* O TUTORIAL.
+
+   Era um balao branco sem nenhuma marca: parecia pop-up de propaganda, e o
+   Eugenio avisou que dava medo de ser virus. Agora e AMARELO da marca, diz
+   "Dica do app" no topo, aponta com uma seta para o botao que explica, e o
+   botao explicado ganha um anel pulsando.
+
+   E pode FALAR. O botao "Ouvir" toca a narracao do passo (arquivos em
+   audio/, um por passo e idioma). Nunca toca sozinho de primeira — som que
+   comeca sem ninguem pedir e exatamente o que parece virus, e o celular
+   bloqueia de qualquer jeito. Depois que a pessoa toca "Ouvir" uma vez, os
+   proximos passos falam sozinhos (o toque em "Entendi" autoriza). */
 const Coach = {
-  steps: [], i: 0, el: null, keyFlag: '',
+  steps: [], i: 0, el: null, keyFlag: '', voz: false, som: null,
   start(steps, flag) {
     if (!DB.settings[flag]) return;
     this.steps = steps.filter(s => $(s.sel)); this.i = 0; this.keyFlag = flag;
     if (this.steps.length) this.show();
   },
+  audio(s) { return s.audio ? `audio/tut-${s.audio}-${LANG === 'en' ? 'en' : 'pt'}.m4a` : ''; },
+  fala(s) {
+    this.cala();
+    const src = this.audio(s); if (!src) return;
+    try {
+      this.som = new Audio(src);
+      const bt = this.el && $('.coach-ouvir', this.el);
+      if (bt) bt.classList.add('tocando');
+      this.som.onended = () => { if (bt) bt.classList.remove('tocando'); };
+      this.som.play().catch(() => { if (bt) bt.classList.remove('tocando'); });
+    } catch (e) {}
+  },
+  cala() { if (this.som) { try { this.som.pause(); } catch (e) {} this.som = null; } },
   show() {
     this.hide();
     const s = this.steps[this.i]; const target = $(s.sel);
@@ -197,23 +222,41 @@ const Coach = {
     const r = target.getBoundingClientRect();
     const b = document.createElement('div');
     b.className = 'coach';
-    b.innerHTML = `<div class="coach-txt">${esc(s.txt[LANG] || s.txt.pt)}</div>
+    b.setAttribute('role', 'dialog');
+    b.innerHTML = `<div class="coach-top"><span>💡 ${t('tutTitulo')}</span>
+        ${this.audio(s) ? `<button class="coach-ouvir" aria-label="${t('tutOuvir')}">🔊 ${t('tutOuvir')}</button>` : ''}</div>
+      <div class="coach-txt">${esc(s.txt[LANG] || s.txt.pt)}</div>
       <div class="coach-row">
         <button class="coach-skip">${t('tutSkip')}</button>
         <span class="coach-n">${this.i + 1}/${this.steps.length}</span>
         <button class="coach-next">${t('tutNext')}</button>
-      </div>`;
+      </div>
+      <i class="coach-seta" aria-hidden="true"></i>`;
     document.body.appendChild(b);
-    const bw = 270, top = r.bottom + 10, left = Math.max(10, Math.min(innerWidth - bw - 10, r.left + r.width / 2 - bw / 2));
-    b.style.top = (top + b.offsetHeight > innerHeight ? Math.max(10, r.top - b.offsetHeight - 10) : top) + 'px';
+    const bw = Math.min(290, innerWidth - 20);
+    b.style.width = bw + 'px';
+    const abaixo = r.bottom + 14 + b.offsetHeight <= innerHeight;
+    const top = abaixo ? r.bottom + 14 : Math.max(10, r.top - b.offsetHeight - 14);
+    const left = Math.max(10, Math.min(innerWidth - bw - 10, r.left + r.width / 2 - bw / 2));
+    b.style.top = top + 'px';
     b.style.left = left + 'px';
+    b.classList.add(abaixo ? 'seta-cima' : 'seta-baixo');
+    /* a seta aponta para o meio do botao, nao para o meio do balao */
+    const seta = $('.coach-seta', b);
+    seta.style.left = Math.max(16, Math.min(bw - 30, r.left + r.width / 2 - left - 8)) + 'px';
     target.classList.add('coach-hi');
     this.el = b; this.hiEl = target;
     $('.coach-next', b).onclick = () => this.next();
     $('.coach-skip', b).onclick = () => this.stop(true);
+    const ouvir = $('.coach-ouvir', b);
+    if (ouvir) ouvir.onclick = () => {
+      if (this.som && !this.som.paused) { this.cala(); ouvir.classList.remove('tocando'); return; }
+      this.voz = true; this.fala(s);
+    };
+    if (this.voz) this.fala(s);
   },
   next() { this.i++; if (this.i >= this.steps.length) return this.stop(true); this.show(); },
-  hide() { this.el?.remove(); this.el = null; this.hiEl?.classList.remove('coach-hi'); },
+  hide() { this.cala(); this.el?.remove(); this.el = null; this.hiEl?.classList.remove('coach-hi'); },
   stop(done) {
     this.hide();
     if (this.keyFlag) { DB.settings[this.keyFlag] = false; save(); }
@@ -331,8 +374,8 @@ function viewHub() {
   $('#goAbout').onclick = () => go('/about');
   $('#admEntry').onclick = () => go('/adm/today');
   Coach.start([
-    { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.' } },
-    { sel: '#admEntry', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.' } },
+    { sel: '#goTours',  audio: 'hub-1', txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.' } },
+    { sel: '#admEntry', audio: 'hub-2', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.' } },
   ], 'tutorialClient');
 }
 
@@ -1412,10 +1455,10 @@ function admToday() {
     </section>`);
   $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
   Coach.start([
-    { sel: '#nb-tours',    txt: { pt: 'Aqui você cria e edita seus passeios — quantos quiser, com o calendário de cada um.', en: 'Create and edit your tours here — as many as you want, each with its own calendar.' } },
-    { sel: '#nb-bookings', txt: { pt: 'Cada reserva aparece aqui: quem pagou tudo, quem pagou o sinal, quem atrasou.', en: 'Every booking lands here: paid in full, deposit only, or late.' } },
-    { sel: '#nb-money',    txt: { pt: 'O extrato que vai para o contador: cliente, serviço, valor, forma e data de pagamento.', en: 'The statement for your accountant: guest, service, amount, method and date.' } },
-    { sel: '#viewSite',    txt: { pt: 'A qualquer momento, veja o site exatamente como o cliente vê.', en: 'At any time, see the site exactly as your guest does.' } },
+    { sel: '#nb-tours',    audio: 'adm-1', txt: { pt: 'Aqui você cria e edita seus passeios — quantos quiser, com o calendário de cada um.', en: 'Create and edit your tours here — as many as you want, each with its own calendar.' } },
+    { sel: '#nb-bookings', audio: 'adm-2', txt: { pt: 'Cada reserva aparece aqui: quem pagou tudo, quem pagou o sinal, quem atrasou.', en: 'Every booking lands here: paid in full, deposit only, or late.' } },
+    { sel: '#nb-money',    audio: 'adm-3', txt: { pt: 'O extrato que vai para o contador: cliente, serviço, valor, forma e data de pagamento.', en: 'The statement for your accountant: guest, service, amount, method and date.' } },
+    { sel: '#viewSite',    audio: 'adm-4', txt: { pt: 'A qualquer momento, veja o site exatamente como o cliente vê.', en: 'At any time, see the site exactly as your guest does.' } },
   ], 'tutorialAdm');
 }
 

@@ -887,6 +887,8 @@ const STR = {
 
   /* tutorial — balões */
   tutSkip: { pt: 'Pular tutorial', en: 'Skip tutorial' },
+  tutTitulo: { pt: 'Dica do app', en: 'App tip' },
+  tutOuvir:  { pt: 'Ouvir', en: 'Listen' },
   tutNext: { pt: 'Entendi', en: 'Got it' },
   tutDone: { pt: 'Pronto! Qualquer dúvida, o tutorial volta pelos Ajustes.', en: 'Done! You can replay this anytime from Settings.' },
 };
