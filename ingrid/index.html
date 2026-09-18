@@ -25,7 +25,7 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=1.56.1">
+<link rel="stylesheet" href="tokens.css?v=1.57.0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23064c3f'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23FFD23F' stroke-width='8'/%3E%3Ccircle cx='50' cy='50' r='9' fill='%23FFD23F'/%3E%3C/svg%3E">
 <style>
 /* ============ base ============ */
@@ -1093,6 +1093,73 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 
 .grpline{display:block;margin-top:4px;color:var(--ink-3);line-height:1.4}
 .grpline b{color:var(--ink-2);font-weight:600}
+
+/* --- primeira tela: redes e links de parceiros (o "Beacons" dela) --- */
+.redes{display:flex;justify-content:center;gap:10px;margin:14px 0 4px}
+.rede{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+  background:var(--surface-2);color:var(--ink-2);transition:transform var(--d-fast) var(--spring)}
+.rede svg{width:19px;height:19px;display:block}
+.rede:hover{transform:translateY(-2px)}
+.rede.ig{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fdf497 5%,#fd5949 45%,#d6249f 60%,#285AEB 90%);color:#fff}
+.rede.yt{background:#FF0000;color:#fff}
+.rede.fb{background:#1877F2;color:#fff}
+.rede.bl{background:var(--brand-primaria);color:#fff}
+.hubsec{margin:14px 4px 2px;font-family:var(--f-mono);font-size:var(--fs-1);letter-spacing:var(--track-label);
+  text-transform:uppercase;color:rgba(255,255,255,.8)}
+.lk.parc .go{font-size:14px}
+
+/* --- adultos e criancas --- */
+.pessoas{margin:4px 0 10px}
+.paxrow > span b{display:block}
+.paxrow > span small{display:block;color:var(--ink-3);font-size:var(--fs-2)}
+.pessoas .why{margin-top:8px}
+
+/* --- transfer: centro, sinal --- */
+.trfcentro{margin:12px 0 14px}
+.trfcentro > b{display:block;font-size:.95rem}
+.trfcentro .why{display:block;margin:2px 0 10px}
+.trfsn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.trfsn .popt{text-align:center}
+.sinalnote{margin:12px 0 4px;padding:11px 13px;border-radius:var(--r);background:var(--highlight-wash);
+  color:var(--ink);font-size:var(--fs-3);line-height:1.45}
+.trftab tr.mesmo td{border-top:0;padding-top:2px}
+.trftab tr.novo td{border-top:1px solid var(--line)}
+
+/* --- vitrine: onde --- */
+.chips.onde{margin-bottom:8px}
+.chips.onde .chip{font-size:var(--fs-2)}
+
+/* --- monte seu roteiro --- */
+.roteiro .rtintro{color:var(--ink-2);margin:-4px 0 18px;line-height:1.5}
+.rtbloco{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:16px;margin-bottom:12px}
+.rtbloco h3{font-size:var(--fs-4);margin-bottom:6px}
+.rtbloco > .why{display:block;margin-bottom:10px}
+.rtbloco .chips{margin-bottom:6px}
+.rtbloco .chip.on{background:var(--brand-primaria);color:#fff}
+.roteiro .cta{margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px}
+.roteiro.fim{text-align:center;padding-top:60px}
+
+/* --- painel: pedidos de roteiro --- */
+.pedidos summary{cursor:pointer;display:flex;align-items:center;gap:8px}
+.pedido{border-top:1px solid var(--line);padding:12px 0}
+.pedido.resp{opacity:.62}
+.pdtop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pdmsg{white-space:pre-wrap;font-family:inherit;font-size:var(--fs-2);background:var(--surface-2);
+  border-radius:var(--r);padding:10px 12px;margin:8px 0;color:var(--ink-2);line-height:1.5}
+
+/* --- painel: tabela do transfer, links, cidades --- */
+.trfedit-wrap{overflow-x:auto;margin:8px 0 10px;-webkit-overflow-scrolling:touch}
+.trfedit{border-collapse:collapse;min-width:640px;width:100%;font-size:var(--fs-2)}
+.trfedit th{text-align:left;font-weight:600;color:var(--ink-3);padding:0 4px 6px}
+.trfedit td{padding:3px 4px}
+.trfedit input{width:100%;padding:7px 8px;border:1px solid var(--line-2);border-radius:8px;
+  background:var(--surface);color:var(--ink);font:inherit}
+.trfedit td:first-child input{width:58px}
+.trfedit td:nth-child(n+4) input{width:72px}
+.edrow{border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:10px}
+.edrow .frow{align-items:flex-end}
+.edrow .fld.sm{max-width:74px}
+.regn{align-self:center;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -1131,18 +1198,18 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=1.56.1"></script>
-<script src="auth.js?v=1.56.1"></script>
-<script src="logo.js?v=1.56.1"></script>
-<script src="fx.js?v=1.56.1"></script>
-<script src="qrcode.js?v=1.56.1"></script>
-<script src="qr.js?v=1.56.1"></script>
-<script src="pix.js?v=1.56.1"></script>
-<script src="traduz.js?v=1.56.1"></script>
-<script src="store.js?v=1.56.1"></script>
-<script src="cloud.js?v=1.56.1"></script>
-<script src="i18n.js?v=1.56.1"></script>
-<script src="app.js?v=1.56.1"></script>
+<script src="config.js?v=1.57.0"></script>
+<script src="auth.js?v=1.57.0"></script>
+<script src="logo.js?v=1.57.0"></script>
+<script src="fx.js?v=1.57.0"></script>
+<script src="qrcode.js?v=1.57.0"></script>
+<script src="qr.js?v=1.57.0"></script>
+<script src="pix.js?v=1.57.0"></script>
+<script src="traduz.js?v=1.57.0"></script>
+<script src="store.js?v=1.57.0"></script>
+<script src="cloud.js?v=1.57.0"></script>
+<script src="i18n.js?v=1.57.0"></script>
+<script src="app.js?v=1.57.0"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

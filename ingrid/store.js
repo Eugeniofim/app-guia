@@ -20,9 +20,10 @@ Rule       {id, tourId, weekdays:[0-6], time:'16:30', capacity, from:'2026-11-20
 Departure  {id, tourId, date:'2026-12-21', time, capacity}  // avulsas; recorrentes são geradas das Rules
 Block      {id, from, until, reason}                        // bloqueio global (férias)
 Booking    {id, code, tourId, date, time, name, email, whats, insta, pax, total,
-            veiculo:'carro'|'van'|'',        // so nos transfers
+            veiculo, malas, sinal,          // so nos transfers (da tabela dela)
             group:[{nome, nasc}],            // quem mais veio, alem de quem reservou
-            coupon, discount, policy:'full'|'split',
+            coupon, discount, policy:'full'|'split'|'sinal',
+            adultos, criancas,
             payments:[{amount, date, method, kind:'full'|'deposit'|'balance'}],
             status:'confirmed'|'cancelled', createdAt, origin}
 Coupon     {code, pct, until, oncePerPerson, uses:[email]}
@@ -42,6 +43,12 @@ function guiaNome() { return _cfgSettings().admName || GUIA_CFG.nome || 'Guia'; 
 function guiaNegocio() { return _cfgSettings().negocio || GUIA_CFG.negocio || guiaNome(); }
 function guiaBase() { return _cfgSettings().base || GUIA_CFG.cidade || ''; }
 function regioes() {
+  /* O que ela cadastrou no painel vem primeiro. O try e porque DB e "let"
+     e pode ainda nao existir quando o arquivo carrega. */
+  try {
+    const d = DB && DB.settings && DB.settings.regioes;
+    if (Array.isArray(d) && d.length) return d;
+  } catch (e) {}
   const r = GUIA_CFG.regioes;
   return (r && r.length) ? r : [['cidade', 'Cidade', 'City'], ['arredores', 'Arredores', 'Surroundings']];
 }
@@ -55,16 +62,22 @@ function regiaoOpts(cur) {
   return regioes().map(([v, pt, e]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${en ? e : pt}</option>`).join('');
 }
 
-/* ---------- transfer: veiculo e horario ----------
+/* ---------- transfer: pessoas, bagagem e horario ----------
 
-   O transfer nao se cobra por pessoa. A tabela dela (pagina 4 do portfolio)
-   cobra POR TRECHO, e o valor depende de duas coisas: o veiculo — que quem
-   decide sao as MALAS, nao as pessoas — e a hora, porque das 21h as 6h o
-   valor e outro.
+   A tabela dela de 2026 (TABELA VALORES 2026 - Transfer Roma.pdf) cobra por
+   TRECHO, nunca por pessoa, e o valor depende de tres coisas:
 
-   Foi o que ela disse que mais ajudaria: "transfer ia ajudar muito". Sem
-   este modelo o app teria que fingir que transfer e um passeio por pessoa,
-   e ela continuaria fazendo a conta a mao. */
+     1. QUANTAS PESSOAS, de 1 a 20 ("1 ou 2 pessoas" e uma linha so);
+     2. para cada quantidade ha DUAS opcoes de veiculo, e quem decide entre
+        elas e a BAGAGEM (ex.: 3 pessoas com 2 malas cabem num carro; com 6
+        malas precisam de minivan);
+     3. a HORA: das 21h as 5h59 vale a coluna "Noturno".
+
+   Cada linha tem tambem o SINAL, que e o que o cliente paga antes para
+   garantir. O resto e no dia.
+
+   transfer.linhas = [{ pax, malas, veiculo, dia, noite, sinal }]
+   pax 2 = "1 ou 2 pessoas". */
 const NOITE_DE = 21, NOITE_ATE = 6;   /* 21:00 as 05:59 = noturno */
 
 function transferNoturno(hora) {
@@ -73,11 +86,38 @@ function transferNoturno(hora) {
   return h >= NOITE_DE || h < NOITE_ATE;
 }
 
-function transferPreco(x, veiculo, hora) {
-  const tr = x.transfer || {};
-  const v = tr[veiculo === 'van' ? 'van' : 'carro'];
-  if (!v) return 0;
-  return +(transferNoturno(hora) ? v.noite : v.dia) || 0;
+/* "1 ou 2 pessoas" e a mesma linha na tabela dela */
+function transferPax(pax) { return Math.max(2, Math.min(20, +pax || 1)); }
+
+/* as opcoes de veiculo para aquela quantidade, na ordem da tabela */
+function transferOpcoes(x, pax) {
+  const ls = (x.transfer && Array.isArray(x.transfer.linhas)) ? x.transfer.linhas : [];
+  const n = transferPax(pax);
+  return ls.filter(l => +l.pax === n);
+}
+
+function transferLinha(x, pax, opcao) {
+  const ops = transferOpcoes(x, pax);
+  return ops[Math.max(0, Math.min(ops.length - 1, +opcao || 0))] || null;
+}
+
+function transferPreco(x, pax, opcao, hora) {
+  const l = transferLinha(x, pax, opcao);
+  if (!l) return 0;
+  return +(transferNoturno(hora) ? l.noite : l.dia) || 0;
+}
+
+/* o "a partir de": o menor valor diurno da tabela */
+function transferMenor(x) {
+  const ls = (x.transfer && x.transfer.linhas) || [];
+  const v = ls.map(l => +l.dia || 0).filter(v => v > 0);
+  return v.length ? Math.min(...v) : 0;
+}
+
+/* ate quantas pessoas a tabela responde */
+function transferAte(x) {
+  const ls = (x.transfer && x.transfer.linhas) || [];
+  return ls.reduce((m, l) => Math.max(m, +l.pax || 0), 0);
 }
 
 /* ---------- preco por numero de pessoas ----------
@@ -114,6 +154,8 @@ function tabelaAte(x) {
 
 function _blank() {
   return { tours: [], rules: [], departures: [], blocks: [], bookings: [], coupons: [], seatCounts: [],
+           /* pedidos de roteiro personalizado (o questionario do cliente) */
+           pedidos: [],
            settings: { lang: 'pt', tutorialClient: true, tutorialAdm: true,
            /* quem e o guia — nasce do config.js e o guia edita no painel */
            admName: GUIA_CFG.nome || 'Guia', negocio: GUIA_CFG.negocio || '',
@@ -126,6 +168,17 @@ function _blank() {
            /* pixName e pixCity sao exigidos pelo padrao do BR Code:
               sem eles o banco recusa o codigo. */
            pixKey: '', pixName: '', pixCity: '', iban: '', ibanName: '', payNote: '',
+           /* Wise: link de pagamento (wise.com/pay/...). Dinheiro no dia: o
+              transfer dela e cobrado assim. Vazio/falso = nao aparece. */
+           wiseLink: '', dinheiroNoDia: false,
+           /* A primeira tela e o "link na bio" dela: redes e os links de
+              parceiros que ela ja divulga (hotel, chip, seguro). Ela edita
+              tudo no painel, em Aparencia. */
+           youtube: '', facebook: '', blog: '',
+           links: [],
+           /* cidades e regioes da vitrine. Vazio = as do config.js. Ela
+              acrescenta uma cidade nova pelo painel, sem nos. */
+           regioes: [],
            /* para onde vai o aviso de reserva nova. Vazio = ela ainda nao
               preencheu; quem manda o e-mail e o robo, fora do navegador. */
            admEmail: '',
@@ -172,20 +225,41 @@ function _seed() {
     pt: 'Receptivo em toda a Itália. Transfer e passeios personalizados, com acompanhante habilitada em português.',
     en: 'Travel services across Italy. Transfers and tailor-made tours, with a licensed Portuguese-speaking guide.',
   };
+  /* Os links que estao no Beacons dela hoje (beacons.ai/em_roma), com os
+     codigos de parceira DELA — e deles que vem a comissao. O do seguro e o
+     que o Eugenio mandou (com pcrid=786). */
+  db.settings.links = [
+    { id: 'hotel', icone: '🏨', url: 'https://www.booking.com/city/it/rome.pt-br.html?aid=1157924;Label=linktree',
+      titulo: { pt: 'Reserve seu hotel em Roma', en: 'Book your hotel in Rome' },
+      sub: { pt: 'E ajude a gente — você não paga nada a mais por isso', en: 'And help us — it costs you nothing extra' } },
+    { id: 'chip', icone: '📶', url: 'https://viajeconectado.com/?ref=EmRoma',
+      titulo: { pt: 'Chip de viagem com desconto', en: 'Travel SIM with a discount' },
+      sub: { pt: 'Compre no Brasil e chegue conectado', en: 'Buy it in Brazil and land connected' } },
+    { id: 'seguro', icone: '🛡️', url: 'https://www.segurospromo.com.br/?tt=ig14%2F7&cupom=VOUDEPROMO&pcrid=786&utm_medium=afiliado',
+      titulo: { pt: 'Seguro viagem — 15% de desconto', en: 'Travel insurance — 15% off' },
+      sub: { pt: '+ 5% no boleto. Nunca viaje sem seguro', en: '+ 5% paying by boleto. Never travel uninsured' } },
+  ];
+  db.settings.youtube  = 'https://www.youtube.com/channel/UCqSttbPSaRurVAJvnwILWYw';
+  db.settings.facebook = 'https://www.facebook.com/emroma.com.ingrid/';
+  db.settings.blog     = 'https://emroma.com/';
+  db.settings.photo    = 'arte/avatar-ingrid.jpg';
+  db.settings.dinheiroNoDia = true;
   db.settings.bio = {
-    pt: 'Sou a Ingrid, acompanhante turística habilitada, e atendo em português em toda a Itália.\n\n'
+    pt: 'Sou a Ingrid Meika. Moro na Itália desde 2004 e em Roma desde 2006 — e sou apaixonada por esta cidade.\n\n'
+      + 'Foi esse amor que fez nascer o blog Em Roma, onde conto de comida, eventos, lugares que amo, curiosidades '
+      + 'e hábitos romanos. Hoje sou acompanhante turística habilitada e atendo em português em toda a Itália.\n\n'
       + 'Em Roma faço passeios privativos: a Roma Antiga, o Vaticano, as basílicas papais, o centro barroco a pé, '
-      + 'a Roma iluminada à noite, os mirantes da cidade e a Audiência Papal.\n\n'
-      + 'Fora de Roma, organizo bate e volta com motorista particular em língua portuguesa — Toscana, Costa '
-      + 'Amalfitana, Pompeia e Nápoles, Assis, Tivoli, Castelli Romani — e roteiros de vários dias pela Itália.\n\n'
-      + 'Também faço os seus transfers: aeroporto, Porto de Civitavecchia, estações e trechos dentro do centro histórico.\n\n'
+      + 'a Roma iluminada à noite, os mirantes e a Audiência Papal. Fora de Roma, organizo bate e volta com motorista '
+      + 'particular — Toscana, Costa Amalfitana, Pompeia, Assis, Tivoli, Castelli Romani.\n\n'
+      + 'E cuido dos seus transfers, com motoristas credenciados e pontuais: aeroportos, Porto de Civitavecchia e estações.\n\n'
       + 'Todos os passeios são privativos: o grupo é só seu.',
-    en: 'I am Ingrid, a licensed tourist guide, and I work in Portuguese across Italy.\n\n'
+    en: 'I am Ingrid Meika. I have lived in Italy since 2004 and in Rome since 2006 — and I am in love with this city.\n\n'
+      + 'That love gave birth to the Em Roma blog, where I write about food, events, places I love, curiosities and '
+      + 'Roman habits. Today I am a licensed tourist guide and I work in Portuguese across Italy.\n\n'
       + 'In Rome I run private tours: Ancient Rome, the Vatican, the papal basilicas, the baroque centre on foot, '
-      + 'Rome by night, the city viewpoints and the Papal Audience.\n\n'
-      + 'Outside Rome, I organise day trips with a private Portuguese-speaking driver — Tuscany, the Amalfi Coast, '
-      + 'Pompeii and Naples, Assisi, Tivoli, Castelli Romani — and multi-day itineraries across Italy.\n\n'
-      + 'I also handle your transfers: airport, Port of Civitavecchia, stations and trips within the historic centre.\n\n'
+      + 'Rome by night, the viewpoints and the Papal Audience. Outside Rome, I organise day trips with a private '
+      + 'driver — Tuscany, the Amalfi Coast, Pompeii, Assisi, Tivoli, Castelli Romani.\n\n'
+      + 'And I take care of your transfers, with licensed, punctual drivers: airports, the Port of Civitavecchia and stations.\n\n'
       + 'Every tour is private: the group is yours alone.',
   };
 
@@ -761,88 +835,268 @@ function _seed() {
                    en: 'Prices on request; they vary with the destination and the ticket date.' },
     },
     { id: 'transfer-aeroporto', type: 'transfer', region: 'transfer',
-      name: { pt: 'Aeroporto (FCO ou CIA) ↔ Centro Histórico', en: 'Airport (FCO or CIA) ↔ Historic Centre' },
-      desc: { pt: 'Transfer entre o aeroporto de Fiumicino ou Ciampino e o centro histórico de Roma, com motorista em língua portuguesa. Estão inclusos pedágio, combustível e estacionamento.',
-              en: 'Transfer between Fiumicino or Ciampino airport and the historic centre of Rome, with a Portuguese-speaking driver. Tolls, fuel and parking are included.' },
-      meeting: 'Combinado por WhatsApp após a reserva',
+      name: { pt: 'Aeroportos de Roma (FCO ou CIA) ↔ Centro', en: 'Rome airports (FCO or CIA) ↔ Centre' },
+      desc: { pt: 'Transfer entre os aeroportos de Fiumicino ou Ciampino e o seu hotel no centro de Roma, com motorista credenciado. O serviço mais pedido.',
+              en: 'Transfer between Fiumicino or Ciampino airport and your hotel in central Rome, with a licensed driver. The most requested service.' },
+      meeting: 'No seu hotel, no aeroporto, no porto ou na estação',
       duration: 'Por trecho', distance: '', effort: 'easy',
-      includes: { pt: ['Motorista em língua portuguesa', 'Pedágio, combustível e estacionamento'],
-                    en: ['Portuguese-speaking driver', 'Tolls, fuel and parking'] },
-      notIncludes: { pt: ['Refeições', 'Ingressos'],
-                    en: ['Meals', 'Tickets'] },
+      includes: { pt: ['Motorista credenciado', 'Pedágio, combustível e estacionamento'],
+                    en: ['Licensed driver', 'Tolls, fuel and parking'] },
+      notIncludes: { pt: ['Espera além da incluída'],
+                    en: ['Waiting beyond what is included'] },
       stops: [],
       photo: 'arte/capa-transfer.jpg',
       price: 90, priceMode: 'transfer',
-      transfer: {
-        carro: { dia: 90, noite: 120, malas: 'até 2 malas médias (65x45x28) e 2 de bordo' },
-        van:   { dia: 100, noite: 130, malas: 'até 6 malas médias (65x45x28) e as de bordo' },
-      },
-      min: 1, max: 20, payPolicy: 'split', status: 'live', order: 31,
-      priceNote: { pt: 'Inclui 1 hora de espera no aeroporto após o pouso (acompanhamos pelo número do voo). Passada 1 hora, há cobrança de €40 por veículo por hora. Pagamento em dinheiro; no cartão há acréscimo de 10%. O valor é por trecho, não por pessoa.',
-                   en: 'Includes one hour of waiting at the airport after landing (we track your flight number). After that hour, €40 per vehicle per hour applies. Payment in cash; card payments carry a 10% surcharge. The price is per trip, not per person.' },
+      transfer: { linhas: [
+        { pax: 2, veiculo: 'carro', malas: '2 malas médias (65x45x28) e 2 bordo', dia: 90, noite: 120, sinal: 30 },
+        { pax: 2, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 100, noite: 130, sinal: 30 },
+        { pax: 3, veiculo: 'carro', malas: '2 malas médias (65x45x28) e 2 bordo', dia: 95, noite: 125, sinal: 35 },
+        { pax: 3, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 105, noite: 135, sinal: 35 },
+        { pax: 4, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 110, noite: 140, sinal: 40 },
+        { pax: 4, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 120, noite: 150, sinal: 40 },
+        { pax: 5, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 115, noite: 145, sinal: 45 },
+        { pax: 5, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 125, noite: 155, sinal: 45 },
+        { pax: 6, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 120, noite: 150, sinal: 50 },
+        { pax: 6, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 130, noite: 160, sinal: 50 },
+        { pax: 7, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 135, noite: 165, sinal: 55 },
+        { pax: 7, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 195, noite: 255, sinal: 55 },
+        { pax: 8, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 140, noite: 170, sinal: 60 },
+        { pax: 8, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 200, noite: 260, sinal: 60 },
+        { pax: 9, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 205, noite: 265, sinal: 65 },
+        { pax: 9, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 215, noite: 275, sinal: 65 },
+        { pax: 10, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 210, noite: 270, sinal: 70 },
+        { pax: 10, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 220, noite: 280, sinal: 70 },
+        { pax: 11, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 220, noite: 280, sinal: 80 },
+        { pax: 11, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 230, noite: 290, sinal: 80 },
+        { pax: 12, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 240, noite: 300, sinal: 100 },
+        { pax: 12, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 250, noite: 310, sinal: 100 },
+        { pax: 13, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 270, noite: 330, sinal: 120 },
+        { pax: 13, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 280, noite: 340, sinal: 120 },
+        { pax: 14, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 280, noite: 340, sinal: 130 },
+        { pax: 14, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 290, noite: 350, sinal: 130 },
+        { pax: 15, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 300, noite: 360, sinal: 140 },
+        { pax: 15, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 350, noite: 440, sinal: 140 },
+        { pax: 16, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 320, noite: 380, sinal: 160 },
+        { pax: 16, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 14 bordo', dia: 370, noite: 460, sinal: 160 },
+        { pax: 17, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 14 bordo', dia: 380, noite: 470, sinal: 170 },
+        { pax: 17, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 410, noite: 500, sinal: 170 },
+        { pax: 18, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 14 bordo', dia: 390, noite: 480, sinal: 180 },
+        { pax: 18, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 420, noite: 510, sinal: 180 },
+        { pax: 19, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 430, noite: 520, sinal: 190 },
+        { pax: 19, veiculo: '4 vans', malas: '32 malas médias (65x45x28) e 24 bordo', dia: 510, noite: 630, sinal: 190 },
+        { pax: 20, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 440, noite: 530, sinal: 200 },
+        { pax: 20, veiculo: '4 vans', malas: '32 malas médias (65x45x28) e 24 bordo', dia: 520, noite: 640, sinal: 200 },
+      ] },
+      min: 1, max: 20, payPolicy: 'sinal', status: 'live', order: 31,
+      priceNote: { pt: 'Inclui 1 hora de espera no aeroporto após o pouso (acompanhamos pelo número do voo). Depois, €40 por veículo por hora. Valores para hotel no centro histórico e uma parada só. Fora do centro, ou com o grupo em dois hotéis, o orçamento é feito à parte. Valores em dinheiro; no cartão há acréscimo de 10%. O valor é por trecho, não por pessoa. Um sinal garante a reserva e o restante é pago no dia.',
+                   en: 'Includes one hour of waiting after landing (we track your flight). After that, €40 per vehicle per hour. Prices for a hotel in the historic centre and a single stop. Outside the centre, or with the group in two hotels, it is quoted separately. Prices in cash; card payments carry a 10% surcharge. The price is per trip, not per person. A deposit secures the booking and the rest is paid on the day.' },
     },
     { id: 'transfer-civitavecchia', type: 'transfer', region: 'transfer',
-      name: { pt: 'Porto de Civitavecchia ↔ Centro ou Aeroporto', en: 'Port of Civitavecchia ↔ Centre or Airport' },
-      desc: { pt: 'Transfer entre o Porto de Civitavecchia e o centro histórico de Roma ou o aeroporto, com motorista em língua portuguesa.',
-              en: 'Transfer between the Port of Civitavecchia and the historic centre of Rome or the airport, with a Portuguese-speaking driver.' },
-      meeting: 'Combinado por WhatsApp após a reserva',
+      name: { pt: 'Porto de Civitavecchia ↔ Centro', en: 'Port of Civitavecchia ↔ Centre' },
+      desc: { pt: 'Transfer entre o Porto de Civitavecchia e o seu hotel no centro de Roma, com motorista credenciado.',
+              en: 'Transfer between the Port of Civitavecchia and your hotel in central Rome, with a licensed driver.' },
+      meeting: 'No seu hotel, no aeroporto, no porto ou na estação',
       duration: 'Por trecho', distance: '', effort: 'easy',
-      includes: { pt: ['Motorista em língua portuguesa', 'Pedágio, combustível e estacionamento'],
-                    en: ['Portuguese-speaking driver', 'Tolls, fuel and parking'] },
-      notIncludes: { pt: ['Refeições', 'Ingressos'],
-                    en: ['Meals', 'Tickets'] },
+      includes: { pt: ['Motorista credenciado', 'Pedágio, combustível e estacionamento'],
+                    en: ['Licensed driver', 'Tolls, fuel and parking'] },
+      notIncludes: { pt: ['Espera além da incluída'],
+                    en: ['Waiting beyond what is included'] },
       stops: [],
       photo: 'arte/capa-transfer.jpg',
       price: 190, priceMode: 'transfer',
-      transfer: {
-        carro: { dia: 190, noite: 220, malas: 'até 2 malas médias (65x45x28) e 2 de bordo' },
-        van:   { dia: 210, noite: 240, malas: 'até 6 malas médias (65x45x28) e as de bordo' },
-      },
-      min: 1, max: 20, payPolicy: 'split', status: 'live', order: 32,
-      priceNote: { pt: 'Inclui 15 minutos de espera no porto. Depois disso, há cobrança de €20 a cada 20 minutos de espera. Pagamento em dinheiro; no cartão há acréscimo de 10%. O valor é por trecho, não por pessoa.',
-                   en: 'Includes 15 minutes of waiting at the port. After that, €20 for every 20 minutes of waiting. Payment in cash; card payments carry a 10% surcharge. The price is per trip, not per person.' },
+      transfer: { linhas: [
+        { pax: 2, veiculo: 'carro', malas: '2 malas médias (65x45x28) e 2 bordo', dia: 190, noite: 220, sinal: 50 },
+        { pax: 2, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 210, noite: 240, sinal: 50 },
+        { pax: 3, veiculo: 'carro', malas: '2 malas médias (65x45x28) e 2 bordo', dia: 195, noite: 225, sinal: 55 },
+        { pax: 3, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 215, noite: 245, sinal: 55 },
+        { pax: 4, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 220, noite: 250, sinal: 60 },
+        { pax: 4, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 240, noite: 270, sinal: 60 },
+        { pax: 5, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 225, noite: 255, sinal: 65 },
+        { pax: 5, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 245, noite: 275, sinal: 65 },
+        { pax: 6, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 230, noite: 260, sinal: 70 },
+        { pax: 6, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 250, noite: 280, sinal: 70 },
+        { pax: 7, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 260, noite: 290, sinal: 80 },
+        { pax: 7, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 400, noite: 460, sinal: 80 },
+        { pax: 8, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 270, noite: 300, sinal: 90 },
+        { pax: 8, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 410, noite: 470, sinal: 90 },
+        { pax: 9, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 420, noite: 480, sinal: 100 },
+        { pax: 9, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 440, noite: 500, sinal: 100 },
+        { pax: 10, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 440, noite: 500, sinal: 120 },
+        { pax: 10, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 460, noite: 520, sinal: 120 },
+        { pax: 11, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 450, noite: 510, sinal: 130 },
+        { pax: 11, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 470, noite: 530, sinal: 130 },
+        { pax: 12, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 460, noite: 520, sinal: 140 },
+        { pax: 12, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 480, noite: 540, sinal: 140 },
+        { pax: 13, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 500, noite: 560, sinal: 160 },
+        { pax: 13, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 520, noite: 580, sinal: 160 },
+        { pax: 14, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 510, noite: 570, sinal: 170 },
+        { pax: 14, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 530, noite: 590, sinal: 170 },
+        { pax: 15, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 540, noite: 600, sinal: 180 },
+        { pax: 15, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 660, noite: 750, sinal: 180 },
+        { pax: 16, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 550, noite: 610, sinal: 190 },
+        { pax: 16, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 670, noite: 760, sinal: 190 },
+        { pax: 17, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 680, noite: 770, sinal: 200 },
+        { pax: 17, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 740, noite: 830, sinal: 200 },
+        { pax: 18, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 14 bordo', dia: 690, noite: 780, sinal: 210 },
+        { pax: 18, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 750, noite: 840, sinal: 210 },
+        { pax: 19, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 760, noite: 850, sinal: 220 },
+        { pax: 19, veiculo: '4 vans', malas: '32 malas médias (65x45x28) e 24 bordo', dia: 940, noite: 1030, sinal: 220 },
+        { pax: 20, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 770, noite: 860, sinal: 230 },
+        { pax: 20, veiculo: '4 vans', malas: '32 malas médias (65x45x28) e 24 bordo', dia: 950, noite: 1040, sinal: 230 },
+      ] },
+      min: 1, max: 20, payPolicy: 'sinal', status: 'live', order: 32,
+      priceNote: { pt: 'Inclui 15 minutos de espera. Depois, €20 a cada 20 minutos. Valores para hotel no centro histórico e uma parada só. Fora do centro, ou com o grupo em dois hotéis, o orçamento é feito à parte. Valores em dinheiro; no cartão há acréscimo de 10%. O valor é por trecho, não por pessoa. Um sinal garante a reserva e o restante é pago no dia.',
+                   en: 'Includes 15 minutes of waiting. After that, €20 for every 20 minutes. Prices for a hotel in the historic centre and a single stop. Outside the centre, or with the group in two hotels, it is quoted separately. Prices in cash; card payments carry a 10% surcharge. The price is per trip, not per person. A deposit secures the booking and the rest is paid on the day.' },
     },
     { id: 'transfer-termini', type: 'transfer', region: 'transfer',
-      name: { pt: 'Estação Termini ↔ Centro (ou Centro ↔ Centro)', en: 'Termini Station ↔ Centre (or Centre ↔ Centre)' },
-      desc: { pt: 'Transfer entre a Estação Termini e o centro histórico, ou entre dois pontos do próprio centro histórico, com motorista em língua portuguesa.',
-              en: 'Transfer between Termini Station and the historic centre, or between two points within the historic centre, with a Portuguese-speaking driver.' },
-      meeting: 'Combinado por WhatsApp após a reserva',
+      name: { pt: 'Estações de trem ↔ Centro, ou Roma ↔ Roma', en: 'Train stations ↔ Centre, or within Rome' },
+      desc: { pt: 'Transfer entre as estações de trem (Termini, Tiburtina e outras) e o centro de Roma, ou entre dois pontos dentro de Roma, com motorista credenciado.',
+              en: 'Transfer between the train stations (Termini, Tiburtina and others) and central Rome, or between two points within Rome, with a licensed driver.' },
+      meeting: 'No seu hotel, no aeroporto, no porto ou na estação',
       duration: 'Por trecho', distance: '', effort: 'easy',
-      includes: { pt: ['Motorista em língua portuguesa', 'Pedágio, combustível e estacionamento'],
-                    en: ['Portuguese-speaking driver', 'Tolls, fuel and parking'] },
-      notIncludes: { pt: ['Refeições', 'Ingressos'],
-                    en: ['Meals', 'Tickets'] },
+      includes: { pt: ['Motorista credenciado', 'Pedágio, combustível e estacionamento'],
+                    en: ['Licensed driver', 'Tolls, fuel and parking'] },
+      notIncludes: { pt: ['Espera além da incluída'],
+                    en: ['Waiting beyond what is included'] },
       stops: [],
       photo: 'arte/capa-transfer.jpg',
       price: 70, priceMode: 'transfer',
-      transfer: {
-        carro: { dia: 70, noite: 100, malas: 'até 2 malas médias (65x45x28) e 2 de bordo' },
-        van:   { dia: 80, noite: 110, malas: 'até 6 malas médias (65x45x28) e as de bordo' },
-      },
-      min: 1, max: 20, payPolicy: 'split', status: 'live', order: 33,
-      priceNote: { pt: 'Inclui 15 minutos de espera na estação. Depois disso, há cobrança de €20 a cada 20 minutos de espera. Pagamento em dinheiro; no cartão há acréscimo de 10%. O valor é por trecho, não por pessoa.',
-                   en: 'Includes 15 minutes of waiting at the station. After that, €20 for every 20 minutes of waiting. Payment in cash; card payments carry a 10% surcharge. The price is per trip, not per person.' },
+      transfer: { linhas: [
+        { pax: 2, veiculo: 'carro', malas: '2 malas médias (65x45x28) e 2 bordo', dia: 70, noite: 100, sinal: 30 },
+        { pax: 2, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 80, noite: 110, sinal: 30 },
+        { pax: 3, veiculo: 'carro', malas: '2 malas médias (65x45x28) e 2 bordo', dia: 75, noite: 105, sinal: 35 },
+        { pax: 3, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 85, noite: 115, sinal: 35 },
+        { pax: 4, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 90, noite: 120, sinal: 40 },
+        { pax: 4, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 100, noite: 130, sinal: 40 },
+        { pax: 5, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 95, noite: 125, sinal: 45 },
+        { pax: 5, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 105, noite: 135, sinal: 45 },
+        { pax: 6, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 100, noite: 130, sinal: 50 },
+        { pax: 6, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 110, noite: 140, sinal: 50 },
+        { pax: 7, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 115, noite: 145, sinal: 55 },
+        { pax: 7, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 155, noite: 215, sinal: 55 },
+        { pax: 8, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 120, noite: 150, sinal: 60 },
+        { pax: 8, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 160, noite: 220, sinal: 60 },
+        { pax: 9, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 165, noite: 225, sinal: 65 },
+        { pax: 9, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 175, noite: 235, sinal: 65 },
+        { pax: 10, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 170, noite: 230, sinal: 70 },
+        { pax: 10, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 180, noite: 240, sinal: 70 },
+        { pax: 11, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 180, noite: 240, sinal: 80 },
+        { pax: 11, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 190, noite: 250, sinal: 80 },
+        { pax: 12, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 200, noite: 260, sinal: 100 },
+        { pax: 12, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 210, noite: 270, sinal: 100 },
+        { pax: 13, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 230, noite: 290, sinal: 120 },
+        { pax: 13, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 240, noite: 300, sinal: 120 },
+        { pax: 14, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 240, noite: 300, sinal: 130 },
+        { pax: 14, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 250, noite: 310, sinal: 130 },
+        { pax: 15, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 260, noite: 320, sinal: 140 },
+        { pax: 15, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 290, noite: 380, sinal: 140 },
+        { pax: 16, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 280, noite: 340, sinal: 160 },
+        { pax: 16, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 310, noite: 400, sinal: 160 },
+        { pax: 17, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 320, noite: 410, sinal: 170 },
+        { pax: 17, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 350, noite: 440, sinal: 170 },
+        { pax: 18, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 14 bordo', dia: 330, noite: 420, sinal: 180 },
+        { pax: 18, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 360, noite: 450, sinal: 180 },
+        { pax: 19, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 370, noite: 460, sinal: 190 },
+        { pax: 19, veiculo: '4 vans', malas: '32 malas médias (65x45x28) e 24 bordo', dia: 430, noite: 520, sinal: 190 },
+        { pax: 20, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 380, noite: 470, sinal: 200 },
+        { pax: 20, veiculo: '4 vans', malas: '32 malas médias (65x45x28) e 24 bordo', dia: 440, noite: 530, sinal: 200 },
+      ] },
+      min: 1, max: 20, payPolicy: 'sinal', status: 'live', order: 33,
+      priceNote: { pt: 'Inclui 15 minutos de espera. Depois, €20 a cada 20 minutos. Valores para hotel no centro histórico e uma parada só. Fora do centro, ou com o grupo em dois hotéis, o orçamento é feito à parte. Valores em dinheiro; no cartão há acréscimo de 10%. O valor é por trecho, não por pessoa. Um sinal garante a reserva e o restante é pago no dia.',
+                   en: 'Includes 15 minutes of waiting. After that, €20 for every 20 minutes. Prices for a hotel in the historic centre and a single stop. Outside the centre, or with the group in two hotels, it is quoted separately. Prices in cash; card payments carry a 10% surcharge. The price is per trip, not per person. A deposit secures the booking and the rest is paid on the day.' },
     },
     { id: 'transfer-outlet', type: 'transfer', region: 'transfer',
-      name: { pt: 'Centro Histórico ↔ Outlet Castel Romano', en: 'Historic Centre ↔ Castel Romano Outlet' },
-      desc: { pt: 'Transfer entre o centro histórico e o Outlet Castel Romano, com motorista em língua portuguesa.',
-              en: 'Transfer between the historic centre and the Castel Romano Outlet, with a Portuguese-speaking driver.' },
-      meeting: 'Combinado por WhatsApp após a reserva',
+      name: { pt: 'Roma → Outlet Castel Romano → Roma', en: 'Rome → Castel Romano Outlet → Rome' },
+      desc: { pt: 'Ida e volta entre o centro de Roma e o Outlet Castel Romano, com motorista credenciado.',
+              en: 'Round trip between central Rome and the Castel Romano Outlet, with a licensed driver.' },
+      meeting: 'No seu hotel, no aeroporto, no porto ou na estação',
       duration: 'Por trecho', distance: '', effort: 'easy',
-      includes: { pt: ['Motorista em língua portuguesa', 'Pedágio, combustível e estacionamento'],
-                    en: ['Portuguese-speaking driver', 'Tolls, fuel and parking'] },
+      includes: { pt: ['Motorista credenciado', 'Pedágio, combustível e estacionamento'],
+                    en: ['Licensed driver', 'Tolls, fuel and parking'] },
+      notIncludes: { pt: ['Espera além da incluída'],
+                    en: ['Waiting beyond what is included'] },
+      stops: [],
+      photo: 'arte/capa-transfer.jpg',
+      price: 90, priceMode: 'transfer',
+      transfer: { linhas: [
+        { pax: 2, veiculo: 'carro', malas: '2 malas médias (65x45x28) e 2 bordo', dia: 90, noite: 120, sinal: 30 },
+        { pax: 2, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 100, noite: 130, sinal: 30 },
+        { pax: 3, veiculo: 'carro', malas: '2 malas médias (65x45x28) e 2 bordo', dia: 95, noite: 125, sinal: 35 },
+        { pax: 3, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 105, noite: 135, sinal: 35 },
+        { pax: 4, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 110, noite: 140, sinal: 40 },
+        { pax: 4, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 120, noite: 150, sinal: 40 },
+        { pax: 5, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 115, noite: 145, sinal: 45 },
+        { pax: 5, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 125, noite: 155, sinal: 45 },
+        { pax: 6, veiculo: 'minivan', malas: '6 malas médias (65x45x28) e 4 bordo', dia: 120, noite: 150, sinal: 50 },
+        { pax: 6, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 130, noite: 160, sinal: 50 },
+        { pax: 7, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 135, noite: 165, sinal: 55 },
+        { pax: 7, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 195, noite: 255, sinal: 55 },
+        { pax: 8, veiculo: 'van', malas: '8 malas médias (65x45x28) e 6 bordo', dia: 140, noite: 170, sinal: 60 },
+        { pax: 8, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 200, noite: 260, sinal: 60 },
+        { pax: 9, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 205, noite: 265, sinal: 65 },
+        { pax: 9, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 215, noite: 275, sinal: 65 },
+        { pax: 10, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 210, noite: 270, sinal: 70 },
+        { pax: 10, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 220, noite: 280, sinal: 70 },
+        { pax: 11, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 220, noite: 280, sinal: 80 },
+        { pax: 11, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 230, noite: 290, sinal: 80 },
+        { pax: 12, veiculo: '2 minivans', malas: '12 malas médias (65x45x28) e 8 bordo', dia: 240, noite: 300, sinal: 100 },
+        { pax: 12, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 250, noite: 310, sinal: 100 },
+        { pax: 13, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 270, noite: 330, sinal: 120 },
+        { pax: 13, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 280, noite: 340, sinal: 120 },
+        { pax: 14, veiculo: 'minivan + van', malas: '14 malas médias (65x45x28) e 10 bordo', dia: 280, noite: 340, sinal: 130 },
+        { pax: 14, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 290, noite: 350, sinal: 130 },
+        { pax: 15, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 300, noite: 360, sinal: 140 },
+        { pax: 15, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 350, noite: 440, sinal: 140 },
+        { pax: 16, veiculo: '2 vans', malas: '16 malas médias (65x45x28) e 12 bordo', dia: 320, noite: 380, sinal: 160 },
+        { pax: 16, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 370, noite: 460, sinal: 160 },
+        { pax: 17, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 12 bordo', dia: 380, noite: 470, sinal: 170 },
+        { pax: 17, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 410, noite: 500, sinal: 170 },
+        { pax: 18, veiculo: '3 minivan', malas: '18 malas médias (65x45x28) e 14 bordo', dia: 390, noite: 480, sinal: 180 },
+        { pax: 18, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 420, noite: 510, sinal: 180 },
+        { pax: 19, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 430, noite: 520, sinal: 190 },
+        { pax: 19, veiculo: '4 vans', malas: '32 malas médias (65x45x28) e 24 bordo', dia: 510, noite: 600, sinal: 190 },
+        { pax: 20, veiculo: '3 vans', malas: '24 malas médias (65x45x28) e 18 bordo', dia: 440, noite: 530, sinal: 200 },
+        { pax: 20, veiculo: '4 vans', malas: '32 malas médias (65x45x28) e 24 bordo', dia: 520, noite: 610, sinal: 200 },
+      ] },
+      min: 1, max: 20, payPolicy: 'sinal', status: 'live', order: 34,
+      priceNote: { pt: 'Espera no outlet: €60 por hora (carro) ou €70 (minivan). Valores para hotel no centro histórico e uma parada só. Fora do centro, ou com o grupo em dois hotéis, o orçamento é feito à parte. Valores em dinheiro; no cartão há acréscimo de 10%. O valor é por trecho, não por pessoa. Um sinal garante a reserva e o restante é pago no dia.',
+                   en: 'Waiting at the outlet: €60 per hour (car) or €70 (minivan). Prices for a hotel in the historic centre and a single stop. Outside the centre, or with the group in two hotels, it is quoted separately. Prices in cash; card payments carry a 10% surcharge. The price is per trip, not per person. A deposit secures the booking and the rest is paid on the day.' },
+    },
+    { id: 'transfer-disposicao', type: 'transfer', region: 'transfer',
+      name: { pt: 'Motorista à sua disposição', en: 'Driver at your disposal' },
+      desc: { pt: 'Um motorista particular que fica à sua disposição pelo tempo que você precisar, para ir e vir com conforto. Mínimo de 3 horas de serviço.',
+              en: 'A private driver at your disposal for as long as you need, to come and go in comfort. Minimum of three hours.' },
+      meeting: 'Onde você estiver',
+      duration: 'A partir de 3h', distance: '', effort: 'easy',
+      includes: { pt: ['Motorista credenciado'],
+                    en: ['Licensed driver'] },
       notIncludes: { pt: ['Refeições', 'Ingressos'],
                     en: ['Meals', 'Tickets'] },
       stops: [],
       photo: 'arte/capa-transfer.jpg',
-      price: 90, priceMode: 'transfer',
-      transfer: {
-        carro: { dia: 90, noite: 120, malas: 'até 2 malas médias (65x45x28) e 2 de bordo' },
-        van:   { dia: 100, noite: 130, malas: 'até 6 malas médias (65x45x28) e as de bordo' },
-      },
-      min: 1, max: 20, payPolicy: 'split', status: 'live', order: 34,
-      priceNote: { pt: 'A espera no outlet custa €60 por hora para carro e €70 para minivan. Pagamento em dinheiro; no cartão há acréscimo de 10%. O valor é por trecho, não por pessoa.',
-                   en: 'Waiting at the outlet costs €60 per hour for a car and €70 for a minivan. Payment in cash; card payments carry a 10% surcharge. The price is per trip, not per person.' },
+      price: 0, priceMode: 'tabela',
+      tabela: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      min: 1, max: 20, payPolicy: 'split', status: 'live', order: 35,
+      priceNote: { pt: 'Valor sob consulta — me chame no WhatsApp.',
+                   en: 'Price on request — message me on WhatsApp.' },
+    },
+    { id: 'transfer-cidades', type: 'transfer', region: 'transfer',
+      name: { pt: 'Transfer para outras cidades', en: 'Transfer to other cities' },
+      desc: { pt: 'Do seu hotel em Roma para outra cidade da Itália, ou de outra cidade para Roma, com motorista particular em língua portuguesa.',
+              en: 'From your hotel in Rome to another Italian city, or from another city to Rome, with a private Portuguese-speaking driver.' },
+      meeting: 'No seu hotel',
+      duration: 'Por trecho', distance: '', effort: 'easy',
+      includes: { pt: ['Motorista em língua portuguesa', 'Pedágio, combustível e estacionamento'],
+                    en: ['Portuguese-speaking driver', 'Tolls, fuel and parking'] },
+      notIncludes: { pt: ['Refeições'],
+                    en: ['Meals'] },
+      stops: [],
+      photo: 'arte/capa-transfer.jpg',
+      price: 0, priceMode: 'tabela',
+      tabela: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      min: 1, max: 20, payPolicy: 'split', status: 'live', order: 36,
+      priceNote: { pt: 'Valor sob consulta, conforme a cidade e o tamanho do grupo.',
+                   en: 'Price on request, depending on the city and the group size.' },
     },
   ];
 
@@ -909,7 +1163,7 @@ function _seed() {
     const date = addDays(isoToday(), -back);
     const rule = db.rules.find(r => r.tourId === tourId);
     const time = rule ? rule.time : '10:00';
-    const total = x.priceMode === 'transfer' ? transferPreco(x, pax > 4 ? 'van' : 'carro', time)
+    const total = x.priceMode === 'transfer' ? transferPreco(x, pax, 0, time)
                 : x.priceMode === 'tabela' ? tabelaPreco(x, pax)
                 : x.priceMode === 'session' ? x.price : x.price * pax;
     const created = addDays(date, -(7 + (n % 9)));
@@ -1084,7 +1338,7 @@ const Bookings = {
   get(id) { return DB.bookings.find(b => b.id === id); },
   byCode(code) { return DB.bookings.find(b => b.code === code); },
 
-  create({ tourId, date, time, name, email, whats, insta, pax, coupon, policy, origin, consent, veiculo, group }) {
+  create({ tourId, date, time, name, email, whats, insta, pax, coupon, policy, origin, consent, opcao, group, adultos, criancas }) {
     const tour = Tours.get(tourId);
     /* Tem que ser o MESMO calculo que a tela mostrou. tour.price * pax ignora
        o preco escalonado (195 para as 3 primeiras, 225 depois) e gravava a
@@ -1092,7 +1346,8 @@ const Bookings = {
     /* O veiculo tem que vir junto: sem ele, uma reserva de minivan as 22h
        era gravada pelo valor do carro diurno. A tela mostrava 130 e o caixa
        guardava 90, e so o extrato no fim do mes acusaria. */
-    const base = Bookings.precoDe(tour, tourId, date, time, pax, { veiculo }).total;
+    const pr0 = Bookings.precoDe(tour, tourId, date, time, pax, { opcao });
+    const base = pr0.total;
     let discount = 0, couponCode = null;
     if (coupon) {
       const v = Coupons.validate(coupon, email);
@@ -1103,7 +1358,14 @@ const Bookings = {
       id: uid(), code: bookCode(), tourId, date, time,
       name, email, whats, insta: insta || '', pax, total,
       coupon: couponCode, discount, policy,
-      veiculo: veiculo || '',
+      /* quem vem: adultos e menores de 18. O preco e pelo total; a divisao e
+         para ela saber quem e crianca (ingresso, cadeirinha, ritmo). */
+      adultos: Number.isFinite(+adultos) && adultos !== undefined ? +adultos : pax,
+      criancas: +criancas || 0,
+      veiculo: pr0.veiculo || '', malas: pr0.malas || '',
+      /* Transfer: o que se paga antes e o SINAL da tabela dela, nao a metade.
+         O resto e no dia. */
+      sinal: tour && tour.priceMode === 'transfer' ? (pr0.sinal || 0) : 0,
       /* QUEM MAIS VEM NO GRUPO.
 
          A Ingrid pediu isto em audio: ate hoje ela so registra quem fez a
@@ -1182,10 +1444,11 @@ const Bookings = {
     const tarde = +x.priceLate || 0;
     const vagasBaratas = +x.earlySeats || 0;
     if (x.priceMode === 'transfer') {
-      /* pax aqui carrega o veiculo escolhido, nao um numero de pessoas */
-      const veic = ((opt && opt.veiculo) || x._veiculo || 'carro');
-      const v = transferPreco(x, veic, time);
-      return { total: v, linhas: [{ qtd: 1, valor: v, fechado: true }], veiculo: veic,
+      const opcao = (opt && opt.opcao) || 0;
+      const l = transferLinha(x, pax, opcao);
+      const v = transferPreco(x, pax, opcao, time);
+      return { total: v, linhas: [{ qtd: 1, valor: v, fechado: true }],
+               veiculo: l ? l.veiculo : '', malas: l ? l.malas : '', sinal: l ? +l.sinal || 0 : 0,
                noturno: transferNoturno(time), consultar: v === 0 };
     }
     if (x.priceMode === 'tabela') {
@@ -1220,6 +1483,8 @@ const Bookings = {
   /* Cada passeio tem seu prazo. O de Natal cobra o saldo 30 dias antes,
      nao na vespera — usar um numero fixo aqui cobraria tarde demais. */
   dueDate(b){
+    /* transfer: o sinal garante, o resto e no dia */
+    if (b.policy === 'sinal') return b.date;
     const x = Tours.get(b.tourId);
     const dias = (x && +x.balanceDays) || 1;
     return addDays(b.date, -dias);
@@ -1252,6 +1517,40 @@ const Bookings = {
 };
 
 load();
+
+/* ---------- pedidos de roteiro personalizado ----------
+   O que o cliente respondeu em "Monte seu roteiro". A entrega de verdade e
+   pelo WhatsApp dela (a mensagem sai pronta); isto aqui e a memoria, para
+   ela ver no painel quem pediu, quando, e se ja respondeu.
+
+   Com a nuvem ligada, o pedido de um cliente vive no aparelho DELE ate
+   existir uma tabela propria no Supabase — anotado na entrega. */
+const Roteiros = {
+  all() { return [...(DB.pedidos || [])].sort((a, b) => (b.criado || '').localeCompare(a.criado || '')); },
+  cria(r) {
+    const limpa = (v) => String(v || '').trim();
+    const ped = {
+      id: uid(), criado: new Date().toISOString(), respondido: false,
+      nome: limpa(r.nome), whats: limpa(r.whats), email: limpa(r.email),
+      ini: limpa(r.ini), fim: limpa(r.fim),
+      adultos: Math.max(1, +r.adultos || 1), criancas: Math.max(0, +r.criancas || 0), idades: limpa(r.idades),
+      onde: [...(r.onde || [])], ondeOutro: limpa(r.ondeOutro),
+      gosto: [...(r.gosto || [])], precisa: [...(r.precisa || [])], ritmo: r.ritmo || '',
+      obs: limpa(r.obs),
+      lang: (typeof LANG !== 'undefined' && LANG === 'en') ? 'en' : 'pt',
+    };
+    DB.pedidos = DB.pedidos || [];
+    DB.pedidos.push(ped);
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+    return ped;
+  },
+  marca(id, respondido) {
+    const p = (DB.pedidos || []).find(x => x.id === id);
+    if (!p) return;
+    p.respondido = !!respondido;
+    save();
+  },
+};
 
 /* ---------- clientes (derivados das reservas) ---------- */
 const Clients = {

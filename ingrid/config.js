@@ -15,10 +15,8 @@ var APP_CONFIG = {
     nome: 'Ingrid',
     negocio: 'Em Roma com Ingrid',
     cidade: 'Roma, Itália',
-    /* FALTA o numero dela. O link curto do proprio WhatsApp dela ja faz os
-       botoes funcionarem; com o numero, o app passa a mandar a mensagem ja
-       escrita ("quero o Vaticano dia 12"), que e o que evita o "oi". */
-    whats: '',                     /* +39... — pedir a ela */
+    whats: '+393515631485',
+    /* o link curto do WhatsApp dela (Beacons), reserva se o numero sumir */
     whatsLink: 'https://wa.me/message/7OEQNA5R5RMYG1',
     insta: 'em_roma',
     /* O selo dela. Dois arquivos: o claro para fundo escuro, o escuro para

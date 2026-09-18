@@ -4,17 +4,17 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'ingrid-v1.56.1';
+const VERSION = 'ingrid-v1.57.0';
 const CORE = [
   './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './store.js', './auth.js', './logo.js', './cloud.js', './i18n.js', './tokens.css', './manifest.webmanifest', './capa.jpg', './home.jpg', './og.jpg', './guia.jpg',
   /* a arte da Ingrid: o selo e as capas do portfolio. Vao para o cache
      porque sao a cara do app — sem elas, offline, a vitrine fica cinza. */
-  './arte/capa-conexao.jpg', './arte/capa-cruzeiro.jpg', './arte/capa-marca.jpg',
-  './arte/capa-roma.jpg', './arte/capa-transfer.jpg', './arte/foto-amalfi.jpg',
-  './arte/foto-assis.jpg', './arte/foto-bracciano.jpg', './arte/foto-castelli.jpg',
-  './arte/foto-civita.jpg', './arte/foto-pompeia.jpg', './arte/foto-tivoli.jpg',
-  './arte/foto-toscana-norte.jpg', './arte/foto-toscana-sul.jpg', './arte/logo-ingrid-escuro.png',
-  './arte/logo-ingrid.png',
+  './arte/avatar-ingrid.jpg', './arte/capa-conexao.jpg', './arte/capa-cruzeiro.jpg',
+  './arte/capa-marca.jpg', './arte/capa-roma.jpg', './arte/capa-transfer.jpg',
+  './arte/foto-amalfi.jpg', './arte/foto-assis.jpg', './arte/foto-bracciano.jpg',
+  './arte/foto-castelli.jpg', './arte/foto-civita.jpg', './arte/foto-pompeia.jpg',
+  './arte/foto-tivoli.jpg', './arte/foto-toscana-norte.jpg', './arte/foto-toscana-sul.jpg',
+  './arte/logo-ingrid-escuro.png', './arte/logo-ingrid.png',
 ];
 
 self.addEventListener('install', (e) => {

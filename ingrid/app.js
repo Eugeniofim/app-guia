@@ -245,6 +245,7 @@ function route() {
   }
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
   else if (p[0] === 'about') viewAbout();
+  else if (p[0] === 'roteiro') viewRoteiro();
   else if (p[0] === 'tours') viewShowcase();
   else if (p[0] === 'tour')  viewTour(p[1]);
   else                       viewHub();
@@ -265,38 +266,231 @@ function bindLang(root) {
 /* =====================================================
    CLIENTE
 ===================================================== */
+/* A PRIMEIRA TELA — o "link na bio" dela.
+
+   Hoje o Instagram dela aponta para um Beacons com WhatsApp, transfer,
+   hotel, chip, seguro, YouTube e blog. Esta tela faz o mesmo papel, com
+   uma diferenca que vale o app inteiro: aqui o cliente RESERVA, ve o preco
+   do transfer na hora e pede o roteiro personalizado — no Beacons tudo
+   termina num "fale no WhatsApp". Os links de parceiros e as redes saem
+   dos Ajustes: ela troca sem precisar de nos. */
+const ICONE_YT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.2 3.6-6.2 3.6Z"/></svg>';
+const ICONE_FB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12Z"/></svg>';
+const ICONE_BLOG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>';
+
+function linkExterno(u) { return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
+
 function viewHub() {
+  const st = DB.settings;
+  const txt = (o) => (o && (o[LANG] || o.pt)) || '';
+  const redes = [
+    st.insta    ? { u: 'https://instagram.com/' + st.insta.replace(/^@/, ''), ic: ICONE_IG, n: 'Instagram', c: 'ig' } : null,
+    linkExterno(st.youtube)  ? { u: st.youtube,  ic: ICONE_YT,   n: 'YouTube',  c: 'yt' } : null,
+    linkExterno(st.blog)     ? { u: st.blog,     ic: ICONE_BLOG, n: 'Blog',     c: 'bl' } : null,
+    linkExterno(st.facebook) ? { u: st.facebook, ic: ICONE_FB,   n: 'Facebook', c: 'fb' } : null,
+  ].filter(Boolean);
+  const temTransfer = Tours.live().some(x => x.type === 'transfer');
+  const links = (st.links || []).filter(l => linkExterno(l.url) && txt(l.titulo));
+
   app.innerHTML = `
   <div class="hub">
-    <div class="hub-bg" style="background-image:url(${esc(DB.settings.homePhoto || 'home.jpg')})"></div>
+    <div class="hub-bg" style="background-image:url(${esc(st.homePhoto || 'home.jpg')})"></div>
     <div class="hub-in">
       <div class="vcard">
         <div class="hub-brand">${logoFull({ mark: 46, sub: esc(guiaBase()) })}</div>
-        <p class="tagline">${esc(noIdioma(DB.settings.homeText) || t('tagline'))}</p>
+        <p class="tagline">${esc(noIdioma(st.homeText) || t('tagline'))}</p>
+        ${redes.length ? `<div class="redes" aria-label="${t('hubRedes')}">${redes.map(r =>
+          `<a class="rede ${r.c}" href="${esc(r.u)}" target="_blank" rel="noopener" aria-label="${r.n}" title="${r.n}">${r.ic}</a>`).join('')}</div>` : ''}
         ${langBar('center')}
       </div>
       <button class="lk main" id="goTours">
         <span class="ic">📍</span><span><b>${t('seeTours')}</b><small>${t('seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
+      ${temTransfer ? `<button class="lk" id="goTransfer">
+        <span class="ic">🚘</span><span><b>${t('hubTransfer')}</b><small>${t('hubTransferSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>` : ''}
+      <button class="lk" id="goRoteiro">
+        <span class="ic">🗺️</span><span><b>${t('hubRoteiro')}</b><small>${t('hubRoteiroSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>
       <button class="lk" id="goAbout">
-        <span class="ic"><img id="hubFace" src="${esc(DB.settings.photo || 'guia.jpg')}" alt=""
+        <span class="ic"><img id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt=""
           style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
-      <a class="lk" href="https://instagram.com/${esc(DB.settings.insta)}" target="_blank" rel="noopener"><span class="ic ig">${ICONE_IG}</span><span><b>Instagram</b><small>@${esc(DB.settings.insta)}</small></span><span class="go" aria-hidden="true">→</span></a>
-      <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b></span><span class="go" aria-hidden="true">→</span></a>
+      <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b><small>${t('hubWhatsSub')}</small></span><span class="go" aria-hidden="true">→</span></a>
+      ${links.length ? `<p class="hubsec">${t('hubViagem')}</p>
+      ${links.map(l => `<a class="lk parc" href="${esc(l.url)}" target="_blank" rel="noopener sponsored">
+        <span class="ic">${esc(l.icone || '🔗')}</span><span><b>${esc(txt(l.titulo))}</b>${txt(l.sub) ? `<small>${esc(txt(l.sub))}</small>` : ''}</span><span class="go" aria-hidden="true">↗</span></a>`).join('')}` : ''}
       <button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>
     </div>
   </div>`;
   bindLang(app);
-  $('#goTours').onclick = () => go('/tours');
+  $('#goTours').onclick = () => { viewShowcase._f = 'all'; go('/tours'); };
+  if ($('#goTransfer')) $('#goTransfer').onclick = () => { viewShowcase._f = 'transfer'; go('/tours'); };
+  $('#goRoteiro').onclick = () => go('/roteiro');
   fallbackPhoto($('#hubFace'), '☺');
   $('#goAbout').onclick = () => go('/about');
   $('#admEntry').onclick = () => go('/adm/today');
-  $$('[data-demo]').forEach(b => b.onclick = () => toast(LANG === 'pt' ? 'Protótipo: no app final este botão abre o destino real.' : 'Prototype: this opens the real destination in the final app.'));
   Coach.start([
     { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.' } },
     { sel: '#admEntry', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.' } },
   ], 'tutorialClient');
+}
+
+/* MONTE SEU ROTEIRO — o passeio personalizado.
+
+   Ela disse no audio que o personalizado "nao tem como colocar no
+   aplicativo" e que faz a parte. Certo: o app nao monta o roteiro. O que
+   ele faz e a parte chata — perguntar datas, quantas pessoas, idades, o
+   que a pessoa gosta — e entregar TUDO de uma vez no WhatsApp dela, ja
+   organizado. Ela para de arrancar informacao a conta-gotas e comeca a
+   conversa sabendo o que propor.
+
+   O pedido tambem fica guardado no painel (Reservas → Pedidos de roteiro). */
+const ROTEIRO_ONDE = [
+  ['roma', 'Roma', 'Rome'], ['toscana', 'Toscana', 'Tuscany'], ['amalfi', 'Costa Amalfitana', 'Amalfi Coast'],
+  ['capri', 'Capri', 'Capri'], ['pompeia', 'Pompeia e Nápoles', 'Pompeii & Naples'],
+  ['umbria', 'Assis e Úmbria', 'Assisi & Umbria'], ['castelli', 'Tivoli e Castelli Romani', 'Tivoli & Castelli Romani'],
+  ['florenca', 'Florença', 'Florence'], ['veneza', 'Veneza', 'Venice'], ['milao', 'Milão', 'Milan'],
+];
+const ROTEIRO_GOSTO = [
+  ['historia', 'História e arqueologia', 'History & archaeology'], ['arte', 'Arte e museus', 'Art & museums'],
+  ['fe', 'Fé: Vaticano e basílicas', 'Faith: Vatican & basilicas'], ['comida', 'Comida e vinho', 'Food & wine'],
+  ['compras', 'Compras', 'Shopping'], ['natureza', 'Natureza, lagos e praias', 'Nature, lakes & beaches'],
+  ['fotos', 'Lugares para fotos', 'Photo spots'], ['criancas', 'Programas com crianças', 'Kid-friendly'],
+  ['noite', 'Roma à noite', 'Rome at night'],
+];
+const ROTEIRO_PRECISA = [
+  ['transfer', 'Transfer (aeroporto, porto, estação)', 'Transfers (airport, port, station)'],
+  ['motorista', 'Motorista por vários dias', 'A driver for several days'],
+  ['ingressos', 'Ajuda com ingressos', 'Help with tickets'], ['hotel', 'Dica de hotel', 'Hotel tips'],
+  ['papal', 'Audiência Papal', 'Papal Audience'],
+];
+const ROTEIRO_RITMO = [['calmo', 'Tranquilo', 'Relaxed'], ['medio', 'Equilibrado', 'Balanced'], ['intenso', 'Ver tudo que der', 'See as much as possible']];
+
+/* A mensagem que chega no WhatsApp dela: uma ficha, nao um "oi". Sai no
+   idioma de quem pediu, com as datas por extenso. */
+function msgRoteiro(ped) {
+  const en = ped.lang === 'en';
+  const nome = (lista, v) => { const o = lista.find(z => z[0] === v); return o ? (en ? o[2] : o[1]) : v; };
+  const d = (iso) => iso ? fmtDate(iso) : '';
+  const L = [];
+  L.push(en ? 'Hi Ingrid! I would like a tailor-made trip:' : 'Olá, Ingrid! Quero montar um roteiro personalizado:');
+  L.push('');
+  if (ped.ini || ped.fim) L.push((en ? '🗓 Dates: ' : '🗓 Datas: ') + [d(ped.ini), d(ped.fim)].filter(Boolean).join(' → '));
+  const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
+  L.push((en ? '👥 Group: ' : '👥 Grupo: ')
+    + plural(ped.adultos, en ? 'adult' : 'adulto', en ? 'adults' : 'adultos')
+    + (ped.criancas ? ', ' + plural(ped.criancas, en ? 'child' : 'criança', en ? 'children' : 'crianças')
+      + (ped.idades ? ' (' + ped.idades + ')' : '') : ''));
+  const onde = ped.onde.map(v => nome(ROTEIRO_ONDE, v)).concat(ped.ondeOutro ? [ped.ondeOutro] : []);
+  if (onde.length) L.push((en ? '📍 Where: ' : '📍 Onde: ') + onde.join(', '));
+  if (ped.gosto.length) L.push((en ? '❤️ Likes: ' : '❤️ Gosta de: ') + ped.gosto.map(v => nome(ROTEIRO_GOSTO, v)).join(', '));
+  if (ped.ritmo) L.push((en ? '⏱ Pace: ' : '⏱ Ritmo: ') + nome(ROTEIRO_RITMO, ped.ritmo));
+  if (ped.precisa.length) L.push((en ? '🧳 Needs: ' : '🧳 Precisa de: ') + ped.precisa.map(v => nome(ROTEIRO_PRECISA, v)).join(', '));
+  if (ped.obs) { L.push(''); L.push(ped.obs); }
+  L.push('');
+  L.push('— ' + ped.nome + (ped.email ? ' · ' + ped.email : '') + (ped.whats ? ' · ' + ped.whats : ''));
+  return L.join('\n');
+}
+
+function viewRoteiro() {
+  const R = viewRoteiro._s = viewRoteiro._s || { onde: [], gosto: [], precisa: [], ritmo: 'medio', adultos: 2, criancas: 0 };
+  const nm = (o) => LANG === 'en' ? o[2] : o[1];
+  const chips = (grupo, lista) => lista.map(o =>
+    `<button type="button" class="chip ${R[grupo].includes(o[0]) ? 'on' : ''}" data-g="${grupo}" data-v="${o[0]}">${esc(nm(o))}</button>`).join('');
+  app.innerHTML = `
+  <header class="topbar">
+    <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
+    <span class="tbrand">${logoMark(24, 'var(--brand-assinatura)')}<b>${esc(guiaNome())}</b></span>
+    ${langBar('right')}
+  </header>
+  <main class="wrap roteiro">
+    <h1 class="pageh">${t('rtTit')}</h1>
+    <p class="rtintro">${t('rtIntro')}</p>
+
+    <section class="rtbloco"><h3>${t('rtQuando')}</h3>
+      <div class="frow">
+        <label class="fld">${t('rtChega')}<input type="date" id="rtIni" value="${esc(R.ini || '')}"></label>
+        <label class="fld">${t('rtSai')}<input type="date" id="rtFim" value="${esc(R.fim || '')}"></label>
+      </div>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtQuem')}</h3>
+      <div class="paxrow"><span><b>${t('adultsLbl')}</b><small>${t('adultsSub')}</small></span>
+        <div class="pm"><button type="button" data-rc="adultos" data-d="-1">−</button><span>${R.adultos}</span><button type="button" data-rc="adultos" data-d="1">+</button></div></div>
+      <div class="paxrow"><span><b>${t('kidsLbl')}</b><small>${t('kidsSub')}</small></span>
+        <div class="pm"><button type="button" data-rc="criancas" data-d="-1">−</button><span>${R.criancas}</span><button type="button" data-rc="criancas" data-d="1">+</button></div></div>
+      ${R.criancas ? `<label class="fld">${t('rtIdades')}<input id="rtIdades" value="${esc(R.idades || '')}" placeholder="${t('rtIdadesPh')}"></label>` : ''}
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtOnde')}</h3><small class="why">${t('rtVarios')}</small>
+      <div class="chips">${chips('onde', ROTEIRO_ONDE)}</div>
+      <label class="fld">${t('rtOndeOutro')}<input id="rtOndeOutro" value="${esc(R.ondeOutro || '')}"></label>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtGosto')}</h3><small class="why">${t('rtVarios')}</small>
+      <div class="chips">${chips('gosto', ROTEIRO_GOSTO)}</div>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtRitmo')}</h3>
+      <div class="chips">${ROTEIRO_RITMO.map(o => `<button type="button" class="chip ${R.ritmo === o[0] ? 'on' : ''}" data-ritmo="${o[0]}">${esc(nm(o))}</button>`).join('')}</div>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtPrecisa')}</h3><small class="why">${t('rtVarios')}</small>
+      <div class="chips">${chips('precisa', ROTEIRO_PRECISA)}</div>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtConte')}</h3>
+      <label class="fld"><textarea id="rtObs" rows="4" placeholder="${t('rtContePh')}">${esc(R.obs || '')}</textarea></label>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtVoce')}</h3>
+      <label class="fld">${t('fullName')}<input id="rtNome" autocomplete="name" value="${esc(R.nome || '')}"></label>
+      <label class="fld">${t('whatsLbl')}<input id="rtWhats" placeholder="+55 11 …" value="${esc(R.whats || '')}"></label>
+      <label class="fld">${t('email')}<input id="rtEmail" type="email" autocomplete="email" value="${esc(R.email || '')}"></label>
+    </section>
+
+    <button class="cta" id="rtEnviar">${ICONE_WA_BTN} ${t('rtEnviar')}</button>
+    <p class="fine">${t('rtFine')}</p>
+  </main>`;
+  bindLang(app);
+  /* guarda o que ja foi digitado antes de redesenhar: ninguem perde texto
+     por ter tocado num chip */
+  const guarda = () => {
+    R.ini = $('#rtIni').value; R.fim = $('#rtFim').value;
+    R.idades = $('#rtIdades') ? $('#rtIdades').value : (R.idades || '');
+    R.ondeOutro = $('#rtOndeOutro').value; R.obs = $('#rtObs').value;
+    R.nome = $('#rtNome').value; R.whats = $('#rtWhats').value; R.email = $('#rtEmail').value;
+  };
+  $('#bk').onclick = () => go('/');
+  $$('[data-g]').forEach(b => b.onclick = () => {
+    guarda();
+    const g = R[b.dataset.g], v = b.dataset.v, i = g.indexOf(v);
+    if (i >= 0) g.splice(i, 1); else g.push(v);
+    viewRoteiro();
+  });
+  $$('[data-ritmo]').forEach(b => b.onclick = () => { guarda(); R.ritmo = b.dataset.ritmo; viewRoteiro(); });
+  $$('[data-rc]').forEach(b => b.onclick = () => {
+    guarda();
+    const k = b.dataset.rc, min = k === 'adultos' ? 1 : 0;
+    R[k] = Math.max(min, Math.min(40, R[k] + +b.dataset.d));
+    viewRoteiro();
+  });
+  $('#rtEnviar').onclick = () => {
+    guarda();
+    if (!R.nome.trim() || !R.whats.trim()) return toast(t('rtFalta'));
+    const ped = Roteiros.cria(R);
+    window.open(waLink(msgRoteiro(ped)), '_blank');
+    viewRoteiro._s = null;
+    app.innerHTML = `<main class="wrap roteiro fim">
+      <div class="okc">✓</div>
+      <h2 class="okh">${t('rtOk')}</h2>
+      <p class="hint center">${t('rtOkSub')}</p>
+      <a class="cta" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="${waLink(msgRoteiro(ped))}">${ICONE_WA_BTN} ${t('rtReenviar')}</a>
+      <button class="cta soft" id="rtVolta">${t('seeTours')}</button>
+    </main>`;
+    $('#rtVolta').onclick = () => go('/tours');
+  };
 }
 
 /* --- quem sou eu ---
@@ -363,17 +557,14 @@ function fallbackPhoto(img, html) {
 }
 
 const TYPE_LABEL = { day: 'fDay', walk: 'fWalk', photo: 'fPhoto', session: 'tSession', bike: 'fBike',
-                     transfer: 'fTransfer', papal: 'fPapal', trem: 'fTrem', conexao: 'fConexao' };
+                     transfer: 'fTransfer', papal: 'fPapal', trem: 'fTrem', conexao: 'fConexao', barco: 'fBarco' };
 
 /* Como o valor se anuncia. Tres modos: por pessoa, por sessao, e a tabela
    por numero de pessoas — nesta ultima o cartao mostra o MENOR valor da
    tabela com "a partir de", porque um valor de grupo sem o "a partir de"
    parece caro para quem viaja em dois. */
 function precoVitrine(x) {
-  if (x.priceMode === 'transfer') {
-    const tr = x.transfer || {};
-    return +(tr.carro && tr.carro.dia) || +x.price || 0;   /* o mais barato da tabela: carro, diurno */
-  }
+  if (x.priceMode === 'transfer') return transferMenor(x) || +x.price || 0;
   return x.priceMode === 'tabela' ? (tabelaMenor(x) || +x.price || 0) : +x.price || 0;
 }
 function unidadePreco(x) {
@@ -413,17 +604,103 @@ function lerGrupo() {
   })).map(g => ({ nome: g.nome.trim(), nasc: g.nasc.trim() })).filter(g => g.nome);
 }
 
-/* A TABELA DO TRANSFER NA TELA DO CLIENTE — as quatro celulas da pagina 4
-   do portfolio dela, do jeito que ela escreveu: veiculo x horario. */
+/* A TABELA DO TRANSFER NA TELA DO CLIENTE — a tabela de 2026 dela, linha a
+   linha: quantas pessoas, que veiculo e quantas malas, dia e noite. Fechada
+   por padrao: sao 38 linhas, e quem quer saber o preco usa a reserva, que
+   mostra so as duas opcoes da quantidade dele. */
 function transferHtml(x) {
-  const tr = x.transfer; if (!tr || !tr.carro) return '';
-  const linha = (lbl, v) => `<tr><td>${lbl}<small>${esc(v.malas || '')}</small></td>
-    <td>${eur(v.dia)}</td><td>${eur(v.noite)}</td></tr>`;
-  return `<details class="ptab" open><summary>${t('trfTable')}</summary>
+  const ls = (x.transfer && x.transfer.linhas) || [];
+  if (!ls.length) return '';
+  const paxTxt = (n) => n <= 2 ? t('trfPax12') : t('trfPaxN', { n });
+  return `<details class="ptab"><summary>${t('trfTable')}</summary>
     <p class="ptabhelp">${t('trfHours')}</p>
-    <table class="trftab"><thead><tr><th></th><th>${t('trfDay')}</th><th>${t('trfNight')}</th></tr></thead>
-    <tbody>${linha(t('trfCar'), tr.carro)}${tr.van ? linha(t('trfVan'), tr.van) : ''}</tbody></table>
+    <table class="trftab"><thead><tr><th>${t('trfColQuem')}</th><th>${t('trfDay')}</th><th>${t('trfNight')}</th></tr></thead>
+    <tbody>${ls.map((l, i) => `<tr class="${i > 0 && ls[i - 1].pax === l.pax ? 'mesmo' : 'novo'}">
+      <td><b>${i > 0 && ls[i - 1].pax === l.pax ? '' : paxTxt(+l.pax)}</b>
+        <small>${esc(l.veiculo)} · ${esc(l.malas)}</small></td>
+      <td>${eur(l.dia)}</td><td>${eur(l.noite)}</td></tr>`).join('')}</tbody></table>
+    <p class="ptabbig">${t('trfSinalTabela')}</p>
   </details>`;
+}
+
+/* --- quantas pessoas: adultos e criancas ---
+   Ela decide, por passeio, se aceita menores de 18 e se ha idade minima.
+   O preco continua pela quantidade TOTAL (e assim que a tabela dela e); a
+   separacao serve para ela saber quem vem — ingresso, cadeirinha, ritmo. */
+function aceitaCriancas(x) { return x.criancas !== false; }
+
+function tetoPessoas(x, S) {
+  if (x.priceMode === 'tabela')   return Math.min(tabelaAte(x) || x.max, x.max, S.cap || x.max);
+  if (x.priceMode === 'transfer') return Math.min(transferAte(x) || 20, S.cap || 20);
+  return Math.min(x.max, S.cap || x.max);
+}
+
+function pessoasHtml(x, S) {
+  const cri = aceitaCriancas(x);
+  const linha = (k, lbl, sub, v) => `<div class="paxrow">
+      <span><b>${lbl}</b>${sub ? `<small>${sub}</small>` : ''}</span>
+      <div class="pm"><button data-cnt="${k}" data-d="-1" aria-label="−">−</button><span>${v}</span><button data-cnt="${k}" data-d="1" aria-label="+">+</button></div>
+    </div>`;
+  return `<div class="pessoas">
+    ${linha('a', cri ? t('adultsLbl') : t('peopleLbl'), cri ? t('adultsSub') : '', S.adultos)}
+    ${cri ? linha('c', t('kidsLbl'), t('kidsSub'), S.criancas) : ''}
+    ${!cri ? `<p class="why">${t('noKids')}</p>` : (+x.idadeMin ? `<p class="why">${t('minAge', { n: +x.idadeMin })}</p>` : '')}
+  </div>`;
+}
+
+function ligaPessoas(x, S, root) {
+  $$('[data-cnt]', root).forEach(b => b.onclick = () => {
+    const d = +b.dataset.d, k = b.dataset.cnt;
+    let ad = S.adultos, cr = S.criancas;
+    if (k === 'a') ad = Math.max(1, ad + d); else cr = Math.max(0, cr + d);
+    const teto = tetoPessoas(x, S);
+    if (ad + cr > teto) return toast(t(x.priceMode === 'tabela' || x.priceMode === 'transfer' ? 'bigGroup' : 'maxNote', { n: teto }));
+    S.adultos = ad; S.criancas = cr; S.pax = ad + cr;
+    S.opcao = 0; S.discount = 0; S.coupon = null;
+    renderBook();
+  });
+}
+
+/* --- o transfer: as duas opcoes de veiculo da quantidade escolhida --- */
+function transferEscolhaHtml(x, S) {
+  const ops = transferOpcoes(x, S.pax);
+  if (!ops.length) return `<p class="why">${t('bigGroup', { n: transferAte(x) })}</p>`;
+  const noite = transferNoturno(S.time);
+  return `<div class="trfpick">
+      <b>${t('trfPick')}</b>
+      <small class="why">${t('trfPickWhy')}</small>
+      <div class="trfopts">${ops.map((o, i) => `
+        <button class="trfopt ${S.opcao === i ? 'on' : ''}" data-o="${i}">
+          <b>${esc(o.veiculo)}</b>
+          <small>${esc(o.malas)}</small>
+          <span>${eur(noite ? o.noite : o.dia)}</span>
+        </button>`).join('')}</div>
+    </div>
+    <div class="trfcentro">
+      <b>${t('trfCentroQ')}</b>
+      <small class="why">${t('trfCentroWhy')}</small>
+      <div class="trfsn">
+        <button class="popt ${S.noCentro === true ? 'on' : ''}" data-centro="sim"><b>${t('trfCentroSim')}</b></button>
+        <button class="popt ${S.noCentro === false ? 'on' : ''}" data-centro="nao"><b>${t('trfCentroNao')}</b></button>
+      </div>
+    </div>`;
+}
+
+/* Quando o app NAO da o preco sozinho e manda falar com ela:
+   - transfer com hotel fora do centro ou mais de uma parada (a tabela dela
+     diz, com todas as letras: "nao passar o valor, iremos fazer o orcamento");
+   - grupo maior do que a tabela responde. */
+function precisaOrcamento(x, S, pr) {
+  if (x.priceMode === 'transfer') return S.noCentro === false || !!pr.consultar;
+  return x.priceMode === 'tabela' && !!pr.consultar;
+}
+
+function msgOrcamento(x, S) {
+  const nome = x.name[LANG] || x.name.pt;
+  const quem = S.criancas ? t('orcQuemCri', { a: S.adultos, c: S.criancas }) : t('orcQuem', { n: S.pax });
+  const partes = [t('orcOi'), nome, S.date ? fmtDate(S.date) + (S.time ? ' · ' + S.time : '') : '', quem];
+  if (x.priceMode === 'transfer' && S.noCentro === false) partes.push(t('orcForaCentro'));
+  return partes.filter(Boolean).join('\n');
 }
 
 /* A TABELA NA TELA DO CLIENTE.
@@ -447,12 +724,16 @@ function tabelaHtml(x) {
 }
 
 /* ordem dos filtros da vitrine; so aparece o tipo que o guia realmente vende */
-const ORDEM_TIPOS = ['walk', 'day', 'transfer', 'papal', 'trem', 'conexao', 'photo', 'session', 'bike'];
+const ORDEM_TIPOS = ['walk', 'day', 'barco', 'transfer', 'papal', 'trem', 'conexao', 'photo', 'session', 'bike'];
 
 function viewShowcase() {
   const tours = Tours.live();
   const filter = viewShowcase._f || 'all';
-  const list = filter === 'all' ? tours : tours.filter(x => x.type === filter || (filter === 'photo' && x.type === 'photo'));
+  /* Onde (cidade/regiao) e O que (tipo). As regioes sao as que ela
+     cadastrou nos Ajustes; so aparecem as que tem passeio publicado. */
+  const onde = viewShowcase._r || 'all';
+  const regs = regioes().filter(([c]) => tours.some(x => x.region === c));
+  const list = tours.filter(x => (filter === 'all' || x.type === filter) && (onde === 'all' || x.region === onde));
   app.innerHTML = `
   <header class="topbar">
     <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
@@ -461,6 +742,10 @@ function viewShowcase() {
   </header>
   <main class="wrap">
     <h1 class="pageh">${t('chooseTour')}</h1>
+    ${regs.length > 1 ? `<div class="chips onde" id="ondeF">
+      <button class="chip ${onde === 'all' ? 'on' : ''}" data-r="all">${t('ondeTodos')}</button>
+      ${regs.map(([c]) => `<button class="chip ${onde === c ? 'on' : ''}" data-r="${esc(c)}">📍 ${esc(regiaoLabel(c))}</button>`).join('')}
+    </div>` : ''}
     <div class="chips" id="filters">
       ${['all', ...ORDEM_TIPOS.filter(f => tours.some(x => x.type === f))].map(f =>
         `<button class="chip ${filter === f ? 'on' : ''}" data-f="${f}">${t(f === 'all' ? 'fAll' : TYPE_LABEL[f])}</button>`).join('')}
@@ -475,7 +760,7 @@ function viewShowcase() {
             <b>${esc(x.name[LANG] || x.name.pt)}</b>
             <small class="meta">${regiaoLabel(x.region)} · ${t('upTo')} ${x.max} ${t('people')}</small>
             <span class="cardfoot">
-              <span class="pr">${x.priceMode === 'tabela' || (x.priceLate && x.earlySeats && x.priceMode !== 'session') ? `<u>${t('fromPrice')}</u> ` : ''}${eur(precoVitrine(x))}
+              <span class="pr">${x.priceMode === 'tabela' || x.priceMode === 'transfer' || (x.priceLate && x.earlySeats && x.priceMode !== 'session') ? `<u>${t('fromPrice')}</u> ` : ''}${eur(precoVitrine(x))}
                 <i>${unidadePreco(x)}</i></span>
               <span class="cgo" aria-hidden="true">→</span>
             </span>
@@ -487,6 +772,7 @@ function viewShowcase() {
   bindLang(app);
   $('#bk').onclick = () => go('/');
   $$('#filters .chip').forEach(c => c.onclick = () => { viewShowcase._f = c.dataset.f; viewShowcase(); });
+  $$('#ondeF .chip').forEach(c => c.onclick = () => { viewShowcase._r = c.dataset.r; viewShowcase(); });
   $$('.tourcard').forEach(c => c.onclick = () => go('/tour/' + c.dataset.id));
 }
 
@@ -543,7 +829,7 @@ function cancelaTxt(x) {
 function viewTour(id) {
   const x = Tours.get(id);
   if (!x) return go('/tours');
-  const S = viewTour._s = { tour: x, date: null, time: null, cap: 0, pax: x.priceMode === 'session' || x.priceMode === 'transfer' ? 1 : 2, veiculo: 'carro', step: 1, coupon: null, discount: 0, policy: x.payPolicy === 'split' ? 'split' : 'full' };
+  const S = viewTour._s = { tour: x, date: null, time: null, cap: 0, pax: x.priceMode === 'session' ? 1 : 2, adultos: x.priceMode === 'session' ? 1 : 2, criancas: 0, opcao: 0, noCentro: null, step: 1, coupon: null, discount: 0, policy: x.payPolicy === 'split' ? 'split' : 'full' };
 
   const stops = Array.isArray(x.stops) ? x.stops : [];
   const L = a => (a && (a[LANG] || a.pt)) || '';
@@ -753,7 +1039,8 @@ async function viewPago(codigo) {
 
 function comoPagar(b, x) {
   const st = DB.settings || {};
-  const agora = b.policy === 'split' ? Math.round(b.total / 2) : b.total;
+  const agora = b.policy === 'sinal' && b.sinal ? b.sinal
+              : b.policy === 'split' ? Math.round(b.total / 2) : b.total;
   const saldo = b.total - agora;
   const linha = (rot, valor, dono) => `
     <div class="payline">
@@ -791,12 +1078,15 @@ function comoPagar(b, x) {
 
   const meios = blocoCartao + blocoPix
               + (st.pixKey && !codigoPix ? linha(t('pixLbl'), st.pixKey, st.pixName) : '')
-              + (st.iban ? linha(t('ibanLbl'), st.iban, st.ibanName) : '');
+              + (st.iban ? linha(t('ibanLbl'), st.iban, st.ibanName) : '')
+              + (linkExterno(st.wiseLink) ? `<div class="payline"><small>${t('wiseLbl')}</small>
+                  <a class="cta sm" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="${esc(st.wiseLink)}">${t('wiseAbrir')}</a></div>` : '')
+              + (st.dinheiroNoDia ? `<p class="why">💶 ${t('cashLbl')}</p>` : '');
   return `
   <div class="paybox">
     <h3>${t('howPay')}</h3>
     <p class="paynow"><small>${t('howPayNow')}</small><b>${eur(agora)}</b></p>
-    ${saldo > 0 ? `<p class="due">${prazoSaldo(b, saldo)}</p>` : ''}
+    ${saldo > 0 ? `<p class="due">${b.policy === 'sinal' ? t('trfRestoDia', { v: eur(saldo) }) : prazoSaldo(b, saldo)}</p>` : ''}
     ${meios || `<p class="why">${t('howPayNone')}</p>`}
     ${st.payNote ? `<p class="why">${esc(st.payNote)}</p>` : ''}
     ${meios ? `<p class="why">${t('payProof')}</p>` : ''}
@@ -807,7 +1097,7 @@ function renderBook() {
   const S = viewTour._s, x = S.tour, book = $('#book');
   /* Precos vem de Bookings.precoDe: ele sabe quantas vagas baratas restam
      naquela data e divide as pessoas entre os dois valores. */
-  const pr = Bookings.precoDe(x, x.id, S.date, S.time, S.pax, { veiculo: S.veiculo });
+  const pr = Bookings.precoDe(x, x.id, S.date, S.time, S.pax, { opcao: S.opcao });
   /* Preco escalonado: 195 para as 3 primeiras da data, 225 depois.
      Enquanto sobra vaga barata, o valor em destaque e 195 e a nota explica.
      Quando as 3 acabam, anunciar "195, depois 225" vira propaganda enganosa —
@@ -871,28 +1161,14 @@ function renderBook() {
     book.innerHTML = `
       <div class="bhead"><span class="bprice">${priceLine}</span></div>
       <div class="bstep">${t(x.priceMode === 'transfer' ? 'step2trf' : 'step2')}</div>
-      ${x.priceMode === 'transfer' ? `
-      <div class="trfpick">
-        <b>${t('trfPick')}</b>
-        <small class="why">${t('trfPickWhy')}</small>
-        <div class="trfopts">
-          ${['carro', 'van'].filter(v => x.transfer && x.transfer[v]).map(v => `
-            <button class="trfopt ${S.veiculo === v ? 'on' : ''}" data-v="${v}">
-              <b>${t(v === 'van' ? 'trfVan' : 'trfCar')}</b>
-              <small>${esc(x.transfer[v].malas || '')}</small>
-              <span>${eur(transferPreco(x, v, S.time))}</span>
-            </button>`).join('')}
-        </div>
-      </div>` : `
-      <div class="paxrow ${x.priceMode === 'session' ? 'hide' : ''}">
-        <b>${t('peopleLbl')}</b>
-        <div class="pm"><button id="mn">−</button><span id="pax">${S.pax}</span><button id="pl">+</button></div>
-      </div>`}
+      ${x.priceMode === 'session' ? '' : pessoasHtml(x, S)}
+      ${x.priceMode === 'transfer' ? transferEscolhaHtml(x, S) : ''}
       <div class="sums">
         <div><span>${fmtDate(S.date)} · ${S.time}</span></div>
         ${S.discount ? `<div><span>${t('couponOk', { c: S.coupon })}</span><b>−${eur(S.discount)}</b></div>` : ''}
         ${x.priceMode === 'transfer'
-          ? `<div class="quebra"><span>${t(S.veiculo === 'van' ? 'trfVan' : 'trfCar')} · ${pr.noturno ? t('trfNight') : t('trfDay')}</span><b>${eur(pr.total)}</b></div>`
+          ? `<div class="quebra"><span>${esc(pr.veiculo || '')} · ${pr.noturno ? t('trfNight') : t('trfDay')}</span><b>${eur(pr.total)}</b></div>`
+            + (pr.sinal ? `<div class="quebra"><span>${t('trfSinalLbl')}</span><b>${eur(pr.sinal)}</b></div>` : '')
           : x.priceMode === 'tabela'
           ? `<div class="quebra"><span>${t('closedPrice', { n: S.pax })}</span><b>${eur(pr.total)}</b></div>`
           : (pr.linhas && pr.linhas.length > 1) ? pr.linhas.map(l =>
@@ -905,33 +1181,27 @@ function renderBook() {
         <div class="crow"><input id="cin" placeholder="VOLTA10"><button class="mini" id="capply">OK</button></div>
         <p class="cbad" id="cbad"></p>
       </details>
-      <button class="cta" id="next2">${x.priceMode === 'tabela' && pr.consultar ? t('bigGroupBtn') : t('cont')}</button>
+      <button class="cta" id="next2" ${x.priceMode === 'transfer' && S.noCentro === null ? 'disabled' : ''}>${precisaOrcamento(x, S, pr) ? t('bigGroupBtn') : t('cont')}</button>
       <button class="linkbtn" id="back1" aria-label="${t('back')}">← ${t('back')}</button>`;
     /* Antes o piso era x.min (3 nos passeios dela): apertar "menos" com 2
        pessoas SUBIA para 3, e um casal nao conseguia reservar de jeito nenhum.
        O minimo dela e a regra de saida, nao o tamanho minimo de uma reserva. */
+    ligaPessoas(x, S, book);
     $$('.trfopt', book).forEach(b => b.onclick = () => {
-      S.veiculo = b.dataset.v; S.discount = 0; S.coupon = null; renderBook();
+      S.opcao = +b.dataset.o; S.discount = 0; S.coupon = null; renderBook();
     });
-    if ($('#mn')) $('#mn').onclick = () => {
-      if (S.pax <= 1) return;
-      S.pax = S.pax - 1; S.discount = 0; S.coupon = null; renderBook();
-    };
-    if ($('#pl')) $('#pl').onclick = () => {
-      /* Na tabela, o teto nao e o max do passeio: e ate onde a tabela tem
-         valor. Deixar passar mostraria total de zero euro na tela. */
-      const teto = x.priceMode === 'tabela'
-        ? Math.min(tabelaAte(x) || x.max, x.max, S.cap || x.max)
-        : Math.min(x.max, S.cap || x.max);
-      if (S.pax >= teto) return toast(t(x.priceMode === 'tabela' ? 'bigGroup' : 'maxNote', { n: teto }));
-      S.pax++; S.discount = 0; S.coupon = null; renderBook();
-    };
+    $$('[data-centro]', book).forEach(b => b.onclick = () => {
+      S.noCentro = b.dataset.centro === 'sim'; renderBook();
+    });
     $('#capply').onclick = () => {
       const v = Coupons.validate($('#cin').value, null);
       if (v.ok) { S.coupon = v.coupon.code; S.discount = Math.round(base * v.coupon.pct / 100); renderBook(); }
       else $('#cbad').textContent = t('couponBad');
     };
     $('#next2').onclick = () => {
+      if (precisaOrcamento(x, S, pr)) {
+        return window.open(waLink(msgOrcamento(x, S)), '_blank');
+      }
       if (x.priceMode === 'tabela' && pr.consultar) {
         return window.open(waLink(t('waAskDates', { tour: x.name[LANG] || x.name.pt })), '_blank');
       }
@@ -949,15 +1219,17 @@ function renderBook() {
       <label class="fld">${t('email')}<input id="fE" type="email" autocomplete="email"></label>
       <label class="fld">${t('whatsLbl')}<input id="fW" placeholder="+33 6 …"><small class="why">${t('whyWhats')}</small></label>
       <label class="fld">${t('instaLbl')}<input id="fI" placeholder="@"></label>
-      ${grupoHtml(x.priceMode === 'transfer' ? 1 : S.pax - 1)}
+      ${grupoHtml(S.pax - 1)}
       <label class="optin"><input type="checkbox" id="fOptin">
         <span><b>${t('consentLbl')}</b><small>${t('consentWhy')}</small></span></label>
+      ${x.priceMode === 'transfer' && pr.sinal ? `
+      <p class="sinalnote">${t('trfSinalNota', { s: eur(pr.sinal), r: eur(Math.max(0, total - pr.sinal)) })}</p>` : ''}
       ${splitAllowed ? `
       <div class="payopts">
         <button class="popt ${S.policy === 'full' ? 'on' : ''}" data-p="full"><b>${t('payFull')}</b><small>${t('payFullSub')} · ${eur(total)}</small></button>
         <button class="popt ${S.policy === 'split' ? 'on' : ''}" data-p="split"><b>${t('paySplit')}</b><small>${t('paySplitSub', { half: eur(half), d: (+x.balanceDays || 1) })}</small></button>
       </div>` : ''}
-      <button class="cta" id="payBtn">${S.policy === 'split' && splitAllowed ? t('payNowBtn', { v: eur(half) }) : t('payBtn', { v: eur(total) })}</button>
+      <button class="cta" id="payBtn">${x.priceMode === 'transfer' && pr.sinal ? t('payNowBtn', { v: eur(pr.sinal) }) : S.policy === 'split' && splitAllowed ? t('payNowBtn', { v: eur(half) }) : t('payBtn', { v: eur(total) })}</button>
       <p class="fine">${cancelaTxt(x)} · ${t('noHidden')}</p>
       <p class="fine demo">${t('payAfter')}</p>
       <button class="linkbtn" id="back2" aria-label="${t('back')}">← ${t('back')}</button>`;
@@ -983,8 +1255,9 @@ function renderBook() {
         S.booking = Bookings.create({
           tourId: x.id, date: S.date, time: S.time, name, email, whats,
           insta: $('#fI').value.trim(), pax: S.pax, coupon: S.coupon,
-          consent: $('#fOptin').checked, veiculo: S.veiculo, group: lerGrupo(),
-          policy: splitAllowed ? S.policy : 'full', origin: 'site',
+          consent: $('#fOptin').checked, opcao: S.opcao, group: lerGrupo(),
+          adultos: S.adultos, criancas: S.criancas,
+          policy: (x.priceMode === 'transfer' && pr.sinal) ? 'sinal' : splitAllowed ? S.policy : 'full', origin: 'site',
         });
         S.step = 4; renderBook();
       }, 900);
@@ -1190,6 +1463,31 @@ function linhas(obj, lang) {
   return Array.isArray(a) ? a.join('\n') : '';
 }
 
+/* Linha da tabela de transfer no painel. Ela edita a tabela de 2026 como
+   esta no PDF dela: quantas pessoas, veiculo, malas, dia, noite, sinal.
+   Duas linhas com o mesmo numero de pessoas = as duas opcoes de veiculo. */
+function trfLinhaEd(l) {
+  const v = (k) => l[k] === undefined || l[k] === null ? '' : esc(String(l[k]));
+  return `<tr>
+    <td><input class="tp" type="number" min="1" max="40" value="${v('pax')}" aria-label="${t('edTrfPax')}"></td>
+    <td><input class="tv" value="${v('veiculo')}" placeholder="carro" aria-label="${t('edTrfVeic')}"></td>
+    <td><input class="tm" value="${v('malas')}" placeholder="2 malas médias e 2 bordo" aria-label="${t('edTrfMalas')}"></td>
+    <td><input class="td" type="number" min="0" value="${v('dia')}" aria-label="${t('trfDay')}"></td>
+    <td><input class="tn" type="number" min="0" value="${v('noite')}" aria-label="${t('trfNight')}"></td>
+    <td><input class="ts" type="number" min="0" value="${v('sinal')}" aria-label="${t('edTrfSinal')}"></td>
+    <td><button type="button" class="mini ico" data-trfdel aria-label="${t('edRemove')}">×</button></td>
+  </tr>`;
+}
+function lerTrfLinhas() {
+  return $$('#trfRows tr').map(tr => {
+    const q = (c) => (tr.querySelector('.' + c) || {}).value || '';
+    return { pax: +q('tp') || 0, veiculo: q('tv').trim(), malas: q('tm').trim(),
+             dia: +q('td') || 0, noite: +q('tn') || 0, sinal: +q('ts') || 0 };
+  }).filter(l => l.pax > 0 && (l.dia > 0 || l.noite > 0))
+    /* na ordem da tabela: por pessoas, e o veiculo menor primeiro */
+    .sort((a, b) => a.pax - b.pax || a.dia - b.dia);
+}
+
 function admTourEdit(id) {
   const isNew = id === 'new';
   const x = isNew
@@ -1205,7 +1503,7 @@ function admTourEdit(id) {
     <h1 class="pageh">${isNew ? t('newTour').replace('+ ', '') : esc(x.name.pt)}</h1>
     <div class="formgrid">
       <section class="card">
-        <label class="fld">${t('tType')}<select id="fType">${selOpts([['walk','tWalk'],['day','tDay'],['transfer','tTransfer'],['papal','tPapal'],['trem','tTrem'],['conexao','tConexao'],['photo','tPhotoT'],['session','tSession'],['bike','tBike']], x.type)}</select></label>
+        <label class="fld">${t('tType')}<select id="fType">${selOpts([['walk','tWalk'],['day','tDay'],['transfer','tTransfer'],['papal','tPapal'],['trem','tTrem'],['conexao','tConexao'],['barco','tBarco'],['photo','tPhotoT'],['session','tSession'],['bike','tBike']], x.type)}</select></label>
         <label class="fld">${t('tRegion')}<select id="fRegion">${regiaoOpts(x.region)}</select></label>
         <label class="fld">${t('tName')}<input id="fNamePt" value="${esc(x.name.pt)}"></label>
         <label class="optin enswitch"><input type="checkbox" id="verEn">
@@ -1231,7 +1529,7 @@ function admTourEdit(id) {
         <h3>${t('edMoney')}</h3>
         <div class="frow">
           <label class="fld">${t('tPrice')}<input id="fPrice" type="number" value="${x.price}"></label>
-          <label class="fld">${t('tPriceMode')}<select id="fMode">${selOpts([['pp','perPerson'],['session','perSession'],['tabela','perTable']], x.priceMode)}</select></label>
+          <label class="fld">${t('tPriceMode')}<select id="fMode">${selOpts([['pp','perPerson'],['session','perSession'],['tabela','perTable'],['transfer','perTransfer']], x.priceMode)}</select></label>
         </div>
 
         <div id="tabWrap" class="${x.priceMode === 'tabela' ? '' : 'hide'}">
@@ -1244,6 +1542,17 @@ function admTourEdit(id) {
                 <input class="ftab" data-i="${i}" type="number" min="0" inputmode="numeric"
                        value="${(x.tabela && +x.tabela[i]) || ''}"></label>`).join('')}
           </div>
+        </div>
+
+        <div id="trfWrap" class="${x.priceMode === 'transfer' ? '' : 'hide'}">
+          <div class="rulesep"></div>
+          <b>${t('edTrf')}</b>
+          <p class="why">${t('edTrfWhy')}</p>
+          <div class="trfedit-wrap"><table class="trfedit">
+            <thead><tr><th>${t('edTrfPax')}</th><th>${t('edTrfVeic')}</th><th>${t('edTrfMalas')}</th><th>${t('trfDay')}</th><th>${t('trfNight')}</th><th>${t('edTrfSinal')}</th><th></th></tr></thead>
+            <tbody id="trfRows">${((x.transfer && x.transfer.linhas) || []).map(trfLinhaEd).join('')}</tbody>
+          </table></div>
+          <button type="button" class="mini" id="trfAdd">${t('edTrfAdd')}</button>
         </div>
 
         <div class="rulesep"></div>
@@ -1262,11 +1571,14 @@ function admTourEdit(id) {
           <label class="fld">${t('tMin')}<input id="fMin" type="number" value="${x.min}"><small class="why">${t('edMinWhy')}</small></label>
           <label class="fld">${t('tMax')}<input id="fMax" type="number" value="${x.max}"></label>
         </div>
+        <label class="optin"><input type="checkbox" id="fKids" ${x.criancas === false ? '' : 'checked'}>
+          <span><b>${t('edKids')}</b><small>${t('edKidsWhy')}</small></span></label>
+        <label class="fld">${t('edIdadeMin')}<input id="fIdadeMin" type="number" min="0" max="99" value="${+x.idadeMin || ''}" placeholder="—"><small class="why">${t('edIdadeMinWhy')}</small></label>
 
         <div class="rulesep"></div>
         <b>${t('edTerms')}</b>
         <div class="frow">
-          <label class="fld">${t('tPay')}<select id="fPay">${selOpts([['full','tPayFull'],['split','tPaySplit']], x.payPolicy)}</select></label>
+          <label class="fld">${t('tPay')}<select id="fPay">${selOpts([['full','tPayFull'],['split','tPaySplit'],['sinal','tPaySinal']], x.payPolicy)}</select></label>
           <label class="fld">${t('edBalanceDays')}<input id="fBalDays" type="number" min="0" value="${x.balanceDays || 1}"><small class="why">${t('edBalanceWhy')}</small></label>
         </div>
         <label class="fld">${t('edCancel')}<input id="fCancelPt" value="${esc((x.cancel && x.cancel.pt) || '')}" placeholder="Cancelamento gratis ate 48h antes"><small class="why">${t('edCancelWhy')}</small></label>
@@ -1424,8 +1736,13 @@ function admTourEdit(id) {
 
   let newPhoto = null;
   $('#fMode').onchange = (e) => {
+    $('#trfWrap').classList.toggle('hide', e.target.value !== 'transfer');
     $('#tabWrap').classList.toggle('hide', e.target.value !== 'tabela');
   };
+  $('#trfAdd').onclick = () => $('#trfRows').insertAdjacentHTML('beforeend', trfLinhaEd({}));
+  $('#trfRows').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-trfdel]'); if (b) b.closest('tr').remove();
+  });
   $('#fPhoto').onchange = async (e) => {
     const f = e.target.files[0]; if (!f) return;
     try {
@@ -1457,6 +1774,8 @@ function admTourEdit(id) {
       meeting: par('#fMeetPt', '#fMeetEn'),
       price: +$('#fPrice').value || 0, priceMode: $('#fMode').value,
       tabela: $$('.ftab').sort((p, q) => +p.dataset.i - +q.dataset.i).map(el => +el.value || 0),
+      transfer: { linhas: lerTrfLinhas() },
+      criancas: $('#fKids').checked, idadeMin: Math.max(0, +$('#fIdadeMin').value || 0),
       min: +$('#fMin').value || 1, max: +$('#fMax').value || 1,
       payPolicy: $('#fPay').value,
       /* guarda qual portugues gerou o ingles atual: se nao mudar,
@@ -1492,7 +1811,9 @@ function admTourEdit(id) {
     if (!data.name.pt) problems.push(['fNamePt', t('vName')]);
     if (!data.desc.pt) problems.push(['fDescPt', t('vDesc')]);
     if (!data.meeting.pt) problems.push(['fMeetPt', t('vMeet')]);
-    if (data.priceMode === 'tabela') {
+    if (data.priceMode === 'transfer') {
+      if (!(data.transfer && data.transfer.linhas || []).length) problems.push(['fMode', t('vTrf')]);
+    } else if (data.priceMode === 'tabela') {
       if (!(data.tabela || []).some(v => +v > 0)) problems.push(['fMode', t('vTable')]);
     } else if (!(data.price > 0)) problems.push(['fPrice', t('vPrice')]);
     if (data.min > data.max) problems.push(['fMin', t('vMinMax')]);
@@ -1636,11 +1957,33 @@ function situacaoPgto(b, hoje) {
   };
 }
 
+/* Os pedidos de "Monte seu roteiro", no topo das reservas: e trabalho a
+   fazer, e novo fica em cima. */
+function pedidosHtml() {
+  const ps = Roteiros.all();
+  const novos = ps.filter(p => !p.respondido).length;
+  const d = (iso) => iso ? fmtDate(iso) : '';
+  return `<details class="card pedidos" ${novos ? 'open' : ''}>
+    <summary><b>🗺️ ${t('pdTit')}</b>${novos ? ` <span class="pill warn">${novos} ${t('pdNovo').toLowerCase()}</span>` : ''}</summary>
+    ${ps.length ? ps.map(p => `<div class="pedido ${p.respondido ? 'resp' : ''}">
+      <div class="pdtop"><b>${esc(p.nome)}</b>
+        <span class="pill ${p.respondido ? 'ok' : 'warn'}">${p.respondido ? t('pdResp') : t('pdNovo')}</span></div>
+      <small>${[d(p.ini), d(p.fim)].filter(Boolean).join(' → ') || '—'} · ${p.adultos} ${t('adultsLbl').toLowerCase()}${p.criancas ? ' + ' + p.criancas + ' ' + t('kidsLbl').toLowerCase() : ''}</small>
+      <pre class="pdmsg">${esc(msgRoteiro(p))}</pre>
+      <div class="tacts">
+        ${p.whats ? `<a class="mini cta-ish" target="_blank" rel="noopener" href="${waLink(t('waHi', { name: p.nome.split(' ')[0], tour: '', when: '' }), p.whats.replace(/\D/g, ''))}">${t('pdAbrir')}</a>` : ''}
+        <button class="mini" data-pdm="${esc(p.id)}" data-v="${p.respondido ? '0' : '1'}">${p.respondido ? t('pdDesmarca') : t('pdMarca')}</button>
+      </div>
+    </div>`).join('') : `<p class="why">${t('pdVazio')}</p>`}
+  </details>`;
+}
+
 function admBookings() {
   const list = Bookings.all();
   const today = isoToday();
   admShell('bookings', `
     <h1 class="pageh">${t('admBookings')}</h1>
+    ${pedidosHtml()}
     <details class="card novares">
       <summary><b>${t('novaResTit')}</b><small class="why">${t('novaResSub')}</small></summary>
       <div class="frow">
@@ -1701,7 +2044,7 @@ function admBookings() {
         ? `<small class="grpline"><b>${t('grpInBooking')}:</b> ` +
           b.group.map(g => esc(g.nome) + (g.nasc ? ' (' + esc(g.nasc) + ')' : '')).join(' · ') + '</small>'
         : '';
-      const veic = b.veiculo ? ' · ' + t(b.veiculo === 'van' ? 'trfVan' : 'trfCar') : '';
+      const veic = b.veiculo ? ' · ' + esc(b.veiculo) : '';
       return `<div class="trow">
         <div class="tinfo"><b>${esc(b.name)}</b>
           <small>${esc(x ? x.name.pt : '?')} · ${fmtDate(b.date)} ${esc(b.time)} · ${esc(b.pax)}p${veic} · <span class="mono">${esc(b.code)}</span></small>${grupo}</div>
@@ -1710,6 +2053,9 @@ function admBookings() {
       </div>`;
     }).join('')}</div>`
     : `<div class="emptybox"><p>${t('emptyBookings')}</p></div>`}`);
+  $$('[data-pdm]').forEach(b => b.onclick = () => {
+    Roteiros.marca(b.dataset.pdm, b.dataset.v === '1'); admBookings();
+  });
   /* ---- lancamento manual ---- */
   const nrRecalcula = () => {
     const tt = Tours.get($('#nrTour').value);
@@ -1884,6 +2230,37 @@ function admCoupons() {
 /* ---- Ajustes ---- */
 /* Aparencia ganhou tela propria na barra lateral: estava enterrada dentro
    de Ajustes, junto com coisas que nao tem nada a ver. */
+/* Linhas editaveis da Aparencia: os links de parceiros da primeira tela e
+   as cidades/regioes da vitrine. */
+function linkEd(l) {
+  const v = (x) => esc(x || '');
+  return `<div class="edrow" data-id="${v(l.id)}">
+    <div class="frow">
+      <label class="fld sm">${t('apIcone')}<input class="li" value="${v(l.icone)}" placeholder="🏨" maxlength="4"></label>
+      <label class="fld">${t('apTitulo')}<input class="lt" value="${v(l.titulo && l.titulo.pt)}"></label>
+      <button type="button" class="mini ico danger" data-del aria-label="${t('edRemove')}">✕</button>
+    </div>
+    <label class="fld">${t('apSub')}<input class="ls" value="${v(l.sub && l.sub.pt)}"></label>
+    <label class="fld">Link<input class="lu" value="${v(l.url)}" placeholder="https://…"></label>
+    <div class="frow">
+      <label class="fld">${t('apTitulo')} (EN)<input class="lte" value="${v(l.titulo && l.titulo.en)}"></label>
+      <label class="fld">${t('apSub')} (EN)<input class="lse" value="${v(l.sub && l.sub.en)}"></label>
+    </div>
+  </div>`;
+}
+function regEd(r) {
+  const v = (x) => esc(x || '');
+  const usados = r[0] ? Tours.all().filter(x => x.region === r[0]).length : 0;
+  return `<div class="edrow" data-cod="${v(r[0])}">
+    <div class="frow">
+      <label class="fld">${t('apRegNome')}<input class="rp" value="${v(r[1])}" placeholder="Florença"></label>
+      <label class="fld">${t('apRegNome')} (EN)<input class="re" value="${v(r[2])}" placeholder="Florence"></label>
+      ${usados ? `<small class="why regn">${usados} ${t('apRegUsos')}</small>`
+               : `<button type="button" class="mini ico danger" data-del aria-label="${t('edRemove')}">✕</button>`}
+    </div>
+  </div>`;
+}
+
 function admAparencia() {
   const opcao = (v, k, desc) => `
     <button class="lookcard ${temaAtual() === v ? 'on' : ''}" data-tema="${v}">
@@ -1899,7 +2276,63 @@ function admAparencia() {
         ${opcao('light', 'temaClaro',  t('temaClaroSub'))}
         ${opcao('dark',  'temaEscuro', t('temaEscuroSub'))}
       </div>
-    </section>`);
+    </section>
+
+    <section class="card">
+      <h3>${t('apRedes')}</h3>
+      <p class="why">${t('apRedesWhy')}</p>
+      <div class="frow">
+        <label class="fld">Instagram<input id="apInsta" value="${esc(DB.settings.insta || '')}" placeholder="em_roma"></label>
+        <label class="fld">YouTube<input id="apYt" value="${esc(DB.settings.youtube || '')}" placeholder="https://youtube.com/…"></label>
+      </div>
+      <div class="frow">
+        <label class="fld">Blog / site<input id="apBlog" value="${esc(DB.settings.blog || '')}" placeholder="https://…"></label>
+        <label class="fld">Facebook<input id="apFb" value="${esc(DB.settings.facebook || '')}" placeholder="https://facebook.com/…"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>${t('apLinks')}</h3>
+      <p class="why">${t('apLinksWhy')}</p>
+      <div id="apLinkRows">${(DB.settings.links || []).map(linkEd).join('')}</div>
+      <button type="button" class="mini" id="apLinkAdd">${t('apLinkAdd')}</button>
+    </section>
+
+    <section class="card">
+      <h3>${t('apRegs')}</h3>
+      <p class="why">${t('apRegsWhy')}</p>
+      <div id="apRegRows">${regioes().map(regEd).join('')}</div>
+      <button type="button" class="mini" id="apRegAdd">${t('apRegAdd')}</button>
+    </section>
+
+    <button class="cta" id="apSalvar">${t('apSalvar')}</button>`);
+  $('#apLinkAdd').onclick = () => $('#apLinkRows').insertAdjacentHTML('beforeend', linkEd({}));
+  $('#apRegAdd').onclick  = () => $('#apRegRows').insertAdjacentHTML('beforeend', regEd([]));
+  [$('#apLinkRows'), $('#apRegRows')].forEach(box => box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-del]'); if (b) b.closest('.edrow').remove();
+  }));
+  $('#apSalvar').onclick = () => {
+    const st = DB.settings;
+    st.insta = $('#apInsta').value.trim().replace(/^@/, '');
+    st.youtube = $('#apYt').value.trim(); st.blog = $('#apBlog').value.trim(); st.facebook = $('#apFb').value.trim();
+    st.links = $$('#apLinkRows .edrow').map(r => {
+      const q = (c) => (r.querySelector('.' + c) || {}).value || '';
+      return { id: r.dataset.id || uid(), icone: q('li').trim() || '🔗', url: q('lu').trim(),
+               titulo: { pt: q('lt').trim(), en: q('lte').trim() || q('lt').trim() },
+               sub: { pt: q('ls').trim(), en: q('lse').trim() || q('ls').trim() } };
+    }).filter(l => l.url && l.titulo.pt);
+    /* regioes: o codigo nasce do nome e NAO muda depois — e ele que liga o
+       passeio a regiao. Trocar o nome de "Roma" nao pode soltar 14 passeios. */
+    const usados = new Set();
+    st.regioes = $$('#apRegRows .edrow').map(r => {
+      const pt = (r.querySelector('.rp') || {}).value.trim(), en = (r.querySelector('.re') || {}).value.trim();
+      let c = r.dataset.cod || pt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      while (c && usados.has(c)) c += '-2';
+      usados.add(c);
+      return [c, pt, en || pt];
+    }).filter(r => r[0] && r[1]);
+    save(); toast(t('apSalvo')); admAparencia();
+  };
   $$('[data-tema]').forEach(b => b.onclick = () => {
     aplicaTema(b.dataset.tema);
     $$('[data-tema]').forEach(z => z.classList.toggle('on', z === b));
@@ -2000,6 +2433,9 @@ function admSettings() {
         <label class="fld">${t('admIban')}<input id="pgIban" value="${esc(DB.settings.iban || '')}" placeholder="FR76 …"></label>
         <label class="fld">${t('admIbanName')}<input id="pgIbanName" value="${esc(DB.settings.ibanName || '')}" placeholder="Nome como no banco"></label>
       </div>
+      <label class="fld">${t('admWise')}<input id="pgWise" value="${esc(DB.settings.wiseLink || '')}" placeholder="https://wise.com/pay/…"><small class="why">${t('admWiseHelp')}</small></label>
+      <label class="optin"><input type="checkbox" id="pgCash" ${DB.settings.dinheiroNoDia ? 'checked' : ''}>
+        <span><b>${t('admCash')}</b><small>${t('admCashHelp')}</small></span></label>
       <label class="fld">${t('admPayNote')}<textarea id="pgNote" rows="3">${esc(DB.settings.payNote || '')}</textarea></label>
       <div class="rulesep"></div>
       <label class="optin"><input type="checkbox" id="pgCard" ${DB.settings.stripeAtivo ? 'checked' : ''}>
@@ -2199,6 +2635,8 @@ function admSettings() {
     DB.settings.pixCity  = $('#pgPixCity').value.trim();
     DB.settings.iban     = $('#pgIban').value.trim();
     DB.settings.ibanName = $('#pgIbanName').value.trim();
+    DB.settings.wiseLink = linkExterno($('#pgWise').value.trim());
+    DB.settings.dinheiroNoDia = $('#pgCash').checked;
     DB.settings.payNote  = $('#pgNote').value.trim();
     DB.settings.stripeAtivo   = $('#pgCard').checked;
     DB.settings.exibirCotacao = $('#pgFx').checked;
