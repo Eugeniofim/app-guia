@@ -13,7 +13,7 @@ var APP_CONFIG = {
 
   guia: {
     nome: 'Ingrid',
-    negocio: 'Em Roma com Ingrid',
+    negocio: 'EmRoma',
     cidade: 'Roma, Itália',
     whats: '+393515631485',
     /* o link curto do WhatsApp dela (Beacons), reserva se o numero sumir */

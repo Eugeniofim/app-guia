@@ -1,6 +1,6 @@
 {
-  "name": "Reservas de passeios",
-  "short_name": "Passeios",
+  "name": "EmRoma",
+  "short_name": "EmRoma",
   "description": "Passeios e reservas online",
   "start_url": "./",
   "scope": "./",

@@ -1223,7 +1223,7 @@ let DB = null;
 
    So vale para a DEMONSTRACAO e sem nuvem: dados de verdade nunca sao
    trocados por exemplo. Os pedidos de roteiro feitos no aparelho ficam. */
-const SEED_VER = 2;
+const SEED_VER = 3;   /* 3: o nome do negocio virou "EmRoma" (18/09/2026) */
 
 function load() {
   try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
