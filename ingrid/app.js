@@ -758,7 +758,8 @@ function viewShowcase() {
           </span>
           <span class="bd">
             <b>${esc(x.name[LANG] || x.name.pt)}</b>
-            <small class="meta">${regiaoLabel(x.region)} · ${t('upTo')} ${x.max} ${t('people')}</small>
+            ${x.tagline && (x.tagline[LANG] || x.tagline.pt) ? `<small class="ctag">${esc(x.tagline[LANG] || x.tagline.pt)}</small>` : ''}
+            <small class="meta">${regiaoLabel(x.region)}${x.duration && x.duration !== '—' ? ' · ' + esc(x.duration) : ''}${(x.stops || []).length ? ' · ' + t('nParadas', { n: x.stops.length }) : ''}</small>
             <span class="cardfoot">
               <span class="pr">${x.priceMode === 'tabela' || x.priceMode === 'transfer' || (x.priceLate && x.earlySeats && x.priceMode !== 'session') ? `<u>${t('fromPrice')}</u> ` : ''}${eur(precoVitrine(x))}
                 <i>${unidadePreco(x)}</i></span>
@@ -859,6 +860,10 @@ function viewTour(id) {
       </div>
 
       ${stops.length ? `
+      <div class="stophead">
+        <span class="seclabel">${t('secStops')}</span>
+        <small>${t('secStopsSub', { n: stops.length, d: esc(x.duration || '') })}</small>
+      </div>
       <ol class="stopgrid">
         ${stops.map((p, i) => `
           <li class="stopcardc">
