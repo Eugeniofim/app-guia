@@ -24,7 +24,7 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=1.56.0">
+<link rel="stylesheet" href="tokens.css?v=1.56.1">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23064c3f'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23FFD23F' stroke-width='8'/%3E%3Ccircle cx='50' cy='50' r='9' fill='%23FFD23F'/%3E%3C/svg%3E">
 <style>
 /* ============ base ============ */
@@ -45,14 +45,25 @@ small{color:var(--ink-3)}
 /* ============ toast / coach ============ */
 .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);opacity:0;z-index:300;background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:var(--r-pill);font-size:var(--fs-3);box-shadow:var(--sh-2);transition:all var(--d-base) var(--ease);pointer-events:none;max-width:min(480px,92vw);text-align:center}
 .toast.on{opacity:1;transform:translate(-50%,0)}
-.coach{position:fixed;z-index:400;width:270px;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-3);padding:14px 16px;animation:pop .35s var(--spring)}
+/* O balão do tutorial NÃO pode parecer parte do app: fundo claro nos dois
+   temas, faixa amarela, botão escuro, seta para o item e a tela em volta
+   escurecida. Escuro e com botão verde, ele se confundia com os cartões. */
+.coach{position:fixed;z-index:400;width:300px;max-width:calc(100vw - 20px);background:#FFFDF4;color:#1b1b1b;border-radius:16px;
+  border-top:6px solid var(--highlight);box-shadow:0 18px 50px rgba(0,0,0,.45);padding:14px 18px 14px;animation:pop .35s var(--spring)}
 @keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1}}
-.coach-txt{font-size:var(--fs-3);line-height:1.5}
-.coach-row{display:flex;align-items:center;gap:8px;margin-top:11px}
-.coach-n{font-family:var(--f-mono);font-size:var(--fs-1);color:var(--ink-3);margin-left:auto}
-.coach-next{background:var(--accent);color:var(--accent-ink);padding:6px 14px;border-radius:var(--r-pill);font-weight:var(--t-strong);font-size:var(--fs-3)}
-.coach-skip{color:var(--ink-3);font-size:var(--fs-2)}
-.coach-hi{outline:3px solid var(--highlight);outline-offset:3px;border-radius:var(--r);transition:outline var(--d-fast)}
+.coach::before{content:'';position:absolute;width:16px;height:16px;background:#FFFDF4;transform:rotate(45deg)}
+.coach[data-lado=baixo]::before{top:-11px;left:var(--seta,50%);margin-left:-8px;background:var(--highlight)}
+.coach[data-lado=cima]::before{bottom:-8px;left:var(--seta,50%);margin-left:-8px}
+.coach[data-lado=direita]::before{left:-8px;top:var(--seta,50%);margin-top:-8px}
+.coach[data-lado=esquerda]::before{right:-8px;top:var(--seta,50%);margin-top:-8px}
+.coach-tag{display:inline-block;font:700 11px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:#1b1b1b;background:var(--highlight);padding:3px 10px;border-radius:99px;margin-bottom:9px}
+.coach-txt{font-size:15px;line-height:1.5;color:#1b1b1b}
+.coach-row{display:flex;align-items:center;gap:10px;margin-top:14px}
+.coach-next{margin-left:auto;background:#111;color:#fff;padding:9px 18px;border-radius:var(--r-pill);font-weight:700;font-size:14px;min-height:40px}
+.coach-skip{color:#555;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+/* o holofote: um recorte em volta do item, o resto da tela escurece */
+.coach-spot{position:fixed;z-index:399;border-radius:16px;pointer-events:none;box-shadow:0 0 0 3px var(--highlight),0 0 0 200vmax rgba(6,10,9,.62);transition:all .25s var(--ease)}
+.coach-hi{}
 
 /* ============ hub ============ */
 .hub{position:relative;min-height:100vh;display:grid;place-items:center;
@@ -77,7 +88,7 @@ small{color:var(--ink-3)}
 .tagline{font-size:var(--fs-3);color:var(--ink-2);margin-top:10px}
 /* PT | EN — a mesma assinatura do logotipo dela. Sem bandeira:
    idioma não é país (o inglês dela atende alemão, holandês, americano). */
-.langs{display:flex;gap:2px;align-items:center}
+.langs{display:flex;gap:2px;align-items:center;flex-wrap:wrap;row-gap:4px}
 .langs.center{justify-content:center;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
 .langs.right{margin-left:auto}
 .langs button{padding:5px 12px;border-radius:var(--r-pill);background:transparent;
@@ -87,6 +98,8 @@ small{color:var(--ink-3)}
 /* o amarelo é a assinatura da marca; texto escuro em cima dá 8,7:1 */
 .langs button.on{background:var(--highlight);color:var(--highlight-ink)}
 .langsep{color:var(--line-2);font-weight:400;user-select:none}
+.langsel{display:none;min-height:40px;padding:0 10px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px var(--f-ui)}
+@media (max-width:560px){ .langs.right > button, .langs.right > .langsep{display:none} .langs.right > .langsel{display:block} }
 .lk{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--sh-1);text-align:left;transition:transform var(--d-fast) var(--spring),box-shadow var(--d-base)}
 .lk:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}
 .lk .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--surface-2);flex:none;font-size:16px}
@@ -578,6 +591,9 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
   .fld input, .fld select{ min-height:44px }
   /* espaço entre alvos vizinhos, senão 44px encostado em 44px ainda erra */
   .chips, .langs, .btnrow, .tacts, .okrow{ gap:10px }
+  /* seis idiomas × 44px não cabem num celular com separador e folga:
+     sem o "|" e com folga menor, cabem numa linha só (21/09/2026) */
+  .langs{ gap:4px } .langsep{ display:none }
 }
 /* barra de versao nova — fixa embaixo, acima de tudo, some por padrao */
 .novabar{position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;display:none;
@@ -1060,21 +1076,21 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=1.56.0"></script>
-<script src="auth.js?v=1.56.0"></script>
-<script src="logo.js?v=1.56.0"></script>
-<script src="fx.js?v=1.56.0"></script>
-<script src="qrcode.js?v=1.56.0"></script>
-<script src="qr.js?v=1.56.0"></script>
-<script src="pix.js?v=1.56.0"></script>
-<script src="traduz.js?v=1.56.0"></script>
-<script src="idiomas.js?v=1.56.0"></script>
-<script src="store.js?v=1.56.0"></script>
-<script src="cloud.js?v=1.56.0"></script>
-<script src="i18n.js?v=1.56.0"></script>
-<script src="app.js?v=1.56.0"></script>
-<script src="prospecto.js?v=1.56.0"></script>
-<script src="assistente.js?v=1.56.0"></script>
+<script src="config.js?v=1.56.1"></script>
+<script src="auth.js?v=1.56.1"></script>
+<script src="logo.js?v=1.56.1"></script>
+<script src="fx.js?v=1.56.1"></script>
+<script src="qrcode.js?v=1.56.1"></script>
+<script src="qr.js?v=1.56.1"></script>
+<script src="pix.js?v=1.56.1"></script>
+<script src="traduz.js?v=1.56.1"></script>
+<script src="idiomas.js?v=1.56.1"></script>
+<script src="store.js?v=1.56.1"></script>
+<script src="cloud.js?v=1.56.1"></script>
+<script src="i18n.js?v=1.56.1"></script>
+<script src="app.js?v=1.56.1"></script>
+<script src="prospecto.js?v=1.56.1"></script>
+<script src="assistente.js?v=1.56.1"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

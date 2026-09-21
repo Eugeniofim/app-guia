@@ -1261,6 +1261,7 @@ const IA_CSS = `
 #iaFab{position:fixed;right:18px;bottom:18px;z-index:900;display:none;align-items:center;gap:8px;padding:12px 18px;border:0;border-radius:999px;
   background:var(--accent,#064c3f);color:#fff;font:600 15px var(--f-ui,system-ui);box-shadow:0 6px 20px rgba(0,0,0,.22);cursor:pointer}
 #iaFab.on{display:flex}
+body:has(.coach) #iaFab{display:none!important}
 .iaExtra{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:99px;background:var(--highlight,#FFD23F);color:#1b1b1b;margin-left:4px;vertical-align:middle}
 .iaDemoExtra{display:block;margin-top:8px;font-weight:600;color:var(--ink,#222)}
 .mkExtra{margin:-4px 0 14px;font-size:13px;font-weight:600;color:var(--ink-2)} #iaFab .dot{width:9px;height:9px;border-radius:50%;background:var(--highlight,#FFD23F)}

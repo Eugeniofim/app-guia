@@ -184,32 +184,54 @@ const Coach = {
     const s = this.steps[this.i]; const target = $(s.sel);
     if (!target) return this.next();
     target.scrollIntoView({ block: 'center', behavior: 'instant' });
-    const r = target.getBoundingClientRect();
     const b = document.createElement('div');
-    b.className = 'coach';
-    b.innerHTML = `<div class="coach-txt">${esc(tl(s.txt))}</div>
+    b.className = 'coach'; b.setAttribute('role', 'dialog');
+    b.innerHTML = `<span class="coach-tag">💡 ${t('tutTag')} · ${this.i + 1}/${this.steps.length}</span>
+      <div class="coach-txt">${esc(tl(s.txt))}</div>
       <div class="coach-row">
         <button class="coach-skip">${t('tutSkip')}</button>
-        <span class="coach-n">${this.i + 1}/${this.steps.length}</span>
-        <button class="coach-next">${t('tutNext')}</button>
+        <button class="coach-next">${t('tutNext')} →</button>
       </div>`;
-    document.body.appendChild(b);
-    const bw = 270, top = r.bottom + 10, left = Math.max(10, Math.min(innerWidth - bw - 10, r.left + r.width / 2 - bw / 2));
-    b.style.top = (top + b.offsetHeight > innerHeight ? Math.max(10, r.top - b.offsetHeight - 10) : top) + 'px';
-    b.style.left = left + 'px';
+    const spot = document.createElement('div');
+    spot.className = 'coach-spot';
+    document.body.append(spot, b);
     target.classList.add('coach-hi');
-    this.el = b; this.hiEl = target;
+    this.el = b; this.spot = spot; this.hiEl = target;
+    this.posiciona();
     $('.coach-next', b).onclick = () => this.next();
     $('.coach-skip', b).onclick = () => this.stop(true);
   },
+  /* Ao lado do item quando cabe (computador), senão embaixo ou em cima
+     (celular) — nunca por cima do item seguinte da lista. */
+  posiciona() {
+    const b = this.el, alvo = this.hiEl;
+    if (!b || !alvo) return;
+    const r = alvo.getBoundingClientRect(), bw = b.offsetWidth, bh = b.offsetHeight, m = 18;
+    Object.assign(this.spot.style, { top: (r.top - 6) + 'px', left: (r.left - 6) + 'px', width: (r.width + 12) + 'px', height: (r.height + 12) + 'px' });
+    let lado, top, left;
+    if (innerWidth >= 760 && r.right + m + bw + 10 <= innerWidth) { lado = 'direita'; left = r.right + m; top = r.top + r.height / 2 - bh / 2; }
+    else if (innerWidth >= 760 && r.left - m - bw >= 10) { lado = 'esquerda'; left = r.left - m - bw; top = r.top + r.height / 2 - bh / 2; }
+    else if (r.bottom + m + bh <= innerHeight - 10) { lado = 'baixo'; top = r.bottom + m; left = r.left + r.width / 2 - bw / 2; }
+    else { lado = 'cima'; top = r.top - m - bh; left = r.left + r.width / 2 - bw / 2; }
+    top = Math.max(10, Math.min(innerHeight - bh - 10, top));
+    left = Math.max(10, Math.min(innerWidth - bw - 10, left));
+    b.dataset.lado = lado;
+    const seta = (lado === 'baixo' || lado === 'cima') ? r.left + r.width / 2 - left : r.top + r.height / 2 - top;
+    b.style.setProperty('--seta', Math.max(22, Math.min((lado === 'baixo' || lado === 'cima' ? bw : bh) - 22, seta)) + 'px');
+    b.style.top = top + 'px'; b.style.left = left + 'px';
+  },
   next() { this.i++; if (this.i >= this.steps.length) return this.stop(true); this.show(); },
-  hide() { this.el?.remove(); this.el = null; this.hiEl?.classList.remove('coach-hi'); },
+  hide() { this.el?.remove(); this.spot?.remove(); this.el = this.spot = null; this.hiEl?.classList.remove('coach-hi'); },
   stop(done) {
     this.hide();
     if (this.keyFlag) { DB.settings[this.keyFlag] = false; save(); }
     if (done) toast(t('tutDone'));
   },
 };
+
+/* o balão acompanha o item quando a tela rola ou muda de tamanho */
+addEventListener('resize', () => Coach.el && Coach.posiciona());
+addEventListener('scroll', () => Coach.el && Coach.posiciona(), { passive: true });
 
 /* ---------- roteador ---------- */
 addEventListener('hashchange', route);
@@ -258,12 +280,17 @@ addEventListener('resize', faixaAcimaDaBarra);
 
 /* barra de idioma do cliente */
 function langBar(cls) {
+  /* no cabeçalho estreito do celular os seis botões não cabem: ali vira
+     uma lista suspensa compacta (o CSS escolhe qual dos dois aparece) */
   return `<div class="langs ${cls || ''}">${LANGS.map(([c, sig, nome], i) =>
     (i ? '<span class="langsep" aria-hidden="true">|</span>' : '') +
-    `<button data-lang="${c}" class="${LANG === c ? 'on' : ''}" lang="${c}" aria-label="${nome}">${sig}</button>`).join('')}</div>`;
+    `<button data-lang="${c}" class="${LANG === c ? 'on' : ''}" lang="${c}" aria-label="${nome}">${sig}</button>`).join('')}
+    <select class="langsel" aria-label="${t('xIdiomas')}">${LANGS.map(([c, sig, nome]) =>
+      `<option value="${c}" ${LANG === c ? 'selected' : ''}>${sig} · ${nome}</option>`).join('')}</select></div>`;
 }
 function bindLang(root) {
   $$('[data-lang]', root).forEach(b => b.onclick = () => { setLang(b.dataset.lang); route(); });
+  $$('.langsel', root).forEach(s => s.onchange = () => { setLang(s.value); route(); });
 }
 
 /* =====================================================
@@ -298,8 +325,8 @@ function viewHub() {
   $('#admEntry').onclick = () => go('/adm/today');
   $$('[data-demo]').forEach(b => b.onclick = () => toast(t('xProtoBotao')));
   Coach.start([
-    { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.' } },
-    { sel: '#admEntry', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.' } },
+    { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.', fr: 'Votre client commence ici : toutes les visites avec les vraies dates.', it: 'Il vostro cliente parte da qui: tutti i tour con le date reali.', de: 'Ihr Gast startet hier: alle Touren mit echten Terminen.', es: 'Tu cliente empieza aquí: todos los tours con fechas reales.' } },
+    { sel: '#admEntry', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.', fr: 'Et voici VOTRE porte, ' + guiaNome() + ' — le panneau où vous gérez tout.', it: 'E questa è la VOSTRA porta, ' + guiaNome() + ' — il pannello dove controllate tutto.', de: 'Und das ist IHRE Tür, ' + guiaNome() + ' — das Panel, in dem Sie alles steuern.', es: 'Y esta es TU puerta, ' + guiaNome() + ' — el panel donde controlas todo.' } },
   ], 'tutorialClient');
 }
 
@@ -1009,10 +1036,10 @@ function admToday() {
     </section>`);
   $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
   Coach.start([
-    { sel: '#nb-tours',    txt: { pt: 'Aqui você cria e edita seus passeios — quantos quiser, com o calendário de cada um.', en: 'Create and edit your tours here — as many as you want, each with its own calendar.' } },
-    { sel: '#nb-bookings', txt: { pt: 'Cada reserva aparece aqui: quem pagou tudo, quem pagou o sinal, quem atrasou.', en: 'Every booking lands here: paid in full, deposit only, or late.' } },
-    { sel: '#nb-money',    txt: { pt: 'O extrato que vai para o contador: cliente, serviço, valor, forma e data de pagamento.', en: 'The statement for your accountant: guest, service, amount, method and date.' } },
-    { sel: '#viewSite',    txt: { pt: 'A qualquer momento, veja o site exatamente como o cliente vê.', en: 'At any time, see the site exactly as your guest does.' } },
+    { sel: '#nb-tours',    txt: { pt: 'Aqui você cria e edita seus passeios — quantos quiser, com o calendário de cada um.', en: 'Create and edit your tours here — as many as you want, each with its own calendar.', fr: 'Créez et modifiez vos visites ici — autant que vous voulez, chacune avec son calendrier.', it: 'Qui create e modificate i vostri tour — quanti volete, ognuno con il suo calendario.', de: 'Hier legen Sie Ihre Touren an und bearbeiten sie — so viele Sie wollen, jede mit eigenem Kalender.', es: 'Aquí creas y editas tus tours — los que quieras, cada uno con su calendario.' } },
+    { sel: '#nb-bookings', txt: { pt: 'Cada reserva aparece aqui: quem pagou tudo, quem pagou o sinal, quem atrasou.', en: 'Every booking lands here: paid in full, deposit only, or late.', fr: 'Chaque réservation arrive ici : payée en entier, acompte seulement ou en retard.', it: 'Ogni prenotazione arriva qui: pagata tutta, solo acconto o in ritardo.', de: 'Jede Buchung landet hier: voll bezahlt, nur Anzahlung oder überfällig.', es: 'Cada reserva llega aquí: pagada entera, solo anticipo o atrasada.' } },
+    { sel: '#nb-money',    txt: { pt: 'O extrato que vai para o contador: cliente, serviço, valor, forma e data de pagamento.', en: 'The statement for your accountant: guest, service, amount, method and date.', fr: 'Le relevé pour votre comptable : client, service, montant, moyen et date de paiement.', it: 'L’estratto per il commercialista: cliente, servizio, importo, metodo e data di pagamento.', de: 'Die Übersicht für Ihre Steuerberatung: Gast, Leistung, Betrag, Zahlungsart und Datum.', es: 'El extracto para tu contable: cliente, servicio, importe, forma y fecha de pago.' } },
+    { sel: '#viewSite',    txt: { pt: 'A qualquer momento, veja o site exatamente como o cliente vê.', en: 'At any time, see the site exactly as your guest does.', fr: 'À tout moment, voyez le site exactement comme votre client le voit.', it: 'In qualsiasi momento, vedete il sito esattamente come lo vede il cliente.', de: 'Sehen Sie die Website jederzeit genau so, wie Ihr Gast sie sieht.', es: 'En cualquier momento, ve el sitio exactamente como lo ve tu cliente.' } },
   ], 'tutorialAdm');
 }
 
