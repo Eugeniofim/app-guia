@@ -738,13 +738,36 @@ const STR = {
   tutSkip: { pt: 'Pular tutorial', en: 'Skip tutorial' },
   tutNext: { pt: 'Entendi', en: 'Got it' },
   tutDone: { pt: 'Pronto! Qualquer dúvida, o tutorial volta pelos Ajustes.', en: 'Done! You can replay this anytime from Settings.' },
+  /* frases que estavam escritas direto no app.js, só em PT/EN */
+  xCodigo:      { pt: 'Código', en: 'Code', fr: 'Code', it: 'Codice', de: 'Code', es: 'Código' },
+  xProtoBotao:  { pt: 'Protótipo: no app final este botão abre o destino real.', en: 'Prototype: this opens the real destination in the final app.',
+                  fr: 'Prototype : dans l’app finale, ce bouton ouvre la vraie destination.', it: 'Prototipo: nell’app finale questo pulsante apre la destinazione reale.',
+                  de: 'Prototyp: In der fertigen App öffnet diese Schaltfläche das echte Ziel.', es: 'Prototipo: en la app final este botón abre el destino real.' },
+  xIdiomas:     { pt: 'Idiomas', en: 'Languages', fr: 'Langues', it: 'Lingue', de: 'Sprachen', es: 'Idiomas' },
+  xPasseios:    { pt: 'Passeios', en: 'Tours', fr: 'Visites', it: 'Tour', de: 'Touren', es: 'Tours' },
+  xSuaFoto:     { pt: 'Sua foto entra aqui.<br>Ajustes → Sua foto e sua história.', en: 'Your photo goes here.<br>Settings → Your photo and your story.',
+                  fr: 'Votre photo ici.<br>Réglages → Votre photo et votre histoire.', it: 'Qui va la vostra foto.<br>Impostazioni → La vostra foto e la vostra storia.',
+                  de: 'Hier kommt Ihr Foto hin.<br>Einstellungen → Ihr Foto und Ihre Geschichte.', es: 'Aquí va tu foto.<br>Ajustes → Tu foto y tu historia.' },
+  xPreencha:    { pt: 'Preencha nome, e-mail e WhatsApp.', en: 'Fill in name, email and WhatsApp.', fr: 'Indiquez nom, e-mail et WhatsApp.',
+                  it: 'Inserite nome, e-mail e WhatsApp.', de: 'Bitte Name, E-Mail und WhatsApp angeben.', es: 'Completa nombre, e-mail y WhatsApp.' },
+  xAtrasados:   { pt: 'pagamentos atrasados', en: 'late payments', fr: 'paiements en retard', it: 'pagamenti in ritardo', de: 'überfällige Zahlungen', es: 'pagos atrasados' },
+  xSaldosHoje:  { pt: 'saldos programados para hoje', en: 'balances scheduled today', fr: 'soldes prévus aujourd’hui', it: 'saldi previsti per oggi', de: 'heute fällige Restbeträge', es: 'saldos previstos para hoy' },
+  xNomePasseio: { pt: 'Dê um nome ao passeio.', en: 'Give the tour a name.', fr: 'Donnez un nom à la visite.', it: 'Date un nome al tour.', de: 'Geben Sie der Tour einen Namen.', es: 'Ponle un nombre al tour.' },
+  xDiasSemana:  { pt: 'Escolha os dias da semana.', en: 'Pick the weekdays.', fr: 'Choisissez les jours de la semaine.', it: 'Scegliete i giorni della settimana.', de: 'Wählen Sie die Wochentage.', es: 'Elige los días de la semana.' },
+  xNovaReserva: { pt: 'Nova reserva', en: 'New booking', fr: 'Nouvelle réservation', it: 'Nuova prenotazione', de: 'Neue Buchung', es: 'Nueva reserva' },
 };
+
+/* francês, italiano, alemão e espanhol das frases da tela (idiomas.js) */
+if (typeof STR_TR !== 'undefined') {
+  for (const l in STR_TR) for (const k in STR_TR[l]) if (STR[k] && !(l in STR[k])) STR[k][l] = STR_TR[l][k];
+}
 
 let LANG = (function () { try { return JSON.parse(localStorage.getItem(DB_KEY))?.settings?.lang || 'pt'; } catch (e) { return 'pt'; } })();
 
 function t(key, vars) {
   const e = STR[key];
-  let s = e ? (e[LANG] ?? e.pt) : key;
+  /* idioma sem a frase: cai no inglês (quem não lê português entende o inglês) */
+  let s = e ? (e[LANG] ?? (LANG !== 'pt' ? e.en : undefined) ?? e.pt) : key;
   if (Array.isArray(s)) return s;
   if (vars) for (const k in vars) s = s.replaceAll('{' + k + '}', vars[k]);
   /* quem e o guia entra em toda string: {guia}, {negocio}, {base} */
@@ -753,10 +776,22 @@ function t(key, vars) {
   return s;
 }
 function setLang(l) { LANG = l; DB.settings.lang = l; save(); }
-function eur(n) { return '€ ' + Number(n).toLocaleString(LANG === 'pt' ? 'pt-BR' : 'en-GB'); }
+/* os seis idiomas do app. Português é a língua em que o guia escreve;
+   os outros saem da tradução e, onde faltar, caem no inglês. */
+const LANGS = [['pt', 'PT', 'Português'], ['en', 'EN', 'English'], ['fr', 'FR', 'Français'],
+               ['it', 'IT', 'Italiano'], ['de', 'DE', 'Deutsch'], ['es', 'ES', 'Español']];
+const LOCALE = { pt: 'pt-BR', en: 'en-GB', fr: 'fr-FR', it: 'it-IT', de: 'de-DE', es: 'es-ES' };
+const locale = () => LOCALE[LANG] || 'en-GB';
+/* texto de conteúdo {pt, en, ...}: o idioma escolhido, senão inglês, senão português */
+function tl(a) {
+  if (!a) return '';
+  if (typeof a === 'string') return a;
+  return a[LANG] || (LANG !== 'pt' && a.en) || a.pt || a.en || '';
+}
+function eur(n) { return '€ ' + Number(n).toLocaleString(locale()); }
 function fmtDate(iso) {
   const d = new Date(iso + 'T12:00:00');
   return LANG === 'pt'
     ? d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
-    : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    : d.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' });
 }

@@ -229,7 +229,8 @@ function _seed() {
       status: 'confirmed', createdAt: created + 'T10:00:00.000Z', origin,
     });
   }
-  return db;
+  /* francês, italiano, alemão e espanhol dos passeios de exemplo (idiomas.js) */
+  return typeof traduzSemente === 'function' ? traduzSemente(db) : db;
 }
 
 /* apaga tudo — o guia começa do zero */
@@ -404,7 +405,7 @@ const Bookings = {
       createdAt: new Date().toISOString(), origin: origin || 'site',
       /* Em que idioma ele reservou. Sem isto o e-mail de recibo sai em
          portugues para um frances que leu a tela inteira em ingles. */
-      lang: (typeof LANG !== 'undefined' && LANG === 'en') ? 'en' : 'pt',
+      lang: (typeof LANG !== 'undefined' && LANG) || 'pt',
     };
     /* Aqui havia um pagamento inventado: toda reserva nascia marcada como paga
        no cartao. O painel, o caixa e os relatorios contavam dinheiro que nunca

@@ -128,9 +128,9 @@ function icsFor(b, x) {
   const dt = b.date.replace(/-/g, '') + 'T' + horaInicio(b.time).replace(':', '') + '00';
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//AppGuia//PT', 'BEGIN:VEVENT',
     'UID:' + b.code + '@app-guia', 'DTSTART:' + dt,
-    'SUMMARY:' + (x.name[LANG] || x.name.pt) + ' — ' + guiaNome(),
+    'SUMMARY:' + tl(x.name) + ' — ' + guiaNome(),
     'LOCATION:' + noIdioma(x.meeting).replace(/,/g, '\\,'),
-    'DESCRIPTION:' + (LANG === 'pt' ? 'Código ' : 'Code ') + b.code,
+    'DESCRIPTION:' + t('xCodigo') + ' ' + b.code,
     'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
   return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
 }
@@ -187,7 +187,7 @@ const Coach = {
     const r = target.getBoundingClientRect();
     const b = document.createElement('div');
     b.className = 'coach';
-    b.innerHTML = `<div class="coach-txt">${esc(s.txt[LANG] || s.txt.pt)}</div>
+    b.innerHTML = `<div class="coach-txt">${esc(tl(s.txt))}</div>
       <div class="coach-row">
         <button class="coach-skip">${t('tutSkip')}</button>
         <span class="coach-n">${this.i + 1}/${this.steps.length}</span>
@@ -226,7 +226,7 @@ function route() {
   Coach.hide();
   const h = location.hash.slice(2) || '';
   const p = h.split('/');
-  document.documentElement.lang = LANG === 'pt' ? 'pt-BR' : 'en';
+  document.documentElement.lang = LANG === 'pt' ? 'pt-BR' : LANG;
   if (p[0] === 'novasenha') viewNewPass();
   else if (p[0] === 'login') viewLogin();
   else if (p[0] === 'adm') {
@@ -258,10 +258,9 @@ addEventListener('resize', faixaAcimaDaBarra);
 
 /* barra de idioma do cliente */
 function langBar(cls) {
-  return `<div class="langs ${cls || ''}">
-    <button data-lang="pt" class="${LANG === 'pt' ? 'on' : ''}" lang="pt" aria-label="Português">PT</button>
-    <span class="langsep" aria-hidden="true">|</span>
-    <button data-lang="en" class="${LANG === 'en' ? 'on' : ''}" lang="en" aria-label="English">EN</button></div>`;
+  return `<div class="langs ${cls || ''}">${LANGS.map(([c, sig, nome], i) =>
+    (i ? '<span class="langsep" aria-hidden="true">|</span>' : '') +
+    `<button data-lang="${c}" class="${LANG === c ? 'on' : ''}" lang="${c}" aria-label="${nome}">${sig}</button>`).join('')}</div>`;
 }
 function bindLang(root) {
   $$('[data-lang]', root).forEach(b => b.onclick = () => { setLang(b.dataset.lang); route(); });
@@ -297,7 +296,7 @@ function viewHub() {
   fallbackPhoto($('#hubFace'), '☺');
   $('#goAbout').onclick = () => go('/about');
   $('#admEntry').onclick = () => go('/adm/today');
-  $$('[data-demo]').forEach(b => b.onclick = () => toast(LANG === 'pt' ? 'Protótipo: no app final este botão abre o destino real.' : 'Prototype: this opens the real destination in the final app.'));
+  $$('[data-demo]').forEach(b => b.onclick = () => toast(t('xProtoBotao')));
   Coach.start([
     { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.' } },
     { sel: '#admEntry', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.' } },
@@ -309,7 +308,7 @@ function viewHub() {
    aceita melhor o valor. A foto e o texto saem dos Ajustes. */
 function viewAbout() {
   const st = DB.settings;
-  const bio = (st.bio && (st.bio[LANG] || st.bio.pt)) || '';
+  const bio = (st.bio && tl(st.bio)) || '';
   const paras = bio.split(/\n\s*\n/).filter(Boolean);
   const nTours = Tours.live().length;
 
@@ -335,8 +334,8 @@ function viewAbout() {
 
     <div class="ab-facts">
       <div><small>${t('aboutBased')}</small><b>${esc(st.base || '')}</b></div>
-      <div><small>${LANG === 'pt' ? 'Idiomas' : 'Languages'}</small><b>${t('aboutLangs')}</b></div>
-      <div><small>${LANG === 'pt' ? 'Passeios' : 'Tours'}</small><b>${nTours}</b></div>
+      <div><small>${t('xIdiomas')}</small><b>${t('aboutLangs')}</b></div>
+      <div><small>${t('xPasseios')}</small><b>${nTours}</b></div>
     </div>
 
     <div class="ab-cta">
@@ -351,9 +350,7 @@ function viewAbout() {
   </main>`;
   bindLang(app);
   /* sem foto ainda: em vez de um ícone quebrado, diz onde ela põe a dela */
-  fallbackPhoto($('#abImg'), `<div class="ab-photo none">${LANG === 'pt'
-    ? 'Sua foto entra aqui.<br>Ajustes → Sua foto e sua história.'
-    : 'Your photo goes here.<br>Settings → Your photo and your story.'}</div>`);
+  fallbackPhoto($('#abImg'), `<div class="ab-photo none">${t('xSuaFoto')}</div>`);
   $('#bk').onclick = () => go('/');
   $('#abTours').onclick = () => go('/tours');
 }
@@ -392,7 +389,7 @@ function viewShowcase() {
             <span class="tbadge">${t(TYPE_LABEL[x.type] || 'fWalk')}</span>
           </span>
           <span class="bd">
-            <b>${esc(x.name[LANG] || x.name.pt)}</b>
+            <b>${esc(tl(x.name))}</b>
             <small class="meta">${regiaoLabel(x.region)} · ${t('upTo')} ${x.max} ${t('people')}</small>
             <span class="cardfoot">
               <span class="pr">${x.priceLate && x.earlySeats && x.priceMode !== 'session' ? `<u>${t('fromPrice')}</u> ` : ''}${eur(x.price)}
@@ -452,11 +449,11 @@ function aplicaTema(v) {
 function noIdioma(a) {
   if (!a) return '';
   if (typeof a === 'string') return a;
-  return a[LANG] || a.pt || a.en || '';
+  return tl(a) || a.en || '';
 }
 
 function cancelaTxt(x) {
-  const c = x.cancel && (x.cancel[LANG] || x.cancel.pt);
+  const c = x.cancel && tl(x.cancel);
   return c || t('freeCancel');
 }
 
@@ -466,8 +463,8 @@ function viewTour(id) {
   const S = viewTour._s = { tour: x, date: null, time: null, cap: 0, pax: x.priceMode === 'session' ? 1 : 2, step: 1, coupon: null, discount: 0, policy: x.payPolicy === 'split' ? 'split' : 'full' };
 
   const stops = Array.isArray(x.stops) ? x.stops : [];
-  const L = a => (a && (a[LANG] || a.pt)) || '';
-  const lista = a => (Array.isArray(a) ? a : (a && (a[LANG] || a.pt)) || []);
+  const L = a => (a && tl(a)) || '';
+  const lista = a => (Array.isArray(a) ? a : (a && tl(a)) || []);
 
   app.innerHTML = `
   <header class="topbar onhero"><button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
@@ -476,9 +473,9 @@ function viewTour(id) {
   <div class="tourhero" style="background-image:url(${esc(x.photo)})">
     <div class="thveil"></div>
     <div class="thin">
-      <h1>${esc(x.name[LANG] || x.name.pt)}</h1>
-      ${x.tagline && (x.tagline[LANG] || x.tagline.pt)
-        ? `<p class="thsub">${esc(x.tagline[LANG] || x.tagline.pt)}</p>` : ''}
+      <h1>${esc(tl(x.name))}</h1>
+      ${x.tagline && tl(x.tagline)
+        ? `<p class="thsub">${esc(tl(x.tagline))}</p>` : ''}
       <span class="badge onhero">${esc(cancelaTxt(x))}</span>
     </div>
   </div>
@@ -489,7 +486,7 @@ function viewTour(id) {
       <!-- O PROGRAMA -->
       <div class="sec">
         <span class="seclabel">${t('secProgram')}</span>
-        <p class="desc lead">${esc(x.desc[LANG] || x.desc.pt)}</p>
+        <p class="desc lead">${esc(tl(x.desc))}</p>
       </div>
 
       ${stops.length ? `
@@ -551,15 +548,15 @@ function viewTour(id) {
           </div>
           <div class="pbterms">
             <p>${esc(cancelaTxt(x))}</p>
-            ${x.priceNote && (x.priceNote[LANG] || x.priceNote.pt)
-              ? `<small>${esc(x.priceNote[LANG] || x.priceNote.pt)}</small>` : ''}
+            ${x.priceNote && tl(x.priceNote)
+              ? `<small>${esc(tl(x.priceNote))}</small>` : ''}
           </div>
         </div>
       </div>
 
-      ${x.closing && (x.closing[LANG] || x.closing.pt) ? `
+      ${x.closing && tl(x.closing) ? `
       <div class="closing">
-        <p>${esc(x.closing[LANG] || x.closing.pt)}</p>
+        <p>${esc(tl(x.closing))}</p>
       </div>` : ''}
     </section>
     <aside class="book" id="book"></aside>
@@ -579,7 +576,7 @@ const MODO_TXT  = { day: 'mapWhyDrive', bike: 'mapWhyBike' };
 function miniMap(stops, x) {
   const pts = stops.filter(p => p.place || (p.lat && p.lng));
   if (pts.length < 2) return '';
-  const L = a => (a && (a[LANG] || a.pt)) || '';
+  const L = a => (a && tl(a)) || '';
   /* endereço digitado pelo guia vale mais que coordenada: o Maps resolve e mostra o nome */
   const q = p => encodeURIComponent(p.place || (p.lat + ',' + p.lng));
   const gmaps = 'https://www.google.com/maps/dir/?api=1'
@@ -761,7 +758,7 @@ function renderBook() {
       : `<div class="nodates">
           <p>${t('noDatesYet')}</p>
           <a class="cta sm wide" target="_blank" rel="noopener"
-             href="${waLink(t('waAskDates', { tour: x.name[LANG] || x.name.pt }))}">${t('askDatesBtn')}</a>
+             href="${waLink(t('waAskDates', { tour: tl(x.name) }))}">${t('askDatesBtn')}</a>
         </div>`}`;
     $$('.dcell', book).forEach(b => b.onclick = () => { S.date = b.dataset.d; S.time = null; renderBook(); });
     $$('[data-t]', book).forEach(b => b.onclick = () => {
@@ -853,7 +850,7 @@ function renderBook() {
     $('#back2').onclick = () => { S.step = 2; renderBook(); };
     $('#payBtn').onclick = () => {
       const name = $('#fN').value.trim(), email = $('#fE').value.trim(), whats = $('#fW').value.trim();
-      if (!name || !email || !whats) return toast(LANG === 'pt' ? 'Preencha nome, e-mail e WhatsApp.' : 'Fill in name, email and WhatsApp.');
+      if (!name || !email || !whats) return toast(t('xPreencha'));
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { $('#fE').focus(); return toast(t('badEmail')); }
       if (Cal.seatsLeft(x.id, S.date, S.time, S.cap || x.max) < S.pax) { S.step = 1; S.time = null; renderBook(); return toast(t('lastSpotGone')); }
       const btn = $('#payBtn'); btn.disabled = true; btn.textContent = t('confirming');
@@ -881,7 +878,7 @@ function renderBook() {
       </div>
       ${comoPagar(b, x)}
       <a class="cta" style="text-decoration:none;text-align:center" target="_blank" rel="noopener"
-         href="${waLink(t('waBookingMsg', { code: b.code, tour: x.name[LANG] || x.name.pt, when: fmtDate(b.date) + ' ' + b.time, name: b.name }))}">✆ ${t('waSendBooking')}</a>
+         href="${waLink(t('waBookingMsg', { code: b.code, tour: tl(x.name), when: fmtDate(b.date) + ' ' + b.time, name: b.name }))}">✆ ${t('waSendBooking')}</a>
       <div class="okrow">
         <a class="mini" href="${icsFor(b, x)}" download="${esc(b.code)}.ics">${t('addCal')}</a>
         <a class="mini" target="_blank" rel="noopener" href="${mapLink(noIdioma(x.meeting))}">${t('seeMap')}</a>
@@ -1001,13 +998,13 @@ function admToday() {
   const dueTomorrow = Bookings.all().filter(b => b.status === 'confirmed' && Bookings.due(b) > 0 && Bookings.dueDate(b) === today);
   admShell('today', `
     <h1 class="pageh">${t('goodMorning')}</h1>
-    ${late.length ? `<div class="alert bad">⚠ ${late.length} ${LANG === 'pt' ? 'pagamentos atrasados' : 'late payments'} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} <button class="mini" id="goLate">${t('admBookings')} →</button></div>` : ''}
-    ${dueTomorrow.length ? `<div class="alert warn">${dueTomorrow.length} ${LANG === 'pt' ? 'saldos programados para hoje' : 'balances scheduled today'}</div>` : ''}
+    ${late.length ? `<div class="alert bad">⚠ ${late.length} ${t('xAtrasados')} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} <button class="mini" id="goLate">${t('admBookings')} →</button></div>` : ''}
+    ${dueTomorrow.length ? `<div class="alert warn">${dueTomorrow.length} ${t('xSaldosHoje')}</div>` : ''}
     <section class="card">
       <h3>${t('admToday')}</h3>
       ${deps.length ? deps.map(d => {
         const left = Cal.seatsLeft(d.tourId, d.date, d.time, d.capacity);
-        return `<div class="deprow"><b class="mono">${d.time}</b><span>${esc(d.tour.name[LANG] || d.tour.name.pt)}</span><span class="pill ${left === 0 ? 'ok' : 'n'}">${d.capacity - left}/${d.capacity}</span></div>`;
+        return `<div class="deprow"><b class="mono">${d.time}</b><span>${esc(tl(d.tour.name))}</span><span class="pill ${left === 0 ? 'ok' : 'n'}">${d.capacity - left}/${d.capacity}</span></div>`;
       }).join('') : `<p class="empty">${t('noDepToday')}</p>`}
     </section>`);
   $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
@@ -1427,7 +1424,7 @@ function admTourEdit(id) {
     if (!(await traduzAntesDeSalvar())) return;
     const data = collect('live');
     if (!validate(data)) return;
-    if (!data.name.pt) return toast(LANG === 'pt' ? 'Dê um nome ao passeio.' : 'Give the tour a name.');
+    if (!data.name.pt) return toast(t('xNomePasseio'));
     if (isNew) { const nt = Tours.create(data); toast(t('published')); go('/adm/tours/' + nt.id); }
     else { Tours.update(x.id, data); toast(t('published')); go('/adm/tours'); }
   };
@@ -1447,7 +1444,7 @@ function admTourEdit(id) {
       b.classList.toggle('on', wds.has(w));
     });
     $('#addRule').onclick = () => {
-      if (!wds.size) return toast(LANG === 'pt' ? 'Escolha os dias da semana.' : 'Pick the weekdays.');
+      if (!wds.size) return toast(t('xDiasSemana'));
       Cal.addRule({ tourId: x.id, weekdays: [...wds], time: $('#rTime').value, capacity: +$('#rCap').value || x.max, from: $('#rFrom').value, until: $('#rUntil').value });
       drawRules(); toast('✓');
     };
@@ -1505,7 +1502,7 @@ function admBookings() {
       <summary><b>${t('novaResTit')}</b><small class="why">${t('novaResSub')}</small></summary>
       <div class="frow">
         <label class="fld">${t('nrPasseio')}<select id="nrTour">${Tours.all().map(tt =>
-          `<option value="${esc(tt.id)}">${esc(tt.name[LANG] || tt.name.pt)}</option>`).join('')}</select></label>
+          `<option value="${esc(tt.id)}">${esc(tl(tt.name))}</option>`).join('')}</select></label>
         <label class="fld">${t('nrPessoas')}<input id="nrPax" type="number" min="1" value="2"></label>
       </div>
       <div class="frow">
@@ -1544,7 +1541,7 @@ function admBookings() {
         ? `<button class="mini strong" data-conf="${esc(b.id)}">${t('confCliente')}</button>`
         : (b.clienteConfirmado ? `<span class="mini done">${t('confClienteFeito')}</span>` : '');
       const first = b.name.split(' ')[0];
-      const tourName = x ? (x.name[LANG] || x.name.pt) : '';
+      const tourName = x ? tl(x.name) : '';
       const waText = (b.status !== 'cancelled' && due > 0)
         ? t('waCharge', { name: first, v: eur(due), tour: tourName, when: fmtDate(b.date) })
         : t('waHi', { name: first, tour: tourName, when: fmtDate(b.date) + ' ' + b.time });
@@ -1659,7 +1656,7 @@ function admMoney() {
        <tbody>${lista.map(r => {
          const x = Tours.get(r.tourId);
          return `<tr><td class="mono">${r.date}</td><td>${esc(r.client)}</td>
-           <td>${esc(x ? (x.name[LANG] || x.name.pt) : '?')}</td>
+           <td>${esc(x ? tl(x.name) : '?')}</td>
            <td>${t(KIND[r.kind])}</td><td>${formaPg(r.method)}</td>
            <td class="mono right">${eur(r.amount)}</td></tr>`;
        }).join('')}</tbody>
@@ -1694,7 +1691,7 @@ function admMoney() {
   const baixaCsv = (lista, nome) => {
     const csv = [cols.join(';')].concat(lista.map(r => {
       const x = Tours.get(r.tourId);
-      return [r.date, r.client, x ? (x.name[LANG] || x.name.pt) : '',
+      return [r.date, r.client, x ? tl(x.name) : '',
               t(KIND[r.kind]), formaPg(r.method), r.amount].join(';');
     })).join('\n');
     const a = document.createElement('a');
@@ -1939,7 +1936,7 @@ function admSettings() {
       <h3>${t('bkpTit')}</h3>
       <p class="why">${t('bkpHelp')}</p>
       <p class="why">${(() => { const d = localStorage.getItem('vi_bkp_em');
-        return d ? t('bkpUltimo', { d: new Date(+d).toLocaleString(LANG === 'pt' ? 'pt-BR' : 'en-GB') }) : t('bkpNunca'); })()}</p>
+        return d ? t('bkpUltimo', { d: new Date(+d).toLocaleString(locale()) }) : t('bkpNunca'); })()}</p>
       <div class="btnrow">
         <button class="cta sm" id="bkpTudo">${t('bkpTudo')}</button>
         <button class="mini" id="bkpCli">${t('bkpClientes')}</button>
@@ -2176,10 +2173,9 @@ function admAgenda() {
 
   const sel = admAgenda._d && byDay[admAgenda._d] ? admAgenda._d
             : (Object.keys(byDay).sort()[0] || isoToday());
-  const WD = LANG === 'pt' ? ['seg','ter','qua','qui','sex','sáb','dom'] : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const MN = LANG === 'pt'
-    ? ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
-    : ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  /* nomes de dia e mês no idioma escolhido, direto do navegador (5/1/2026 é segunda) */
+  const WD = [5, 6, 7, 8, 9, 10, 11].map(d => new Date(2026, 0, d).toLocaleDateString(locale(), { weekday: 'short' }).replace('.', ''));
+  const MN = [...Array(12)].map((_, m) => new Date(2026, m, 1).toLocaleDateString(locale(), { month: 'long' }));
 
   let cells = '';
   for (let i = 0; i < startWd; i++) cells += '<span class="agc empty"></span>';
@@ -2215,7 +2211,7 @@ function admAgenda() {
           const bs = DB.bookings.filter(b => b.tourId === d.tour.id && b.date === d.date
                                         && b.time === d.time && b.status !== 'cancelled');
           return `<div class="deprow">
-            <div class="tinfo"><b>${d.time} · ${esc(d.tour.name[LANG] || d.tour.name.pt)}</b>
+            <div class="tinfo"><b>${d.time} · ${esc(tl(d.tour.name))}</b>
               <small>${t('agBooked', { n: d.booked })} · ${t('agFree', { n: d.left })}</small></div>
             ${bs.length ? `<div class="paxlist">${bs.map(b =>
               `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(b.name.split(' ')[0])} ×${b.pax}</span>`).join('')}</div>` : ''}
@@ -2246,8 +2242,7 @@ function admReports() {
   const origins = Reports.byOrigin(from, today);
   const series = mode === 'week' ? Reports.byWeek(8)
     : Reports.byMonth(+today.slice(0, 4)).map((v, i) => ({
-        label: (LANG === 'pt' ? ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
-                              : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])[i],
+        label: new Date(2026, i, 1).toLocaleDateString(locale(), { month: 'short' }).replace('.', ''),
         value: v }));
   const OLBL = { site: 'oSite', instagram: 'oInsta', whatsapp: 'oWhats', agency: 'oAgency', friend: 'oFriend' };
 
@@ -2276,7 +2271,7 @@ function admReports() {
         <h3>${t('rpByTour')}</h3>
         ${tours.length ? `<table class="tbl"><thead><tr>${t('rpTourCols').map(c => `<th>${c}</th>`).join('')}</tr></thead>
         <tbody>${tours.map(r => `<tr>
-          <td>${esc(r.tour.name[LANG] || r.tour.name.pt)}</td>
+          <td>${esc(tl(r.tour.name))}</td>
           <td class="mono">${r.departures}</td><td class="mono">${r.pax}</td>
           <td><span class="occ"><i style="width:${Math.min(100, r.occupancy)}%"></i></span> ${r.occupancy}%</td>
           <td class="mono right">${eur(r.revenue)}</td></tr>`).join('')}</tbody></table>`
@@ -2564,7 +2559,7 @@ cloudStart((r) => {
   if (r.bootstrap || r.semMudanca || r.segurando || r.vazio) return;
   if (r.fresh && r.fresh.length && location.hash.startsWith('#/adm')) {
     const b = r.fresh[r.fresh.length - 1];
-    toast((LANG === 'pt' ? '🎉 Nova reserva: ' : '🎉 New booking: ') + b.name + ' · ' + eur(b.total));
+    toast('🎉 ' + t('xNovaReserva') + ': ' + b.name + ' · ' + eur(b.total));
   }
   /* re-render seguro: nunca por cima de trabalho em andamento */
   if (isBusyEditing()) { pendingSync = true; return; }
