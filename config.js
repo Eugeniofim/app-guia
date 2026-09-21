@@ -12,6 +12,12 @@ var APP_CONFIG = {
   supabaseUrl: '',   /* ex.: 'https://SEU-PROJETO.supabase.co' */
   supabaseKey: '',   /* a chave "publishable" do projeto; nunca a secreta */
 
+  /* Cofre do demo (repositório guia-cofre, no Netlify): guarda as chaves do
+     Claude e do Gemini no servidor e deixa o demo público usar a IA de
+     verdade, com limite por pessoa e por dia. Vazio = só a demonstração
+     pronta. Num app de cliente fica vazio: lá o guia usa a chave dele. */
+  cofre: '',
+
   /* Quem e o guia. Vira o valor inicial dos Ajustes (que o guia edita no
      painel) e o que a abertura e o cabecalho mostram. */
   guia: {

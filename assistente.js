@@ -37,7 +37,24 @@ const IA_MAX_VOLTAS = 10;
 const iaLe = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
 const iaGrava = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
 const iaChave = () => { try { return (localStorage.getItem(IA_CHAVE) || '').trim(); } catch (e) { return ''; } };
-const iaDemo = () => !iaChave();
+/* Três modos:
+   - 'chave': o guia colou a chave dele (produto de verdade);
+   - 'vivo':  demo público com o Claude de verdade, pelo cofre (chaves no
+              servidor, limite por pessoa e por dia) — ver guia-cofre;
+   - 'demo':  sem nada disso, pedidos prontos que rodam as ferramentas. */
+const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
+const COFRE_FIM = 'guia_cofre_fim';
+let cofreEstado = { claude: false, imagem: false };
+const cofreEsgotado = (tipo) => { try { return sessionStorage.getItem(COFRE_FIM + tipo) === new Date().toISOString().slice(0, 10); } catch (e) { return false; } };
+const marcaEsgotado = (tipo) => { try { sessionStorage.setItem(COFRE_FIM + tipo, new Date().toISOString().slice(0, 10)); } catch (e) {} };
+const iaModo = () => iaChave() ? 'chave' : (cofreEstado.claude && !cofreEsgotado('claude')) ? 'vivo' : 'demo';
+const iaDemo = () => iaModo() === 'demo';
+if (COFRE) fetch(COFRE + '/api/estado', { cache: 'no-store' }).then(r => r.json()).then(e => {
+  cofreEstado = { claude: !!e.claude, imagem: !!e.imagem };
+  if (typeof iaAtualizaFab === 'function') iaAtualizaFab();
+  if (iaEl && iaEl.g.classList.contains('aberta') && !iaOcupado) iaDesenha();
+  if (location.hash.startsWith('#/adm/marketing') && typeof route === 'function' && !(typeof isBusyEditing === 'function' && isBusyEditing())) route();
+}).catch(() => {});
 const iaPerguntaAntes = () => iaLe(IA_CONFIRMA, true) !== false;
 
 /* ---------- textos (PT e EN aqui; FR, IT, DE, ES em IA_TR no fim) ---------- */
@@ -306,8 +323,20 @@ const IMG_CHAVE = 'guia_gemini_chave';
 const IMG_MODELOS = ['gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview'];
 const PROPORCAO = { story: '9:16', post: '1:1', flyer: '4:5' };
 const imgChave = () => { try { return (localStorage.getItem(IMG_CHAVE) || '').trim(); } catch (e) { return ''; } };
+const imgPeloCofre = () => !imgChave() && cofreEstado.imagem && !cofreEsgotado('imagem');
+const imgDisponivel = () => !!imgChave() || imgPeloCofre();
 async function geraImagemIA(descricao, formato, chave) {
   chave = chave || imgChave();
+  if (!chave && imgPeloCofre()) {
+    let r;
+    try { r = await fetch(COFRE + '/api/imagem', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ descricao, formato }) }); }
+    catch (e) { throw new Error(ia('eRede')); }
+    const j = await r.json().catch(() => null);
+    if (r.ok && j && j.imagem) return j.imagem;
+    if (r.status === 429 && j && j.error && j.error.type === 'limite') { marcaEsgotado('imagem'); throw new Error(ia('imgLimite')); }
+    if (r.status === 429) throw new Error(ia('imgCota'));
+    throw new Error(ia('imgRecusou'));
+  }
   if (!chave) throw new Error(ia('imgSemChave'));
   let ultimo = '';
   for (const modelo of IMG_MODELOS) {
@@ -554,7 +583,7 @@ function iaPlano(nome, i) {
     return { titulo: ia('apagar'), assumiu: [], linhas: [['', c.titulo]], fazer: () => { m.criativos = m.criativos.filter(x => x !== c); Mkt.salva(); return { ok: true }; } };
   }
   if (nome === 'gerar_imagem') {
-    if (!imgChave()) return E_(ia('imgSemChave'));
+    if (!imgDisponivel()) return E_(ia('imgSemChave'));
     const desc = String(i.descricao || '').trim(); if (!desc) return E_('faltou a descrição');
     const formato = FORMATOS_CRIATIVO[i.formato] ? i.formato : 'post';
     return { titulo: ia('imgTit'), assumiu: [], linhas: [['', desc], ['', `${formato} · ${PROPORCAO[formato]}`], ['Gemini', '≈ US$ 0,04']],
@@ -649,6 +678,22 @@ IA_TXT.dImgResp = { pt: 'Gerei a imagem com IA (está em Suas fotos, marcada "IA
   fr: 'J’ai généré l’image par IA (dans Vos photos, marquée « IA ») et créé un post avec elle dans Marketing → Créations.', it: 'Ho generato l’immagine con l’IA (è in Le vostre foto, con l’etichetta "IA") e ho creato un post in Marketing → Creatività.',
   de: 'Ich habe das Bild mit KI erzeugt (unter Ihre Fotos, markiert „KI“) und damit einen Post unter Marketing → Creatives erstellt.', es: 'Generé la imagen con IA (está en Tus fotos, marcada "IA") y armé un post con ella en Marketing → Creatividades.' };
 IA_TXT.imgSelo = { pt: 'IA', en: 'AI', fr: 'IA', it: 'IA', de: 'KI', es: 'IA' };
+IA_TXT.vivoTit = { pt: 'ao vivo', en: 'live', fr: 'en direct', it: 'dal vivo', de: 'live', es: 'en vivo' };
+IA_TXT.vivoTxt = { pt: 'Demonstração ao vivo: é o Claude de verdade respondendo, com os dados deste protótipo. Peça o que quiser — há um limite de mensagens por dia.',
+  en: 'Live demo: this is the real Claude answering, using this prototype’s data. Ask anything — there’s a daily message limit.',
+  fr: 'Démo en direct : c’est le vrai Claude qui répond, avec les données de ce prototype. Demandez ce que vous voulez — il y a une limite de messages par jour.',
+  it: 'Demo dal vivo: risponde il vero Claude, con i dati di questo prototipo. Chiedete ciò che volete — c’è un limite di messaggi al giorno.',
+  de: 'Live-Demo: Hier antwortet der echte Claude mit den Daten dieses Prototyps. Fragen Sie, was Sie möchten — es gibt ein Tageslimit.',
+  es: 'Demo en vivo: responde el Claude de verdad, con los datos de este prototipo. Pide lo que quieras — hay un límite de mensajes por día.' };
+IA_TXT.vivoAcabou = { pt: 'O limite de hoje da demonstração ao vivo acabou. Seguem os exemplos prontos.', en: 'Today’s live demo limit is used up. Here are the ready-made examples.',
+  fr: 'La limite du jour de la démo en direct est atteinte. Voici les exemples prêts.', it: 'Il limite di oggi della demo dal vivo è esaurito. Ecco gli esempi pronti.',
+  de: 'Das heutige Limit der Live-Demo ist erreicht. Hier sind die fertigen Beispiele.', es: 'Se acabó el límite de hoy de la demo en vivo. Aquí van los ejemplos listos.' };
+IA_TXT.imgVivoTxt = { pt: 'Demonstração: até 3 imagens por dia, geradas pelo Gemini de verdade.', en: 'Demo: up to 3 images a day, generated by the real Gemini.',
+  fr: 'Démo : jusqu’à 3 images par jour, générées par le vrai Gemini.', it: 'Demo: fino a 3 immagini al giorno, generate dal vero Gemini.',
+  de: 'Demo: bis zu 3 Bilder pro Tag, erzeugt vom echten Gemini.', es: 'Demo: hasta 3 imágenes por día, generadas por el Gemini de verdad.' };
+IA_TXT.imgLimite = { pt: 'As imagens de hoje da demonstração acabaram. Volte amanhã, ou conecte a sua chave do Gemini.', en: 'Today’s demo images are used up. Come back tomorrow, or connect your own Gemini key.',
+  fr: 'Les images du jour de la démo sont épuisées. Revenez demain ou connectez votre clé Gemini.', it: 'Le immagini di oggi della demo sono finite. Tornate domani o collegate la vostra chiave Gemini.',
+  de: 'Die heutigen Demo-Bilder sind aufgebraucht. Morgen wieder, oder eigenen Gemini-Schlüssel verbinden.', es: 'Se acabaron las imágenes de hoy de la demo. Vuelve mañana o conecta tu clave de Gemini.' };
 IA_TXT.extra = { pt: 'extra', en: 'add-on', fr: 'option', it: 'extra', de: 'Zusatz', es: 'extra' };
 IA_TXT.extraAviso = { pt: 'Módulo extra — contratado à parte do app de reservas.', en: 'Add-on module — purchased separately from the booking app.',
   fr: 'Module en option — acheté séparément de l’app de réservation.', it: 'Modulo extra — si acquista a parte rispetto all’app di prenotazione.',
@@ -706,7 +751,7 @@ Anúncio (Meta): objetivo, público, verba diária e duração com o porquê em 
 
 ## Formato
 Responda em ${lingua}, curto. Texto para copiar vem pronto, sem comentário em volta. Negrito com parcimônia; nada de tabelas.` },
-    { type: 'text', text: `Hoje é ${hojeIso()}. Moeda: euro.` + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
+    { type: 'text', text: `Hoje é ${hojeIso()}. Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é a demonstração pública do app: quem conversa é um guia conhecendo o produto, e os passeios e reservas são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
       (mem.length ? '\n\n## Memória (o que o guia ensinou)\n' + mem.map(x => `- [${x.id}] ${x.texto}`).join('\n') : '') },
   ];
 }
@@ -721,15 +766,20 @@ function iaTraduzErro(status, corpo) {
   return `Erro ${status}. ${msg}`.trim();
 }
 async function iaChamar(mensagens) {
+  const vivo = iaModo() === 'vivo';
   let r;
   try {
-    r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': iaChave(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: IA_MODELO, max_tokens: 4000, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagens }) });
+    r = vivo
+      ? await fetch(COFRE + '/api/claude', { method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ max_tokens: 1500, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagens }) })
+      : await fetch('https://api.anthropic.com/v1/messages', { method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-api-key': iaChave(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+          body: JSON.stringify({ model: IA_MODELO, max_tokens: 4000, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagens }) });
   } catch (e) { throw new Error(iaTraduzErro(0)); }
   const corpo = await r.json().catch(() => null);
+  if (vivo && r.status === 429 && corpo && corpo.error && corpo.error.type === 'limite') { marcaEsgotado('claude'); throw Object.assign(new Error(ia('vivoAcabou')), { acabou: true }); }
   if (!r.ok) throw new Error(iaTraduzErro(r.status, corpo));
-  iaSomaGasto(corpo.usage);
+  if (!vivo) iaSomaGasto(corpo.usage);
   return corpo;
 }
 function iaSomaGasto(u) {
@@ -771,7 +821,11 @@ async function iaConversa(texto, foto) {
     }
     if (hist[hist.length - 1].role === 'user') { hist.pop(); hist.pop(); }
     iaGrava(IA_HIST, iaAparaHist(hist));
-  } catch (e) { iaBolha('erro', e.message); }
+  } catch (e) {
+    /* acabou o limite do ao vivo: a gaveta vira demonstração e diz por quê */
+    if (e.acabou) setTimeout(() => { iaAtualizaFab(); iaDesenha(); iaBolha('assistant', ia('vivoAcabou'), null, true); }, 50);
+    else iaBolha('erro', e.message);
+  }
   finally { pensando.remove(); iaOcupado = false; iaTravado(false); }
 }
 
@@ -830,7 +884,7 @@ function iaCenarios() {
   }
   lista.push({ id: 'texto', pede: ia('dTextoPede'), passos: [['criar_criativo', { formato: 'post', foto: 'nenhuma', titulo: ia('dTextoTit'), texto: ia('dTextoTexto'), rodape: '@' + (DB.settings.insta || GUIA_CFG.insta || ''), cor: 'escura' }]],
     resposta: () => ia('dTextoResp') });
-  if (imgChave()) lista.push({ id: 'imagem', pede: ia('dImgPede'), passos: [
+  if (imgDisponivel()) lista.push({ id: 'imagem', pede: ia('dImgPede'), passos: [
     ['gerar_imagem', { descricao: 'soft watercolor autumn landscape, warm ochre and burgundy tones, gentle hills and vineyards, calm mood, no people', formato: 'post' }],
     ['criar_criativo', (ant) => ({ formato: 'post', foto: ant && ant.ref, titulo: ia('dImgTit'), texto: ia('dImgTexto'), cor: 'escura' })]],
     resposta: () => ia('dImgResp') });
@@ -980,7 +1034,7 @@ const MKT_SUB = ['plano', 'criativos', 'anuncios', 'kit', 'memoria'];
 const MKT_ROT = { plano: 'subPlano', criativos: 'subCriativos', anuncios: 'subAnuncios', kit: 'subKit', memoria: 'subMemoria' };
 function pedeAoAssistente(texto) {
   iaAbre();
-  if (!iaDemo()) return iaConversa(texto);
+  if (!iaDemo()) return iaConversa(texto);   /* chave própria ou ao vivo */
   /* sem chave: roda o pedido pronto que mais se parece */
   const c = iaCenarios(), mapa = { [ia('pedidoCriativo')]: 'story', [ia('pedidoTexto')]: 'texto', [ia('pedidoAnuncio')]: 'anuncio' };
   const achado = c.find(x => x.id === mapa[texto]) || (/plano|plan/i.test(texto) ? c.find(x => x.id === 'plano') : null);
@@ -1037,10 +1091,10 @@ function mktCriativos() {
       <button class="cta sm" data-pede="${esc(ia('pedidoCriativo'))}">${ia('pedirCriativo')}</button>
       <button class="mini" data-pede="${esc(ia('pedidoTexto'))}">${ia('pedirTexto')}</button></section>
     <section class="card"><h3 class="mkH">✦ ${ia('imgTit')}</h3><p class="mkNota">${ia('imgTxt')}</p>
-      ${imgChave() ? `<div class="mkGera"><textarea id="imgDesc" rows="2" placeholder="${esc(ia('imgPh'))}"></textarea>
+      ${imgDisponivel() ? `${imgPeloCofre() ? `<p class="mkNota">⚡ ${ia('imgVivoTxt')}</p>` : ''}<div class="mkGera"><textarea id="imgDesc" rows="2" placeholder="${esc(ia('imgPh'))}"></textarea>
         <select id="imgFmt">${Object.keys(FORMATOS_CRIATIVO).map(f => `<option value="${f}">${f}</option>`).join('')}</select>
         <button class="cta sm" id="imgGera">${ia('imgGerar')}</button></div>
-        <p class="mkNota" id="imgMsg"></p><button class="mini" id="imgTroca">${ia('imgTrocar')}</button>`
+        <p class="mkNota" id="imgMsg"></p>${imgChave() ? `<button class="mini" id="imgTroca">${ia('imgTrocar')}</button>` : ''}`
       : `<p style="margin:0 0 8px">${ia('imgConectaTxt')}</p><div class="mkGera"><input id="imgChaveIn" type="password" autocomplete="off" placeholder="AIza…">
         <button class="cta sm" id="imgChaveOk">${ia('imgConectar')}</button></div><p class="mkNota" id="imgMsg"></p>`}</section>
     <section class="card"><div class="mkHead" style="margin-bottom:10px"><h3 class="mkH" style="margin:0;flex:1">${ia('suasFotos')}</h3>
@@ -1394,7 +1448,7 @@ function iaAtualizaFab() {
   if (!mostra) iaEl.g.classList.remove('aberta');
   iaEl.fab.classList.toggle('on', mostra && !iaEl.g.classList.contains('aberta'));
   iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}<small class="iaExtra">${ia('extra')}</small>`;
-  iaEl.g.querySelector('#iaTit').textContent = ia('assistente') + (iaDemo() ? ' · ' + ia('demoTit') : '');
+  iaEl.g.querySelector('#iaTit').textContent = ia('assistente') + ({ demo: ' · ' + ia('demoTit'), vivo: ' · ⚡ ' + ia('vivoTit') }[iaModo()] || '');
   iaEl.g.querySelector('#iaFecha').setAttribute('aria-label', ia('fechar'));
   const c = iaContexto();
   iaEl.g.querySelector('#iaCtx').textContent = c ? ia('vendo') + ': ' + c.txt : '';
@@ -1421,20 +1475,21 @@ function iaDesenha() {
     corpo.querySelector('#iaChaveVolta').onclick = () => { iaMostrandoChave = false; iaDesenha(); };
     return;
   }
-  const demo = iaDemo();
+  const demo = iaDemo(), vivo = iaModo() === 'vivo';
   corpo.innerHTML = `<div id="iaMsgs"></div><div id="iaAnexo"></div>
     ${demo ? '' : `<form id="iaForm"><button type="button" id="iaClip" title="${esc(ia('foto'))}" aria-label="${esc(ia('foto'))}">📷</button>
       <input type="file" id="iaArq" accept="image/*" hidden><textarea id="iaTxt" rows="1" placeholder="${esc(ia('ph'))}"></textarea>
       <button id="iaEnviar" type="submit">${ia('enviar')}</button></form>`}
     <div id="iaPe"><label><input type="checkbox" id="iaConf" ${iaPerguntaAntes() ? 'checked' : ''}> ${ia('perguntar')}</label>
-      ${demo ? `<button type="button" id="iaConecta">${ia('conectar')}</button>` : `<span id="iaGasto"></span>`}
-      <span><button type="button" id="iaLimpa">${ia('nova')}</button>${demo ? '' : ` · <button type="button" id="iaTiraChave">${ia('trocarChave')}</button>`}</span></div>`;
+      ${demo ? `<button type="button" id="iaConecta">${ia('conectar')}</button>` : vivo ? '' : `<span id="iaGasto"></span>`}
+      <span><button type="button" id="iaLimpa">${ia('nova')}</button>${demo || vivo ? '' : ` · <button type="button" id="iaTiraChave">${ia('trocarChave')}</button>`}</span></div>`;
   const msgs = corpo.querySelector('#iaMsgs');
   iaBolha('assistant', ia('oi'), null, true);
   if (demo) {
     const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>${ia('demoTit')}</b>${esc(ia('demoTxt'))}<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>`; msgs.appendChild(d);
     iaMostraSugestoes();
   } else {
+    if (vivo) { const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>⚡ ${ia('vivoTit')}</b>${esc(ia('vivoTxt'))}<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>`; msgs.appendChild(d); }
     for (const m of iaLe(IA_HIST, [])) {
       if (typeof m.content === 'string') iaBolha(m.role, m.content);
       else if (m.role === 'assistant' || ehPergunta(m)) { const t2 = m.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim(); if (t2) iaBolha(m.role, t2); }
@@ -1445,8 +1500,10 @@ function iaDesenha() {
     ta.oninput = () => { ta.style.height = ''; ta.style.height = Math.min(140, ta.scrollHeight) + 'px'; };
     corpo.querySelector('#iaClip').onclick = () => arq.click();
     arq.onchange = async () => { const file = arq.files[0]; arq.value = ''; if (!file) return; try { iaFoto = await iaReduzFoto(file); iaMostraAnexo(); } catch (e) { iaBolha('erro', e.message); } };
-    corpo.querySelector('#iaTiraChave').onclick = () => { if (!confirm(ia('tirarChave'))) return; localStorage.removeItem(IA_CHAVE); iaAtualizaFab(); iaDesenha(); };
+    const tc = corpo.querySelector('#iaTiraChave');
+    if (tc) tc.onclick = () => { if (!confirm(ia('tirarChave'))) return; localStorage.removeItem(IA_CHAVE); iaAtualizaFab(); iaDesenha(); };
     iaMostraGasto();
+    if (vivo && !iaLe(IA_HIST, []).length) iaMostraSugestoes();
     if (!('ontouchstart' in window)) ta.focus();
   }
   corpo.querySelector('#iaConf').onchange = (e) => iaGrava(IA_CONFIRMA, e.target.checked);
@@ -1456,13 +1513,14 @@ function iaDesenha() {
 }
 function iaMostraSugestoes() {
   const msgs = iaEl && iaEl.g.querySelector('#iaMsgs');
-  if (!msgs || !iaDemo()) return;
+  if (!msgs || iaModo() === 'chave') return;
+  if (iaModo() === 'demo' && !msgs.parentNode.querySelector('#iaConecta') && !iaChave()) { iaDesenha(); return; }
   msgs.querySelectorAll('.iaSug').forEach(x => x.remove());
   const box = document.createElement('div'); box.className = 'iaSug';
   box.innerHTML = `<small>${ia('experimente')}</small>`;
   for (const c of iaCenarios()) {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = c.pede;
-    b.onclick = () => { box.remove(); iaRodaCenario(c); };
+    b.onclick = () => { box.remove(); if (iaModo() === 'vivo') iaConversa(c.pede); else iaRodaCenario(c); };
     box.appendChild(b);
   }
   msgs.appendChild(box); msgs.scrollTop = msgs.scrollHeight;
