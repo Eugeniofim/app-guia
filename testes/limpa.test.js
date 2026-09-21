@@ -28,6 +28,8 @@ const DELA = [
   ['cidade dela (2)', inv('gruobsarts')],
   ['cidade dela (2, pt)', inv('ogrubsartse')],
   ['telefone dela', inv('02115028633')],
+  ['CNPJ / chave Pix dela', inv('50-1000/088.827.85')],
+  ['CNPJ / chave Pix dela (so digitos)', inv('50100008882785')],
   ['projeto Supabase dela', inv('nyzkizawecjtwodzhpqk')],
   ['chave publica do banco dela', inv('iRqdateC_ABV6pnt9jEul9n7jKHM2Ho_elbahsilbup_bs')],
   ['conta Stripe dela', inv('rTFTkaCcKHoZBAU1_tcca')],

@@ -67,7 +67,7 @@ t('cada campo declara o proprio tamanho corretamente', ()=>{
 });
 
 t('CNPJ com pontuacao vira so digitos (e o que o banco espera)', ()=>{
-  assert.strictEqual(chama('pixChaveLimpa','58.728.880/0001-05'),'58728880000105');
+  assert.strictEqual(chama('pixChaveLimpa','12.345.678/0001-95'),'12345678000195');
 });
 t('CPF com pontuacao tambem', ()=>{
   assert.strictEqual(chama('pixChaveLimpa','123.456.789-00'),'12345678900');
@@ -80,13 +80,13 @@ t('chave aleatoria fica intacta', ()=>{
   assert.strictEqual(chama('pixChaveLimpa',k),k);
 });
 t('o CNPJ dela gera um codigo com CRC valido', ()=>{
-  const c=vm.runInContext("pixCopiaECola({chave:'58.728.880/0001-05',nome:'MARIA SOUZA',cidade:'SAO PAULO',valor:1315,txid:'VI4732'})",ctx);
-  assert.ok(c.includes('5872888000010'), 'CNPJ nao entrou limpo: '+c);
+  const c=vm.runInContext("pixCopiaECola({chave:'12.345.678/0001-95',nome:'MARIA SOUZA',cidade:'SAO PAULO',valor:1315,txid:'VI4732'})",ctx);
+  assert.ok(c.includes('1234567800019'), 'CNPJ nao entrou limpo: '+c);
   assert.strictEqual(chama('pixCrc',c.slice(0,-4)), c.slice(-4));
 });
 
 t('basta a chave: nome e cidade sao opcionais', ()=>{
-  vm.runInContext("DB={settings:{pixKey:'58.728.880/0001-05'}}",ctx);
+  vm.runInContext("DB={settings:{pixKey:'12.345.678/0001-95'}}",ctx);
   assert.strictEqual(vm.runInContext('pixDisponivel()',ctx), true, 'so a chave devia bastar');
   const c=vm.runInContext("pixCopiaECola({chave:DB.settings.pixKey,nome:pixNome(),cidade:pixCidade(),valor:1220,txid:'VI1'})",ctx);
   assert.ok(c && c.length>100, 'nao gerou o codigo');
