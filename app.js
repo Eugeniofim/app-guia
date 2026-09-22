@@ -318,7 +318,7 @@ function viewHub() {
       ${typeof temNuvem === 'function' && !temNuvem()
         /* DEMONSTRACAO: a porta do painel é o que o prospect veio ver — o
            botão discreto passava batido (22/09/2026) */
-        ? `<button class="adm-demo" id="admEntry"><span class="ic" aria-hidden="true">✦</span><span><b>${t('admDemoTit')}</b><small>${t('admDemoSub')}</small></span><span class="go" aria-hidden="true">→</span></button>`
+        ? `<button class="adm-entry demo" id="admEntry">✦ ${t('admDemoTit')} →</button>`
         : `<button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>`}
     </div>
   </div>`;
