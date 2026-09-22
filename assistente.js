@@ -181,7 +181,7 @@ const IA_TXT = {
   aoVivo: { pt: 'Ao vivo agora', en: 'Live now' },
   aoVivoTit: { pt: 'Teste o agente de verdade', en: 'Try the real agent' },
   aoVivoTxt: { pt: 'Mande uma mensagem perguntando sobre um passeio: datas, vagas, preço. Em segundos chega a resposta, escrita pelo agente no seu idioma, com as vagas deste demo.', en: 'Send a message asking about a tour: dates, seats, price. Within seconds the agent replies in your language, with this demo’s availability.' },
-  aoVivoNota: { pt: 'Enquanto a Meta analisa o app, o seu Instagram ou número precisa ser liberado antes — peça ao seu contato da Ti Artes (1 minuto). No WhatsApp, por enquanto só números de fora do Brasil.', en: 'While Meta reviews the app, your Instagram or number must be enabled first — ask your Ti Artes contact (1 minute). On WhatsApp, for now only numbers outside Brazil.' },
+  aoVivoNota: { pt: 'Enquanto a Meta analisa o app, o seu Instagram ou número precisa ser liberado antes — peça ao seu contato da Ti Artes (1 minuto).', en: 'While Meta reviews the app, your Instagram or number must be enabled first — ask your Ti Artes contact (1 minute).' },
   ibTodas: { pt: 'Todas', en: 'All' },
   ibEspera: { pt: 'esperando você', en: 'waiting for you' },
   ibFeitas: { pt: 'respondidas', en: 'answered' },
