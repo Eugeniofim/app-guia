@@ -99,7 +99,18 @@ function prospectoBarra(nome) {
 
 (async function prospecto() {
   const slug = prospectoSlug();
-  if (!slug) return;
+  if (!slug) {
+    /* Link normal depois de um link de prospect (ex.: ?g=tania) no mesmo
+       aparelho: sem isto, o demo geral continuava com o nome e os passeios
+       da pessoa. Volta para o demo padrão. */
+    if (localStorage.getItem(PROSPECTO_KEY)) {
+      localStorage.removeItem(PROSPECTO_KEY);
+      const db = _seed(); db.settings = fillSettings(db.settings);
+      DB = db; localStorage.setItem(DB_KEY, JSON.stringify(DB));
+      if (typeof route === 'function') route();
+    }
+    return;
+  }
   const jaMontado = localStorage.getItem(PROSPECTO_KEY) === slug;
   if (!jaMontado) {
     try {
