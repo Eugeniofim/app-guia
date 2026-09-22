@@ -16,7 +16,7 @@ var APP_CONFIG = {
      Claude e do Gemini no servidor e deixa o demo público usar a IA de
      verdade, com limite por pessoa e por dia. Vazio = só a demonstração
      pronta. Num app de cliente fica vazio: lá o guia usa a chave dele. */
-  cofre: '',
+  cofre: 'https://guia-cofre.netlify.app',
 
   /* Quem e o guia. Vira o valor inicial dos Ajustes (que o guia edita no
      painel) e o que a abertura e o cabecalho mostram. */
