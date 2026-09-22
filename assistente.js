@@ -182,6 +182,47 @@ const IA_TXT = {
   aoVivoTit: { pt: 'Teste o agente de verdade', en: 'Try the real agent' },
   aoVivoTxt: { pt: 'Mande uma mensagem perguntando sobre um passeio: datas, vagas, preço. Em segundos chega a resposta, escrita pelo agente no seu idioma, com as vagas deste demo.', en: 'Send a message asking about a tour: dates, seats, price. Within seconds the agent replies in your language, with this demo’s availability.' },
   aoVivoNota: { pt: 'Enquanto a Meta analisa o app, o seu Instagram ou número precisa ser liberado antes — peça ao seu contato da Ti Artes (1 minuto).', en: 'While Meta reviews the app, your Instagram or number must be enabled first — ask your Ti Artes contact (1 minute).' },
+  ibConversas: { pt: 'Conversas', en: 'Chats' },
+  ibEnsinar: { pt: 'Ensinar o agente', en: 'Teach the agent' },
+  ensLead: { pt: 'Diga ao agente como falar e o que responder. Passeios, preços e vagas ele já lê sozinho do app.', en: 'Tell the agent how to talk and what to answer. Tours, prices and seats it already reads from the app.' },
+  ensReal: { pt: 'Tudo se salva sozinho. No app de verdade, vale na hora para o seu WhatsApp e o seu Instagram; aqui no demo, teste ao lado.', en: 'Everything saves itself. In the real app it applies right away to your WhatsApp and Instagram; in this demo, try it alongside.' },
+  ensSalvo: { pt: 'Salvo ✓', en: 'Saved ✓' },
+  ensP1: { pt: 'Jeito de falar', en: 'Tone' },
+  ensP2: { pt: 'Respostas prontas', en: 'Ready answers' },
+  ensP3: { pt: 'Limites', en: 'Limits' },
+  ensP4: { pt: 'Testado', en: 'Tested' },
+  ensTomTit: { pt: '1. Jeito de falar', en: '1. Tone of voice' },
+  tom_simp: { pt: 'Simpático', en: 'Friendly' },
+  tom_formal: { pt: 'Formal', en: 'Formal' },
+  tom_leve: { pt: 'Leve, com emoji', en: 'Light, with emoji' },
+  tom_direto: { pt: 'Direto ao ponto', en: 'Straight to the point' },
+  ensTomPh: { pt: 'Algo mais? Ex.: trate o cliente por você', en: 'Anything else? E.g. use first names' },
+  ensFaqTit: { pt: '2. Respostas prontas', en: '2. Ready answers' },
+  ensFaqSub: { pt: 'O que os clientes sempre perguntam e só você sabe. Toque numa sugestão e escreva do seu jeito.', en: 'What clients always ask and only you know. Tap a suggestion and write it your way.' },
+  fqEncontro: { pt: 'Onde é o ponto de encontro?', en: 'Where is the meeting point?' },
+  fqIdade: { pt: 'Tem idade mínima?', en: 'Is there a minimum age?' },
+  fqCancela: { pt: 'Posso cancelar ou remarcar?', en: 'Can I cancel or reschedule?' },
+  fqPaga: { pt: 'Como eu pago?', en: 'How do I pay?' },
+  fqLevar: { pt: 'O que devo levar?', en: 'What should I bring?' },
+  fqChuva: { pt: 'E se chover?', en: 'What if it rains?' },
+  ensOutra: { pt: 'Outra pergunta', en: 'Another question' },
+  ensPergunta: { pt: 'Pergunta do cliente', en: 'Client question' },
+  ensResposta: { pt: 'Sua resposta', en: 'Your answer' },
+  ensRespPh: { pt: 'Sua resposta, do seu jeito. Ex.: na frente da fonte da praça, 10 min antes.', en: 'Your answer, your way. E.g. in front of the fountain in the square, 10 min early.' },
+  ensLimTit: { pt: '3. Limites', en: '3. Limits' },
+  ensSempre: { pt: 'Sempre ligado: nunca inventa preço, data ou vaga, e só fala de passeios e reservas.', en: 'Always on: never makes up prices, dates or seats, and only talks about tours and bookings.' },
+  ensPassaTit: { pt: 'Passa a conversa para você quando for:', en: 'Hands the chat over to you when it’s:' },
+  hReclama: { pt: 'Reclamação', en: 'A complaint' },
+  hDesconto: { pt: 'Pedido de desconto', en: 'A discount request' },
+  hGrupo: { pt: 'Grupo grande', en: 'A large group' },
+  hEspecial: { pt: 'Pedido especial (alergia, acessibilidade)', en: 'A special request (allergy, accessibility)' },
+  ensNuncaPh: { pt: 'Algo que ele nunca deve dizer? Ex.: não prometer que dá para ver a aurora boreal', en: 'Anything it must never say? E.g. don’t promise the northern lights' },
+  ensTesteTit: { pt: 'Testar agora', en: 'Try it now' },
+  ensTesteSub: { pt: 'Escreva como um cliente, em qualquer idioma.', en: 'Write like a client, in any language.' },
+  ensTestePh: { pt: 'Mensagem do cliente…', en: 'Client message…' },
+  ensLimpar: { pt: 'Recomeçar', en: 'Start over' },
+  ensDemoAviso: { pt: 'Agente ao vivo indisponível agora: a resposta vem só das suas respostas prontas.', en: 'Live agent unavailable right now: replies come only from your ready answers.' },
+  ensNaoSei: { pt: 'Boa pergunta! O guia confirma isso com você em seguida. 🙂', en: 'Good question! The guide will confirm this with you shortly. 🙂' },
   ibTodas: { pt: 'Todas', en: 'All' },
   ibEspera: { pt: 'esperando você', en: 'waiting for you' },
   ibFeitas: { pt: 'respondidas', en: 'answered' },
@@ -1437,6 +1478,7 @@ let inboxAberta = null, inboxFiltro = 'todas';
 const ibCores = ['#6366f1', '#0ea5e9', '#f59e0b', '#ec4899', '#10b981', '#8b5cf6'];
 const ibAvatar = (c) => `<span class="ibAv" style="--av:${ibCores[(parseInt(c.id.slice(1), 10) || 0) % ibCores.length]}">${esc(c.nome[0])}<i class="ibAvCanal ${c.canal === 'whats' ? 'wa' : 'ig'}"></i></span>`;
 function admAtendimento(arg) {
+  if (ibAba === 'ensinar' && !arg) return admEnsinar();
   const m = Mkt.get(), cs = conversas();
   if (arg) inboxAberta = arg;
   const aberta = cs.find(c => c.id === inboxAberta);
@@ -1474,9 +1516,8 @@ function admAtendimento(arg) {
     </div>`;
   }
   admShell('inbox', `
-    <div class="ibCab"><div><h1 class="pageh">${ia('atendimento')}</h1><p class="ibSub">${ia('inboxTxt')}</p></div>
-      <div class="ibModo" role="group"><button class="${m.modoAuto ? '' : 'on'}" data-modo="0">${ia('modoAprovar')}</button><button class="${m.modoAuto ? 'on' : ''}" data-modo="1">⚡ ${ia('modoAuto')}</button></div></div>
-    <p class="mkExtra">✦ ${ia('extraAviso')}</p>
+    ${ibCabecalho('conversas')}
+    <div class="ibModoLinha"><div class="ibModo" role="group"><button class="${m.modoAuto ? '' : 'on'}" data-modo="0">${ia('modoAprovar')}</button><button class="${m.modoAuto ? 'on' : ''}" data-modo="1">⚡ ${ia('modoAuto')}</button></div></div>
     <div class="ibKpis"><div><b>${nEspera}</b><span>${ia('ibEspera')}</span></div><div><b>${nFeitas}</b><span>${ia('ibFeitas')}</span></div><div><b>${nLinguas}</b><span>${ia('ibLinguas')}</span></div></div>
     ${aoVivoCartao()}
     <div class="ibApp ${aberta ? 'comConversa' : ''}">
@@ -1486,6 +1527,7 @@ function admAtendimento(arg) {
     <p class="ibRodape">${ia('inboxDemo')}</p>`);
   const agora = () => new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
   const re = () => admAtendimento();
+  ligaAbasIb();
   $$('[data-conv]').forEach(b => b.onclick = () => { inboxAberta = b.dataset.conv; re(); });
   $$('[data-filtro]').forEach(b => b.onclick = () => { inboxFiltro = b.dataset.filtro; re(); });
   const vb = $('[data-voltar]'); if (vb) vb.onclick = () => { inboxAberta = null; re(); };
@@ -1506,6 +1548,148 @@ function admAtendimento(arg) {
     if (m.modoAuto && !respostaPara(c, c.lang).falta) { v.estado = 'auto'; v.hora = agora(); }
     cs.unshift(v); inboxAberta = c.id; inboxFiltro = 'todas'; Mkt.salva(); re();
   };
+}
+
+/* ---------- Ensinar o agente (22/09/2026) ----------
+   O guia diz como o agente fala, o que responde e quando passa a conversa
+   para ele. Passeios, preços e vagas o agente já lê do app (ver_passeios /
+   ver_agenda). No app de verdade isto vai para o banco do guia e o cofre usa
+   ao responder no WhatsApp/Instagram; no demo, vale para o teste ao lado. */
+let ibAba = 'conversas', ensTeste = [], ensOcupado = false;
+const ENS_TONS = { simp: 1, formal: 1, leve: 1, direto: 1 };
+const ENS_FAQ = ['fqEncontro', 'fqIdade', 'fqCancela', 'fqPaga', 'fqLevar', 'fqChuva'];
+const ENS_PASSA = ['hReclama', 'hDesconto', 'hGrupo', 'hEspecial'];
+const ENS_EXEMPLOS = ['Onde é o ponto de encontro?', 'Can I bring my 5-year-old?', 'Posso cancelar se chover?', '¿Hacen descuento para grupos?', 'Il reste de la place samedi pour 2 ?'];
+function ensino() {
+  const m = Mkt.get();
+  if (!m.ensino) m.ensino = { tom: 'simp', tomExtra: '', faq: [], nunca: '', passa: ['hReclama', 'hDesconto'] };
+  return m.ensino;
+}
+function ibCabecalho(aba) {
+  return `<div class="ibCab"><div><h1 class="pageh">${ia('atendimento')}</h1><p class="ibSub">${ia(aba === 'ensinar' ? 'ensLead' : 'inboxTxt')}</p></div></div>
+    <p class="mkExtra">✦ ${ia('extraAviso')}</p>
+    <div class="ibAbas" role="tablist"><button role="tab" aria-selected="${aba === 'conversas'}" class="${aba === 'conversas' ? 'on' : ''}" data-ibaba="conversas">💬 ${ia('ibConversas')}</button><button role="tab" aria-selected="${aba === 'ensinar'}" class="${aba === 'ensinar' ? 'on' : ''}" data-ibaba="ensinar">✦ ${ia('ibEnsinar')}</button></div>`;
+}
+function ligaAbasIb() { $$('[data-ibaba]').forEach(b => b.onclick = () => { ibAba = b.dataset.ibaba; admAtendimento(); }); }
+function ensPassos(e) {
+  const faqOk = e.faq.filter(f => f.p.trim() && f.r.trim()).length;
+  return [['ensP1', !!e.tom], ['ensP2', faqOk >= 3, faqOk + '/3'], ['ensP3', !!(e.nunca.trim() || e.passa.length)], ['ensP4', ensTeste.some(x => x.role === 'assistant')]];
+}
+/* as instruções do atendente: mesmas regras do cofre + o que o guia ensinou */
+function ensSistema() {
+  const e = ensino();
+  const faq = e.faq.filter(f => f.p.trim() && f.r.trim()).map(f => `Q: ${f.p.trim()}\nA: ${f.r.trim()}`).join('\n\n');
+  const passa = e.passa.map(k => IA_TXT[k] ? IA_TXT[k].en : k).join('; ');
+  return `You are the virtual assistant of "${guiaNegocio()}" (${guiaNome()}, a tour guide in ${guiaBase() || '—'}), answering clients on WhatsApp and Instagram.
+
+LANGUAGE — most important rule: always reply in the language of the client's LAST message (French → French, Spanish → Spanish, English → English, Portuguese → Portuguese, etc.). Never switch to another language. Translate the guide's answers below into that language.
+
+FACTS: only state what comes from the tools (tours, prices, schedules, seats) or from the guide's answers below. The guide's answers apply to every tour unless they say otherwise. If something is not there (minimum age, whether children can come, discounts, accessibility, policies), do NOT say yes or no — say the guide will confirm shortly. preco_crianca 0 means "not informed". Never invent dates, prices or availability; check ver_agenda for seats.
+
+STYLE: like a WhatsApp chat — up to 4 short sentences, no markdown, no lists. Tone: ${{ simp: 'friendly and warm, like someone from the team', formal: 'formal and polite, no slang', leve: 'light and fun, an emoji now and then', direto: 'straight to the point, short sentences' }[e.tom] || 'friendly'}.${e.tomExtra.trim() ? ' Also, from the guide: ' + e.tomExtra.trim() : ''}
+Only talk about tours, dates, prices and bookings. To book, name the tour and say booking is done in the guide's app.
+${faq ? '\nTHE GUIDE\'S ANSWERS (use them, translated to the client\'s language):\n' + faq + '\n' : ''}${passa ? '\nHAND OVER: when the message is about ' + passa + ', do not solve it and do not promise anything (neither that it exists nor that it doesn\'t) — kindly say the guide will reply personally soon.\n' : ''}${e.nunca.trim() ? '\nNEVER (from the guide): ' + e.nunca.trim() + '\n' : ''}
+Today is ${hojeIso()}.`;
+}
+async function ensChamar(msgs) {
+  const modo = iaModo(), tools = IA_FERRAMENTAS.filter(t => t.name === 'ver_passeios' || t.name === 'ver_agenda');
+  const corpo = { max_tokens: 700, system: ensSistema(), tools, messages: msgs };
+  const r = modo === 'vivo'
+    ? await fetch(COFRE + '/api/claude', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo) })
+    : await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': iaChave(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: JSON.stringify({ model: IA_MODELO, ...corpo }) });
+  const j = await r.json().catch(() => null);
+  if (modo === 'vivo' && r.status === 429) marcaEsgotado('claude');
+  if (!r.ok) throw new Error('falhou');
+  if (modo !== 'vivo') iaSomaGasto(j.usage);
+  return j;
+}
+/* sem Claude (demo sem cofre): responde só com as respostas prontas */
+function ensSemIA(txt) {
+  const e = ensino(), t = txt.toLowerCase();
+  const hit = e.faq.find(f => f.p.trim() && f.r.trim() && f.p.toLowerCase().split(/\W+/).filter(w => w.length > 3).some(w => t.includes(w)));
+  return hit ? hit.r : ia('ensNaoSei');
+}
+async function ensPergunta(txt) {
+  if (ensOcupado || !txt.trim()) return;
+  ensOcupado = true;
+  ensTeste.push({ role: 'user', content: txt.trim() });
+  admEnsinar();
+  let resp = '';
+  try {
+    if (iaModo() === 'demo') resp = ensSemIA(txt);
+    else {
+      const conv = ensTeste.map(x => ({ role: x.role, content: x.content }));
+      for (let volta = 0; volta < 4; volta++) {
+        const j = await ensChamar(conv);
+        conv.push({ role: 'assistant', content: j.content });
+        resp = j.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim() || resp;
+        if (j.stop_reason !== 'tool_use') break;
+        conv.push({ role: 'user', content: j.content.filter(b => b.type === 'tool_use').map(b => ({ type: 'tool_result', tool_use_id: b.id, content: JSON.stringify(iaLeitura(b.name, b.input || {})) })) });
+      }
+    }
+  } catch (err) { resp = ensSemIA(txt); }
+  ensTeste.push({ role: 'assistant', content: (resp || ia('ensNaoSei')).replace(/\*\*(.+?)\*\*/g, '$1') });
+  ensOcupado = false;
+  admEnsinar();
+  const f = $('#ensFio'); if (f) f.scrollTop = f.scrollHeight;
+}
+function admEnsinar() {
+  const e = ensino(), passos = ensPassos(e), feitos = passos.filter(x => x[1]).length;
+  const usadas = new Set(e.faq.map(f => f.k).filter(Boolean));
+  const sugestoes = ENS_FAQ.filter(k => !usadas.has(k)).map(k => `<button class="ensChip add" data-addfaq="${k}">+ ${ia(k)}</button>`).join('');
+  const faqs = e.faq.map((f, i) => `<div class="ensFaq">
+      <input class="ensFaqP" data-faqp="${i}" value="${esc(f.p)}" placeholder="${ia('ensPergunta')}" aria-label="${ia('ensPergunta')}">
+      <textarea data-faqr="${i}" rows="2" placeholder="${ia('ensRespPh')}" aria-label="${ia('ensResposta')}">${esc(f.r)}</textarea>
+      <button class="ensX" data-faqx="${i}" aria-label="${ia('descartar')}">×</button></div>`).join('');
+  const fio = ensTeste.map(x => `<div class="ibMsg ${x.role === 'user' ? 'dele' : 'minha'}">${esc(x.content)}</div>`).join('')
+    + (ensOcupado ? `<div class="ibMsg minha ensDigita"><i></i><i></i><i></i></div>` : '');
+  admShell('inbox', `${ibCabecalho('ensinar')}
+    <div class="ensProg"><div class="ensBarra"><i style="width:${feitos * 25}%"></i></div>
+      <ol>${passos.map(([k, ok, extra]) => `<li class="${ok ? 'ok' : ''}"><span>${ok ? '✓' : ''}</span>${ia(k)}${!ok && extra ? ` <small>${extra}</small>` : ''}</li>`).join('')}</ol></div>
+    <div class="ensGrade">
+      <div class="ensForm">
+        <section class="ensCard"><h3>${ia('ensTomTit')}</h3>
+          <div class="ensChips">${Object.keys(ENS_TONS).map(k => `<button class="ensChip ${e.tom === k ? 'on' : ''}" data-tom="${k}">${ia('tom_' + k)}</button>`).join('')}</div>
+          <input id="ensTomExtra" value="${esc(e.tomExtra)}" placeholder="${ia('ensTomPh')}"></section>
+        <section class="ensCard"><h3>${ia('ensFaqTit')}</h3><p class="ensSub">${ia('ensFaqSub')}</p>
+          ${faqs}
+          <div class="ensChips">${sugestoes}<button class="ensChip add" data-addfaq="">+ ${ia('ensOutra')}</button></div></section>
+        <section class="ensCard"><h3>${ia('ensLimTit')}</h3>
+          <p class="ensSempre">🔒 ${ia('ensSempre')}</p>
+          <p class="ensSub">${ia('ensPassaTit')}</p>
+          <div class="ensChips">${ENS_PASSA.map(k => `<button class="ensChip ${e.passa.includes(k) ? 'on' : ''}" data-passa="${k}">${e.passa.includes(k) ? '✓ ' : ''}${ia(k)}</button>`).join('')}</div>
+          <textarea id="ensNunca" rows="2" placeholder="${ia('ensNuncaPh')}">${esc(e.nunca)}</textarea></section>
+        <p class="ensReal">${ia('ensReal')} <span id="ensSalvo" class="ensSalvo"></span></p>
+      </div>
+      <aside class="ensTeste">
+        <header><b>${ia('ensTesteTit')}</b><small>${ia('ensTesteSub')}</small>${ensTeste.length ? `<button class="mkLink" id="ensLimpa">${ia('ensLimpar')}</button>` : ''}</header>
+        <div class="ibFio" id="ensFio">${fio || `<div class="ensVazio">${ENS_EXEMPLOS.map(x => `<button class="ensChip" data-ex="${esc(x)}">${esc(x)}</button>`).join('')}</div>`}</div>
+        ${iaModo() === 'demo' ? `<p class="ensAviso">${ia('ensDemoAviso')}</p>` : ''}
+        <form class="ensEnvia" id="ensEnvia"><input id="ensMsg" placeholder="${ia('ensTestePh')}" autocomplete="off" ${ensOcupado ? 'disabled' : ''}><button class="ibBt" ${ensOcupado ? 'disabled' : ''} aria-label="${ia('enviar')}">↑</button></form>
+      </aside>
+    </div>`);
+  ligaAbasIb();
+  const salva = () => { Mkt.salva(); const s = $('#ensSalvo'); if (s) { s.textContent = ia('ensSalvo'); clearTimeout(salva.t); salva.t = setTimeout(() => { s.textContent = ''; }, 1500); } };
+  const re = () => { Mkt.salva(); admEnsinar(); };
+  $$('[data-tom]').forEach(b => b.onclick = () => { e.tom = b.dataset.tom; re(); });
+  $$('[data-passa]').forEach(b => b.onclick = () => { const k = b.dataset.passa; e.passa = e.passa.includes(k) ? e.passa.filter(x => x !== k) : [...e.passa, k]; re(); });
+  $$('[data-addfaq]').forEach(b => b.onclick = () => { const k = b.dataset.addfaq; e.faq.push({ k, p: k ? ia(k) : '', r: '' }); re(); const r = $$('[data-faqr]').pop(); if (r) (k ? r : $$('[data-faqp]').pop()).focus(); });
+  $$('[data-faqx]').forEach(b => b.onclick = () => { e.faq.splice(+b.dataset.faqx, 1); re(); });
+  $$('[data-faqp]').forEach(x => x.oninput = () => { e.faq[+x.dataset.faqp].p = x.value; salva(); });
+  $$('[data-faqr]').forEach(x => { x.oninput = () => { e.faq[+x.dataset.faqr].r = x.value; salva(); }; x.onblur = () => admEnsinarProg(); });
+  const te = $('#ensTomExtra'); if (te) te.oninput = () => { e.tomExtra = te.value; salva(); };
+  const nu = $('#ensNunca'); if (nu) { nu.oninput = () => { e.nunca = nu.value; salva(); }; nu.onblur = () => admEnsinarProg(); }
+  $$('[data-ex]').forEach(b => b.onclick = () => ensPergunta(b.dataset.ex));
+  const li = $('#ensLimpa'); if (li) li.onclick = () => { ensTeste = []; admEnsinar(); };
+  const f = $('#ensEnvia'); if (f) f.onsubmit = (ev) => { ev.preventDefault(); const i = $('#ensMsg'); const t = i.value; i.value = ''; ensPergunta(t); };
+  const fe = $('#ensFio'); if (fe) fe.scrollTop = fe.scrollHeight;
+}
+/* atualiza só a barra de progresso (sem redesenhar e perder o foco) */
+function admEnsinarProg() {
+  const box = $('.ensProg'); if (!box) return;
+  const passos = ensPassos(ensino()), feitos = passos.filter(x => x[1]).length;
+  box.querySelector('.ensBarra i').style.width = feitos * 25 + '%';
+  box.querySelectorAll('li').forEach((li, i) => { li.classList.toggle('ok', passos[i][1]); li.querySelector('span').textContent = passos[i][1] ? '✓' : ''; });
 }
 
 /* =====================================================
@@ -1653,6 +1837,38 @@ body:has(.coach) #iaFab{display:none!important}
 .ibBt{padding:10px 18px;border-radius:999px;border:0;background:var(--accent);color:#fff;font:600 13.5px var(--f-ui);cursor:pointer;min-height:40px}
 .ibBt.sec{background:none;color:var(--ink-2);border:1px solid var(--line)}
 .ibRodape{margin:12px 0 0;text-align:center;font-size:12.5px;color:var(--ink-3)}
+.ibAbas{display:flex;gap:4px;margin:4px 0 16px;border-bottom:1px solid var(--line)}
+.ibAbas button{padding:10px 14px;border:0;background:none;color:var(--ink-3);font:600 14px var(--f-ui);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.ibAbas button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.ibModoLinha{display:flex;justify-content:flex-end;margin:-4px 0 12px}
+.ensProg{margin:0 0 16px} .ensBarra{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden} .ensBarra i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.ensProg ol{display:flex;flex-wrap:wrap;gap:6px 18px;list-style:none;padding:0;margin:10px 0 0;font-size:13px;color:var(--ink-3)}
+.ensProg li{display:flex;align-items:center;gap:6px} .ensProg li span{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:11px;color:#fff}
+.ensProg li.ok{color:var(--ink)} .ensProg li.ok span{background:#16a34a;border-color:#16a34a} .ensProg small{color:var(--accent);font-weight:600}
+.ensGrade{display:grid;grid-template-columns:1fr minmax(300px,380px);gap:16px;align-items:start}
+.ensForm{display:flex;flex-direction:column;gap:14px;min-width:0}
+.ensCard{border:1px solid var(--line);border-radius:16px;padding:16px 18px;background:var(--surface)}
+.ensCard h3{margin:0 0 10px;font-size:15.5px} .ensSub{margin:-4px 0 10px;font-size:13px;color:var(--ink-3)}
+.ensCard input,.ensCard textarea{width:100%;font:14px/1.45 var(--f-ui);padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:inherit;box-sizing:border-box}
+.ensCard input:focus,.ensCard textarea:focus,.ensEnvia input:focus{outline:2px solid color-mix(in srgb,var(--accent) 40%,transparent);outline-offset:1px}
+.ensChips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.ensChip{padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--ink-2);font:600 13px var(--f-ui);cursor:pointer;min-height:36px;text-align:left}
+.ensChip.on{background:var(--accent);border-color:var(--accent);color:#fff} .ensChip.add{border-style:dashed}
+.ensFaq{position:relative;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:14px;background:var(--surface-2);margin-bottom:10px}
+.ensFaq .ensFaqP{font-weight:600;background:var(--surface);padding-right:36px} .ensFaq textarea{background:var(--surface)}
+.ensX{position:absolute;top:14px;right:16px;width:26px;height:26px;border-radius:50%;border:0;background:none;color:var(--ink-3);font-size:18px;cursor:pointer}
+.ensSempre{margin:0 0 12px;font-size:13px;padding:9px 12px;border-radius:10px;background:var(--surface-2);color:var(--ink-2)}
+.ensReal{margin:0;font-size:12.5px;color:var(--ink-3)} .ensSalvo{color:#16a34a;font-weight:600}
+.ensTeste{position:sticky;top:16px;display:flex;flex-direction:column;height:min(600px,75vh);border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--surface)}
+.ensTeste header{display:grid;grid-template-columns:1fr auto;gap:0 8px;padding:12px 16px;border-bottom:1px solid var(--line)} .ensTeste header small{grid-column:1;color:var(--ink-3);font-size:12.5px} .ensTeste header .mkLink{grid-column:2;grid-row:1/3;padding:0}
+.ensVazio{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:auto 0 0} .ensVazio .ensChip{background:var(--surface);font-weight:500}
+.ensAviso{margin:0;padding:8px 14px;font-size:12px;color:var(--ink-3);border-top:1px solid var(--line)}
+.ensEnvia{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+.ensEnvia input{flex:1;min-width:0;font:14.5px var(--f-ui);padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:inherit}
+.ensEnvia .ibBt{width:42px;padding:0;font-size:17px}
+.ensDigita{display:flex;gap:4px;padding:14px 16px} .ensDigita i{width:6px;height:6px;border-radius:50%;background:#fff;opacity:.5;animation:ensPonto 1s infinite} .ensDigita i:nth-child(2){animation-delay:.15s} .ensDigita i:nth-child(3){animation-delay:.3s}
+@keyframes ensPonto{50%{opacity:1;transform:translateY(-2px)}}
+@media (max-width:900px){.ensGrade{grid-template-columns:1fr} .ensTeste{position:static;height:520px}}
 /* ---- aba Marketing (21/09/2026) ---- */
 .mk{padding-bottom:96px}
 .mkTopo{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
