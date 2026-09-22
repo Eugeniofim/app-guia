@@ -20,7 +20,7 @@ var APP_CONFIG = {
   /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
   agenteInstagram: 'estudio_ti_artes',
   /* número do WhatsApp do agente do demo (só dígitos; o de teste da Meta não entrega para o Brasil) */
-  agenteWhatsapp: '15551558996',
+  agenteWhatsapp: '', // vazio = botão escondido; o de teste era 15551558996. Pôr o número real quando o chip chegar
 
   /* Quem e o guia. Vira o valor inicial dos Ajustes (que o guia edita no
      painel) e o que a abertura e o cabecalho mostram. */
