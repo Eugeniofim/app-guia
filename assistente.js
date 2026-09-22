@@ -1143,6 +1143,16 @@ Object.assign(IA_TXT, {
   vagaNoDia: { pt: 'vaga sobrando', en: 'empty seats', fr: 'places libres', it: 'posti liberi', de: 'freie Plätze', es: 'plazas libres' },
   anTotal: { pt: 'no total', en: 'in total', fr: 'au total', it: 'in totale', de: 'insgesamt', es: 'en total' },
   memTit: { pt: 'O que o assistente aprendeu', en: 'What the assistant has learned', fr: 'Ce que l’assistant a appris', it: 'Cosa ha imparato l’assistente', de: 'Was der Assistent gelernt hat', es: 'Lo que aprendió el asistente' },
+  mkAgora: { pt: 'O que fazer agora', en: 'What to do now', fr: 'À faire maintenant', it: 'Cosa fare adesso', de: 'Jetzt zu tun', es: 'Qué hacer ahora' },
+  mkEncher: { pt: 'Encher “{tour}”', en: 'Fill “{tour}”', fr: 'Remplir « {tour} »', it: 'Riempire “{tour}”', de: '„{tour}“ füllen', es: 'Llenar “{tour}”' },
+  mkVazios: { pt: 'lugares vazios', en: 'empty seats', fr: 'places vides', it: 'posti vuoti', de: 'freie Plätze', es: 'plazas vacías' },
+  mkDeCap: { pt: 'de {c}', en: 'of {c}', fr: 'sur {c}', it: 'su {c}', de: 'von {c}', es: 'de {c}' },
+  mkEscolha: { pt: 'Escolha como divulgar — o assistente monta pra você:', en: 'Pick how to promote it — the assistant builds it for you:', fr: 'Choisissez comment la promouvoir — l’assistant s’en charge :', it: 'Scegli come promuoverla — l’assistente la prepara per te:', de: 'Wähle, wie du werben willst — der Assistent erstellt es:', es: 'Elige cómo promocionarla — el asistente la arma por ti:' },
+  expStory: { pt: 'Some em 24 h. Ideal para os próximos dias.', en: 'Gone in 24 h. Best for the next few days.', fr: 'Disparaît en 24 h. Idéal pour les prochains jours.', it: 'Sparisce in 24 h. Ideale per i prossimi giorni.', de: 'Nach 24 h weg. Ideal für die nächsten Tage.', es: 'Desaparece en 24 h. Ideal para los próximos días.' },
+  expPost: { pt: 'Fica no perfil. Bom com alguns dias de antecedência.', en: 'Stays on your profile. Good a few days ahead.', fr: 'Reste sur le profil. Bien quelques jours avant.', it: 'Resta sul profilo. Bene qualche giorno prima.', de: 'Bleibt im Profil. Gut ein paar Tage vorher.', es: 'Queda en el perfil. Bien con unos días de antelación.' },
+  expAnuncio: { pt: 'Chega a quem ainda não te segue. Verba pequena.', en: 'Reaches people who don’t follow you yet. Small budget.', fr: 'Touche ceux qui ne vous suivent pas encore. Petit budget.', it: 'Raggiunge chi non ti segue ancora. Budget piccolo.', de: 'Erreicht Leute, die dir noch nicht folgen. Kleines Budget.', es: 'Llega a quien aún no te sigue. Presupuesto pequeño.' },
+  opOutras: { pt: 'Outras saídas com vaga', en: 'Other departures with seats', fr: 'Autres départs avec places', it: 'Altre partenze con posti', de: 'Weitere Termine mit Plätzen', es: 'Otras salidas con plazas' },
+  opDivulgar: { pt: 'Divulgar', en: 'Promote', fr: 'Promouvoir', it: 'Promuovi', de: 'Bewerben', es: 'Promocionar' },
   demoLinha: { pt: 'Demonstração — nada sai deste aparelho.', en: 'Demo — nothing leaves this device.', fr: 'Démo — rien ne quitte cet appareil.', it: 'Demo — niente lascia questo dispositivo.', de: 'Demo — nichts verlässt dieses Gerät.', es: 'Demo — nada sale de este dispositivo.' },
 });
 
@@ -1200,7 +1210,7 @@ function admMarketing(arg) {
       <button class="cta sm mkMes" data-pede="${esc(ia('pedidoPlano', { mes }))}">✦ ${ia('mkMontarMes')}</button>
     </header>
     <nav class="mkAbas" role="tablist">${MKT_ABAS.map(([k, ic, r]) =>
-      `<button role="tab" class="${k === aba ? 'on' : ''}" aria-selected="${k === aba}" data-mk="${k}"><span aria-hidden="true">${ic}</span>${ia(r)}</button>`).join('')}</nav>
+      `<button role="tab" class="${k === aba ? 'on' : ''}" aria-selected="${k === aba}" data-mk="${k}">${ia(r)}</button>`).join('')}</nav>
     ${corpo}
     <p class="mkRodape">✦ ${ia('extraAviso')}</p>
   </div>`);
@@ -1212,18 +1222,25 @@ function admMarketing(arg) {
   mktLiga();
 }
 
+/* as três formas de divulgar, com uma linha dizendo para que serve cada uma */
+const opcoesDivulgar = (i) => [['story', 'opStory', 'expStory'], ['post', 'opPost', 'expPost'], ['anuncio', 'opAnuncio', 'expAnuncio']]
+  .map(([t, n, e]) => `<button class="divOp" data-vaga="${t}" data-i="${i}"><b>${ia(n)}</b><small>${ia(e)}</small></button>`).join('');
+const quandoSaida = (s) => { const d = new Date(s.date + 'T12:00:00'); return `${nomeDia(d.getDay())} ${dataCurta(s.date)} · ${esc(s.time)}`; };
 function cartaoVaga(s, i) {
-  const d = new Date(s.date + 'T12:00:00'), ocup = Math.round((s.capacity - s.livres) / s.capacity * 100);
-  return `<article class="vaga">
-    <div class="vagaData"><b>${d.getDate()}</b><small>${nomeDia(d.getDay())}</small></div>
-    <div class="vagaInfo"><b>${esc(nomeTour(s.x))}</b>
-      <small>${esc(s.time)} · ${ia('opLivres', { l: s.livres, c: s.capacity })}</small>
-      <div class="vagaBarra" title="${ocup}%"><i style="width:${Math.max(4, ocup)}%"></i></div></div>
-    <div class="vagaAcoes">
-      <button data-vaga="story" data-i="${i}">📱 ${ia('opStory')}</button>
-      <button data-vaga="post" data-i="${i}">🖼 ${ia('opPost')}</button>
-      <button data-vaga="anuncio" data-i="${i}">📣 ${ia('opAnuncio')}</button></div>
-  </article>`;
+  const d = new Date(s.date + 'T12:00:00');
+  return `<details class="vaga2">
+    <summary><span class="vaga2Data"><b>${d.getDate()}</b><small>${nomeDia(d.getDay())}</small></span>
+      <span class="vaga2Info"><b>${esc(nomeTour(s.x))}</b><small>${esc(s.time)}</small></span>
+      <span class="vaga2Livres">${s.livres} <small>${ia('mkVazios')}</small></span>
+      <span class="vaga2Bt">${ia('opDivulgar')}</span></summary>
+    <div class="divOps">${opcoesDivulgar(i)}</div></details>`;
+}
+function cartaoAgora(s) {
+  return `<section class="agora"><span class="agoraTag">✦ ${ia('mkAgora')}</span>
+    <div class="agoraTopo"><div><h2>${esc(ia('mkEncher', { tour: nomeTour(s.x) }))}</h2><p>${quandoSaida(s)}</p></div>
+      <div class="agoraNum"><b>${s.livres}</b><small>${ia('mkVazios')} ${ia('mkDeCap', { c: s.capacity })}</small></div></div>
+    <p class="agoraSub">${ia('mkEscolha')}</p>
+    <div class="divOps">${opcoesDivulgar(0)}</div></section>`;
 }
 
 function cartaoPost(p, curto) {
@@ -1242,28 +1259,21 @@ function cartaoPost(p, curto) {
 }
 
 function mktInicio() {
-  const m = Mkt.get(), vagas = oportunidades(4);
+  const m = Mkt.get(), vagas = oportunidades(5);
   _vagasNaTela = vagas;
   const prox = m.posts.filter(p => p.data >= hojeIso()).sort((a, b) => a.data.localeCompare(b.data)).slice(0, 3);
   const futuros = m.posts.filter(p => p.data >= hojeIso()).length;
   return `
-    <section class="mkBloco">
-      <div class="mkBlocoTopo"><h2>${ia('opTit')}</h2></div>
-      <p class="mkNota">${ia('opSub')}</p>
-      ${vagas.length ? `<div class="vagas">${vagas.map(cartaoVaga).join('')}</div>` : `<div class="emptybox"><p>${ia('opVazio')}</p></div>`}
-    </section>
-    <section class="mkBloco">
-      <div class="mkBlocoTopo"><h2>${ia('mesTit')}</h2></div>
-      <div class="stats">
-        <button class="stat" data-mk="plano"><b>${futuros}</b><span>${ia('stPosts')}</span></button>
-        <button class="stat" data-mk="criativos"><b>${m.criativos.length}</b><span>${ia('stCriativos')}</span></button>
-        <button class="stat" data-mk="anuncios"><b>${m.anuncios.length}</b><span>${ia('stAnuncios')}</span></button>
-      </div>
-    </section>
-    <section class="mkBloco">
-      <div class="mkBlocoTopo"><h2>${ia('proxTit')}</h2>${prox.length ? `<button class="mkLink" data-mk="plano">${ia('verTudo')}</button>` : ''}</div>
-      ${prox.length ? `<div class="posts">${prox.map(p => cartaoPost(p, true)).join('')}</div>` : `<div class="emptybox"><p>${ia('proxVazio')}</p></div>`}
-    </section>`;
+    ${vagas.length ? cartaoAgora(vagas[0]) : `<div class="emptybox"><p>${ia('opVazio')}</p></div>`}
+    ${vagas.length > 1 ? `<section class="mkSec"><h3 class="mkSecTit">${ia('opOutras')}</h3>
+      <div class="vagas2">${vagas.slice(1).map((s, k) => cartaoVaga(s, k + 1)).join('')}</div></section>` : ''}
+    <section class="mkSec"><h3 class="mkSecTit">${ia('mesTit')}</h3>
+      <div class="ibKpis mkKpis">
+        <button data-mk="plano"><b>${futuros}</b><span>${ia('stPosts')}</span></button>
+        <button data-mk="criativos"><b>${m.criativos.length}</b><span>${ia('stCriativos')}</span></button>
+        <button data-mk="anuncios"><b>${m.anuncios.length}</b><span>${ia('stAnuncios')}</span></button></div></section>
+    <section class="mkSec"><div class="mkSecTopo"><h3 class="mkSecTit">${ia('proxTit')}</h3>${prox.length ? `<button class="mkLink" data-mk="plano">${ia('verTudo')}</button>` : ''}</div>
+      ${prox.length ? `<div class="posts">${prox.map(p => cartaoPost(p, true)).join('')}</div>` : `<p class="mkVazio">${ia('proxVazio')}</p>`}</section>`;
 }
 
 function mktPlano(mesArg) {
@@ -1921,6 +1931,32 @@ body:has(.coach) #iaFab{display:none!important}
 .ensDigita{display:flex;gap:4px;padding:14px 16px} .ensDigita i{width:6px;height:6px;border-radius:50%;background:#fff;opacity:.5;animation:ensPonto 1s infinite} .ensDigita i:nth-child(2){animation-delay:.15s} .ensDigita i:nth-child(3){animation-delay:.3s}
 @keyframes ensPonto{50%{opacity:1;transform:translateY(-2px)}}
 @media (max-width:900px){.ensGrade{grid-template-columns:1fr} .ensTeste{position:static;height:520px}}
+/* ---- Marketing: início limpo (22/09/2026) ---- */
+.agora{padding:20px;border-radius:20px;margin:0 0 22px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 14%,transparent),transparent 70%)}
+.agoraTag{font:700 11px var(--f-ui);letter-spacing:.07em;text-transform:uppercase;color:var(--accent)}
+.agoraTopo{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-top:8px}
+.agoraTopo h2{margin:0;font-size:22px;line-height:1.25} .agoraTopo p{margin:4px 0 0;color:var(--ink-2);font-size:14px;text-transform:capitalize}
+.agoraNum{text-align:right;flex:none} .agoraNum b{display:block;font:800 40px/1 var(--f-display,inherit);color:var(--accent)} .agoraNum small{font-size:12px;color:var(--ink-3)}
+.agoraSub{margin:16px 0 10px;font-size:13.5px;color:var(--ink-2)}
+.divOps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.divOp{display:flex;flex-direction:column;gap:3px;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font:inherit;transition:border-color .12s,transform .12s}
+.divOp:hover{border-color:var(--accent);transform:translateY(-1px)} .divOp b{font-size:14.5px} .divOp small{font-size:12px;color:var(--ink-3);line-height:1.35}
+.mkSec{margin:0 0 22px} .mkSecTopo{display:flex;justify-content:space-between;align-items:center}
+.mkSecTit{margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+.mkVazio{margin:0;padding:16px;border-radius:14px;border:1px dashed var(--line);color:var(--ink-3);font-size:13.5px}
+.vagas2{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface)}
+.vaga2+.vaga2{border-top:1px solid var(--line)}
+.vaga2 summary{display:grid;grid-template-columns:44px 1fr auto auto;align-items:center;gap:14px;padding:12px 16px;cursor:pointer;list-style:none}
+.vaga2 summary::-webkit-details-marker{display:none}
+.vaga2 summary:hover{background:var(--surface-2)}
+.vaga2Data{text-align:center} .vaga2Data b{display:block;font:800 20px/1 var(--f-display,inherit)} .vaga2Data small{font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
+.vaga2Info{min-width:0} .vaga2Info b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .vaga2Info small{font-size:12.5px;color:var(--ink-3)}
+.vaga2Livres{font:700 15px var(--f-ui);text-align:right} .vaga2Livres small{display:block;font:500 11px var(--f-ui);color:var(--ink-3)}
+.vaga2Bt{padding:8px 14px;border-radius:999px;background:var(--surface-2);font:600 13px var(--f-ui);white-space:nowrap}
+.vaga2[open] .vaga2Bt{background:var(--accent);color:#fff}
+.vaga2 .divOps{padding:0 16px 14px}
+.mkKpis button{text-align:left;background:none;color:inherit;cursor:pointer;font:inherit} .mkKpis button:hover{border-color:var(--accent)}
+@media (max-width:640px){.divOps{grid-template-columns:1fr} .agoraTopo h2{font-size:19px} .agoraNum b{font-size:32px} .vaga2 summary{grid-template-columns:40px 1fr auto;gap:10px} .vaga2Livres{display:none}}
 /* ---- aba Marketing (21/09/2026) ---- */
 .mk{padding-bottom:96px}
 .mkTopo{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
