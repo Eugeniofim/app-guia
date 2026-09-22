@@ -17,6 +17,8 @@ var APP_CONFIG = {
      verdade, com limite por pessoa e por dia. Vazio = só a demonstração
      pronta. Num app de cliente fica vazio: lá o guia usa a chave dele. */
   cofre: 'https://guia-cofre.netlify.app',
+  /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
+  agenteInstagram: 'estudio_ti_artes',
 
   /* Quem e o guia. Vira o valor inicial dos Ajustes (que o guia edita no
      painel) e o que a abertura e o cabecalho mostram. */

@@ -44,16 +44,16 @@ const iaChave = () => { try { return (localStorage.getItem(IA_CHAVE) || '').trim
    - 'demo':  sem nada disso, pedidos prontos que rodam as ferramentas. */
 const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
 const COFRE_FIM = 'guia_cofre_fim';
-let cofreEstado = { claude: false, imagem: false };
+let cofreEstado = { claude: false, imagem: false, instagram: false };
 const cofreEsgotado = (tipo) => { try { return sessionStorage.getItem(COFRE_FIM + tipo) === new Date().toISOString().slice(0, 10); } catch (e) { return false; } };
 const marcaEsgotado = (tipo) => { try { sessionStorage.setItem(COFRE_FIM + tipo, new Date().toISOString().slice(0, 10)); } catch (e) {} };
 const iaModo = () => iaChave() ? 'chave' : (cofreEstado.claude && !cofreEsgotado('claude')) ? 'vivo' : 'demo';
 const iaDemo = () => iaModo() === 'demo';
 if (COFRE) fetch(COFRE + '/api/estado', { cache: 'no-store' }).then(r => r.json()).then(e => {
-  cofreEstado = { claude: !!e.claude, imagem: !!e.imagem };
+  cofreEstado = { claude: !!e.claude, imagem: !!e.imagem, instagram: !!e.instagram };
   if (typeof iaAtualizaFab === 'function') iaAtualizaFab();
   if (iaEl && iaEl.g.classList.contains('aberta') && !iaOcupado) iaDesenha();
-  if (location.hash.startsWith('#/adm/marketing') && typeof route === 'function' && !(typeof isBusyEditing === 'function' && isBusyEditing())) route();
+  if ((location.hash.startsWith('#/adm/marketing') || location.hash.startsWith('#/adm/inbox')) && typeof route === 'function' && !(typeof isBusyEditing === 'function' && isBusyEditing())) route();
 }).catch(() => {});
 const iaPerguntaAntes = () => iaLe(IA_CONFIRMA, true) !== false;
 
@@ -178,6 +178,11 @@ const IA_TXT = {
   atendimento: { pt: 'Atendimento', en: 'Inbox' },
   inboxTxt: { pt: 'WhatsApp e Instagram num lugar só. O agente lê a pergunta, consulta as vagas de verdade e escreve a resposta no idioma do cliente.', en: 'WhatsApp and Instagram in one place. The agent reads the question, checks the real availability and writes the reply in the client’s language.' },
   inboxDemo: { pt: 'Demonstração: no app real, estas mensagens chegam do WhatsApp e do Instagram do guia.', en: 'Demo: in the real app, these messages arrive from the guide’s WhatsApp and Instagram.' },
+  aoVivo: { pt: 'Ao vivo agora', en: 'Live now' },
+  aoVivoTit: { pt: 'Teste o agente de verdade no Instagram', en: 'Try the real agent on Instagram' },
+  aoVivoTxt: { pt: 'Mande um direct para @{c} perguntando sobre um passeio: datas, vagas, preço. Em segundos chega a resposta, escrita pelo agente no seu idioma, com as vagas deste demo.', en: 'Send a DM to @{c} asking about a tour: dates, seats, price. Within seconds the agent replies in your language, with this demo’s availability.' },
+  aoVivoBt: { pt: 'Abrir o direct', en: 'Open the DM' },
+  aoVivoNota: { pt: 'Enquanto a Meta analisa o app, o seu Instagram precisa ser liberado antes — peça ao seu contato da Ti Artes (leva 1 minuto).', en: 'While Meta reviews the app, your Instagram must be enabled first — ask your Ti Artes contact (takes 1 minute).' },
   modoAprovar: { pt: 'Eu aprovo cada resposta', en: 'I approve every reply' },
   modoAuto: { pt: 'Automático', en: 'Automatic' },
   aprovar: { pt: 'Aprovar e enviar', en: 'Approve and send' },
@@ -1410,6 +1415,15 @@ function conversas() {
   if (!m.conversas) { m.conversas = CLIENTES.slice(0, 5).map(c => ({ id: c.id, estado: 'pendente', hora: null })); Mkt.salva(); }
   return m.conversas;
 }
+/* o agente respondendo de verdade no Instagram (cofre + Meta) */
+function aoVivoCartao() {
+  const conta = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.agenteInstagram;
+  if (!conta || !cofreEstado.instagram) return '';
+  return `<section class="card aoVivo"><span class="aoVivoTag"><i></i>${ia('aoVivo')}</span>
+    <h3>${ia('aoVivoTit')}</h3><p>${esc(ia('aoVivoTxt').replace('{c}', conta))}</p>
+    <a class="cta sm aoVivoBt" href="https://ig.me/m/${encodeURIComponent(conta)}" target="_blank" rel="noopener">📩 ${ia('aoVivoBt')} · @${esc(conta)}</a>
+    <p class="mkNota">${ia('aoVivoNota')}</p></section>`;
+}
 let inboxAberta = null;
 function admAtendimento(arg) {
   const m = Mkt.get(), cs = conversas();
@@ -1443,6 +1457,7 @@ function admAtendimento(arg) {
     <p class="mkExtra">✦ ${ia('extraAviso')}</p>
     <section class="card mkHead"><p class="mkLead">${ia('inboxTxt')}</p>
       <div class="ibModo"><button class="${m.modoAuto ? '' : 'on'}" data-modo="0">${ia('modoAprovar')}</button><button class="${m.modoAuto ? 'on' : ''}" data-modo="1">⚡ ${ia('modoAuto')}</button></div></section>
+    ${aoVivoCartao()}
     <p class="mkNota">${ia('inboxDemo')}</p>
     <div class="ibGrade ${aberta ? 'comConversa' : ''}"><div class="ibLista">${lista}<button class="mini" id="ibSimula">${ia('simular')}</button></div><div class="ibDetalhe">${detalhe}</div></div>`);
   const agora = () => new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
@@ -1554,6 +1569,12 @@ body:has(.coach) #iaFab{display:none!important}
 .mkGera select{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:inherit;padding:0 10px}
 .mkSeloIA{position:absolute;left:4px;bottom:4px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:99px;background:rgba(0,0,0,.7);color:#fff}
 .mkFotos div{position:relative} .mkFotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block} .mkFotos button{position:absolute;top:4px;right:4px}
+.aoVivo{border:2px solid #16a34a;background:color-mix(in srgb,#16a34a 10%,transparent)}
+.aoVivo h3{margin:8px 0 6px;font-size:17px}.aoVivo p{margin:0 0 12px}
+.aoVivoTag{display:inline-flex;align-items:center;gap:7px;font:700 12px var(--f-ui);letter-spacing:.04em;text-transform:uppercase;color:#16a34a}
+.aoVivoTag i{width:9px;height:9px;border-radius:50%;background:#16a34a;animation:aoVivoPulsa 1.6s infinite}
+@keyframes aoVivoPulsa{0%{box-shadow:0 0 0 0 rgba(22,163,74,.55)}70%{box-shadow:0 0 0 9px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
+.aoVivoBt{display:inline-block;text-decoration:none}
 .ibModo{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
 .ibModo button{padding:9px 14px;border:0;background:none;color:inherit;font:600 13.5px var(--f-ui);cursor:pointer;min-height:40px}
 .ibModo button.on{background:var(--accent);color:#fff}
