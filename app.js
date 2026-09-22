@@ -946,6 +946,10 @@ function noAuthBanner() {
      "qualquer um entra no seu painel" assustaria o prospect a toa, e o botao
      levaria a uma tela de login sem banco atras. */
   if (typeof temNuvem === 'function' && !temNuvem()) {
+    /* o aviso inteiro ocupava a primeira tela de cada aba: completo só em
+       "Hoje", nas outras uma linha (21/09/2026) */
+    const h = location.hash.replace(/^#\/?/, '');
+    if (h && h !== 'adm' && h !== 'adm/today') return `<div class="demolinha">👋 ${t('demoLinha')}</div>`;
     return `<div class="alert nolog demo">
       <b>👋 ${t('demoTit')}</b>
       <p>${t('demoTxt')}</p>

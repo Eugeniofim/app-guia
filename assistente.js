@@ -1030,30 +1030,178 @@ function baixaCriativo(c) {
 /* =====================================================
    ABA MARKETING
 ===================================================== */
-const MKT_SUB = ['plano', 'criativos', 'anuncios', 'kit', 'memoria'];
-const MKT_ROT = { plano: 'subPlano', criativos: 'subCriativos', anuncios: 'subAnuncios', kit: 'subKit', memoria: 'subMemoria' };
+/* A aba abre no que importa: as saídas com vaga sobrando, cada uma com três
+   botões (Story · Post · Anúncio) que o assistente resolve na hora. Plano,
+   criativos, anúncios e marca ficam a um toque, numa linha só com ícone.
+   (21/09/2026 — a versão com cinco pílulas e listas corridas não se explicava.) */
+const MKT_ABAS = [['inicio', '✦', 'abInicio'], ['plano', '📅', 'abPlano'], ['criativos', '🎨', 'abCriativos'], ['anuncios', '📣', 'abAnuncios'], ['marca', '🎯', 'abMarca']];
+const MKT_ANTIGAS = { kit: 'marca', memoria: 'marca' };
+const FMT_ICONE = { reel: '🎬', story: '📱', post: '🖼', carrossel: '🗂' };
+
+/* textos novos da aba, nas seis línguas */
+Object.assign(IA_TXT, {
+  mkSub: { pt: 'Vaga sobrando vira post, story e anúncio — com um toque.', en: 'Empty seats become posts, stories and ads — in one tap.', fr: 'Les places libres deviennent posts, stories et pubs — en un geste.', it: 'I posti liberi diventano post, storie e annunci — con un tocco.', de: 'Freie Plätze werden zu Posts, Storys und Anzeigen — mit einem Tipp.', es: 'Las plazas libres se vuelven posts, stories y anuncios — con un toque.' },
+  mkMontarMes: { pt: 'Montar o mês', en: 'Plan the month', fr: 'Planifier le mois', it: 'Pianifica il mese', de: 'Monat planen', es: 'Armar el mes' },
+  abInicio: { pt: 'Início', en: 'Overview', fr: 'Accueil', it: 'Inizio', de: 'Übersicht', es: 'Inicio' },
+  abPlano: { pt: 'Plano', en: 'Plan', fr: 'Plan', it: 'Piano', de: 'Plan', es: 'Plan' },
+  abCriativos: { pt: 'Criativos', en: 'Creatives', fr: 'Visuels', it: 'Creatività', de: 'Grafiken', es: 'Creatividades' },
+  abAnuncios: { pt: 'Anúncios', en: 'Ads', fr: 'Publicités', it: 'Annunci', de: 'Anzeigen', es: 'Anuncios' },
+  abMarca: { pt: 'Marca', en: 'Brand', fr: 'Marque', it: 'Marchio', de: 'Marke', es: 'Marca' },
+  opTit: { pt: 'Vagas sobrando', en: 'Empty seats', fr: 'Places libres', it: 'Posti liberi', de: 'Freie Plätze', es: 'Plazas libres' },
+  opSub: { pt: 'As próximas saídas com mais lugar vazio. Escolha o que o assistente faz por cada uma.', en: 'The next departures with the most empty seats. Pick what the assistant does for each.', fr: 'Les prochains départs avec le plus de places libres. Choisissez ce que l’assistant fait pour chacun.', it: 'Le prossime partenze con più posti liberi. Scegliete cosa fa l’assistente per ognuna.', de: 'Die nächsten Termine mit den meisten freien Plätzen. Wählen Sie, was der Assistent jeweils tut.', es: 'Las próximas salidas con más plazas libres. Elige qué hace el asistente con cada una.' },
+  opVazio: { pt: 'Nenhuma saída com vaga sobrando nas próximas três semanas. Boa notícia.', en: 'No departures with empty seats in the next three weeks. Good news.', fr: 'Aucun départ avec des places libres dans les trois prochaines semaines. Bonne nouvelle.', it: 'Nessuna partenza con posti liberi nelle prossime tre settimane. Buona notizia.', de: 'Keine Termine mit freien Plätzen in den nächsten drei Wochen. Gute Nachricht.', es: 'Ninguna salida con plazas libres en las próximas tres semanas. Buena noticia.' },
+  opLivres: { pt: '{l} de {c} lugares livres', en: '{l} of {c} seats free', fr: '{l} places libres sur {c}', it: '{l} posti liberi su {c}', de: '{l} von {c} Plätzen frei', es: '{l} de {c} plazas libres' },
+  opStory: { pt: 'Story', en: 'Story', fr: 'Story', it: 'Storia', de: 'Story', es: 'Story' },
+  opPost: { pt: 'Post', en: 'Post', fr: 'Post', it: 'Post', de: 'Post', es: 'Post' },
+  opAnuncio: { pt: 'Anúncio', en: 'Ad', fr: 'Pub', it: 'Annuncio', de: 'Anzeige', es: 'Anuncio' },
+  opPedeStory: { pt: 'Faz um story para "{tour}", {data} às {hora} — sobram {livres} lugares.', en: 'Make a story for "{tour}", {data} at {hora} — {livres} seats left.', fr: 'Fais une story pour « {tour} », {data} à {hora} — il reste {livres} places.', it: 'Fai una storia per "{tour}", {data} alle {hora} — restano {livres} posti.', de: 'Mach eine Story für „{tour}“, {data} um {hora} — noch {livres} Plätze frei.', es: 'Haz una story para "{tour}", {data} a las {hora} — quedan {livres} plazas.' },
+  opPedePost: { pt: 'Coloca no plano um post para encher "{tour}", {data} às {hora} ({livres} lugares livres).', en: 'Add a post to the plan to fill "{tour}", {data} at {hora} ({livres} seats free).', fr: 'Ajoute au plan un post pour remplir « {tour} », {data} à {hora} ({livres} places libres).', it: 'Metti nel piano un post per riempire "{tour}", {data} alle {hora} ({livres} posti liberi).', de: 'Plane einen Post, um „{tour}“ am {data} um {hora} zu füllen ({livres} Plätze frei).', es: 'Pon en el plan un post para llenar "{tour}", {data} a las {hora} ({livres} plazas libres).' },
+  opPedeAnuncio: { pt: 'Monta um anúncio para encher "{tour}", {data} às {hora} ({livres} lugares livres).', en: 'Build an ad to fill "{tour}", {data} at {hora} ({livres} seats free).', fr: 'Prépare une pub pour remplir « {tour} », {data} à {hora} ({livres} places libres).', it: 'Prepara un annuncio per riempire "{tour}", {data} alle {hora} ({livres} posti liberi).', de: 'Erstelle eine Anzeige, um „{tour}“ am {data} um {hora} zu füllen ({livres} Plätze frei).', es: 'Arma un anuncio para llenar "{tour}", {data} a las {hora} ({livres} plazas libres).' },
+  dPostTema: { pt: '"{tour}" — ainda dá tempo para {data}', en: '"{tour}" — there’s still time for {data}', fr: '« {tour} » — il est encore temps pour le {data}', it: '"{tour}" — c’è ancora tempo per il {data}', de: '„{tour}“ — für den {data} ist noch Zeit', es: '"{tour}" — aún hay tiempo para el {data}' },
+  dPostLeg: { pt: '{data}, {hora}. Sobram {livres} lugares no "{tour}".\n\nGrupo pequeno, no seu ritmo, com as histórias que o guia de bolso não conta.\n\nReserva pelo link da bio.', en: '{data}, {hora}. {livres} seats left on "{tour}".\n\nSmall group, at your pace, with the stories the pocket guide leaves out.\n\nBook via the link in bio.', fr: '{data}, {hora}. Il reste {livres} places pour « {tour} ».\n\nPetit groupe, à votre rythme, avec les histoires que les guides de poche ne racontent pas.\n\nRéservation via le lien en bio.', it: '{data}, {hora}. Restano {livres} posti per "{tour}".\n\nGruppo piccolo, al vostro ritmo, con le storie che la guida tascabile non racconta.\n\nPrenotate dal link in bio.', de: '{data}, {hora}. Noch {livres} Plätze bei „{tour}“.\n\nKleine Gruppe, in Ihrem Tempo, mit den Geschichten, die kein Reiseführer erzählt.\n\nBuchung über den Link in der Bio.', es: '{data}, {hora}. Quedan {livres} plazas en "{tour}".\n\nGrupo pequeño, a tu ritmo, con las historias que la guía de bolsillo no cuenta.\n\nReserva en el enlace de la bio.' },
+  dPostResp: { pt: 'Coloquei no plano, com a legenda pronta. Está em Marketing → Plano.', en: 'Added to the plan, caption ready. It’s in Marketing → Plan.', fr: 'Ajouté au plan, légende prête. C’est dans Marketing → Plan.', it: 'Aggiunto al piano, didascalia pronta. È in Marketing → Piano.', de: 'Im Plan, Bildtext fertig. Unter Marketing → Plan.', es: 'Añadido al plan, con el texto listo. Está en Marketing → Plan.' },
+  mesTit: { pt: 'Seu marketing', en: 'Your marketing', fr: 'Votre marketing', it: 'Il vostro marketing', de: 'Ihr Marketing', es: 'Tu marketing' },
+  stPosts: { pt: 'posts no plano', en: 'posts planned', fr: 'posts prévus', it: 'post nel piano', de: 'Posts geplant', es: 'posts en el plan' },
+  stCriativos: { pt: 'criativos prontos', en: 'creatives ready', fr: 'visuels prêts', it: 'creatività pronte', de: 'Grafiken fertig', es: 'creatividades listas' },
+  stAnuncios: { pt: 'planos de anúncio', en: 'ad plans', fr: 'plans de pub', it: 'piani di annuncio', de: 'Anzeigenpläne', es: 'planes de anuncio' },
+  proxTit: { pt: 'Próximos posts', en: 'Next posts', fr: 'Prochains posts', it: 'Prossimi post', de: 'Nächste Posts', es: 'Próximos posts' },
+  proxVazio: { pt: 'Nada no plano ainda. Toque em "Montar o mês" ou num botão de uma vaga acima.', en: 'Nothing planned yet. Tap "Plan the month" or a button on an empty seat above.', fr: 'Rien de prévu. Touchez « Planifier le mois » ou un bouton d’un départ ci-dessus.', it: 'Ancora niente nel piano. Toccate "Pianifica il mese" o un pulsante di una partenza qui sopra.', de: 'Noch nichts geplant. Tippen Sie auf „Monat planen“ oder einen Knopf bei einem Termin oben.', es: 'Aún no hay nada en el plan. Toca "Armar el mes" o un botón de una salida arriba.' },
+  verTudo: { pt: 'Ver tudo →', en: 'See all →', fr: 'Tout voir →', it: 'Vedi tutto →', de: 'Alle ansehen →', es: 'Ver todo →' },
+  novoCriativo: { pt: 'Novo criativo', en: 'New creative', fr: 'Nouveau visuel', it: 'Nuova creatività', de: 'Neue Grafik', es: 'Nueva creatividad' },
+  ncFoto: { pt: 'Com foto', en: 'With a photo', fr: 'Avec photo', it: 'Con foto', de: 'Mit Foto', es: 'Con foto' },
+  ncFotoSub: { pt: 'story da próxima vaga', en: 'story for the next empty seat', fr: 'story du prochain départ', it: 'storia della prossima partenza', de: 'Story zum nächsten Termin', es: 'story de la próxima salida' },
+  ncTexto: { pt: 'Só texto', en: 'Text only', fr: 'Texte seul', it: 'Solo testo', de: 'Nur Text', es: 'Solo texto' },
+  ncTextoSub: { pt: 'fundo na cor da marca', en: 'brand-colour background', fr: 'fond aux couleurs', it: 'sfondo nei colori', de: 'Hintergrund in Markenfarbe', es: 'fondo en el color de marca' },
+  ncIA: { pt: 'Imagem por IA', en: 'AI image', fr: 'Image par IA', it: 'Immagine IA', de: 'KI-Bild', es: 'Imagen con IA' },
+  ncIASub: { pt: 'ilustração, fundo, conceito', en: 'illustration, background, concept', fr: 'illustration, fond, concept', it: 'illustrazione, sfondo, concetto', de: 'Illustration, Hintergrund, Idee', es: 'ilustración, fondo, concepto' },
+  galeria: { pt: 'Prontos para postar', en: 'Ready to post', fr: 'Prêts à publier', it: 'Pronti da pubblicare', de: 'Bereit zum Posten', es: 'Listos para publicar' },
+  semana: { pt: 'Semana de {d}', en: 'Week of {d}', fr: 'Semaine du {d}', it: 'Settimana del {d}', de: 'Woche ab {d}', es: 'Semana del {d}' },
+  vagaNoDia: { pt: 'vaga sobrando', en: 'empty seats', fr: 'places libres', it: 'posti liberi', de: 'freie Plätze', es: 'plazas libres' },
+  anTotal: { pt: 'no total', en: 'in total', fr: 'au total', it: 'in totale', de: 'insgesamt', es: 'en total' },
+  memTit: { pt: 'O que o assistente aprendeu', en: 'What the assistant has learned', fr: 'Ce que l’assistant a appris', it: 'Cosa ha imparato l’assistente', de: 'Was der Assistent gelernt hat', es: 'Lo que aprendió el asistente' },
+  demoLinha: { pt: 'Demonstração — nada sai deste aparelho.', en: 'Demo — nothing leaves this device.', fr: 'Démo — rien ne quitte cet appareil.', it: 'Demo — niente lascia questo dispositivo.', de: 'Demo — nichts verlässt dieses Gerät.', es: 'Demo — nada sale de este dispositivo.' },
+});
+
+/* as saídas das próximas 3 semanas com mais lugar vazio, uma por dia e passeio */
+function oportunidades(n) {
+  const vistas = new Set(), out = [];
+  for (const s of saidasVazias(21)) {
+    if (s.livres < Math.ceil(s.capacity / 2)) continue;
+    const k = s.x.id + s.date; if (vistas.has(k)) continue;
+    vistas.add(k); out.push(s);
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date) || b.livres - a.livres).slice(0, n || 4);
+}
+const varsSaida = (s) => ({ tour: nomeTour(s.x), data: dataLonga(s.date), hora: s.time, livres: s.livres, preco: s.x.price,
+  dur: s.x.duration || '—', encontro: tl(s.x.meeting) || '—' });
+
+/* um toque numa vaga: com o Claude (chave ou ao vivo) vira pedido de verdade;
+   na demonstração, roda as mesmas ferramentas com o texto pronto */
+function acaoVaga(tipo, s) {
+  const v = varsSaida(s), rot = { story: 'opPedeStory', post: 'opPedePost', anuncio: 'opPedeAnuncio' }[tipo];
+  const pede = ia(rot, v);
+  iaAbre();
+  if (!iaDemo()) return iaConversa(pede);
+  const dPost = s.date > addDays(hojeIso(), 2) ? addDays(s.date, -2) : addDays(hojeIso(), 1);
+  const cena = {
+    story: { passos: [['criar_criativo', { formato: 'story', foto: s.x.id + '-capa', titulo: nomeTour(s.x), texto: ia('dStoryTexto', v), rodape: ia('dStoryRod', v), cor: 'principal' }]], resposta: () => ia('dStoryResp') },
+    post: { passos: [['salvar_posts', { itens: [{ data: dPost, formato: 'post', passeio_id: s.x.id, tema: ia('dPostTema', { tour: nomeTour(s.x), data: dataCurta(s.date) }),
+      legenda: ia('dPostLeg', v) }] }]], resposta: () => ia('dPostResp') },
+    anuncio: { passos: [['salvar_anuncio', { titulo: `${nomeTour(s.x)} — ${dataCurta(s.date)}`, objetivo: ia('dAnObj'), publico: ia('dAnPub', { cidade: guiaBase() || '—' }),
+      verba_dia: 6, duracao_dias: 7, datas_alvo: `${dataLonga(s.date)}, ${s.time}`, passeio_id: s.x.id, foto: s.x.id + '-capa', porque: ia('dAnPorque'),
+      textos: [{ titulo: ia('dAnT1'), texto: ia('dAnX1', v), chamada: ia('dAnBot') }, { titulo: ia('dAnT2'), texto: ia('dAnX2', v), chamada: ia('dAnBot') }] }]],
+      resposta: () => ia('dAnuncioResp', { verba: 6 }) },
+  }[tipo];
+  iaRodaCenario({ id: 'vaga-' + tipo, pede, ...cena });
+}
+
 function pedeAoAssistente(texto) {
   iaAbre();
   if (!iaDemo()) return iaConversa(texto);   /* chave própria ou ao vivo */
-  /* sem chave: roda o pedido pronto que mais se parece */
   const c = iaCenarios(), mapa = { [ia('pedidoCriativo')]: 'story', [ia('pedidoTexto')]: 'texto', [ia('pedidoAnuncio')]: 'anuncio' };
-  const achado = c.find(x => x.id === mapa[texto]) || (/plano|plan/i.test(texto) ? c.find(x => x.id === 'plano') : null);
+  const achado = c.find(x => x.id === mapa[texto]) || (/plano|plan|mois|mese|Monat|mes/i.test(texto) ? c.find(x => x.id === 'plano') : null);
   if (achado) iaRodaCenario(achado);
 }
 
+let _vagasNaTela = [];
 function admMarketing(arg) {
-  const [sub, ...resto] = String(arg || 'plano').split('-');
-  const aba = MKT_SUB.includes(sub) ? sub : 'plano';
-  const corpo = aba === 'plano' ? mktPlano(resto.join('-')) : aba === 'criativos' ? mktCriativos() : aba === 'anuncios' ? mktAnuncios() : aba === 'kit' ? mktKit() : mktMemoria();
-  admShell('marketing', `
-    <div class="pagehead"><h1 class="pageh">${ia('marketing')}</h1></div>
-    <p class="mkExtra">✦ ${ia('extraAviso')}</p>
-    <div class="chips">${MKT_SUB.map(k => `<button class="chip ${k === aba ? 'on' : ''}" data-mk="${k}">${ia(MKT_ROT[k])}</button>`).join('')}</div>
-    ${corpo}`);
+  const [sub0, ...resto] = String(arg || 'inicio').split('-');
+  const sub = MKT_ANTIGAS[sub0] || sub0;
+  const aba = MKT_ABAS.some(([k]) => k === sub) ? sub : 'inicio';
+  const corpo = aba === 'plano' ? mktPlano(resto.join('-')) : aba === 'criativos' ? mktCriativos() : aba === 'anuncios' ? mktAnuncios() : aba === 'marca' ? mktMarca() : mktInicio();
+  const mes = new Date().toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
+  admShell('marketing', `<div class="mk">
+    <header class="mkTopo">
+      <div class="mkTitulo"><h1 class="pageh">${ia('marketing')} <small class="iaExtra">${ia('extra')}</small></h1><p>${ia('mkSub')}</p></div>
+      <button class="cta sm mkMes" data-pede="${esc(ia('pedidoPlano', { mes }))}">✦ ${ia('mkMontarMes')}</button>
+    </header>
+    <nav class="mkAbas" role="tablist">${MKT_ABAS.map(([k, ic, r]) =>
+      `<button role="tab" class="${k === aba ? 'on' : ''}" aria-selected="${k === aba}" data-mk="${k}"><span aria-hidden="true">${ic}</span>${ia(r)}</button>`).join('')}</nav>
+    ${corpo}
+    <p class="mkRodape">✦ ${ia('extraAviso')}</p>
+  </div>`);
   $$('[data-mk]').forEach(b => b.onclick = () => go('/adm/marketing/' + b.dataset.mk));
+  /* no celular a barra de abas rola: a aba aberta tem que estar à vista */
+  const abaOn = $('.mkAbas .on'); if (abaOn) abaOn.scrollIntoView({ inline: 'center', block: 'nearest' });
   $$('[data-pede]').forEach(b => b.onclick = () => pedeAoAssistente(b.dataset.pede));
+  $$('[data-vaga]').forEach(b => b.onclick = () => { const s = _vagasNaTela[+b.dataset.i]; if (s) acaoVaga(b.dataset.vaga, s); });
   mktLiga();
 }
+
+function cartaoVaga(s, i) {
+  const d = new Date(s.date + 'T12:00:00'), ocup = Math.round((s.capacity - s.livres) / s.capacity * 100);
+  return `<article class="vaga">
+    <div class="vagaData"><b>${d.getDate()}</b><small>${nomeDia(d.getDay())}</small></div>
+    <div class="vagaInfo"><b>${esc(nomeTour(s.x))}</b>
+      <small>${esc(s.time)} · ${ia('opLivres', { l: s.livres, c: s.capacity })}</small>
+      <div class="vagaBarra" title="${ocup}%"><i style="width:${Math.max(4, ocup)}%"></i></div></div>
+    <div class="vagaAcoes">
+      <button data-vaga="story" data-i="${i}">📱 ${ia('opStory')}</button>
+      <button data-vaga="post" data-i="${i}">🖼 ${ia('opPost')}</button>
+      <button data-vaga="anuncio" data-i="${i}">📣 ${ia('opAnuncio')}</button></div>
+  </article>`;
+}
+
+function cartaoPost(p, curto) {
+  const f = FMT_ICONE[p.formato] ? p.formato : 'post', d = new Date(p.data + 'T12:00:00');
+  return `<details class="post f-${f} ${p.situacao}">
+    <summary><span class="postIco" aria-hidden="true">${FMT_ICONE[f]}</span>
+      <span class="postTxt"><b>${esc(p.tema)}</b><small>${nomeDia(d.getDay())} ${dataCurta(p.data)} · ${esc(f)}</small></span>
+      <span class="postSit s-${p.situacao}">${ia(p.situacao)}</span></summary>
+    ${curto ? '' : ''}
+    ${p.legenda ? `<pre class="mkTxt">${esc(p.legenda)}</pre>` : ''}${p.roteiro ? `<pre class="mkTxt">${esc(p.roteiro)}</pre>` : ''}
+    <div class="mkBts">${p.legenda ? `<button class="mini" data-copia="${p.id}">${ia('copiarLegenda')}</button>` : ''}
+      ${p.situacao !== 'postado' ? `<button class="mini" data-postado="${p.id}">${ia('marcarPostado')}</button>` : ''}
+      ${iaDemo() ? '' : `<button class="mini" data-pede="${esc(ia('pedidoReescrever', { id: p.id, tema: p.tema }))}">${ia('reescrever')}</button>`}
+      <button class="mini danger" data-apagapost="${p.id}">${ia('apagar')}</button></div>
+  </details>`;
+}
+
+function mktInicio() {
+  const m = Mkt.get(), vagas = oportunidades(4);
+  _vagasNaTela = vagas;
+  const prox = m.posts.filter(p => p.data >= hojeIso()).sort((a, b) => a.data.localeCompare(b.data)).slice(0, 3);
+  const futuros = m.posts.filter(p => p.data >= hojeIso()).length;
+  return `
+    <section class="mkBloco">
+      <div class="mkBlocoTopo"><h2>${ia('opTit')}</h2></div>
+      <p class="mkNota">${ia('opSub')}</p>
+      ${vagas.length ? `<div class="vagas">${vagas.map(cartaoVaga).join('')}</div>` : `<div class="emptybox"><p>${ia('opVazio')}</p></div>`}
+    </section>
+    <section class="mkBloco">
+      <div class="mkBlocoTopo"><h2>${ia('mesTit')}</h2></div>
+      <div class="stats">
+        <button class="stat" data-mk="plano"><b>${futuros}</b><span>${ia('stPosts')}</span></button>
+        <button class="stat" data-mk="criativos"><b>${m.criativos.length}</b><span>${ia('stCriativos')}</span></button>
+        <button class="stat" data-mk="anuncios"><b>${m.anuncios.length}</b><span>${ia('stAnuncios')}</span></button>
+      </div>
+    </section>
+    <section class="mkBloco">
+      <div class="mkBlocoTopo"><h2>${ia('proxTit')}</h2>${prox.length ? `<button class="mkLink" data-mk="plano">${ia('verTudo')}</button>` : ''}</div>
+      ${prox.length ? `<div class="posts">${prox.map(p => cartaoPost(p, true)).join('')}</div>` : `<div class="emptybox"><p>${ia('proxVazio')}</p></div>`}
+    </section>`;
+}
+
 function mktPlano(mesArg) {
   const mes = /^\d{4}-\d{2}$/.test(mesArg) ? mesArg : hojeIso().slice(0, 7);
   const [a, mm] = mes.split('-').map(Number);
@@ -1061,97 +1209,105 @@ function mktPlano(mesArg) {
   const nomeMesCap = nomeMes[0].toUpperCase() + nomeMes.slice(1);
   const ant = mm === 1 ? `${a - 1}-12` : `${a}-${String(mm - 1).padStart(2, '0')}`, prox = mm === 12 ? `${a + 1}-01` : `${a}-${String(mm + 1).padStart(2, '0')}`;
   const ini = mes + '-01', fim = addDays(prox + '-01', -1);
-  const posts = Mkt.get().posts.filter(p => p.data.startsWith(mes)), vazias = [];
+  const posts = Mkt.get().posts.filter(p => p.data.startsWith(mes)).sort((x, y) => x.data.localeCompare(y.data));
+  const vazias = {};
   for (const x of Tours.live()) for (const d of Cal.departures(x.id, ini, fim)) {
     if (d.date < hojeIso()) continue;
     const livres = Cal.seatsLeft(x.id, d.date, d.time, d.capacity);
-    if (livres >= d.capacity / 2) vazias.push({ data: d.date, txt: `${nomeTour(x)} ${d.time} · ${ia('livres', { l: livres, c: d.capacity })}` });
+    if (livres >= d.capacity / 2) (vazias[d.date] = vazias[d.date] || []).push(`${nomeTour(x)} ${d.time} · ${ia('opLivres', { l: livres, c: d.capacity })}`);
   }
-  const dias = [...new Set([...posts.map(p => p.data), ...vazias.map(v => v.data)])].sort();
+  /* agrupa por semana (começando na segunda) — lista corrida de dias cansava */
+  const semanaDe = (iso) => { const dt = new Date(iso + 'T12:00:00'); return addDays(iso, -((dt.getDay() + 6) % 7)); };
+  const dias = [...new Set([...posts.map(p => p.data), ...Object.keys(vazias)])].sort();
+  const semanas = {};
+  for (const d of dias) (semanas[semanaDe(d)] = semanas[semanaDe(d)] || []).push(d);
   return `
-    <section class="card mkHead"><div class="mkNav"><button class="mini" data-mes="${ant}">‹</button><b>${esc(nomeMesCap)}</b><button class="mini" data-mes="${prox}">›</button></div>
-      <button class="cta sm" data-pede="${esc(ia('pedidoPlano', { mes: nomeMes }))}">${ia('pedirPlano')}</button></section>
-    ${dias.length ? `<div class="mkDias">${dias.map(d => {
-      const ps = posts.filter(p => p.data === d), vs = vazias.filter(v => v.data === d), dt = new Date(d + 'T12:00:00');
-      return `<div class="card mkDia"><div class="mkData"><b>${d.slice(8)}</b><small>${nomeDia(dt.getDay())}</small></div><div class="mkItens">
-        ${vs.map(v => `<div class="mkVaga">● ${esc(v.txt)}</div>`).join('')}
-        ${ps.map(p => `<details class="mkPost ${p.situacao}"><summary><span class="mkFmt">${esc(p.formato)}</span> ${esc(p.tema)}<span class="mkSit">${ia(p.situacao)}</span></summary>
-          ${p.legenda ? `<pre class="mkTxt">${esc(p.legenda)}</pre>` : ''}${p.roteiro ? `<pre class="mkTxt">${esc(p.roteiro)}</pre>` : ''}
-          <div class="mkBts">${p.legenda ? `<button class="mini" data-copia="${p.id}">${ia('copiarLegenda')}</button>` : ''}
-            ${p.situacao !== 'postado' ? `<button class="mini" data-postado="${p.id}">${ia('marcarPostado')}</button>` : ''}
-            <button class="mini" data-pede="${esc(ia('pedidoReescrever', { id: p.id, tema: p.tema }))}">${ia('reescrever')}</button>
-            <button class="mini danger" data-apagapost="${p.id}">${ia('apagar')}</button></div></details>`).join('')}
-      </div></div>`;
-    }).join('')}</div>` : `<div class="emptybox"><p>${esc(ia('mesVazio', { mes: nomeMes }))}</p></div>`}`;
+    <div class="mkMesNav"><button class="mini" data-mes="${ant}" aria-label="‹">‹</button><b>${esc(nomeMesCap)}</b><button class="mini" data-mes="${prox}" aria-label="›">›</button></div>
+    ${dias.length ? Object.keys(semanas).sort().map(sem => `
+      <section class="mkBloco"><div class="mkBlocoTopo"><h3>${ia('semana', { d: dataCurta(sem) })}</h3></div>
+        ${semanas[sem].map(d => {
+          const dt = new Date(d + 'T12:00:00'), ps = posts.filter(p => p.data === d), vs = vazias[d] || [];
+          return `<div class="dia"><div class="diaData"><b>${dt.getDate()}</b><small>${nomeDia(dt.getDay())}</small></div>
+            <div class="diaItens">${vs.map(v => `<div class="diaVaga">● ${ia('vagaNoDia')}: ${esc(v)}</div>`).join('')}${ps.map(p => cartaoPost(p)).join('')}</div></div>`;
+        }).join('')}</section>`).join('')
+      : `<div class="emptybox"><p>${esc(ia('mesVazio', { mes: nomeMes }))}</p></div>`}`;
 }
+
 function mktCriativos() {
   const m = Mkt.get();
   return `
-    <section class="card mkHead"><p class="mkLead">${ia('criativosTxt')}</p>
-      <button class="cta sm" data-pede="${esc(ia('pedidoCriativo'))}">${ia('pedirCriativo')}</button>
-      <button class="mini" data-pede="${esc(ia('pedidoTexto'))}">${ia('pedirTexto')}</button></section>
-    <section class="card"><h3 class="mkH">✦ ${ia('imgTit')}</h3><p class="mkNota">${ia('imgTxt')}</p>
+    <section class="mkBloco"><div class="mkBlocoTopo"><h2>${ia('novoCriativo')}</h2></div>
+      <div class="novos">
+        <button class="novo" data-pede="${esc(ia('pedidoCriativo'))}"><span>📸</span><b>${ia('ncFoto')}</b><small>${ia('ncFotoSub')}</small></button>
+        <button class="novo" data-pede="${esc(ia('pedidoTexto'))}"><span>✍️</span><b>${ia('ncTexto')}</b><small>${ia('ncTextoSub')}</small></button>
+        <button class="novo" id="ncIA"><span>✨</span><b>${ia('ncIA')}</b><small>${ia('ncIASub')}</small></button>
+      </div></section>
+    <section class="mkBloco" id="blocoIA"><div class="mkBlocoTopo"><h3>✨ ${ia('imgTit')}</h3></div><p class="mkNota">${ia('imgTxt')}</p>
       ${imgDisponivel() ? `${imgPeloCofre() ? `<p class="mkNota">⚡ ${ia('imgVivoTxt')}</p>` : ''}<div class="mkGera"><textarea id="imgDesc" rows="2" placeholder="${esc(ia('imgPh'))}"></textarea>
         <select id="imgFmt">${Object.keys(FORMATOS_CRIATIVO).map(f => `<option value="${f}">${f}</option>`).join('')}</select>
         <button class="cta sm" id="imgGera">${ia('imgGerar')}</button></div>
         <p class="mkNota" id="imgMsg"></p>${imgChave() ? `<button class="mini" id="imgTroca">${ia('imgTrocar')}</button>` : ''}`
-      : `<p style="margin:0 0 8px">${ia('imgConectaTxt')}</p><div class="mkGera"><input id="imgChaveIn" type="password" autocomplete="off" placeholder="AIza…">
+      : `<p class="mkNota">${ia('imgConectaTxt')}</p><div class="mkGera"><input id="imgChaveIn" type="password" autocomplete="off" placeholder="AIza…">
         <button class="cta sm" id="imgChaveOk">${ia('imgConectar')}</button></div><p class="mkNota" id="imgMsg"></p>`}</section>
-    <section class="card"><div class="mkHead" style="margin-bottom:10px"><h3 class="mkH" style="margin:0;flex:1">${ia('suasFotos')}</h3>
-      <button class="cta sm" id="mkFotoAdd">${ia('enviarFotos')}</button><input type="file" id="mkFotoArq" accept="image/*" multiple hidden></div>
+    <section class="mkBloco"><div class="mkBlocoTopo"><h2>${ia('galeria')}</h2></div>
+      ${m.criativos.length ? `<div class="mkGrade">${m.criativos.map(c => `
+        <figure class="criativo"><canvas data-cv="${c.id}"></canvas>
+          <figcaption><b>${esc(c.titulo)}</b><small>${esc(c.formato)}${(m.fotos.find(f => f.id === c.fotoRef) || {}).ia ? ' · ' + ia('imgSelo') : ''}</small></figcaption>
+          <div class="mkBts"><button class="mini" data-baixa="${c.id}">⬇ ${ia('baixar')}</button>
+            ${iaDemo() ? '' : `<button class="mini" data-pede="${esc(ia('pedidoTitulo', { id: c.id }))}">${ia('outroTitulo')}</button>`}
+            <button class="mini danger" data-apagacv="${c.id}" aria-label="${esc(ia('apagar'))}">×</button></div></figure>`).join('')}</div>`
+      : `<div class="emptybox"><p>${esc(ia('semCriativo'))}</p></div>`}</section>
+    <details class="mkBloco mkFotosBloco"><summary><h3>🖼 ${ia('suasFotos')} <small>(${m.fotos.length})</small></h3></summary>
       <p class="mkNota">${ia('fotosTxt')}</p>
-      ${m.fotos.length ? `<div class="mkFotos">${m.fotos.map(f => `<div><img src="${f.src}" alt="">${f.ia ? `<span class="mkSeloIA">${ia('imgSelo')}</span>` : ''}<button class="mini danger" data-tirafoto="${f.id}">×</button></div>`).join('')}</div>` : ''}</section>
-    ${m.criativos.length ? `<div class="mkGrade">${m.criativos.map(c => `
-      <div class="card mkCriativo"><canvas data-cv="${c.id}"></canvas>
-        <div class="mkBts"><button class="mini" data-baixa="${c.id}">${ia('baixar')}</button>
-          ${iaDemo() ? '' : `<button class="mini" data-pede="${esc(ia('pedidoTitulo', { id: c.id }))}">${ia('outroTitulo')}</button>`}
-          <button class="mini danger" data-apagacv="${c.id}">${ia('apagar')}</button></div>
-        <small>${esc(c.formato)} · ${esc(c.titulo)}${(m.fotos.find(f => f.id === c.fotoRef) || {}).ia ? ' · ' + ia('imgSelo') : ''}</small></div>`).join('')}</div>`
-    : `<div class="emptybox"><p>${esc(ia('semCriativo'))}</p></div>`}`;
+      <button class="cta sm" id="mkFotoAdd">${ia('enviarFotos')}</button><input type="file" id="mkFotoArq" accept="image/*" multiple hidden>
+      ${m.fotos.length ? `<div class="mkFotos">${m.fotos.map(f => `<div><img src="${f.src}" alt="">${f.ia ? `<span class="mkSeloIA">${ia('imgSelo')}</span>` : ''}<button class="mini danger" data-tirafoto="${f.id}">×</button></div>`).join('')}</div>` : ''}
+    </details>`;
 }
+
 function mktAnuncios() {
   const as = Mkt.get().anuncios;
   return `
-    <section class="card mkHead"><p class="mkLead">${ia('anunciosTxt')}</p>
-      <button class="cta sm" data-pede="${esc(ia('pedidoAnuncio'))}">${ia('pedirAnuncio')}</button></section>
-    ${as.length ? as.map(a => `
-      <section class="card"><div class="mkAnTopo"><b>${esc(a.titulo)}</b><span class="mkSit">${a.situacao === 'no ar' ? ia('noAr') : ia('rascunho')}</span></div>
-        <dl class="mkDl"><dt>${ia('objetivo')}</dt><dd>${esc(a.objetivo)}</dd><dt>${ia('publico')}</dt><dd>${esc(a.publico)}</dd>
-          <dt>${ia('verba')}</dt><dd>${eur(a.verba_dia)}${ia('porDia')} · ${a.duracao_dias} ${ia('dias')} · ${ia('total')} ${eur(a.verba_dia * a.duracao_dias)}</dd>
-          ${a.datas_alvo ? `<dt>${ia('paraEncher')}</dt><dd>${esc(a.datas_alvo)}</dd>` : ''}${a.fotoRef ? `<dt>${ia('fotoRot')}</dt><dd>${esc(a.fotoRef)}</dd>` : ''}
-          ${a.porque ? `<dt>${ia('porque')}</dt><dd>${esc(a.porque)}</dd>` : ''}</dl>
-        ${(a.textos || []).map((t, n) => `<div class="mkVersao"><small>${ia('versao')} ${n + 1}</small><b>${esc(t.titulo || '')}</b><pre class="mkTxt">${esc(t.texto || '')}</pre>${t.chamada ? `<small>${ia('botaoRot')}: ${esc(t.chamada)}</small>` : ''}</div>`).join('')}
-        <div class="mkBts">${a.situacao !== 'no ar' ? `<button class="mini" data-noar="${a.id}">${ia('subiMeta')}</button>` : ''}<button class="mini danger" data-apagaan="${a.id}">${ia('apagar')}</button></div>
-      </section>`).join('') : `<div class="emptybox"><p>${ia('semAnuncio')}</p></div>`}`;
+    <section class="mkBloco"><p class="mkNota">${ia('anunciosTxt')}</p>
+      <button class="cta sm" data-pede="${esc(ia('pedidoAnuncio'))}">📣 ${ia('pedirAnuncio').replace(/^✦\s*/, '')}</button></section>
+    ${as.length ? as.map(a => {
+      const x = a.passeio_id && Tours.get(a.passeio_id), foto = a.fotoRef && fotoSrc(a.fotoRef);
+      return `<article class="anuncio">
+        ${foto ? `<div class="anFoto" style="background-image:url('${esc(foto)}')"></div>` : ''}
+        <div class="anCorpo">
+          <div class="anTopo"><b>${esc(a.titulo)}</b><span class="postSit ${a.situacao === 'no ar' ? 's-postado' : 's-ideia'}">${a.situacao === 'no ar' ? ia('noAr') : ia('rascunho')}</span></div>
+          <div class="anVerba"><b>${eur(a.verba_dia * a.duracao_dias)}</b><span>${ia('anTotal')} · ${eur(a.verba_dia)}${ia('porDia')} × ${a.duracao_dias} ${ia('dias')}</span></div>
+          <dl class="mkDl"><dt>${ia('objetivo')}</dt><dd>${esc(a.objetivo)}</dd><dt>${ia('publico')}</dt><dd>${esc(a.publico)}</dd>
+            ${a.datas_alvo ? `<dt>${ia('paraEncher')}</dt><dd>${esc(a.datas_alvo)}</dd>` : ''}
+            ${a.porque ? `<dt>${ia('porque')}</dt><dd>${esc(a.porque)}</dd>` : ''}</dl>
+          ${(a.textos || []).map((t, n) => `<div class="mkVersao"><small>${ia('versao')} ${n + 1}${t.chamada ? ' · ' + ia('botaoRot') + ': ' + esc(t.chamada) : ''}</small><b>${esc(t.titulo || '')}</b><p>${esc(t.texto || '')}</p></div>`).join('')}
+          <div class="mkBts">${a.situacao !== 'no ar' ? `<button class="mini" data-noar="${a.id}">✓ ${ia('subiMeta')}</button>` : ''}<button class="mini danger" data-apagaan="${a.id}">${ia('apagar')}</button></div>
+        </div></article>`;
+    }).join('') : `<div class="emptybox"><p>${ia('semAnuncio')}</p></div>`}`;
 }
-function mktKit() {
-  const k = Mkt.get().kit;
+
+function mktMarca() {
+  const k = Mkt.get().kit, mem = Mkt.get().memoria;
   const rot = { principal: 'corPrincipal', destaque: 'corDestaque', escura: 'corEscura', neutra: 'corNeutra' };
   return `
-    <section class="card"><h3 class="mkH">${ia('coresTit')}</h3><div class="mkCores">${CORES_NOMES.map(n =>
-      `<label><input type="color" data-cor="${n}" value="${esc(k.cores[n])}"><b>${ia(rot[n])}</b><small>${esc(k.cores[n])}</small></label>`).join('')}</div></section>
-    <section class="card"><h3 class="mkH">${ia('fontesTit')}</h3>
-      <p style="font:800 30px 'League Spartan',sans-serif;margin:6px 0">${ia('fonteImpacto')}</p><p style="font:600 20px Montserrat,sans-serif;margin:6px 0">${ia('fonteTexto')}</p></section>
-    <section class="card mkForm">
-      <label class="fld">${ia('vozTit')}<textarea id="kVoz" rows="4" placeholder="${esc(ia('vozPh'))}">${esc(k.voz)}</textarea></label>
+    <section class="mkBloco"><div class="mkBlocoTopo"><h2>${ia('coresTit')}</h2></div>
+      <div class="mkCores">${CORES_NOMES.map(n =>
+        `<label><input type="color" data-cor="${n}" value="${esc(k.cores[n])}"><b>${ia(rot[n])}</b><small>${esc(k.cores[n])}</small></label>`).join('')}</div>
+      <div class="fontes"><p style="font:800 28px 'League Spartan',sans-serif">${ia('fonteImpacto')}</p><p style="font:600 18px Montserrat,sans-serif">${ia('fonteTexto')}</p></div></section>
+    <section class="mkBloco mkForm"><div class="mkBlocoTopo"><h2>${ia('vozTit')}</h2></div>
+      <textarea id="kVoz" rows="4" placeholder="${esc(ia('vozPh'))}">${esc(k.voz)}</textarea>
       <label class="fld">${ia('frasesTit')}<textarea id="kFrases" rows="3">${esc(k.frases)}</textarea></label>
       <label class="fld">${ia('proibidasTit')}<input id="kProib" value="${esc(k.proibidas)}"></label>
       <label class="fld">${ia('hashtagsTit')}<input id="kHash" value="${esc(k.hashtags)}"></label>
-      <button class="cta sm" id="kSalva">${ia('salvar')}</button></section>`;
+      <button class="cta sm" id="kSalva">${ia('salvar')}</button></section>
+    <section class="mkBloco"><div class="mkBlocoTopo"><h2>${ia('memTit')}</h2></div><p class="mkNota">${ia('memoriaTxt')}</p>
+      <div class="mkGera"><input id="mkMemIn" placeholder="${esc(ia('ensinarPh'))}"><button class="cta sm" id="mkMemAdd">${ia('guardar')}</button></div>
+      ${mem.length ? `<ul class="mem">${mem.map(x => `<li><span>${esc(x.texto)}</span><small>${dataCurta(x.criado)}</small><button class="mini danger" data-esquece="${x.id}" aria-label="${esc(ia('apagar'))}">×</button></li>`).join('')}</ul>` : `<p class="mkNota">${ia('nadaGuardado')}</p>`}</section>`;
 }
-function mktMemoria() {
-  const mem = Mkt.get().memoria;
-  return `
-    <section class="card"><p style="margin-top:0">${ia('memoriaTxt')}</p>
-      <div class="frow"><label class="fld" style="flex:1">${ia('ensinar')}<input id="mkMemIn" placeholder="${esc(ia('ensinarPh'))}"></label>
-      <button class="cta sm" id="mkMemAdd">${ia('guardar')}</button></div></section>
-    ${mem.length ? `<div class="tlist">${mem.map(x => `<div class="trow"><div class="tinfo"><b>${esc(x.texto)}</b><small>${dataCurta(x.criado)}</small></div>
-      <button class="mini danger" data-esquece="${x.id}">×</button></div>`).join('')}</div>` : `<div class="emptybox"><p>${ia('nadaGuardado')}</p></div>`}`;
-}
+
 function mktLiga() {
   const m = Mkt.get(), re = () => { const y = scrollY; route(); scrollTo(0, y); };
   $$('[data-mes]').forEach(b => b.onclick = () => go('/adm/marketing/plano-' + b.dataset.mes));
-  $$('[data-copia]').forEach(b => b.onclick = () => { const p = m.posts.find(p => p.id === b.dataset.copia); navigator.clipboard && navigator.clipboard.writeText(p.legenda).then(() => toast(ia('legendaCopiada'))); });
+  $$('[data-copia]').forEach(b => b.onclick = (e) => { e.stopPropagation(); const p = m.posts.find(p => p.id === b.dataset.copia); navigator.clipboard && navigator.clipboard.writeText(p.legenda).then(() => toast(ia('legendaCopiada'))); });
   $$('[data-postado]').forEach(b => b.onclick = () => { m.posts.find(p => p.id === b.dataset.postado).situacao = 'postado'; Mkt.salva(); re(); });
   $$('[data-apagapost]').forEach(b => b.onclick = () => { if (!confirm(ia('apagarItem'))) return; m.posts = m.posts.filter(p => p.id !== b.dataset.apagapost); Mkt.salva(); re(); });
   $$('[data-noar]').forEach(b => b.onclick = () => { m.anuncios.find(a => a.id === b.dataset.noar).situacao = 'no ar'; Mkt.salva(); re(); });
@@ -1160,6 +1316,7 @@ function mktLiga() {
   $$('[data-baixa]').forEach(b => b.onclick = () => baixaCriativo(m.criativos.find(c => c.id === b.dataset.baixa)));
   $$('[data-cv]').forEach(cv => { const c = m.criativos.find(c => c.id === cv.dataset.cv); if (c) desenhaCriativo(c, cv).catch(() => {}); });
   $$('[data-esquece]').forEach(b => b.onclick = () => { m.memoria = m.memoria.filter(x => x.id !== b.dataset.esquece); Mkt.salva(); re(); });
+  const nc = $('#ncIA'); if (nc) nc.onclick = () => { const b = $('#blocoIA'); b.scrollIntoView({ behavior: 'smooth', block: 'center' }); b.classList.add('pisca'); setTimeout(() => b.classList.remove('pisca'), 1400); const d = $('#imgDesc') || $('#imgChaveIn'); if (d) setTimeout(() => d.focus(), 400); };
   const fa = $('#mkFotoAdd'), farq = $('#mkFotoArq');
   if (fa) fa.onclick = () => farq.click();
   if (farq) farq.onchange = async () => { for (const f of [...farq.files]) { try { if (!guardaFoto(await iaReduzFoto(f, 1600), f.name.replace(/\.[^.]+$/, ''))) break; } catch (e) { toast(e.message); } } re(); };
@@ -1416,6 +1573,69 @@ body:has(.coach) #iaFab{display:none!important}
 .ibTrad{margin-top:8px;font-size:13.5px} .ibTrad summary{cursor:pointer;color:var(--ink-3)} .ibTrad p{margin:6px 0 0;color:var(--ink-2)}
 .ibVolta{display:none;margin-bottom:10px}
 #ibSimula{align-self:flex-start}
+/* ---- aba Marketing (21/09/2026) ---- */
+.mk{padding-bottom:96px}
+.mkTopo{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.mkTitulo h1{margin:0;display:flex;align-items:center;gap:10px}
+.mkTitulo p{margin:6px 0 0;color:var(--ink-2);font-size:15px;line-height:1.45}
+.mkAbas{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:18px 0 18px;border-bottom:1px solid var(--line)}
+.mkAbas::-webkit-scrollbar{display:none}
+.mkAbas button{flex:none;display:flex;align-items:center;gap:7px;padding:11px 14px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--ink-3);font:600 14px var(--f-ui);cursor:pointer;min-height:44px}
+.mkAbas button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.mkBloco{background:var(--surface);border-radius:var(--r-lg,16px);padding:18px;margin-bottom:16px;box-shadow:var(--sh-1)}
+.mkBlocoTopo{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.mkBlocoTopo h2{margin:0;font-size:17px} .mkBlocoTopo h3{margin:0;font-size:15px}
+.mkLink{border:0;background:none;color:var(--accent);font:600 13.5px var(--f-ui);cursor:pointer;padding:8px 0}
+.vagas{display:grid;gap:10px;margin-top:10px}
+.vaga{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+.vagaData{text-align:center} .vagaData b{display:block;font:800 24px/1 var(--f-display,inherit)} .vagaData small{color:var(--ink-3);text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+.vagaInfo{min-width:0} .vagaInfo b{display:block;font-size:15px} .vagaInfo small{color:var(--ink-2);font-size:13px}
+.vagaBarra{height:6px;border-radius:99px;background:var(--line);margin-top:8px;overflow:hidden} .vagaBarra i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.vagaAcoes{display:flex;gap:6px}
+.vagaAcoes button{min-height:40px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px var(--f-ui);cursor:pointer;white-space:nowrap}
+.vagaAcoes button:hover,.novo:hover,.stat:hover{border-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.stat{text-align:left;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer;font:inherit}
+.stat b{display:block;font:800 28px/1.1 var(--f-display,inherit)} .stat span{font-size:13px;color:var(--ink-2)}
+.posts{margin-top:4px}
+.post{--fc:#14B8A6;border:1px solid var(--line);border-left:4px solid var(--fc);border-radius:12px;padding:10px 12px;margin-top:8px;background:var(--surface)}
+.post.f-reel{--fc:#8B5CF6} .post.f-story{--fc:#F59E0B} .post.f-post{--fc:#14B8A6} .post.f-carrossel{--fc:#3B82F6}
+.post summary{display:flex;gap:10px;align-items:center;cursor:pointer;list-style:none} .post summary::-webkit-details-marker{display:none}
+.post.postado{opacity:.6}
+.postIco{font-size:20px} .postTxt{flex:1;min-width:0} .postTxt b{display:block;font-size:14.5px;line-height:1.35} .postTxt small{color:var(--ink-3);font-size:12.5px}
+.postSit{flex:none;font:600 11.5px var(--f-ui);padding:3px 9px;border-radius:99px;background:var(--surface-2);color:var(--ink-2)}
+.postSit.s-pronto{background:rgba(20,184,166,.18)} .postSit.s-postado{background:rgba(34,197,94,.2);color:var(--ok,#16a34a)}
+.mkMesNav{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 14px} .mkMesNav b{min-width:170px;text-align:center;font-size:16px}
+.dia{display:flex;gap:14px;padding:10px 0;border-top:1px solid var(--line)} .mkBlocoTopo + .dia{border-top:0}
+.diaData{min-width:44px;text-align:center} .diaData b{display:block;font:800 20px/1 var(--f-display,inherit)} .diaData small{color:var(--ink-3);font-size:11px;text-transform:uppercase}
+.diaItens{flex:1;min-width:0} .diaVaga{font-size:13px;color:var(--warn,#b7791f)}
+.novos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.novo{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:16px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);text-align:left;cursor:pointer;font:inherit}
+.novo span{font-size:26px;margin-bottom:4px} .novo b{font-size:15px} .novo small{color:var(--ink-3);font-size:12.5px}
+.criativo{margin:0;background:var(--surface-2);border-radius:14px;padding:10px}
+.criativo canvas{width:100%;height:auto;border-radius:10px;display:block;background:var(--surface-3,#222)}
+.criativo figcaption{margin:8px 2px 0} .criativo figcaption b{display:block;font-size:14px} .criativo figcaption small{color:var(--ink-3);font-size:12px}
+.anuncio{display:grid;grid-template-columns:140px 1fr;overflow:hidden;border-radius:var(--r-lg,16px);background:var(--surface);margin-bottom:16px;box-shadow:var(--sh-1)}
+.anFoto{background-size:cover;background-position:center;min-height:100%}
+.anCorpo{padding:16px 18px} .anTopo{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.anVerba{margin:8px 0 12px} .anVerba b{display:block;font:800 26px/1.1 var(--f-display,inherit)} .anVerba span{font-size:13px;color:var(--ink-3)}
+.mkVersao p{margin:4px 0 0;font-size:14px;line-height:1.45}
+.fontes{margin-top:12px} .fontes p{margin:6px 0}
+.mem{list-style:none;padding:0;margin:10px 0 0} .mem li{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)} .mem li span{flex:1} .mem li small{color:var(--ink-3)}
+.mkFotosBloco summary{cursor:pointer;list-style:none} .mkFotosBloco summary::-webkit-details-marker{display:none} .mkFotosBloco summary h3{display:inline;margin:0;font-size:15px}
+.mkFotosBloco[open] summary{margin-bottom:8px}
+.mkRodape{margin:18px 0 0;text-align:center;font-size:12.5px;color:var(--ink-3)}
+.pisca{box-shadow:0 0 0 3px var(--highlight,#FFD23F)!important;transition:box-shadow .3s}
+@media (max-width:640px){
+  .mkTopo .mkMes{width:100%;justify-content:center}
+  .vaga{grid-template-columns:44px 1fr;gap:12px}
+  .vagaAcoes{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr)}
+  .vagaAcoes button{padding:8px 6px}
+  .stat{padding:12px 10px} .stat b{font-size:22px} .stat span{font-size:12px}
+  .anuncio{grid-template-columns:1fr} .anFoto{height:140px}
+  .novo{padding:12px 8px;align-items:center;text-align:center} .novo span{font-size:24px;margin:0} .novo b{font-size:13px} .novo small{display:none}
+  .mkAbas button{padding:10px 11px;font-size:13.5px}
+}
 @media (max-width:760px){.ibGrade{grid-template-columns:1fr} .ibGrade.comConversa .ibLista{display:none} .ibGrade:not(.comConversa) .ibDetalhe{display:none} .ibVolta{display:inline-block}}
 `;
 

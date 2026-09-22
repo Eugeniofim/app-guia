@@ -38,7 +38,7 @@ ok('o convite de criar senha so aparece se houver nuvem',
 /* --- 2. a faixa do painel fala com o prospect, nao o assusta --- */
 const iBan = app.indexOf('function noAuthBanner()');
 assert.ok(iBan > 0, 'nao achei noAuthBanner');
-const banner = app.slice(iBan, iBan + 900);
+const banner = app.slice(iBan, iBan + 1600);
 ok('na demonstracao a faixa e a de boas-vindas', /!temNuvem\(\)/.test(banner));
 ok('a faixa da demonstracao vem ANTES do aviso vermelho',
   banner.indexOf('!temNuvem()') < banner.indexOf("t('nlTitle')"),

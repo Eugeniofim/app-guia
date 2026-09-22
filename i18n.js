@@ -739,6 +739,7 @@ const STR = {
   tutNext: { pt: 'Entendi', en: 'Got it' },
   tutDone: { pt: 'Pronto! Qualquer dúvida, o tutorial volta pelos Ajustes.', en: 'Done! You can replay this anytime from Settings.' },
   /* frases que estavam escritas direto no app.js, só em PT/EN */
+  demoLinha:    { pt: 'Demonstração — nada sai deste aparelho.', en: 'Demo — nothing leaves this device.', fr: 'Démo — rien ne quitte cet appareil.', it: 'Demo — niente lascia questo dispositivo.', de: 'Demo — nichts verlässt dieses Gerät.', es: 'Demo — nada sale de este dispositivo.' },
   tutTag:       { pt: 'Dica', en: 'Tip', fr: 'Astuce', it: 'Suggerimento', de: 'Tipp', es: 'Consejo' },
   xCodigo:      { pt: 'Código', en: 'Code', fr: 'Code', it: 'Codice', de: 'Code', es: 'Código' },
   xProtoBotao:  { pt: 'Protótipo: no app final este botão abre o destino real.', en: 'Prototype: this opens the real destination in the final app.',
