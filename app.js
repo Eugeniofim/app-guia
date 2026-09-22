@@ -315,7 +315,11 @@ function viewHub() {
       </button>
       <a class="lk" href="https://instagram.com/${esc(DB.settings.insta)}" target="_blank" rel="noopener"><span class="ic ig">${ICONE_IG}</span><span><b>Instagram</b><small>@${esc(DB.settings.insta)}</small></span><span class="go" aria-hidden="true">→</span></a>
       <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b></span><span class="go" aria-hidden="true">→</span></a>
-      <button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>
+      ${typeof temNuvem === 'function' && !temNuvem()
+        /* DEMONSTRACAO: a porta do painel é o que o prospect veio ver — o
+           botão discreto passava batido (22/09/2026) */
+        ? `<button class="adm-demo" id="admEntry"><span class="ic" aria-hidden="true">✦</span><span><b>${t('admDemoTit')}</b><small>${t('admDemoSub')}</small></span><span class="go" aria-hidden="true">→</span></button>`
+        : `<button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>`}
     </div>
   </div>`;
   bindLang(app);

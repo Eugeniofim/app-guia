@@ -11,6 +11,8 @@ const STR = {
   reviews:     { pt: 'O que dizem quem já veio', en: 'What past guests say' },
   saveContact: { pt: 'Salvar meu contato', en: 'Save my contact' },
   admEntry:    { pt: 'Área de {guia}', en: "{guia}'s area" },
+  admDemoTit:  { pt: 'Conheça a sua área ADM', en: 'Explore your admin area', fr: 'Découvrez votre espace admin', it: 'Scopri la tua area admin', de: 'Entdecke deinen Admin-Bereich', es: 'Conoce tu área de administración' },
+  admDemoSub:  { pt: 'O painel onde o guia controla tudo — reservas, agenda e os agentes de IA', en: 'The panel where the guide runs everything — bookings, schedule and the AI agents', fr: 'Le panneau où le guide gère tout — réservations, agenda et agents IA', it: 'Il pannello dove la guida gestisce tutto — prenotazioni, agenda e agenti IA', de: 'Das Panel, in dem der Guide alles steuert — Buchungen, Kalender und KI-Agenten', es: 'El panel donde el guía controla todo — reservas, agenda y agentes de IA' },
   myBooking:   { pt: 'Minha reserva', en: 'My booking' },
 
   /* quem sou eu */
