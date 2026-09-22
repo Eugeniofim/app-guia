@@ -217,6 +217,17 @@ const IA_TXT = {
   hGrupo: { pt: 'Grupo grande', en: 'A large group' },
   hEspecial: { pt: 'Pedido especial (alergia, acessibilidade)', en: 'A special request (allergy, accessibility)' },
   ensNuncaPh: { pt: 'Algo que ele nunca deve dizer? Ex.: não prometer que dá para ver a aurora boreal', en: 'Anything it must never say? E.g. don’t promise the northern lights' },
+  ensAplTit: { pt: 'Aplicar no Instagram de verdade', en: 'Apply to the real Instagram' },
+  ensAplTxt: { pt: 'Só para o dono: com o código, o robô do @{c} passa a responder com este treino já na próxima mensagem.', en: 'Owner only: with the code, the @{c} bot answers with this training from the next message on.' },
+  ensCodigo: { pt: 'Código do dono', en: 'Owner code' },
+  ensAplBt: { pt: 'Aplicar agora', en: 'Apply now' },
+  ensAplOk: { pt: 'Aplicado — a próxima mensagem já sai assim', en: 'Applied — the next message goes out like this' },
+  ensAplErro: { pt: 'Código errado.', en: 'Wrong code.' },
+  ensAplSem: { pt: 'O cofre ainda não tem o código configurado.', en: 'The vault has no code set yet.' },
+  ensAplFalhou: { pt: 'Não consegui falar com o cofre. Tente de novo.', en: 'Could not reach the vault. Try again.' },
+  ensTrazer: { pt: 'Trazer o treino que está no ar', en: 'Load the training that is live' },
+  ensTrouxe: { pt: 'Treino do ar carregado aqui.', en: 'Live training loaded here.' },
+  ensNadaNoAr: { pt: 'Ainda não há treino no ar: o robô usa o padrão.', en: 'No live training yet: the bot uses the default.' },
   ensTesteTit: { pt: 'Testar agora', en: 'Try it now' },
   ensTesteSub: { pt: 'Escreva como um cliente, em qualquer idioma.', en: 'Write like a client, in any language.' },
   ensTestePh: { pt: 'Mensagem do cliente…', en: 'Client message…' },
@@ -1660,6 +1671,7 @@ function admEnsinar() {
           <div class="ensChips">${ENS_PASSA.map(k => `<button class="ensChip ${e.passa.includes(k) ? 'on' : ''}" data-passa="${k}">${e.passa.includes(k) ? '✓ ' : ''}${ia(k)}</button>`).join('')}</div>
           <textarea id="ensNunca" rows="2" placeholder="${ia('ensNuncaPh')}">${esc(e.nunca)}</textarea></section>
         <p class="ensReal">${ia('ensReal')} <span id="ensSalvo" class="ensSalvo"></span></p>
+        ${ensAplicarCartao()}
       </div>
       <aside class="ensTeste">
         <header><b>${ia('ensTesteTit')}</b><small>${ia('ensTesteSub')}</small>${ensTeste.length ? `<button class="mkLink" id="ensLimpa">${ia('ensLimpar')}</button>` : ''}</header>
@@ -1683,6 +1695,38 @@ function admEnsinar() {
   const li = $('#ensLimpa'); if (li) li.onclick = () => { ensTeste = []; admEnsinar(); };
   const f = $('#ensEnvia'); if (f) f.onsubmit = (ev) => { ev.preventDefault(); const i = $('#ensMsg'); const t = i.value; i.value = ''; ensPergunta(t); };
   const fe = $('#ensFio'); if (fe) fe.scrollTop = fe.scrollHeight;
+  const af = $('#ensAplForm'); if (af) af.onsubmit = (ev) => { ev.preventDefault(); const c = $('#ensCodigo').value.trim(); if (c) ensAplicar(c); };
+  const tz = $('#ensTrazer'); if (tz) tz.onclick = () => ensTrazer();
+}
+/* Aplicar no robô de verdade (Instagram do demo): só com o código do dono.
+   O código fica só nesta aba do navegador (sessionStorage) e vai no cabeçalho. */
+let ensAplMsg = '';
+function ensAplicarCartao() {
+  const conta = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.agenteInstagram;
+  if (!COFRE || !conta || !cofreEstado.instagram) return '';
+  let cod = ''; try { cod = sessionStorage.getItem('guia_admin_codigo') || ''; } catch (e) {}
+  return `<section class="ensCard ensApl"><h3>📲 ${ia('ensAplTit')}</h3><p class="ensSub">${esc(ia('ensAplTxt').replace('{c}', conta))}</p>
+    <form id="ensAplForm" class="ensAplLinha"><input type="password" id="ensCodigo" value="${esc(cod)}" placeholder="${ia('ensCodigo')}" autocomplete="current-password" aria-label="${ia('ensCodigo')}">
+      <button class="ibBt" type="submit">${ia('ensAplBt')}</button></form>
+    <button class="mkLink" id="ensTrazer" type="button">↓ ${ia('ensTrazer')}</button>
+    ${ensAplMsg ? `<p class="ensAplMsg">${ensAplMsg}</p>` : ''}</section>`;
+}
+async function ensAplicar(codigo) {
+  try { sessionStorage.setItem('guia_admin_codigo', codigo); } catch (e) {}
+  const e = ensino();
+  let r; try { r = await fetch(COFRE + '/api/ensino', { method: 'POST', headers: { 'content-type': 'application/json', 'x-codigo': codigo }, body: JSON.stringify({ ensino: e }) }); } catch (x) { r = null; }
+  const hora = new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
+  ensAplMsg = r && r.ok ? '✓ ' + ia('ensAplOk') + ' (' + hora + ')' : r && r.status === 401 ? '⚠ ' + ia('ensAplErro') : r && r.status === 503 ? '⚠ ' + ia('ensAplSem') : '⚠ ' + ia('ensAplFalhou');
+  if (r && r.status === 401) try { sessionStorage.removeItem('guia_admin_codigo'); } catch (x) {}
+  admEnsinar();
+}
+async function ensTrazer() {
+  try {
+    const j = await fetch(COFRE + '/api/ensino', { cache: 'no-store' }).then(r => r.json());
+    if (j && j.ensino) { const m = Mkt.get(); m.ensino = { ...ensino(), ...j.ensino, faq: j.ensino.faq.map(f => ({ k: '', p: f.p, r: f.r })) }; Mkt.salva(); ensAplMsg = '✓ ' + ia('ensTrouxe'); }
+    else ensAplMsg = ia('ensNadaNoAr');
+  } catch (x) { ensAplMsg = '⚠ ' + ia('ensAplFalhou'); }
+  admEnsinar();
 }
 /* atualiza só a barra de progresso (sem redesenhar e perder o foco) */
 function admEnsinarProg() {
@@ -1859,6 +1903,9 @@ body:has(.coach) #iaFab{display:none!important}
 .ensX{position:absolute;top:14px;right:16px;width:26px;height:26px;border-radius:50%;border:0;background:none;color:var(--ink-3);font-size:18px;cursor:pointer}
 .ensSempre{margin:0 0 12px;font-size:13px;padding:9px 12px;border-radius:10px;background:var(--surface-2);color:var(--ink-2)}
 .ensReal{margin:0;font-size:12.5px;color:var(--ink-3)} .ensSalvo{color:#16a34a;font-weight:600}
+.ensApl{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.ensAplLinha{display:flex;gap:8px;margin-bottom:6px} .ensAplLinha input{flex:1;min-width:0}
+.ensAplMsg{margin:6px 0 0;font-size:13px;font-weight:600}
 .ensTeste{position:sticky;top:16px;display:flex;flex-direction:column;height:min(600px,75vh);border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--surface)}
 .ensTeste header{display:grid;grid-template-columns:1fr auto;gap:0 8px;padding:12px 16px;border-bottom:1px solid var(--line)} .ensTeste header small{grid-column:1;color:var(--ink-3);font-size:12.5px} .ensTeste header .mkLink{grid-column:2;grid-row:1/3;padding:0}
 .ensVazio{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:auto 0 0} .ensVazio .ensChip{background:var(--surface);font-weight:500}
