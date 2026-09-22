@@ -67,6 +67,8 @@ const IA_TXT = {
   ph: { pt: 'Pergunte ou peça algo…', en: 'Ask or request something…' },
   foto: { pt: 'Mandar uma foto', en: 'Send a photo' },
   fotoPronta: { pt: 'foto pronta para enviar', en: 'photo ready to send' },
+  fotosProntas: { pt: '{n} fotos prontas para enviar', en: '{n} photos ready to send' },
+  cDuracao: { pt: 'Duração', en: 'Duration' },
   tirar: { pt: 'tirar', en: 'remove' },
   copiar: { pt: 'Copiar', en: 'Copy' },
   copiado: { pt: 'Copiado ✓', en: 'Copied ✓' },
@@ -464,7 +466,7 @@ const IA_FERRAMENTAS = [
   { name: 'ver_bloqueios', description: 'Períodos bloqueados na agenda.', input_schema: obj() },
   { name: 'ver_fotos', description: 'Fotos disponíveis para criativos, com a ref de cada uma.', input_schema: obj() },
   { name: 'ver_marketing', description: 'Plano de postagem (mês AAAA-MM opcional), anúncios e criativos salvos.', input_schema: obj({ mes: S_() }) },
-  { name: 'criar_passeio', description: 'Cria passeio novo como RASCUNHO.', input_schema: obj({ nome: S_(), descricao: S_(), preco: N_(), por: { type: 'string', enum: ['pessoa', 'sessao'] }, min: { type: 'integer' }, max: { type: 'integer' }, duracao: S_(), ponto_encontro: S_() }, ['nome', 'preco']) },
+  { name: 'criar_passeio', description: 'Cria passeio novo como RASCUNHO.', input_schema: obj({ nome: S_(), descricao: S_(), preco: N_(), por: { type: 'string', enum: ['pessoa', 'sessao'] }, min: { type: 'integer' }, max: { type: 'integer' }, duracao: S_(), ponto_encontro: S_(), foto: { type: 'string', description: 'ref da foto de capa (das fotos enviadas no chat ou de ver_fotos)' } }, ['nome', 'preco']) },
   { name: 'alterar_passeio', description: 'Altera nome, descrição, encontro, duração, grupo ou publicação de um passeio.', input_schema: obj({ passeio_id: S_(), nome: S_(), descricao: S_(), ponto_encontro: S_(), duracao: S_(), min: { type: 'integer' }, max: { type: 'integer' }, publicado: { type: 'boolean' } }, ['passeio_id']) },
   { name: 'mudar_preco', description: 'Muda o preço (adulto e/ou criança) de um passeio.', input_schema: obj({ passeio_id: S_(), preco: N_(), preco_crianca: N_() }, ['passeio_id']) },
   { name: 'adicionar_horario', description: 'Adiciona horário fixo: dias da semana, hora, vagas, período.', input_schema: obj({ passeio_id: S_(), dias: { type: 'array', items: { type: 'string', enum: DIAS } }, hora: S_('HH:MM'), vagas: { type: 'integer' }, de: S_(), ate: S_() }, ['passeio_id', 'dias', 'hora']) },
@@ -529,9 +531,9 @@ function iaPlano(nome, i) {
     const porSessao = i.por === 'sessao';
     const min = Math.max(1, +i.min || (porSessao ? 1 : 2)), max = Math.max(min, +i.max || (porSessao ? 4 : 12));
     return { titulo: ia('cCriarPasseio'), assumiu: (!i.min || !i.max) ? [`${ia('cGrupo')} ${min}–${max}`] : [],
-      linhas: [[ia('cNome'), i.nome], [ia('cPreco'), `${eur(preco)} ${ia(porSessao ? 'cPorSessao' : 'cPorPessoa')}`], [ia('cGrupo'), `${min}–${max}`]],
+      linhas: [[ia('cNome'), i.nome], [ia('cPreco'), `${eur(preco)} ${ia(porSessao ? 'cPorSessao' : 'cPorPessoa')}`], [ia('cGrupo'), `${min}–${max}`], ...(i.duracao ? [[ia('cDuracao'), i.duracao]] : []), ...(i.foto && fotoSrc(i.foto) ? [[ia('fotoRot'), '📷']] : [])],
       fazer: () => { const nt = Tours.create({ type: 'walk', region: (regioes()[0] || ['cidade'])[0], name: { pt: i.nome, en: i.nome },
-        desc: { pt: i.descricao || '', en: '' }, meeting: i.ponto_encontro || '', duration: i.duracao || '', photo: 'capa.jpg',
+        desc: { pt: i.descricao || '', en: '' }, meeting: i.ponto_encontro || '', duration: i.duracao || '', photo: (i.foto && fotoSrc(i.foto)) || 'capa.jpg',
         price: preco, priceMode: porSessao ? 'session' : 'pp', min, max, payPolicy: 'split', status: 'draft' }); return { ok: true, passeio_id: nt.id }; } };
   }
   if (nome === 'alterar_passeio') {
@@ -805,6 +807,7 @@ Reel: cena por cena com tempo, imagem, fala literal e direção; gancho nos 3 pr
 Story: uma frase e uma imagem; urgência só com fato e data verdadeiros.
 Resposta a cliente: na língua do cliente, começando pela resposta; concreta (data, hora, preço); termina com uma pergunta que facilita o próximo passo; junto, a versão no idioma do guia.
 Plano de postagem: olhe a agenda; saída com vaga sobrando e data chegando puxa post antes; sem frequência pedida, três por semana. Salve com salvar_posts, legenda pronta.
+Passeio a partir de fotos: quando mandarem fotos pedindo um passeio, descreva o que vê, escolha você mesmo um nome e uma descrição curta com base só no que aparece (sem inventar história do lugar; o guia troca depois) e a melhor foto de capa — não pergunte isso. Pergunte numa mensagem só apenas o que falta de verdade: preço (obrigatório, nunca se inventa) e, se não disseram, duração e ponto de encontro. Com o preço, chame criar_passeio com a melhor foto como capa (foto = ref). As outras fotos servem para criativos.
 Criativo: foto do app num molde (ver_fotos; a fotografia do próprio guia tem prioridade) ou "nenhuma" para fundo na cor da marca com texto explicativo.
 Imagem por IA (gerar_imagem): permitida para fundo, ilustração, conceito ou textura. Nunca para representar um lugar real, o passeio ou pessoas como se fosse foto — isso engana o cliente. Quando usar, diga que a imagem foi gerada por IA.
 Anúncio (Meta): objetivo, público, verba diária e duração com o porquê em uma linha, 2 a 3 versões de texto, qual foto. Ligue à agenda. Nunca prometa resultado. Salve com salvar_anuncio.
@@ -858,15 +861,16 @@ function iaAparaHist(h) {
 }
 
 let iaOcupado = false;
-async function iaConversa(texto, foto) {
+async function iaConversa(texto, fotos) {
+  fotos = !fotos ? [] : Array.isArray(fotos) ? fotos : [fotos];
   if (iaOcupado) return;
   iaOcupado = true; iaTravado(true);
   const hist = iaAparaHist(iaLe(IA_HIST, []));
-  let nota = '';
-  if (foto) { const f = guardaFoto(foto); if (f) nota = `\n\n[foto guardada; ref para criativo: ${f.id}]`; }
-  const pergunta = texto || 'Escreva uma legenda para esta foto.';
-  hist.push({ role: 'user', content: foto ? [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: foto.split(',')[1] } }, { type: 'text', text: pergunta + nota }] : pergunta });
-  iaBolha('user', pergunta, null, false, foto);
+  const refs = fotos.map(f => guardaFoto(f)).filter(Boolean).map(f => f.id);
+  const nota = refs.length ? `\n\n[${refs.length > 1 ? 'fotos guardadas' : 'foto guardada'}; refs (para criativo ou capa de passeio): ${refs.join(', ')}]` : '';
+  const pergunta = texto || (fotos.length > 1 ? 'O que dá para fazer com estas fotos?' : 'Escreva uma legenda para esta foto.');
+  hist.push({ role: 'user', content: fotos.length ? [...fotos.map(f => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.split(',')[1] } })), { type: 'text', text: pergunta + nota }] : pergunta });
+  iaBolha('user', pergunta, null, false, fotos);
   const pensando = iaBolha('pensa', ia('pensando'));
   try {
     for (let volta = 0; volta < IA_MAX_VOLTAS; volta++) {
@@ -1757,6 +1761,7 @@ body:has(.coach) #iaFab{display:none!important}
 #iaMsgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
 .iaB{max-width:92%;padding:10px 13px;border-radius:14px;font-size:14.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
 .iaB img{display:block;max-width:100%;border-radius:10px;margin-bottom:6px}
+.iaFotos{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:4px;margin-bottom:6px} .iaFotos img{margin:0;aspect-ratio:1;object-fit:cover;width:100%}
 .iaB.user{align-self:flex-end;background:var(--accent,#064c3f);color:#fff;border-bottom-right-radius:4px}
 .iaB.assistant{align-self:flex-start;background:var(--surface-2,#f4f2ef);border-bottom-left-radius:4px}
 .iaB.pensa{align-self:flex-start;color:var(--ink-3,#888);font-style:italic;background:none;padding:4px 2px}
@@ -1783,7 +1788,7 @@ body:has(.coach) #iaFab{display:none!important}
 #iaEnviar:disabled{opacity:.5}
 #iaClip{min-width:44px;min-height:44px;border:1px solid var(--line,#ddd);border-radius:12px;background:none;color:inherit;font-size:18px;cursor:pointer}
 #iaAnexo{display:none;padding:0 12px 6px;font-size:12.5px;color:var(--ink-3,#888)} #iaAnexo.on{display:flex;gap:8px;align-items:center}
-#iaAnexo img{height:44px;border-radius:6px} #iaAnexo button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
+#iaAnexo img{height:44px;width:44px;object-fit:cover;border-radius:6px;margin-right:2px} #iaAnexo button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
 #iaPe{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:space-between;align-items:center;padding:0 16px 10px;font-size:12px;color:var(--ink-3,#888)}
 #iaPe button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit;padding:6px 0}
 #iaPe label{display:flex;gap:6px;align-items:center;cursor:pointer}
@@ -1982,7 +1987,7 @@ body:has(.coach) #iaFab{display:none!important}
 @media (max-width:760px){.ibApp{grid-template-columns:1fr;height:auto} .ibApp.comConversa .ibLista{display:none} .ibApp:not(.comConversa) .ibDetalhe{display:none} .ibVolta{display:grid} .ibCab{flex-direction:column;align-items:stretch} .ibModo{align-self:flex-start} .ibVivo{grid-template-columns:1fr} .ibVivoBts{flex-direction:column} .ibVivoBt{justify-content:flex-start}}
 `;
 
-let iaEl = null, iaFoto = null;
+let iaEl = null, iaFoto = [];  /* fotos anexadas à próxima mensagem (até 4) */
 function iaMonta() {
   if (iaEl) return;
   const st = document.createElement('style'); st.textContent = IA_CSS; document.head.appendChild(st);
@@ -2041,7 +2046,7 @@ function iaDesenha() {
   const demo = iaDemo(), vivo = iaModo() === 'vivo';
   corpo.innerHTML = `<div id="iaMsgs"></div><div id="iaAnexo"></div>
     ${demo ? '' : `<form id="iaForm"><button type="button" id="iaClip" title="${esc(ia('foto'))}" aria-label="${esc(ia('foto'))}">📷</button>
-      <input type="file" id="iaArq" accept="image/*" hidden><textarea id="iaTxt" rows="1" placeholder="${esc(ia('ph'))}"></textarea>
+      <input type="file" id="iaArq" accept="image/*" multiple hidden><textarea id="iaTxt" rows="1" placeholder="${esc(ia('ph'))}"></textarea>
       <button id="iaEnviar" type="submit">${ia('enviar')}</button></form>`}
     <div id="iaPe"><label><input type="checkbox" id="iaConf" ${iaPerguntaAntes() ? 'checked' : ''}> ${ia('perguntar')}</label>
       ${demo ? `<button type="button" id="iaConecta">${ia('conectar')}</button>` : vivo ? '' : `<span id="iaGasto"></span>`}
@@ -2058,11 +2063,11 @@ function iaDesenha() {
       else if (m.role === 'assistant' || ehPergunta(m)) { const t2 = m.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim(); if (t2) iaBolha(m.role, t2); }
     }
     const f = corpo.querySelector('#iaForm'), ta = corpo.querySelector('#iaTxt'), arq = corpo.querySelector('#iaArq');
-    f.onsubmit = (e) => { e.preventDefault(); const v = ta.value.trim(); if (!v && !iaFoto) return; const foto = iaFoto; iaFoto = null; iaMostraAnexo(); ta.value = ''; ta.style.height = ''; iaConversa(v, foto); };
+    f.onsubmit = (e) => { e.preventDefault(); const v = ta.value.trim(); if (!v && !iaFoto.length) return; const foto = iaFoto; iaFoto = []; iaMostraAnexo(); ta.value = ''; ta.style.height = ''; iaConversa(v, foto); };
     ta.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey && !('ontouchstart' in window)) { e.preventDefault(); f.requestSubmit(); } };
     ta.oninput = () => { ta.style.height = ''; ta.style.height = Math.min(140, ta.scrollHeight) + 'px'; };
     corpo.querySelector('#iaClip').onclick = () => arq.click();
-    arq.onchange = async () => { const file = arq.files[0]; arq.value = ''; if (!file) return; try { iaFoto = await iaReduzFoto(file); iaMostraAnexo(); } catch (e) { iaBolha('erro', e.message); } };
+    arq.onchange = async () => { const files = [...arq.files].slice(0, 4 - iaFoto.length); arq.value = ''; for (const file of files) { try { iaFoto.push(await iaReduzFoto(file)); } catch (e) { iaBolha('erro', e.message); } } iaMostraAnexo(); };
     const tc = corpo.querySelector('#iaTiraChave');
     if (tc) tc.onclick = () => { if (!confirm(ia('tirarChave'))) return; localStorage.removeItem(IA_CHAVE); iaAtualizaFab(); iaDesenha(); };
     iaMostraGasto();
@@ -2090,9 +2095,9 @@ function iaMostraSugestoes() {
 }
 function iaMostraAnexo() {
   const el = iaEl && iaEl.g.querySelector('#iaAnexo'); if (!el) return;
-  el.classList.toggle('on', !!iaFoto);
-  el.innerHTML = iaFoto ? `<img src="${iaFoto}" alt=""> ${ia('fotoPronta')} <button type="button" id="iaTiraFoto">${ia('tirar')}</button>` : '';
-  const b = el.querySelector('#iaTiraFoto'); if (b) b.onclick = () => { iaFoto = null; iaMostraAnexo(); };
+  el.classList.toggle('on', !!iaFoto.length);
+  el.innerHTML = iaFoto.length ? `${iaFoto.map(f => `<img src="${f}" alt="">`).join('')} ${iaFoto.length > 1 ? ia('fotosProntas', { n: iaFoto.length }) : ia('fotoPronta')} <button type="button" id="iaTiraFoto">${ia('tirar')}</button>` : '';
+  const b = el.querySelector('#iaTiraFoto'); if (b) b.onclick = () => { iaFoto = []; iaMostraAnexo(); };
 }
 async function iaTestaChave() {
   const inp = iaEl.g.querySelector('#iaChaveIn'), msg = iaEl.g.querySelector('#iaChaveMsg'), v = inp.value.trim();
@@ -2118,7 +2123,8 @@ function iaBolha(tipo, texto, antesDe, semCopiar, foto) {
   const msgs = iaEl && iaEl.g.querySelector('#iaMsgs');
   if (!msgs) return document.createElement('div');
   const d = document.createElement('div'); d.className = 'iaB ' + tipo;
-  d.innerHTML = (foto ? `<img src="${foto}" alt="">` : '') + iaHtml(texto);
+  const fs = !foto ? [] : Array.isArray(foto) ? foto : [foto];
+  d.innerHTML = (fs.length ? `<span class="iaFotos">${fs.map(f => `<img src="${f}" alt="">`).join('')}</span>` : '') + iaHtml(texto);
   if (tipo === 'assistant' && texto.length > 80 && !semCopiar) {
     const b = document.createElement('button'); b.className = 'cp'; b.type = 'button'; b.textContent = ia('copiar');
     b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(texto.replace(/\*\*/g, '')).then(() => { b.textContent = ia('copiado'); }); };
