@@ -44,13 +44,13 @@ const iaChave = () => { try { return (localStorage.getItem(IA_CHAVE) || '').trim
    - 'demo':  sem nada disso, pedidos prontos que rodam as ferramentas. */
 const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
 const COFRE_FIM = 'guia_cofre_fim';
-let cofreEstado = { claude: false, imagem: false, instagram: false };
+let cofreEstado = { claude: false, imagem: false, instagram: false, whatsapp: false };
 const cofreEsgotado = (tipo) => { try { return sessionStorage.getItem(COFRE_FIM + tipo) === new Date().toISOString().slice(0, 10); } catch (e) { return false; } };
 const marcaEsgotado = (tipo) => { try { sessionStorage.setItem(COFRE_FIM + tipo, new Date().toISOString().slice(0, 10)); } catch (e) {} };
 const iaModo = () => iaChave() ? 'chave' : (cofreEstado.claude && !cofreEsgotado('claude')) ? 'vivo' : 'demo';
 const iaDemo = () => iaModo() === 'demo';
 if (COFRE) fetch(COFRE + '/api/estado', { cache: 'no-store' }).then(r => r.json()).then(e => {
-  cofreEstado = { claude: !!e.claude, imagem: !!e.imagem, instagram: !!e.instagram };
+  cofreEstado = { claude: !!e.claude, imagem: !!e.imagem, instagram: !!e.instagram, whatsapp: !!e.whatsapp };
   if (typeof iaAtualizaFab === 'function') iaAtualizaFab();
   if (iaEl && iaEl.g.classList.contains('aberta') && !iaOcupado) iaDesenha();
   if ((location.hash.startsWith('#/adm/marketing') || location.hash.startsWith('#/adm/inbox')) && typeof route === 'function' && !(typeof isBusyEditing === 'function' && isBusyEditing())) route();
@@ -179,10 +179,13 @@ const IA_TXT = {
   inboxTxt: { pt: 'WhatsApp e Instagram num lugar só. O agente lê a pergunta, consulta as vagas de verdade e escreve a resposta no idioma do cliente.', en: 'WhatsApp and Instagram in one place. The agent reads the question, checks the real availability and writes the reply in the client’s language.' },
   inboxDemo: { pt: 'Demonstração: no app real, estas mensagens chegam do WhatsApp e do Instagram do guia.', en: 'Demo: in the real app, these messages arrive from the guide’s WhatsApp and Instagram.' },
   aoVivo: { pt: 'Ao vivo agora', en: 'Live now' },
-  aoVivoTit: { pt: 'Teste o agente de verdade no Instagram', en: 'Try the real agent on Instagram' },
-  aoVivoTxt: { pt: 'Mande um direct para @{c} perguntando sobre um passeio: datas, vagas, preço. Em segundos chega a resposta, escrita pelo agente no seu idioma, com as vagas deste demo.', en: 'Send a DM to @{c} asking about a tour: dates, seats, price. Within seconds the agent replies in your language, with this demo’s availability.' },
-  aoVivoBt: { pt: 'Abrir o direct', en: 'Open the DM' },
-  aoVivoNota: { pt: 'Enquanto a Meta analisa o app, o seu Instagram precisa ser liberado antes — peça ao seu contato da Ti Artes (leva 1 minuto).', en: 'While Meta reviews the app, your Instagram must be enabled first — ask your Ti Artes contact (takes 1 minute).' },
+  aoVivoTit: { pt: 'Teste o agente de verdade', en: 'Try the real agent' },
+  aoVivoTxt: { pt: 'Mande uma mensagem perguntando sobre um passeio: datas, vagas, preço. Em segundos chega a resposta, escrita pelo agente no seu idioma, com as vagas deste demo.', en: 'Send a message asking about a tour: dates, seats, price. Within seconds the agent replies in your language, with this demo’s availability.' },
+  aoVivoNota: { pt: 'Enquanto a Meta analisa o app, o seu Instagram ou número precisa ser liberado antes — peça ao seu contato da Ti Artes (1 minuto). No WhatsApp, por enquanto só números de fora do Brasil.', en: 'While Meta reviews the app, your Instagram or number must be enabled first — ask your Ti Artes contact (1 minute). On WhatsApp, for now only numbers outside Brazil.' },
+  ibTodas: { pt: 'Todas', en: 'All' },
+  ibEspera: { pt: 'esperando você', en: 'waiting for you' },
+  ibFeitas: { pt: 'respondidas', en: 'answered' },
+  ibLinguas: { pt: 'idiomas', en: 'languages' },
   modoAprovar: { pt: 'Eu aprovo cada resposta', en: 'I approve every reply' },
   modoAuto: { pt: 'Automático', en: 'Automatic' },
   aprovar: { pt: 'Aprovar e enviar', en: 'Approve and send' },
@@ -1417,52 +1420,74 @@ function conversas() {
 }
 /* o agente respondendo de verdade no Instagram (cofre + Meta) */
 function aoVivoCartao() {
-  const conta = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.agenteInstagram;
-  if (!conta || !cofreEstado.instagram) return '';
-  return `<section class="card aoVivo"><span class="aoVivoTag"><i></i>${ia('aoVivo')}</span>
-    <h3>${ia('aoVivoTit')}</h3><p>${esc(ia('aoVivoTxt').replace('{c}', conta))}</p>
-    <a class="cta sm aoVivoBt" href="https://ig.me/m/${encodeURIComponent(conta)}" target="_blank" rel="noopener">📩 ${ia('aoVivoBt')} · @${esc(conta)}</a>
-    <p class="mkNota">${ia('aoVivoNota')}</p></section>`;
+  const cfg = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG : {};
+  const ig = cfg.agenteInstagram && cofreEstado.instagram, wa = cfg.agenteWhatsapp && cofreEstado.whatsapp;
+  if (!ig && !wa) return '';
+  const waFmt = (n) => '+' + n.replace(/^1(\d{3})(\d{3})(\d{4})$/, '1 $1 $2 $3');
+  return `<section class="ibVivo">
+    <div class="ibVivoTxt"><span class="ibVivoTag"><i></i>${ia('aoVivo')}</span>
+      <b>${ia('aoVivoTit')}</b><p>${ia('aoVivoTxt')}</p></div>
+    <div class="ibVivoBts">
+      ${ig ? `<a class="ibVivoBt ig" href="https://ig.me/m/${encodeURIComponent(cfg.agenteInstagram)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span><b>Instagram</b><small>@${esc(cfg.agenteInstagram)}</small></span></a>` : ''}
+      ${wa ? `<a class="ibVivoBt wa" href="https://wa.me/${encodeURIComponent(cfg.agenteWhatsapp)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.5-.3Z"/></svg><span><b>WhatsApp</b><small>${esc(waFmt(cfg.agenteWhatsapp))}</small></span></a>` : ''}
+    </div>
+    <small class="ibVivoNota">${ia('aoVivoNota')}</small></section>`;
 }
-let inboxAberta = null;
+let inboxAberta = null, inboxFiltro = 'todas';
+const ibCores = ['#6366f1', '#0ea5e9', '#f59e0b', '#ec4899', '#10b981', '#8b5cf6'];
+const ibAvatar = (c) => `<span class="ibAv" style="--av:${ibCores[(parseInt(c.id.slice(1), 10) || 0) % ibCores.length]}">${esc(c.nome[0])}<i class="ibAvCanal ${c.canal === 'whats' ? 'wa' : 'ig'}"></i></span>`;
 function admAtendimento(arg) {
   const m = Mkt.get(), cs = conversas();
   if (arg) inboxAberta = arg;
   const aberta = cs.find(c => c.id === inboxAberta);
   const cli = (id) => CLIENTES.find(c => c.id === id);
-  const canal = (c) => c.canal === 'whats' ? '<span class="ibCanal wa">WhatsApp</span>' : '<span class="ibCanal ig">Instagram</span>';
-  const lista = cs.map(v => { const c = cli(v.id); return `<button class="ibItem ${v.id === inboxAberta ? 'on' : ''}" data-conv="${v.id}">
-    <b>${esc(c.nome)} <small class="ibLang">${c.lang.toUpperCase()}</small></b>${canal(c)}
-    <span class="ibPrev">${esc(c.msg)}</span>
-    <span class="ibEstado ${v.estado}">${v.estado === 'pendente' ? ia('aguardando') : v.estado === 'auto' ? ia('enviadaAuto') : v.estado === 'descartada' ? ia('descartada') : ia('enviada')}</span></button>`; }).join('');
-  let detalhe = `<div class="emptybox"><p>${ia('escolha')}</p></div>`;
+  const canalNome = (c) => c.canal === 'whats' ? 'WhatsApp' : 'Instagram';
+  const estadoTxt = (v) => v.estado === 'pendente' ? ia('aguardando') : v.estado === 'auto' ? ia('enviadaAuto') : v.estado === 'descartada' ? ia('descartada') : ia('enviada');
+  const visiveis = cs.filter(v => inboxFiltro === 'todas' || cli(v.id).canal === inboxFiltro);
+  const nEspera = cs.filter(v => v.estado === 'pendente').length;
+  const nFeitas = cs.filter(v => v.estado === 'auto' || v.estado === 'enviada').length;
+  const nLinguas = new Set(cs.map(v => cli(v.id).lang)).size;
+  const filtros = [['todas', ia('ibTodas')], ['whats', 'WhatsApp'], ['insta', 'Instagram']]
+    .map(([k, t]) => `<button class="${inboxFiltro === k ? 'on' : ''}" data-filtro="${k}">${t}</button>`).join('');
+  const lista = visiveis.map(v => { const c = cli(v.id); return `<button class="ibItem ${v.id === inboxAberta ? 'on' : ''}" data-conv="${v.id}">
+    ${ibAvatar(c)}<span class="ibItemTxt"><span class="ibItemTopo"><b>${esc(c.nome)}</b><small class="ibLang">${c.lang.toUpperCase()}</small>${v.estado === 'pendente' ? '<i class="ibPonto"></i>' : ''}</span>
+    <span class="ibPrev">${esc(c.msg)}</span><span class="ibEstado ${v.estado}">${estadoTxt(v)}</span></span></button>`; }).join('')
+    || `<p class="ibVazio">—</p>`;
+  let detalhe = `<div class="ibNada"><span aria-hidden="true">💬</span><p>${ia('escolha')}</p></div>`;
   if (aberta) {
     const c = cli(aberta.id), r = respostaPara(c, c.lang), trad = c.lang !== LANG ? respostaPara(c, LANG) : null;
     const texto = aberta.texto || r.txt;
     detalhe = `<div class="ibConv">
-      <button class="mini ibVolta" data-voltar>${ia('voltar')}</button>
-      <div class="ibTopo"><b>${esc(c.nome)}</b> ${canal(c)} <small class="ibLang">${c.lang.toUpperCase()}</small></div>
-      <div class="ibMsg dele">${esc(c.msg)}</div>
-      ${aberta.estado === 'pendente' ? `
-        <div class="ibRasc"><small>${ia('rascunhoIA')}</small><textarea id="ibTxt" rows="4">${esc(texto)}</textarea>
-          ${r.falta ? `<p class="ibFalta">⚠ ${ia('falta')}: ${esc((trad || r).falta)}</p>` : ''}
-          ${trad ? `<details class="ibTrad"><summary>${ia('paraVoce')}</summary><p>${esc(trad.txt)}</p></details>` : ''}
-          <div class="mkBts"><button class="cta sm" data-aprova="${c.id}">${ia('aprovar')}</button><button class="mini" data-descarta="${c.id}">${ia('descartar')}</button></div></div>`
-      : aberta.estado === 'descartada' ? `<p class="mkNota">${ia('descartada')}</p>`
-      : `<div class="ibMsg minha">${esc(texto)}</div><p class="mkNota" style="text-align:right">${aberta.estado === 'auto' ? '⚡ ' + ia('enviadaAuto') : '✓ ' + ia('enviada')} · ${esc(aberta.hora || '')}</p>`}
+      <header class="ibTopo"><button class="ibVolta" data-voltar aria-label="${ia('voltar')}">←</button>${ibAvatar(c)}
+        <div><b>${esc(c.nome)}</b><small>${canalNome(c)} · ${c.lang.toUpperCase()}</small></div></header>
+      <div class="ibFio">
+        <div class="ibMsg dele">${esc(c.msg)}</div>
+        ${aberta.estado === 'pendente' ? '' : aberta.estado === 'descartada' ? `<p class="ibSis">${ia('descartada')}</p>`
+          : `<div class="ibMsg minha">${esc(texto)}</div><p class="ibSis dir">${aberta.estado === 'auto' ? '⚡ ' + ia('enviadaAuto') : '✓ ' + ia('enviada')} · ${esc(aberta.hora || '')}</p>`}
+      </div>
+      ${aberta.estado === 'pendente' ? `<div class="ibComp">
+        <span class="ibCompTag">✦ ${ia('rascunhoIA')}</span>
+        <textarea id="ibTxt" rows="4">${esc(texto)}</textarea>
+        ${r.falta ? `<p class="ibFalta">${ia('falta')}: ${esc((trad || r).falta)}</p>` : ''}
+        ${trad ? `<details class="ibTrad"><summary>${ia('paraVoce')}</summary><p>${esc(trad.txt)}</p></details>` : ''}
+        <div class="ibCompBts"><button class="ibBt sec" data-descarta="${c.id}">${ia('descartar')}</button><button class="ibBt" data-aprova="${c.id}">${ia('aprovar')} ↑</button></div></div>` : ''}
     </div>`;
   }
   admShell('inbox', `
-    <div class="pagehead"><h1 class="pageh">${ia('atendimento')}</h1></div>
+    <div class="ibCab"><div><h1 class="pageh">${ia('atendimento')}</h1><p class="ibSub">${ia('inboxTxt')}</p></div>
+      <div class="ibModo" role="group"><button class="${m.modoAuto ? '' : 'on'}" data-modo="0">${ia('modoAprovar')}</button><button class="${m.modoAuto ? 'on' : ''}" data-modo="1">⚡ ${ia('modoAuto')}</button></div></div>
     <p class="mkExtra">✦ ${ia('extraAviso')}</p>
-    <section class="card mkHead"><p class="mkLead">${ia('inboxTxt')}</p>
-      <div class="ibModo"><button class="${m.modoAuto ? '' : 'on'}" data-modo="0">${ia('modoAprovar')}</button><button class="${m.modoAuto ? 'on' : ''}" data-modo="1">⚡ ${ia('modoAuto')}</button></div></section>
+    <div class="ibKpis"><div><b>${nEspera}</b><span>${ia('ibEspera')}</span></div><div><b>${nFeitas}</b><span>${ia('ibFeitas')}</span></div><div><b>${nLinguas}</b><span>${ia('ibLinguas')}</span></div></div>
     ${aoVivoCartao()}
-    <p class="mkNota">${ia('inboxDemo')}</p>
-    <div class="ibGrade ${aberta ? 'comConversa' : ''}"><div class="ibLista">${lista}<button class="mini" id="ibSimula">${ia('simular')}</button></div><div class="ibDetalhe">${detalhe}</div></div>`);
+    <div class="ibApp ${aberta ? 'comConversa' : ''}">
+      <aside class="ibLista"><div class="ibFiltros">${filtros}</div><div class="ibItens">${lista}</div>
+        <button class="ibSimula" id="ibSimula">${ia('simular')}</button></aside>
+      <section class="ibDetalhe">${detalhe}</section></div>
+    <p class="ibRodape">${ia('inboxDemo')}</p>`);
   const agora = () => new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
   const re = () => admAtendimento();
   $$('[data-conv]').forEach(b => b.onclick = () => { inboxAberta = b.dataset.conv; re(); });
+  $$('[data-filtro]').forEach(b => b.onclick = () => { inboxFiltro = b.dataset.filtro; re(); });
   const vb = $('[data-voltar]'); if (vb) vb.onclick = () => { inboxAberta = null; re(); };
   $$('[data-aprova]').forEach(b => b.onclick = () => { const v = cs.find(x => x.id === b.dataset.aprova); v.texto = $('#ibTxt').value; v.estado = 'enviada'; v.hora = agora(); Mkt.salva(); re(); });
   $$('[data-descarta]').forEach(b => b.onclick = () => { const v = cs.find(x => x.id === b.dataset.descarta); v.estado = 'descartada'; Mkt.salva(); re(); });
@@ -1479,7 +1504,7 @@ function admAtendimento(arg) {
     const v = { id: c.id, estado: 'pendente', hora: null };
     const i = cs.findIndex(x => x.id === c.id); if (i >= 0) cs.splice(i, 1);
     if (m.modoAuto && !respostaPara(c, c.lang).falta) { v.estado = 'auto'; v.hora = agora(); }
-    cs.unshift(v); inboxAberta = c.id; Mkt.salva(); re();
+    cs.unshift(v); inboxAberta = c.id; inboxFiltro = 'todas'; Mkt.salva(); re();
   };
 }
 
@@ -1569,34 +1594,65 @@ body:has(.coach) #iaFab{display:none!important}
 .mkGera select{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:inherit;padding:0 10px}
 .mkSeloIA{position:absolute;left:4px;bottom:4px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:99px;background:rgba(0,0,0,.7);color:#fff}
 .mkFotos div{position:relative} .mkFotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block} .mkFotos button{position:absolute;top:4px;right:4px}
-.aoVivo{border:2px solid #16a34a;background:color-mix(in srgb,#16a34a 10%,transparent)}
-.aoVivo h3{margin:8px 0 6px;font-size:17px}.aoVivo p{margin:0 0 12px}
-.aoVivoTag{display:inline-flex;align-items:center;gap:7px;font:700 12px var(--f-ui);letter-spacing:.04em;text-transform:uppercase;color:#16a34a}
-.aoVivoTag i{width:9px;height:9px;border-radius:50%;background:#16a34a;animation:aoVivoPulsa 1.6s infinite}
-@keyframes aoVivoPulsa{0%{box-shadow:0 0 0 0 rgba(22,163,74,.55)}70%{box-shadow:0 0 0 9px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
-.aoVivoBt{display:inline-block;text-decoration:none}
-.ibModo{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
-.ibModo button{padding:9px 14px;border:0;background:none;color:inherit;font:600 13.5px var(--f-ui);cursor:pointer;min-height:40px}
-.ibModo button.on{background:var(--accent);color:#fff}
-.ibGrade{display:grid;grid-template-columns:minmax(240px,340px) 1fr;gap:14px;align-items:start}
-.ibLista{display:flex;flex-direction:column;gap:8px}
-.ibItem{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:inherit;cursor:pointer;font:14px var(--f-ui)}
-.ibItem.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.ibPrev{grid-column:1/-1;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
-.ibEstado{grid-column:1/-1;font-size:12px;color:var(--ink-3)} .ibEstado.pendente{color:var(--warn,#b7791f);font-weight:600}
-.ibLang{font-size:10.5px;padding:1px 6px;border-radius:99px;background:var(--surface-2);color:var(--ink-2);font-weight:600;letter-spacing:.04em}
-.ibCanal{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;color:#fff;align-self:center}
-.ibCanal.wa{background:#1f9d55} .ibCanal.ig{background:linear-gradient(45deg,#f09433,#dc2743,#bc1888)}
-.ibDetalhe{background:var(--surface);border-radius:var(--r-lg,14px);padding:16px;box-shadow:var(--sh-1);min-height:200px}
-.ibTopo{display:flex;gap:8px;align-items:center;margin-bottom:12px}
-.ibMsg{max-width:85%;padding:10px 13px;border-radius:14px;font-size:14.5px;line-height:1.45;white-space:pre-wrap;margin-bottom:10px}
-.ibMsg.dele{background:var(--surface-2)} .ibMsg.minha{margin-left:auto;background:var(--accent);color:#fff}
-.ibRasc{border:2px solid var(--highlight,#FFD23F);border-radius:14px;padding:12px}
-.ibRasc small{color:var(--ink-3)} .ibRasc textarea{width:100%;margin-top:6px;min-height:110px;font:14.5px/1.45 var(--f-ui);padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:inherit;resize:vertical}
-.ibFalta{margin:8px 0 0;font-size:13px;color:var(--warn,#b7791f)}
-.ibTrad{margin-top:8px;font-size:13.5px} .ibTrad summary{cursor:pointer;color:var(--ink-3)} .ibTrad p{margin:6px 0 0;color:var(--ink-2)}
-.ibVolta{display:none;margin-bottom:10px}
-#ibSimula{align-self:flex-start}
+/* ---- aba Atendimento (22/09/2026): caixa de entrada limpa ---- */
+.ibCab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:6px}
+.ibSub{margin:4px 0 0;color:var(--ink-3);font-size:14px;max-width:560px;line-height:1.5}
+.ibModo{display:inline-flex;padding:3px;border-radius:999px;background:var(--surface-2);gap:2px;flex:none}
+.ibModo button{padding:8px 14px;border:0;border-radius:999px;background:none;color:var(--ink-2);font:600 13px var(--f-ui);cursor:pointer;min-height:36px;transition:background .15s,color .15s}
+.ibModo button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ibKpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 14px}
+.ibKpis div{padding:12px 14px;border-radius:14px;border:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.ibKpis b{font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums} .ibKpis span{font-size:12.5px;color:var(--ink-3)}
+.ibVivo{display:grid;grid-template-columns:1fr auto;gap:10px 20px;align-items:center;padding:16px 18px;margin:0 0 14px;border-radius:16px;border:1px solid color-mix(in srgb,#16a34a 35%,var(--line));background:color-mix(in srgb,#16a34a 7%,transparent)}
+.ibVivoTxt b{display:block;font-size:15.5px;margin:4px 0 2px} .ibVivoTxt p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.45;max-width:520px}
+.ibVivoNota{grid-column:1/-1;font-size:12px;color:var(--ink-3);line-height:1.4}
+.ibVivoTag{display:inline-flex;align-items:center;gap:6px;font:700 11px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:#16a34a}
+.ibVivoTag i{width:7px;height:7px;border-radius:50%;background:#16a34a;animation:ibPulsa 1.6s infinite}
+@keyframes ibPulsa{0%{box-shadow:0 0 0 0 rgba(22,163,74,.5)}70%{box-shadow:0 0 0 7px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
+.ibVivoBts{display:flex;gap:8px;flex-wrap:wrap}
+.ibVivoBt{display:inline-flex;align-items:center;gap:10px;padding:9px 16px 9px 12px;border-radius:14px;color:#fff;text-decoration:none;font:13px var(--f-ui);line-height:1.2;transition:transform .12s}
+.ibVivoBt:hover{transform:translateY(-1px)} .ibVivoBt span{display:flex;flex-direction:column} .ibVivoBt b{font-size:13.5px} .ibVivoBt small{opacity:.85;font-size:11.5px}
+.ibVivoBt.ig{background:linear-gradient(45deg,#f09433,#dc2743 55%,#bc1888)} .ibVivoBt.wa{background:#1fa855}
+.ibApp{display:grid;grid-template-columns:minmax(250px,320px) 1fr;height:min(620px,72vh);border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--surface)}
+.ibLista{display:flex;flex-direction:column;border-right:1px solid var(--line);min-height:0}
+.ibFiltros{display:flex;gap:6px;padding:12px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.ibFiltros button{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--ink-2);font:600 12.5px var(--f-ui);cursor:pointer;white-space:nowrap}
+.ibFiltros button.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.ibItens{flex:1;overflow-y:auto;padding:6px}
+.ibItem{display:flex;gap:12px;width:100%;text-align:left;padding:10px;border:0;border-radius:12px;background:none;color:inherit;cursor:pointer;font:14px var(--f-ui);transition:background .12s}
+.ibItem:hover{background:var(--surface-2)} .ibItem.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.ibItemTxt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ibItemTopo{display:flex;align-items:center;gap:6px}
+.ibPonto{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:auto}
+.ibPrev{color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.ibEstado{font-size:11.5px;color:var(--ink-3)} .ibEstado.pendente{color:var(--accent);font-weight:600}
+.ibLang{font-size:10px;padding:1px 6px;border-radius:6px;background:var(--surface-2);color:var(--ink-3);font-weight:700;letter-spacing:.05em}
+.ibAv{position:relative;flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--av);color:#fff;font:700 15px var(--f-ui)}
+.ibAvCanal{position:absolute;right:-2px;bottom:-2px;width:15px;height:15px;border-radius:50%;border:2px solid var(--surface)}
+.ibAvCanal.wa{background:#22c55e} .ibAvCanal.ig{background:linear-gradient(45deg,#f09433,#dc2743,#bc1888)}
+.ibSimula{margin:8px 12px 12px;padding:10px;border-radius:12px;border:1px dashed var(--line);background:none;color:var(--ink-2);font:600 13px var(--f-ui);cursor:pointer}
+.ibVazio{padding:20px;text-align:center;color:var(--ink-3)}
+.ibDetalhe{display:flex;flex-direction:column;min-height:0;min-width:0}
+.ibNada{flex:1;display:grid;place-content:center;justify-items:center;gap:6px;color:var(--ink-3);padding:30px} .ibNada span{font-size:30px;opacity:.6} .ibNada p{margin:0}
+.ibConv{display:flex;flex-direction:column;height:100%;min-height:0}
+.ibTopo{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.ibTopo b{display:block;font-size:15px} .ibTopo small{color:var(--ink-3);font-size:12.5px}
+.ibVolta{display:none;place-items:center;width:34px;height:34px;border-radius:50%;border:0;background:var(--surface-2);color:inherit;font-size:16px;cursor:pointer}
+.ibFio{flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:8px;background:var(--surface-2)}
+.ibMsg{max-width:78%;padding:10px 14px;border-radius:18px;font-size:14.5px;line-height:1.45;white-space:pre-wrap}
+.ibMsg.dele{background:var(--surface);border-bottom-left-radius:6px;align-self:flex-start;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.ibMsg.minha{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:6px}
+.ibSis{margin:0;font-size:12px;color:var(--ink-3)} .ibSis.dir{text-align:right}
+.ibComp{padding:12px 16px 14px;border-top:1px solid var(--line);background:var(--surface)}
+.ibCompTag{font:700 11px var(--f-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+.ibComp textarea{width:100%;margin-top:8px;min-height:96px;font:14.5px/1.5 var(--f-ui);padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);color:inherit;resize:vertical}
+.ibComp textarea:focus{outline:2px solid color-mix(in srgb,var(--accent) 40%,transparent);outline-offset:1px}
+.ibFalta{margin:8px 0 0;font-size:13px;padding:8px 12px;border-radius:10px;background:color-mix(in srgb,#f59e0b 14%,transparent);color:var(--ink)}
+.ibTrad{margin-top:8px;font-size:13px} .ibTrad summary{cursor:pointer;color:var(--ink-3)} .ibTrad p{margin:6px 0 0;color:var(--ink-2)}
+.ibCompBts{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.ibBt{padding:10px 18px;border-radius:999px;border:0;background:var(--accent);color:#fff;font:600 13.5px var(--f-ui);cursor:pointer;min-height:40px}
+.ibBt.sec{background:none;color:var(--ink-2);border:1px solid var(--line)}
+.ibRodape{margin:12px 0 0;text-align:center;font-size:12.5px;color:var(--ink-3)}
 /* ---- aba Marketing (21/09/2026) ---- */
 .mk{padding-bottom:96px}
 .mkTopo{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
@@ -1660,7 +1716,7 @@ body:has(.coach) #iaFab{display:none!important}
   .novo{padding:12px 8px;align-items:center;text-align:center} .novo span{font-size:24px;margin:0} .novo b{font-size:13px} .novo small{display:none}
   .mkAbas button{padding:10px 11px;font-size:13.5px}
 }
-@media (max-width:760px){.ibGrade{grid-template-columns:1fr} .ibGrade.comConversa .ibLista{display:none} .ibGrade:not(.comConversa) .ibDetalhe{display:none} .ibVolta{display:inline-block}}
+@media (max-width:760px){.ibApp{grid-template-columns:1fr;height:auto} .ibApp.comConversa .ibLista{display:none} .ibApp:not(.comConversa) .ibDetalhe{display:none} .ibVolta{display:grid} .ibCab{flex-direction:column;align-items:stretch} .ibModo{align-self:flex-start} .ibVivo{grid-template-columns:1fr} .ibVivoBts{flex-direction:column} .ibVivoBt{justify-content:flex-start}}
 `;
 
 let iaEl = null, iaFoto = null;

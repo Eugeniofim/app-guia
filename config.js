@@ -19,6 +19,8 @@ var APP_CONFIG = {
   cofre: 'https://guia-cofre.netlify.app',
   /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
   agenteInstagram: 'estudio_ti_artes',
+  /* número do WhatsApp do agente do demo (só dígitos; o de teste da Meta não entrega para o Brasil) */
+  agenteWhatsapp: '15551558996',
 
   /* Quem e o guia. Vira o valor inicial dos Ajustes (que o guia edita no
      painel) e o que a abertura e o cabecalho mostram. */
