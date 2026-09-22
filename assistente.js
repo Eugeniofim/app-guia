@@ -1235,20 +1235,23 @@ function mktPlano(mesArg) {
 
 function mktCriativos() {
   const m = Mkt.get();
+  /* imagem por IA: no app de um cliente, ele pode ligar a chave dele; no demo
+     público só aparece se o cofre tiver imagem ligada (22/09/2026: sem Gemini) */
+  const comIA = imgDisponivel() || (typeof temNuvem === 'function' && temNuvem());
   return `
     <section class="mkBloco"><div class="mkBlocoTopo"><h2>${ia('novoCriativo')}</h2></div>
-      <div class="novos">
+      <div class="novos" style="grid-template-columns:repeat(${comIA ? 3 : 2},1fr)">
         <button class="novo" data-pede="${esc(ia('pedidoCriativo'))}"><span>📸</span><b>${ia('ncFoto')}</b><small>${ia('ncFotoSub')}</small></button>
         <button class="novo" data-pede="${esc(ia('pedidoTexto'))}"><span>✍️</span><b>${ia('ncTexto')}</b><small>${ia('ncTextoSub')}</small></button>
-        <button class="novo" id="ncIA"><span>✨</span><b>${ia('ncIA')}</b><small>${ia('ncIASub')}</small></button>
+        ${comIA ? `<button class="novo" id="ncIA"><span>✨</span><b>${ia('ncIA')}</b><small>${ia('ncIASub')}</small></button>` : ''}
       </div></section>
-    <section class="mkBloco" id="blocoIA"><div class="mkBlocoTopo"><h3>✨ ${ia('imgTit')}</h3></div><p class="mkNota">${ia('imgTxt')}</p>
+    ${comIA ? `<section class="mkBloco" id="blocoIA"><div class="mkBlocoTopo"><h3>✨ ${ia('imgTit')}</h3></div><p class="mkNota">${ia('imgTxt')}</p>
       ${imgDisponivel() ? `${imgPeloCofre() ? `<p class="mkNota">⚡ ${ia('imgVivoTxt')}</p>` : ''}<div class="mkGera"><textarea id="imgDesc" rows="2" placeholder="${esc(ia('imgPh'))}"></textarea>
         <select id="imgFmt">${Object.keys(FORMATOS_CRIATIVO).map(f => `<option value="${f}">${f}</option>`).join('')}</select>
         <button class="cta sm" id="imgGera">${ia('imgGerar')}</button></div>
         <p class="mkNota" id="imgMsg"></p>${imgChave() ? `<button class="mini" id="imgTroca">${ia('imgTrocar')}</button>` : ''}`
       : `<p class="mkNota">${ia('imgConectaTxt')}</p><div class="mkGera"><input id="imgChaveIn" type="password" autocomplete="off" placeholder="AIza…">
-        <button class="cta sm" id="imgChaveOk">${ia('imgConectar')}</button></div><p class="mkNota" id="imgMsg"></p>`}</section>
+        <button class="cta sm" id="imgChaveOk">${ia('imgConectar')}</button></div><p class="mkNota" id="imgMsg"></p>`}</section>` : ''}
     <section class="mkBloco"><div class="mkBlocoTopo"><h2>${ia('galeria')}</h2></div>
       ${m.criativos.length ? `<div class="mkGrade">${m.criativos.map(c => `
         <figure class="criativo"><canvas data-cv="${c.id}"></canvas>
