@@ -1143,6 +1143,24 @@ Object.assign(IA_TXT, {
   vagaNoDia: { pt: 'vaga sobrando', en: 'empty seats', fr: 'places libres', it: 'posti liberi', de: 'freie Plätze', es: 'plazas libres' },
   anTotal: { pt: 'no total', en: 'in total', fr: 'au total', it: 'in totale', de: 'insgesamt', es: 'en total' },
   memTit: { pt: 'O que o assistente aprendeu', en: 'What the assistant has learned', fr: 'Ce que l’assistant a appris', it: 'Cosa ha imparato l’assistente', de: 'Was der Assistent gelernt hat', es: 'Lo que aprendió el asistente' },
+  mkSubSemana: { pt: 'Seus posts da semana, prontos para publicar. Onde sobra vaga, o app sugere o que postar.', en: 'Your posts for the week, ready to publish. Where seats are left, the app suggests what to post.', fr: 'Vos posts de la semaine, prêts à publier. Là où il reste des places, l’app suggère quoi poster.', it: 'I tuoi post della settimana, pronti da pubblicare. Dove restano posti, l’app suggerisce cosa postare.', de: 'Deine Posts der Woche, fertig zum Veröffentlichen. Wo Plätze frei sind, schlägt die App etwas vor.', es: 'Tus posts de la semana, listos para publicar. Donde sobran plazas, la app sugiere qué publicar.' },
+  mkCriarSemana: { pt: 'Criar posts da semana', en: 'Create this week’s posts', fr: 'Créer les posts de la semaine', it: 'Crea i post della settimana', de: 'Posts der Woche erstellen', es: 'Crear los posts de la semana' },
+  pedidoSemana: { pt: 'Monte o plano de posts desta semana (próximos 7 dias), com legenda pronta, priorizando as saídas com vaga sobrando.', en: 'Build the post plan for this week (next 7 days), captions ready, prioritising departures with empty seats.', fr: 'Fais le plan de posts de cette semaine (7 prochains jours), légendes prêtes, en priorisant les départs avec des places libres.', it: 'Fai il piano dei post di questa settimana (prossimi 7 giorni), didascalie pronte, dando priorità alle partenze con posti liberi.', de: 'Erstelle den Post-Plan für diese Woche (nächste 7 Tage) mit fertigen Texten, zuerst Termine mit freien Plätzen.', es: 'Arma el plan de posts de esta semana (próximos 7 días), con texto listo, priorizando las salidas con plazas libres.' },
+  mkSemanaTit: { pt: 'Esta semana', en: 'This week', fr: 'Cette semaine', it: 'Questa settimana', de: 'Diese Woche', es: 'Esta semana' },
+  mkSugTxt: { pt: '{n} lugares vazios e nenhum post', en: '{n} empty seats and no post', fr: '{n} places vides et aucun post', it: '{n} posti vuoti e nessun post', de: '{n} freie Plätze und kein Post', es: '{n} plazas vacías y ningún post' },
+  mkCriarStory: { pt: 'Criar story', en: 'Create story', fr: 'Créer une story', it: 'Crea storia', de: 'Story erstellen', es: 'Crear story' },
+  mkPublicar: { pt: 'Publicar', en: 'Publish', fr: 'Publier', it: 'Pubblica', de: 'Veröffentlichen', es: 'Publicar' },
+  mkCopiarTexto: { pt: 'Copiar texto', en: 'Copy text', fr: 'Copier le texte', it: 'Copia testo', de: 'Text kopieren', es: 'Copiar texto' },
+  mkPublicado: { pt: 'Publicado', en: 'Published', fr: 'Publié', it: 'Pubblicato', de: 'Veröffentlicht', es: 'Publicado' },
+  mkPubDemo: { pt: 'Demonstração: no app de verdade, isto sai direto no Instagram do guia.', en: 'Demo: in the real app, this goes straight to the guide’s Instagram.', fr: 'Démo : dans la vraie app, cela part directement sur l’Instagram du guide.', it: 'Demo: nell’app vera, questo va direttamente sull’Instagram della guida.', de: 'Demo: In der echten App geht das direkt auf das Instagram des Guides.', es: 'Demo: en la app real, esto sale directo en el Instagram del guía.' },
+  mkSemanaVazia: { pt: 'Nenhum post para os próximos 7 dias ainda.', en: 'No posts for the next 7 days yet.', fr: 'Aucun post pour les 7 prochains jours.', it: 'Ancora nessun post per i prossimi 7 giorni.', de: 'Noch keine Posts für die nächsten 7 Tage.', es: 'Aún no hay posts para los próximos 7 días.' },
+  mkMais: { pt: 'Mais ferramentas', en: 'More tools', fr: 'Plus d’outils', it: 'Altri strumenti', de: 'Weitere Werkzeuge', es: 'Más herramientas' },
+  mkCal: { pt: 'Calendário do mês', en: 'Month calendar', fr: 'Calendrier du mois', it: 'Calendario del mese', de: 'Monatskalender', es: 'Calendario del mes' },
+  mkCalSub: { pt: 'Tudo que está planejado', en: 'Everything planned', fr: 'Tout ce qui est prévu', it: 'Tutto ciò che è pianificato', de: 'Alles Geplante', es: 'Todo lo planificado' },
+  mkImgSub: { pt: 'Stories e posts com a sua marca', en: 'Branded stories and posts', fr: 'Stories et posts à votre image', it: 'Storie e post con il tuo marchio', de: 'Storys und Posts mit deiner Marke', es: 'Stories y posts con tu marca' },
+  mkAnSub: { pt: 'Para chegar a quem não te segue', en: 'To reach people who don’t follow you', fr: 'Pour toucher ceux qui ne vous suivent pas', it: 'Per raggiungere chi non ti segue', de: 'Um Nicht-Follower zu erreichen', es: 'Para llegar a quien no te sigue' },
+  mkMarcaSub: { pt: 'Cores, tom de voz e fotos', en: 'Colours, tone and photos', fr: 'Couleurs, ton et photos', it: 'Colori, tono e foto', de: 'Farben, Tonfall und Fotos', es: 'Colores, tono y fotos' },
+  mkVoltar: { pt: '← Voltar para a semana', en: '← Back to the week', fr: '← Retour à la semaine', it: '← Torna alla settimana', de: '← Zurück zur Woche', es: '← Volver a la semana' },
   mkAgora: { pt: 'O que fazer agora', en: 'What to do now', fr: 'À faire maintenant', it: 'Cosa fare adesso', de: 'Jetzt zu tun', es: 'Qué hacer ahora' },
   mkEncher: { pt: 'Encher “{tour}”', en: 'Fill “{tour}”', fr: 'Remplir « {tour} »', it: 'Riempire “{tour}”', de: '„{tour}“ füllen', es: 'Llenar “{tour}”' },
   mkVazios: { pt: 'lugares vazios', en: 'empty seats', fr: 'places vides', it: 'posti vuoti', de: 'freie Plätze', es: 'plazas vacías' },
@@ -1206,11 +1224,10 @@ function admMarketing(arg) {
   const mes = new Date().toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
   admShell('marketing', `<div class="mk">
     <header class="mkTopo">
-      <div class="mkTitulo"><h1 class="pageh">${ia('marketing')} <small class="iaExtra">${ia('extra')}</small></h1><p>${ia('mkSub')}</p></div>
-      <button class="cta sm mkMes" data-pede="${esc(ia('pedidoPlano', { mes }))}">✦ ${ia('mkMontarMes')}</button>
+      <div class="mkTitulo"><h1 class="pageh">${ia('marketing')} <small class="iaExtra">${ia('extra')}</small></h1><p>${ia(aba === 'inicio' ? 'mkSubSemana' : 'mkSub')}</p></div>
+      ${aba === 'inicio' ? `<button class="cta sm mkMes" data-pede="${esc(ia('pedidoSemana'))}">✦ ${ia('mkCriarSemana')}</button>` : ''}
     </header>
-    <nav class="mkAbas" role="tablist">${MKT_ABAS.map(([k, ic, r]) =>
-      `<button role="tab" class="${k === aba ? 'on' : ''}" aria-selected="${k === aba}" data-mk="${k}">${ia(r)}</button>`).join('')}</nav>
+    ${aba === 'inicio' ? '' : `<nav class="mkVolta"><button class="mkLink" data-mk="inicio">${ia('mkVoltar')}</button><b>${ia(MKT_ABAS.find(([k]) => k === aba)[2])}</b></nav>`}
     ${corpo}
     <p class="mkRodape">✦ ${ia('extraAviso')}</p>
   </div>`);
@@ -1219,6 +1236,7 @@ function admMarketing(arg) {
   const abaOn = $('.mkAbas .on'); if (abaOn) abaOn.scrollIntoView({ inline: 'center', block: 'nearest' });
   $$('[data-pede]').forEach(b => b.onclick = () => pedeAoAssistente(b.dataset.pede));
   $$('[data-vaga]').forEach(b => b.onclick = () => { const s = _vagasNaTela[+b.dataset.i]; if (s) acaoVaga(b.dataset.vaga, s); });
+  $$('[data-publica]').forEach(b => b.onclick = () => { const p = Mkt.get().posts.find(x => x.id === b.dataset.publica); if (!p) return; p.situacao = 'postado'; Mkt.salva(); toast(ia('mkPubDemo')); const y = scrollY; route(); scrollTo(0, y); });
   mktLiga();
 }
 
@@ -1258,22 +1276,56 @@ function cartaoPost(p, curto) {
   </details>`;
 }
 
+/* Marketing = "o que eu posto esta semana?". Posts prontos (imagem + texto +
+   Publicar) e, nos dias com vaga sobrando sem post, uma sugestão de um toque.
+   O resto (calendário, imagens, anúncios, marca) fica em "Mais ferramentas". */
+function mktSemeia(m) {
+  /* demonstração: começa com dois posts de exemplo para a tela não nascer vazia */
+  if (m.semeado || m.posts.length) return;
+  m.semeado = true;
+  const usados = new Set();
+  oportunidades(8).filter(s => !usados.has(s.x.id) && usados.add(s.x.id)).slice(0, 2).forEach((s, k) => {
+    const v = varsSaida(s), dia = s.date > addDays(hojeIso(), 2) ? addDays(s.date, -2) : addDays(hojeIso(), 1);
+    m.posts.push({ id: 'p-' + uid(), data: dia, formato: k ? 'story' : 'post', passeio_id: s.x.id,
+      tema: ia('dPostTema', { tour: nomeTour(s.x), data: dataCurta(s.date) }), legenda: ia('dPostLeg', v), situacao: 'rascunho' });
+  });
+  Mkt.salva();
+}
+function cartaoPostSemana(p) {
+  const x = p.passeio_id && Tours.get(p.passeio_id), foto = (x && x.photo) || 'capa.jpg', d = new Date(p.data + 'T12:00:00');
+  const fmt = p.formato === 'story' ? ia('opStory') : p.formato === 'reel' ? 'Reel' : ia('opPost');
+  const feito = p.situacao === 'postado';
+  return `<article class="pc ${feito ? 'feito' : ''} ${p.formato === 'story' ? 'story' : ''}">
+    <div class="pcImg" style="background-image:url('${esc(foto)}')"><span class="pcFmt">${fmt}</span><b class="pcTit">${esc(p.tema)}</b></div>
+    <div class="pcCorpo"><small class="pcQuando">${nomeDia(d.getDay())} ${dataCurta(p.data)}${feito ? ` · <span class="pcOk">✓ ${ia('mkPublicado')}</span>` : ''}</small>
+      ${p.legenda ? `<p class="pcLeg">${esc(p.legenda)}</p>` : ''}
+      <div class="pcBts">${feito ? '' : `<button class="ibBt" data-publica="${p.id}">${ia('mkPublicar')}</button>`}
+        ${p.legenda ? `<button class="pcCopia" data-copia="${p.id}">${ia('mkCopiarTexto')}</button>` : ''}
+        <button class="pcX" data-apagapost="${p.id}" aria-label="${ia('apagar')}">×</button></div></div></article>`;
+}
 function mktInicio() {
-  const m = Mkt.get(), vagas = oportunidades(5);
-  _vagasNaTela = vagas;
-  const prox = m.posts.filter(p => p.data >= hojeIso()).sort((a, b) => a.data.localeCompare(b.data)).slice(0, 3);
-  const futuros = m.posts.filter(p => p.data >= hojeIso()).length;
+  const m = Mkt.get(); mktSemeia(m);
+  const hoje = hojeIso(), fim = addDays(hoje, 7);
+  const posts = m.posts.filter(p => p.data >= hoje && p.data < fim).sort((a, b) => a.data.localeCompare(b.data));
+  const comPost = new Set(posts.map(p => (p.passeio_id || '') + '|' + p.data));
+  /* sugestões: saídas da semana com metade ou mais vazia e sem post para elas */
+  const sugs = saidasVazias(7).filter(s => s.livres >= Math.ceil(s.capacity / 2) && !m.posts.some(p => p.passeio_id === s.x.id && p.data <= s.date && p.data >= addDays(s.date, -3)))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const vistas = new Set(), sug = sugs.filter(s => { const k = s.x.id + s.date; if (vistas.has(k)) return false; vistas.add(k); return true; }).slice(0, 4);
+  _vagasNaTela = sug;
+  const sugHtml = sug.map((s, i) => { const d = new Date(s.date + 'T12:00:00'); return `<div class="sug">
+      <span class="sugData"><b>${d.getDate()}</b><small>${nomeDia(d.getDay())}</small></span>
+      <span class="sugTxt"><b>${esc(nomeTour(s.x))} · ${esc(s.time)}</b><small>${ia('mkSugTxt', { n: s.livres })}</small></span>
+      <button class="ibBt" data-vaga="story" data-i="${i}">✦ ${ia('mkCriarStory')}</button></div>`; }).join('');
+  const ferr = [['plano', 'mkCal', 'mkCalSub', '🗓'], ['criativos', 'abCriativos', 'mkImgSub', '🖼'], ['anuncios', 'abAnuncios', 'mkAnSub', '📣'], ['marca', 'abMarca', 'mkMarcaSub', '🎨']];
   return `
-    ${vagas.length ? cartaoAgora(vagas[0]) : `<div class="emptybox"><p>${ia('opVazio')}</p></div>`}
-    ${vagas.length > 1 ? `<section class="mkSec"><h3 class="mkSecTit">${ia('opOutras')}</h3>
-      <div class="vagas2">${vagas.slice(1).map((s, k) => cartaoVaga(s, k + 1)).join('')}</div></section>` : ''}
-    <section class="mkSec"><h3 class="mkSecTit">${ia('mesTit')}</h3>
-      <div class="ibKpis mkKpis">
-        <button data-mk="plano"><b>${futuros}</b><span>${ia('stPosts')}</span></button>
-        <button data-mk="criativos"><b>${m.criativos.length}</b><span>${ia('stCriativos')}</span></button>
-        <button data-mk="anuncios"><b>${m.anuncios.length}</b><span>${ia('stAnuncios')}</span></button></div></section>
-    <section class="mkSec"><div class="mkSecTopo"><h3 class="mkSecTit">${ia('proxTit')}</h3>${prox.length ? `<button class="mkLink" data-mk="plano">${ia('verTudo')}</button>` : ''}</div>
-      ${prox.length ? `<div class="posts">${prox.map(p => cartaoPost(p, true)).join('')}</div>` : `<p class="mkVazio">${ia('proxVazio')}</p>`}</section>`;
+    <section class="mkSec"><h3 class="mkSecTit">${ia('mkSemanaTit')}</h3>
+      ${posts.length ? `<div class="pcs">${posts.map(cartaoPostSemana).join('')}</div>`
+        : `<div class="mkVazioGrande"><p>${ia('mkSemanaVazia')}</p><button class="cta sm" data-pede="${esc(ia('pedidoSemana'))}">✦ ${ia('mkCriarSemana')}</button></div>`}
+    </section>
+    ${sug.length ? `<section class="mkSec"><h3 class="mkSecTit">💡 ${ia('opTit')}</h3><div class="sugs">${sugHtml}</div></section>` : ''}
+    <section class="mkSec"><h3 class="mkSecTit">${ia('mkMais')}</h3>
+      <div class="ferr">${ferr.map(([k, t, sub, ic]) => `<button data-mk="${k}"><span aria-hidden="true">${ic}</span><b>${ia(t)}</b><small>${ia(sub)}</small></button>`).join('')}</div></section>`;
 }
 
 function mktPlano(mesArg) {
@@ -1966,6 +2018,33 @@ body:has(.coach) #iaFab{display:none!important}
 .vaga2 .divOps{padding:0 16px 14px}
 .mkKpis button{text-align:left;background:none;color:inherit;cursor:pointer;font:inherit} .mkKpis button:hover{border-color:var(--accent)}
 @media (max-width:640px){.divOps{grid-template-columns:1fr} .agoraTopo h2{font-size:19px} .agoraNum b{font-size:32px} .vaga2 summary{grid-template-columns:40px 1fr auto;gap:10px} .vaga2Livres{display:none}}
+/* ---- Marketing v3: a semana (22/09/2026) ---- */
+.mkVolta{display:flex;align-items:center;gap:14px;margin:14px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)} .mkVolta b{font-size:16px}
+.pcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.pc{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--surface)}
+.pc.feito{opacity:.7}
+.pcImg{position:relative;aspect-ratio:1/1;background:var(--surface-2) center/cover no-repeat;display:flex;align-items:flex-end;padding:14px}
+.pc.story .pcImg{aspect-ratio:4/5}
+.pcImg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(0,0,0,.72))}
+.pcFmt{position:absolute;top:10px;left:10px;z-index:1;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font:700 11px var(--f-ui);letter-spacing:.04em;text-transform:uppercase}
+.pcTit{position:relative;z-index:1;color:#fff;font-size:16px;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.pcCorpo{display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px;flex:1}
+.pcQuando{font-size:12px;color:var(--ink-3);text-transform:capitalize} .pcOk{color:#16a34a;font-weight:700;text-transform:none}
+.pcLeg{margin:0;font-size:13.5px;line-height:1.45;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line}
+.pcBts{display:flex;gap:8px;align-items:center;margin-top:auto}
+.pcBts .ibBt{min-height:38px;padding:8px 16px}
+.pcCopia{border:0;background:none;color:var(--ink-2);font:600 13px var(--f-ui);cursor:pointer;padding:8px 4px;text-decoration:underline;text-underline-offset:3px}
+.mk .mkTopo{margin-bottom:22px}
+.pcX{margin-left:auto;width:32px;height:32px;border-radius:50%;border:0;background:none;color:var(--ink-3);font-size:18px;cursor:pointer}
+.mkVazioGrande{display:flex;flex-direction:column;align-items:center;gap:12px;padding:30px 16px;border:1px dashed var(--line);border-radius:18px;text-align:center} .mkVazioGrande p{margin:0;color:var(--ink-2)}
+.sugs{display:flex;flex-direction:column;gap:8px}
+.sug{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:14px;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb,#f59e0b 35%,var(--line));background:color-mix(in srgb,#f59e0b 7%,transparent)}
+.sugData{text-align:center} .sugData b{display:block;font:800 20px/1 var(--f-display,inherit)} .sugData small{font-size:10.5px;color:var(--ink-3);text-transform:uppercase}
+.sugTxt b{display:block;font-size:14.5px} .sugTxt small{font-size:12.5px;color:var(--ink-3)}
+.ferr{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ferr button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px;border-radius:14px;border:1px solid var(--line);background:none;color:inherit;cursor:pointer;font:inherit;text-align:left}
+.ferr button:hover{border-color:var(--accent)} .ferr span{font-size:20px} .ferr b{font-size:14px} .ferr small{font-size:12px;color:var(--ink-3);line-height:1.35}
+@media (max-width:760px){.ferr{grid-template-columns:1fr 1fr} .pcs{grid-template-columns:1fr} .sug{grid-template-columns:40px 1fr} .sug .ibBt{grid-column:1/-1}}
 /* ---- aba Marketing (21/09/2026) ---- */
 .mk{padding-bottom:96px}
 .mkTopo{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
