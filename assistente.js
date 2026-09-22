@@ -1714,10 +1714,19 @@ function admEnsinar() {
 }
 /* Aplicar no robô de verdade (Instagram do demo): só com o código do dono.
    O código fica só nesta aba do navegador (sessionStorage) e vai no cabeçalho. */
-let ensAplMsg = '';
+let ensAplMsg = '', ensCofreTemCodigo = null;
+/* o cofre já tem o código do dono? (503 = não tem; 401 = tem, e faltou o código) —
+   sem código o cartão nem aparece, para não mostrar erro numa demonstração */
+function ensSondaCodigo() {
+  if (ensCofreTemCodigo !== null || !COFRE) return;
+  ensCofreTemCodigo = false;
+  fetch(COFRE + '/api/ensino', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+    .then(r => { ensCofreTemCodigo = r.status === 401 || r.status === 200; if (ensCofreTemCodigo && $('.ensForm') && !$('.ensApl')) admEnsinar(); }).catch(() => {});
+}
 function ensAplicarCartao() {
   const conta = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.agenteInstagram;
-  if (!COFRE || !conta || !cofreEstado.instagram) return '';
+  ensSondaCodigo();
+  if (!COFRE || !conta || !cofreEstado.instagram || !ensCofreTemCodigo) return '';
   let cod = ''; try { cod = sessionStorage.getItem('guia_admin_codigo') || ''; } catch (e) {}
   return `<section class="ensCard ensApl"><h3>📲 ${ia('ensAplTit')}</h3><p class="ensSub">${esc(ia('ensAplTxt').replace('{c}', conta))}</p>
     <form id="ensAplForm" class="ensAplLinha"><input type="password" id="ensCodigo" value="${esc(cod)}" placeholder="${ia('ensCodigo')}" autocomplete="current-password" aria-label="${ia('ensCodigo')}">
