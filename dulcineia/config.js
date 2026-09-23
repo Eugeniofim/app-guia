@@ -23,6 +23,20 @@ var APP_CONFIG = {
   /* número do WhatsApp do agente do demo (só dígitos; o de teste da Meta não entrega para o Brasil) */
   /* chave PUBLICA do aviso por push (VAPID). A privada fica so nos segredos do
      Supabase dela (VAPID_PRIVADA) — nunca aqui, nunca no repositorio. */
+  /* O que ela contratou (22/09): Assistente do painel + Atendimento no Instagram.
+     false = a aba/canal aparece com cadeado e explica o que faria. */
+  modulos: { assistente: true, atendimento: true, marketing: false, whatsapp: false },
+
+  /* conversas de exemplo do Atendimento (demonstração): clientes dela,
+     brasileiros, pelo Instagram, sobre os passeios dela */
+  conversasDemo: [
+    { id: 'c1', nome: 'Mariana', lang: 'pt', canal: 'insta', tipo: 'preco', tour: 'berlim-historico', msg: 'Oi! Quanto fica o passeio Berlim Histórico?' },
+    { id: 'c2', nome: 'Rafael', lang: 'pt', canal: 'insta', tipo: 'semana', tour: 'potsdam-sanssouci', pessoas: 2, msg: 'Olá, Dulce! Vocês fazem o bate-volta a Potsdam na semana que vem? Somos um casal.' },
+    { id: 'c3', nome: 'Camila', lang: 'pt', canal: 'insta', tipo: 'crianca', tour: 'sachsenhausen', msg: 'Oi! O passeio de Sachsenhausen é indicado para adolescente de 14 anos?' },
+    { id: 'c4', nome: 'Paulo', lang: 'pt', canal: 'insta', tipo: 'pagar', msg: 'Dá pra pagar por Pix? Não tenho cartão internacional.' },
+    { id: 'c5', nome: 'Beatriz', lang: 'pt', canal: 'insta', tipo: 'disp', tour: 'bairro-judeu', pessoas: 3, msg: 'Oi Dulcineia! Tem vaga no sábado pro Bairro Judeu? Somos 3.' },
+  ],
+
   /* e-mails automaticos ao CLIENTE (recibo, confirmacao, vespera) — quem manda
      e a funcao cofre do Supabase dela. Precisa do dominio verificado no Resend. */
   emailClientes: true,

@@ -26,7 +26,7 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=0.4.6">
+<link rel="stylesheet" href="tokens.css?v=0.5.0">
 <link rel="icon" href="arte/favicon.svg" type="image/svg+xml">
 <style>
 /* ============ base ============ */
@@ -1092,6 +1092,50 @@ html{font-synthesis:none}
 .tbadge{background:var(--brand-offwhite);color:var(--brand-preto)}
 .sccr{top:var(--s-2);bottom:auto}
 .scbody p{font-size:var(--fs-4);line-height:1.5}
+/* ---------- CRÉDITOS DE IA ---------- */
+.crCard h3{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.crTag{font:600 var(--fs-1)/1 var(--f-ui);letter-spacing:var(--track-label);text-transform:uppercase;padding:5px 9px;border-radius:var(--r-pill)}
+.crTag.ok{background:var(--ok-wash);color:var(--ok)} .crTag.off{background:var(--neutral-wash);color:var(--neutral)}
+.crTag.baixo{background:var(--warn-wash);color:var(--warn)} .crTag.fim{background:var(--danger-wash);color:var(--danger)}
+.crPassos{margin:var(--s-5) 0;padding-left:var(--s-9);display:grid;gap:var(--s-4);line-height:1.45}
+.crPassos a{color:var(--accent);font-weight:600;white-space:nowrap}
+.crPassos small{display:block;color:var(--ink-3)}
+.crForm{display:flex;flex-wrap:wrap;gap:var(--s-3);align-items:center}
+.crForm #crChave{flex:1 1 220px;min-width:0}
+.crValor{display:inline-flex;align-items:center;gap:var(--s-2);font-weight:600}
+.crValor input{width:84px}
+.crPainel{margin:var(--s-5) 0 var(--s-3);padding:var(--s-7);border-radius:var(--r);background:var(--surface-2)}
+.crNumeros{display:grid;grid-template-columns:1.2fr 1fr;gap:var(--s-7)}
+.crNumeros small{display:block;color:var(--ink-3);font-size:var(--fs-2)}
+.crSaldo b{display:block;font:400 clamp(30px,8vw,40px)/1.05 var(--f-titulo);color:var(--ink);margin:2px 0}
+.crSaldo b,.crGasto b{white-space:nowrap}
+.crGasto b{display:block;font:700 var(--fs-6)/1.2 var(--f-display);font-variant-numeric:tabular-nums;margin:6px 0 2px}
+.crRecarga .mini{min-height:44px}
+.crPainel.baixo .crSaldo b{color:var(--warn)} .crPainel.fim .crSaldo b{color:var(--danger)}
+.crBarra{height:10px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;margin:var(--s-5) 0 var(--s-3)}
+.crBarra i{display:block;height:100%;border-radius:inherit;background:var(--ok);transition:width var(--d-slow) var(--ease)}
+.crPainel.baixo .crBarra i{background:var(--warn)} .crPainel.fim .crBarra i{background:var(--danger)}
+.crAlarme{margin:0 0 var(--s-5);padding:var(--s-4) var(--s-5);border-radius:var(--r-sm);background:var(--danger-wash);color:var(--danger);font-weight:600}
+.crAcoes{align-items:center;flex-wrap:wrap;gap:var(--s-5)}
+.crRecarga{display:inline-flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.crRecarga input{width:76px}
+.crPilula{display:inline-flex;align-items:center;gap:6px;margin:0 0 var(--s-3);padding:6px 12px;border-radius:var(--r-pill);border:1px solid var(--line-2);
+  background:var(--surface);color:var(--ink);font:600 var(--fs-3)/1.2 var(--f-ui);font-variant-numeric:tabular-nums;cursor:pointer}
+.crPilula.ok{border-color:var(--accent-line)} .crPilula.baixo{background:var(--warn-wash);color:var(--warn);border-color:transparent}
+.crPilula.fim{background:var(--danger-wash);color:var(--danger);border-color:transparent} .crPilula.off{color:var(--ink-3)}
+.crAviso{display:flex;align-items:center;justify-content:space-between;gap:var(--s-5);margin:var(--s-5) 0;padding:var(--s-5) var(--s-6);
+  border-radius:var(--r);background:var(--warn-wash);color:var(--warn);font-weight:600;line-height:1.4}
+.crAviso.fim{background:var(--danger-wash);color:var(--danger)} .crAviso.off{background:var(--highlight-wash);color:var(--highlight-text)}
+.crAviso .mini{flex:none}
+#iaCrFaixa .crAviso{margin:var(--s-3) var(--s-3) 0;font-size:var(--fs-3)}
+/* ---------- MÓDULO NÃO CONTRATADO (cadeado) ---------- */
+.iaExtra.iaTranca{background:none;padding:0;font-size:12px}
+.trancado{max-width:560px;padding:var(--s-10) 0}
+.trIco{font-size:34px;display:block;margin-bottom:var(--s-5);opacity:.8}
+.trTxt{font:400 var(--fs-5)/1.5 var(--f-serif);color:var(--ink-2);margin:var(--s-5) 0}
+.trancado ul{margin:0 0 var(--s-7);padding-left:var(--s-9);display:grid;gap:var(--s-2);color:var(--ink-2)}
+.trNota{padding:var(--s-5) var(--s-6);border-radius:var(--r);background:var(--surface-2);color:var(--ink-2);font-weight:600}
+.ibFiltros button.tranca{color:var(--ink-3)}
 </style>
 </head>
 <body>
@@ -1125,21 +1169,22 @@ html{font-synthesis:none}
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=0.4.6"></script>
-<script src="auth.js?v=0.4.6"></script>
-<script src="logo.js?v=0.4.6"></script>
-<script src="fx.js?v=0.4.6"></script>
-<script src="qrcode.js?v=0.4.6"></script>
-<script src="qr.js?v=0.4.6"></script>
-<script src="pix.js?v=0.4.6"></script>
-<script src="traduz.js?v=0.4.6"></script>
-<script src="idiomas.js?v=0.4.6"></script>
-<script src="store.js?v=0.4.6"></script>
-<script src="cloud.js?v=0.4.6"></script>
-<script src="i18n.js?v=0.4.6"></script>
-<script src="avisos.js?v=0.4.6"></script>
-<script src="app.js?v=0.4.6"></script>
-<script src="assistente.js?v=0.4.6"></script>
+<script src="config.js?v=0.5.0"></script>
+<script src="auth.js?v=0.5.0"></script>
+<script src="logo.js?v=0.5.0"></script>
+<script src="fx.js?v=0.5.0"></script>
+<script src="qrcode.js?v=0.5.0"></script>
+<script src="qr.js?v=0.5.0"></script>
+<script src="pix.js?v=0.5.0"></script>
+<script src="traduz.js?v=0.5.0"></script>
+<script src="idiomas.js?v=0.5.0"></script>
+<script src="store.js?v=0.5.0"></script>
+<script src="cloud.js?v=0.5.0"></script>
+<script src="i18n.js?v=0.5.0"></script>
+<script src="avisos.js?v=0.5.0"></script>
+<script src="app.js?v=0.5.0"></script>
+<script src="assistente.js?v=0.5.0"></script>
+<script src="creditos.js?v=0.5.0"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

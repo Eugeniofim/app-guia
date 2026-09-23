@@ -1029,6 +1029,7 @@ function admShell(tab, inner) {
       <nav>${ADM_TABS.map(([id, k]) =>
         `<button class="nb ${tab === id ? 'on' : ''}" data-tab="${id}" id="nb-${id}">${t(k)}</button>`).join('')}</nav>
       <div class="railfoot">
+        ${typeof pilulaCreditos === 'function' && (typeof modulo === 'function' && (modulo('assistente') === true || modulo('atendimento') === true)) ? pilulaCreditos() : ''}
         <button class="nb ghost" id="viewSite">👁 ${t('viewSite')}</button>
         <button class="nb ghost" id="exitAdm">← ${t('exit')}</button>
       </div>
@@ -1038,6 +1039,7 @@ function admShell(tab, inner) {
   const nab = $('#goProtect');
   if (nab) nab.onclick = () => go('/login');
   $$('.nb[data-tab]').forEach(b => b.onclick = () => go('/adm/' + b.dataset.tab));
+  if (typeof crAtualizaPilulas === 'function') crAtualizaPilulas();
   $('#viewSite').onclick = () => go('/');
   $('#exitAdm').onclick = async () => {
     if (isLoggedIn()) { await authSignOut(); toast(t('loginOut')); }
@@ -1893,6 +1895,7 @@ function admSettings() {
       <p>${t('demoWhat')}</p>
       <button class="mini" id="demoRestore">${t('demoRestore')}</button>
     </div>`}
+    ${typeof cartaoCreditos === 'function' && (typeof modulo === 'function' && (modulo('assistente') === true || modulo('atendimento') === true)) ? cartaoCreditos() : ''}
     <section class="card">
       <h3>${t('yourContact')}</h3>
       ${DB.settings.placeholderContact ? `<div class="alert warn">⚠ ${t('placeholderWarn')}</div>` : ''}
@@ -2191,6 +2194,7 @@ function admSettings() {
     } else toast(t('installIos'));
   };
   if (typeof ligaCartaoAvisos === 'function') ligaCartaoAvisos();
+  if (typeof ligaCartaoCreditos === 'function') ligaCartaoCreditos();
   $('#sndToggle').onclick = () => {
     const off = localStorage.getItem('vi_som') === 'off';
     localStorage.setItem('vi_som', off ? 'on' : 'off');

@@ -26,10 +26,15 @@
    para fora: o assistente escreve, quem envia é o guia. */
 'use strict';
 
-const IA_CHAVE = 'guia_ia_chave';
-const IA_HIST = 'guia_ia_hist';
-const IA_GASTO = 'guia_ia_gasto';
-const IA_CONFIRMA = 'guia_ia_confirma';
+/* Nome próprio de tudo que o assistente guarda no navegador. O endereço
+   guia.eugeniofim.com é dividido com a demo, o Mario e a Ingrid: com o
+   prefixo fixo 'guia_', um app usava a chave, o treino e as conversas do
+   outro no mesmo navegador. O prefixo sai do DB_KEY (berlim_db_v1 → berlim_). */
+const IA_NS = (typeof DB_KEY !== 'undefined' ? String(DB_KEY).replace(/_db_v\d+$/, '') : 'guia') + '_';
+const IA_CHAVE = IA_NS + 'ia_chave';
+const IA_HIST = IA_NS + 'ia_hist';
+const IA_GASTO = IA_NS + 'ia_gasto';
+const IA_CONFIRMA = IA_NS + 'ia_confirma';
 const IA_MODELO = 'claude-haiku-4-5';
 const IA_PRECO = { in: 1, out: 5, cacheW: 1.25, cacheR: 0.10 };  /* US$ por milhão de tokens */
 const IA_MAX_VOLTAS = 10;
@@ -43,7 +48,12 @@ const iaChave = () => { try { return (localStorage.getItem(IA_CHAVE) || '').trim
               servidor, limite por pessoa e por dia) — ver guia-cofre;
    - 'demo':  sem nada disso, pedidos prontos que rodam as ferramentas. */
 const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
-const COFRE_FIM = 'guia_cofre_fim';
+const COFRE_FIM = IA_NS + 'cofre_fim';
+/* true = contratado (sem etiqueta), false = trancado (cadeado), 'extra' = demo de venda */
+function modulo(k) {
+  const m = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.modulos;
+  return m ? !!m[k] : 'extra';
+}
 /* No app de um cliente o cofre mora no Supabase DELA e gasta a chave dela:
    o assistente e o treino só respondem para a dona logada. O login vai junto. */
 function cofreCab(extra) {
@@ -94,6 +104,8 @@ const IA_TXT = {
   experimente: { pt: 'Experimente pedir', en: 'Try asking' },
   conectar: { pt: 'Conectar o Claude de verdade', en: 'Connect the real Claude' },
   oi: { pt: 'Oi! Consulto passeios, agenda, vagas e reservas; crio e altero passeio, preço, horário, bloqueio e cupom; monto plano de postagem, criativo, anúncio e resposta para cliente. Antes de gravar qualquer coisa, mostro o que vou fazer.', en: 'Hi! I check tours, schedule, seats and bookings; I create and edit tours, prices, times, blocked dates and coupons; I build post plans, creatives, ads and replies to clients. Before saving anything, I show you what I’m about to do.' },
+  oiSemMkt: { pt: 'Oi! Consulto passeios, agenda, vagas e reservas; crio e altero passeio, preço, horário, bloqueio e cupom; e escrevo a resposta para o seu cliente. Antes de gravar qualquer coisa, mostro o que vou fazer.',
+    en: 'Hi! I check tours, schedule, seats and bookings; I create and change tours, prices, times, blocks and coupons; and I write replies to your clients. Before saving anything, I show you what I will do.' },
   chaveTit: { pt: 'Para o Claude de verdade responder, cole a sua chave da Anthropic. Ela fica só neste aparelho.', en: 'For the real Claude to answer, paste your Anthropic key. It stays on this device only.' },
   chave1: { pt: 'Entre em console.anthropic.com', en: 'Go to console.anthropic.com' },
   chave2: { pt: 'Em Billing, ponha créditos (US$ 5 duram meses)', en: 'In Billing, add credit (US$ 5 lasts months)' },
@@ -184,6 +196,8 @@ const IA_TXT = {
   nadaGuardado: { pt: 'Nada guardado ainda.', en: 'Nothing saved yet.' },
   /* aba Atendimento */
   atendimento: { pt: 'Atendimento', en: 'Inbox' },
+  inboxTxtIg: { pt: 'As mensagens do seu Instagram num lugar só. O agente lê a pergunta, consulta os seus passeios e escreve a resposta — você aprova, ou deixa no automático.',
+    en: 'Your Instagram messages in one place. The agent reads the question, checks your tours and writes the reply — you approve it, or leave it on automatic.' },
   inboxTxt: { pt: 'WhatsApp e Instagram num lugar só. O agente lê a pergunta, consulta as vagas de verdade e escreve a resposta no idioma do cliente.', en: 'WhatsApp and Instagram in one place. The agent reads the question, checks the real availability and writes the reply in the client’s language.' },
   inboxDemo: { pt: 'Demonstração: no app real, estas mensagens chegam do WhatsApp e do Instagram do guia.', en: 'Demo: in the real app, these messages arrive from the guide’s WhatsApp and Instagram.' },
   aoVivo: { pt: 'Ao vivo agora', en: 'Live now' },
@@ -306,6 +320,10 @@ const IA_TXT = {
   aSemana: { pt: 'Oi, {nome}! Para {n} pessoas, estas datas têm lugar: {datas}. Qual prefere?', en: 'Hi {nome}! For {n} people, these dates have space: {datas}. Which do you prefer?' },
   aCrianca: { pt: 'Oi, {nome}! Criança é bem-vinda no "{tour}". [idade mínima e preço de criança] Próximas datas: {datas}.', en: 'Hi {nome}! Children are welcome on "{tour}". [minimum age and child price] Next dates: {datas}.' },
   aCriancaFalta: { pt: 'idade mínima e preço de criança', en: 'minimum age and child price' },
+  aConsulta: { pt: 'Oi, {nome}! Que bom seu interesse no "{tour}". É privativo, só o seu grupo, e eu busco vocês no hotel. O valor depende de quantas pessoas e da data: me conta quantos vocês são e quando vêm, que eu te mando a proposta.',
+    en: 'Hi {nome}! Glad you like "{tour}". It is private, just your group, and I pick you up at your hotel. The price depends on group size and date: tell me how many you are and when you come, and I will send you a proposal.' },
+  aPagarPix: { pt: 'Oi, {nome}! Pode pagar por Pix, sim. Quando a gente fechar a data e o valor, o app te mostra o código Pix com o valor certinho — é só copiar e colar no seu banco.',
+    en: 'Hi {nome}! Yes, you can pay by Pix. Once we settle the date and price, the app shows you the Pix code with the exact amount — just copy and paste it in your bank app.' },
   aPagar: { pt: 'Oi, {nome}! Pode pagar com cartão pelo link da reserva. {politica} Te mando o link?', en: 'Hi {nome}! You can pay by card through the booking link. {politica} Shall I send it?' },
   polMetade: { pt: 'Paga metade para garantir a vaga e o resto até 30 dias antes.', en: 'You pay half to secure the seat and the rest up to 30 days before.' },
   polTudo: { pt: 'O valor é pago na reserva.', en: 'The full amount is paid when booking.' },
@@ -328,7 +346,7 @@ const naLingua = (lang, fn) => { const a = LANG; LANG = lang; try { return fn();
 /* ---------- dados do marketing e do atendimento ----------
    Protótipo: guardados neste navegador. No app de um cliente viram linhas
    no Supabase dele, para celular e laptop verem o mesmo. */
-const MKT_KEY = 'guia_mkt';
+const MKT_KEY = IA_NS + 'mkt';
 const KIT_PADRAO = { cores: { principal: '#E8A33D', destaque: '#C4553B', escura: '#1E3A4C', neutra: '#6B6B73' },
   voz: '', frases: '', proibidas: 'imperdível, incrível, experiência única, o melhor', hashtags: '' };
 const Mkt = {
@@ -387,7 +405,7 @@ function guardaFoto(src, nome) {
 }
 
 /* ---------- imagem por IA: Gemini, com a chave do guia (fica só no aparelho) ---------- */
-const IMG_CHAVE = 'guia_gemini_chave';
+const IMG_CHAVE = IA_NS + 'gemini_chave';
 const IMG_MODELOS = ['gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview'];
 const PROPORCAO = { story: '9:16', post: '1:1', flyer: '4:5' };
 const imgChave = () => { try { return (localStorage.getItem(IMG_CHAVE) || '').trim(); } catch (e) { return ''; } };
@@ -828,7 +846,7 @@ Responda em ${lingua}, curto. Texto para copiar vem pronto, sem comentário em v
 function iaTraduzErro(status, corpo) {
   const msg = (corpo && corpo.error && corpo.error.message) || '';
   if (status === 401) return ia('e401');
-  if (status === 400 && /credit balance/i.test(msg)) return ia('eCredito');
+  if (status === 400 && /credit balance/i.test(msg)) { if (typeof crMarcaSemCreditoLocal === 'function') crMarcaSemCreditoLocal(); return ia('eCredito'); }
   if (status === 429) return ia('e429');
   if (status === 529 || status === 503) return ia('eCheio');
   if (!status) return ia('eRede');
@@ -855,6 +873,8 @@ function iaSomaGasto(u) {
   if (!u) return;
   const p = IA_PRECO;
   iaGrava(IA_GASTO, (iaLe(IA_GASTO, 0) || 0) + ((u.input_tokens || 0) * p.in + (u.output_tokens || 0) * p.out
+    + (u.cache_creation_input_tokens || 0) * p.in * p.cacheW + (u.cache_read_input_tokens || 0) * p.in * p.cacheR) / 1e6);
+  if (typeof crRegistraLocal === 'function') crRegistraLocal(((u.input_tokens || 0) * p.in + (u.output_tokens || 0) * p.out
     + (u.cache_creation_input_tokens || 0) * p.in * p.cacheW + (u.cache_read_input_tokens || 0) * p.in * p.cacheR) / 1e6);
   iaMostraGasto();
 }
@@ -1487,7 +1507,9 @@ function mktLiga() {
    A resposta é montada NA HORA a partir das vagas reais do app: mude um
    preço ou lote uma data e a resposta muda junto.
 ===================================================== */
-const CLIENTES = [
+/* conversas de exemplo: as do guia (config.js conversasDemo), senão as genéricas */
+const CLIENTES = (typeof APP_CONFIG !== 'undefined' && Array.isArray(APP_CONFIG.conversasDemo) && APP_CONFIG.conversasDemo.length)
+  ? APP_CONFIG.conversasDemo : [
   { id: 'c1', nome: 'Claire', lang: 'fr', canal: 'whats', tipo: 'disp', pessoas: 3, msg: 'Bonjour ! Vous avez encore de la place samedi pour 3 personnes ?' },
   { id: 'c2', nome: 'Marco', lang: 'it', canal: 'insta', tipo: 'preco', msg: 'Ciao! Quanto costa il servizio fotografico? E quando siete liberi?' },
   { id: 'c3', nome: 'Jonas', lang: 'de', canal: 'whats', tipo: 'semana', pessoas: 2, msg: 'Hallo! Gibt es nächste Woche noch Plätze für 2 Personen?' },
@@ -1514,8 +1536,11 @@ function datasComLugar(x, n, pessoas, de) {
 /* a resposta, no idioma pedido (o do cliente ou o do guia) */
 function respostaPara(c, lang) {
   return naLingua(lang, () => {
-    const x = tourPorTipo(c.tipo); if (!x) return { txt: '—', falta: null };
+    const x = (c.tour && Tours.get(c.tour)) || tourPorTipo(c.tipo); if (!x) return { txt: '—', falta: null };
     const preco = +x.price || 0, fmt = (d) => `${dataLonga(d.date)} ${d.time}`;
+    if (c.tipo === 'pagar' && !(DB.settings || {}).stripeAtivo) return { txt: ia('aPagarPix', { nome: c.nome }) };
+    if (typeof sobConsulta === 'function' && sobConsulta(x) && c.tipo !== 'pagar')
+      return { txt: ia('aConsulta', { nome: c.nome, tour: nomeTour(x) }), falta: c.tipo === 'crianca' ? ia('aCriancaFalta') : null };
     if (c.tipo === 'disp') {
       /* sábado que vem: qualquer passeio com saída nesse dia e lugar para o grupo */
       const sab = proximoSabado();
@@ -1572,8 +1597,9 @@ function admAtendimento(arg) {
   const nEspera = cs.filter(v => v.estado === 'pendente').length;
   const nFeitas = cs.filter(v => v.estado === 'auto' || v.estado === 'enviada').length;
   const nLinguas = new Set(cs.map(v => cli(v.id).lang)).size;
-  const filtros = [['todas', ia('ibTodas')], ['whats', 'WhatsApp'], ['insta', 'Instagram']]
-    .map(([k, t]) => `<button class="${inboxFiltro === k ? 'on' : ''}" data-filtro="${k}">${t}</button>`).join('');
+  const waTrancado = modulo('whatsapp') === false;
+  const filtros = [['todas', ia('ibTodas')], ['whats', waTrancado ? '🔒 WhatsApp' : 'WhatsApp'], ['insta', 'Instagram']]
+    .map(([k, t]) => `<button class="${inboxFiltro === k ? 'on' : ''}${k === 'whats' && waTrancado ? ' tranca' : ''}" data-filtro="${k}">${t}</button>`).join('');
   const lista = visiveis.map(v => { const c = cli(v.id); return `<button class="ibItem ${v.id === inboxAberta ? 'on' : ''}" data-conv="${v.id}">
     ${ibAvatar(c)}<span class="ibItemTxt"><span class="ibItemTopo"><b>${esc(c.nome)}</b><small class="ibLang">${c.lang.toUpperCase()}</small>${v.estado === 'pendente' ? '<i class="ibPonto"></i>' : ''}</span>
     <span class="ibPrev">${esc(c.msg)}</span><span class="ibEstado ${v.estado}">${estadoTxt(v)}</span></span></button>`; }).join('')
@@ -1612,7 +1638,10 @@ function admAtendimento(arg) {
   const re = () => admAtendimento();
   ligaAbasIb();
   $$('[data-conv]').forEach(b => b.onclick = () => { inboxAberta = b.dataset.conv; re(); });
-  $$('[data-filtro]').forEach(b => b.onclick = () => { inboxFiltro = b.dataset.filtro; re(); });
+  $$('[data-filtro]').forEach(b => b.onclick = () => {
+    if (b.dataset.filtro === 'whats' && modulo('whatsapp') === false) { admShell('inbox', ibCabecalho('conversas') + telaTrancada('whatsapp')); ligaAbasIb(); return; }
+    inboxFiltro = b.dataset.filtro; re();
+  });
   const vb = $('[data-voltar]'); if (vb) vb.onclick = () => { inboxAberta = null; re(); };
   $$('[data-aprova]').forEach(b => b.onclick = () => { const v = cs.find(x => x.id === b.dataset.aprova); v.texto = $('#ibTxt').value; v.estado = 'enviada'; v.hora = agora(); Mkt.salva(); re(); });
   $$('[data-descarta]').forEach(b => b.onclick = () => { const v = cs.find(x => x.id === b.dataset.descarta); v.estado = 'descartada'; Mkt.salva(); re(); });
@@ -1649,8 +1678,10 @@ function ensino() {
   return m.ensino;
 }
 function ibCabecalho(aba) {
-  return `<div class="ibCab"><div><h1 class="pageh">${ia('atendimento')}</h1><p class="ibSub">${ia(aba === 'ensinar' ? 'ensLead' : 'inboxTxt')}</p></div></div>
-    <p class="mkExtra">✦ ${ia('extraAviso')}</p>
+  if (typeof crFaixa === 'function' && modulo('atendimento') === true) setTimeout(() => crFaixa('ibCrFaixa'), 0);
+  return `<div class="ibCab"><div><h1 class="pageh">${ia('atendimento')}</h1><p class="ibSub">${ia(aba === 'ensinar' ? 'ensLead' : modulo('whatsapp') === false ? 'inboxTxtIg' : 'inboxTxt')}</p></div></div>
+    ${modulo('atendimento') === 'extra' ? `<p class="mkExtra">✦ ${ia('extraAviso')}</p>` : ''}
+    <div id="ibCrFaixa"></div>
     <div class="ibAbas" role="tablist"><button role="tab" aria-selected="${aba === 'conversas'}" class="${aba === 'conversas' ? 'on' : ''}" data-ibaba="conversas">💬 ${ia('ibConversas')}</button><button role="tab" aria-selected="${aba === 'ensinar'}" class="${aba === 'ensinar' ? 'on' : ''}" data-ibaba="ensinar">✦ ${ia('ibEnsinar')}</button></div>`;
 }
 function ligaAbasIb() { $$('[data-ibaba]').forEach(b => b.onclick = () => { ibAba = b.dataset.ibaba; admAtendimento(); }); }
@@ -1785,7 +1816,7 @@ function ensAplicarCartao() {
   const conta = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.agenteInstagram;
   ensSondaCodigo();
   if (!COFRE || !conta || !cofreEstado.instagram || !ensCofreTemCodigo) return '';
-  let cod = ''; try { cod = sessionStorage.getItem('guia_admin_codigo') || ''; } catch (e) {}
+  let cod = ''; try { cod = sessionStorage.getItem(IA_NS + 'admin_codigo') || ''; } catch (e) {}
   const logada = typeof authToken === 'function' && !!authToken();
   return `<section class="ensCard ensApl"><h3>📲 ${ia('ensAplTit')}</h3><p class="ensSub">${esc(ia('ensAplTxt').replace('{c}', conta))}</p>
     <form id="ensAplForm" class="ensAplLinha">${logada ? '<input type="hidden" id="ensCodigo" value="">' : `<input type="password" id="ensCodigo" value="${esc(cod)}" placeholder="${ia('ensCodigo')}" autocomplete="current-password" aria-label="${ia('ensCodigo')}">`}
@@ -1794,12 +1825,12 @@ function ensAplicarCartao() {
     ${ensAplMsg ? `<p class="ensAplMsg">${ensAplMsg}</p>` : ''}</section>`;
 }
 async function ensAplicar(codigo) {
-  try { sessionStorage.setItem('guia_admin_codigo', codigo); } catch (e) {}
+  try { sessionStorage.setItem(IA_NS + 'admin_codigo', codigo); } catch (e) {}
   const e = ensino();
   let r; try { r = await fetch(COFRE + '/api/ensino', { method: 'POST', headers: cofreCab(codigo ? { 'x-codigo': codigo } : {}), body: JSON.stringify({ ensino: e }) }); } catch (x) { r = null; }
   const hora = new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
   ensAplMsg = r && r.ok ? '✓ ' + ia('ensAplOk') + ' (' + hora + ')' : r && r.status === 401 ? '⚠ ' + ia('ensAplErro') : r && r.status === 503 ? '⚠ ' + ia('ensAplSem') : '⚠ ' + ia('ensAplFalhou');
-  if (r && r.status === 401) try { sessionStorage.removeItem('guia_admin_codigo'); } catch (x) {}
+  if (r && r.status === 401) try { sessionStorage.removeItem(IA_NS + 'admin_codigo'); } catch (x) {}
   admEnsinar();
 }
 async function ensTrazer() {
@@ -2146,7 +2177,7 @@ function iaAtualizaFab() {
   const mostra = iaPodeVer();
   if (!mostra) iaEl.g.classList.remove('aberta');
   iaEl.fab.classList.toggle('on', mostra && !iaEl.g.classList.contains('aberta'));
-  iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}<small class="iaExtra">${ia('extra')}</small>`;
+  iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}${modulo('assistente') === 'extra' ? `<small class="iaExtra">${ia('extra')}</small>` : ''}`;
   iaEl.g.querySelector('#iaTit').textContent = ia('assistente') + ({ demo: ' · ' + ia('demoTit'), vivo: ' · ⚡ ' + ia('vivoTit') }[iaModo()] || '');
   iaEl.g.querySelector('#iaFecha').setAttribute('aria-label', ia('fechar'));
   const c = iaContexto();
@@ -2175,20 +2206,20 @@ function iaDesenha() {
     return;
   }
   const demo = iaDemo(), vivo = iaModo() === 'vivo';
-  corpo.innerHTML = `<div id="iaMsgs"></div><div id="iaAnexo"></div>
+  corpo.innerHTML = `<div id="iaCrFaixa"></div><div id="iaMsgs"></div><div id="iaAnexo"></div>
     ${demo ? '' : `<form id="iaForm"><button type="button" id="iaClip" title="${esc(ia('foto'))}" aria-label="${esc(ia('foto'))}">📷</button>
       <input type="file" id="iaArq" accept="image/*" multiple hidden><textarea id="iaTxt" rows="1" placeholder="${esc(ia('ph'))}"></textarea>
       <button id="iaEnviar" type="submit">${ia('enviar')}</button></form>`}
     <div id="iaPe"><label><input type="checkbox" id="iaConf" ${iaPerguntaAntes() ? 'checked' : ''}> ${ia('perguntar')}</label>
-      ${demo ? `<button type="button" id="iaConecta">${ia('conectar')}</button>` : vivo ? '' : `<span id="iaGasto"></span>`}
+      ${demo ? `<button type="button" id="iaConecta">${typeof irParaCreditos === 'function' ? '✦ Ligar a IA' : ia('conectar')}</button>` : vivo && typeof crResumo !== 'function' ? '' : `<span id="iaGasto"></span>`}
       <span><button type="button" id="iaLimpa">${ia('nova')}</button>${demo || vivo ? '' : ` · <button type="button" id="iaTiraChave">${ia('trocarChave')}</button>`}</span></div>`;
   const msgs = corpo.querySelector('#iaMsgs');
-  iaBolha('assistant', ia('oi'), null, true);
+  iaBolha('assistant', ia(modulo('marketing') === false ? 'oiSemMkt' : 'oi'), null, true);
   if (demo) {
-    const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>${ia('demoTit')}</b>${esc(ia('demoTxt'))}<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>`; msgs.appendChild(d);
+    const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>${ia('demoTit')}</b>${esc(ia('demoTxt'))}${modulo('assistente') === 'extra' ? `<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>` : ''}`; msgs.appendChild(d);
     iaMostraSugestoes();
   } else {
-    if (vivo) { const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>⚡ ${ia('vivoTit')}</b>${esc(ia('vivoTxt'))}<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>`; msgs.appendChild(d); }
+    if (vivo) { const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>⚡ ${ia('vivoTit')}</b>${esc(ia('vivoTxt'))}${modulo('assistente') === 'extra' ? `<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>` : ''}`; msgs.appendChild(d); }
     for (const m of iaLe(IA_HIST, [])) {
       if (typeof m.content === 'string') iaBolha(m.role, m.content);
       else if (m.role === 'assistant' || ehPergunta(m)) { const t2 = m.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim(); if (t2) iaBolha(m.role, t2); }
@@ -2207,8 +2238,10 @@ function iaDesenha() {
   }
   corpo.querySelector('#iaConf').onchange = (e) => iaGrava(IA_CONFIRMA, e.target.checked);
   corpo.querySelector('#iaLimpa').onclick = () => { iaGrava(IA_HIST, []); iaDesenha(); };
-  const cn = corpo.querySelector('#iaConecta'); if (cn) cn.onclick = () => { iaMostrandoChave = true; iaDesenha(); };
+  const cn = corpo.querySelector('#iaConecta');
+  if (cn) cn.onclick = () => { if (typeof irParaCreditos === 'function') { iaFecha && iaFecha(); irParaCreditos(); } else { iaMostrandoChave = true; iaDesenha(); } };
   msgs.scrollTop = msgs.scrollHeight;
+  if (typeof crFaixa === 'function' && modulo('assistente') === true) crFaixa('iaCrFaixa');
 }
 function iaMostraSugestoes() {
   const msgs = iaEl && iaEl.g.querySelector('#iaMsgs');
@@ -2246,6 +2279,11 @@ async function iaTestaChave() {
 }
 function iaMostraGasto() {
   const el = iaEl && iaEl.g.querySelector('#iaGasto'); if (!el) return;
+  /* com o cartão de créditos: o número que importa é o saldo, igual ao de Ajustes */
+  if (typeof crResumo === 'function') {
+    crResumo(true).then(r => { const x = crSituacao(r); el.innerHTML = `<button type="button" class="crPilula ${x.classe}" onclick="irParaCreditos()">✦ ${x.curto}</button>`; });
+    return;
+  }
   const us = iaLe(IA_GASTO, 0) || 0;
   el.textContent = ia('gasto') + ' ' + us.toFixed(us < 1 ? 3 : 2);
 }
@@ -2309,16 +2347,32 @@ if (!ADM_TABS.some(([id]) => id === 'marketing')) {
 }
 const _viewAdmOriginal = viewAdm;
 viewAdm = function (tab, arg) {
-  if (tab === 'marketing') admMarketing(arg);
+  if (tab === 'marketing' && modulo('marketing') === false) admShell('marketing', telaTrancada('marketing'));
+  else if (tab === 'marketing') admMarketing(arg);
   else if (tab === 'inbox') admAtendimento(arg);
   else _viewAdmOriginal(tab, arg);
   marcaExtras();
 };
 function marcaExtras() {
-  for (const id of ['nb-inbox', 'nb-marketing']) {
-    const b = document.getElementById(id);
-    if (b && !b.querySelector('.iaExtra')) b.insertAdjacentHTML('beforeend', ` <small class="iaExtra">${ia('extra')}</small>`);
+  for (const [id, k] of [['nb-inbox', 'atendimento'], ['nb-marketing', 'marketing']]) {
+    const b = document.getElementById(id), m = modulo(k);
+    if (!b || b.querySelector('.iaExtra')) continue;
+    if (m === 'extra') b.insertAdjacentHTML('beforeend', ` <small class="iaExtra">${ia('extra')}</small>`);
+    else if (m === false) b.insertAdjacentHTML('beforeend', ` <small class="iaExtra iaTranca" aria-label="não incluído">🔒</small>`);
   }
+}
+/* módulo que ela não contratou: a aba existe, com cadeado, e explica o que faria */
+const TRANCADO = {
+  marketing: { tit: 'Marketing', txt: 'Plano de postagens da semana, legendas, criativos e anúncios feitos pela IA com os seus passeios — no seu tom de voz.',
+    itens: ['Plano da semana pronto para postar', 'Legendas e roteiros de Reels', 'Criativos com as fotos dos passeios', 'Anúncios para o Instagram'] },
+  whatsapp: { tit: 'WhatsApp automático', txt: 'O mesmo robô do Instagram respondendo também no WhatsApp: vagas, valores sob consulta e link do passeio, a qualquer hora.',
+    itens: ['Resposta na hora, de dia ou de noite', 'Mesmo treino do Instagram', 'Passa para você o que for pessoal'] },
+};
+function telaTrancada(k) {
+  const d = TRANCADO[k];
+  return `<div class="trancado"><span class="trIco" aria-hidden="true">🔒</span><h1 class="pageh">${d.tit}</h1>
+    <p class="trTxt">${esc(d.txt)}</p><ul>${d.itens.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+    <p class="trNota">Não está incluído no seu plano. Para ativar, fale com o Eugênio.</p></div>`;
 }
 /* francês, italiano, alemão e espanhol dos textos do assistente */
 if (typeof IA_TR !== 'undefined') for (const l in IA_TR) for (const k in IA_TR[l]) if (IA_TXT[k] && !(l in IA_TXT[k])) IA_TXT[k][l] = IA_TR[l][k];
