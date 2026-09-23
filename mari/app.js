@@ -258,6 +258,7 @@ function route() {
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
   else if (p[0] === 'about') viewAbout();
   else if (p[0] === 'apresentacao') viewApresentacao();
+  else if (p[0] === 'personalizar') viewPersonalizar();
   else if (p[0] === 'tours') viewShowcase();
   else if (p[0] === 'tour')  viewTour(p[1]);
   else                       viewHub();
@@ -305,11 +306,21 @@ function viewHub() {
       <div class="vcard">
         <div class="hub-brand">${logoFull({ mark: 46, sub: esc(guiaBase()) })}</div>
         <p class="tagline">${esc(noIdioma(DB.settings.homeText) || t('tagline'))}</p>
+        <p class="parceira">${t('parceiraLinha')}</p>
         ${langBar('center')}
       </div>
       <button class="lk main" id="goTours">
         <span class="ic">📍</span><span><b>${t('seeTours')}</b><small>${t('seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
+      <button class="lk destaque" id="goPers">
+        <span class="ic">✳️</span><span><b>${t('persLink')}</b><small>${t('persLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>
+      ${Tours.live().some(x => x.type === 'transfer') ? `<button class="lk" id="goTrf">
+        <span class="ic">🚐</span><span><b>${t('trfLink')}</b><small>${t('trfLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>` : ''}
+      ${Tours.live().some(x => x.type === 'bike') ? `<button class="lk" id="goBike">
+        <span class="ic">🚲</span><span><b>${t('bikeLink')}</b><small>${t('bikeLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>` : ''}
       ${(DB.settings.apresentacao || []).length ? `<button class="lk" id="goApre">
         <span class="ic">📖</span><span><b>${t('apreLink')}</b><small>${t('apreLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>` : ''}
@@ -331,6 +342,15 @@ function viewHub() {
   $('#goTours').onclick = () => go('/tours');
   fallbackPhoto($('#hubFace'), '☺');
   if ($('#goApre')) $('#goApre').onclick = () => go('/apresentacao');
+  $('#goPers').onclick = () => go('/personalizar');
+  if ($('#goTrf')) $('#goTrf').onclick = () => {
+    const x = Tours.live().find(z => z.type === 'transfer');
+    if (x) go('/tour/' + x.id);
+  };
+  if ($('#goBike')) $('#goBike').onclick = () => {
+    const b = Tours.live().find(x => x.type === 'bike');
+    if (b) go('/tour/' + b.id);
+  };
   $('#goAbout').onclick = () => go('/about');
   $('#admEntry').onclick = () => go('/adm/today');
   $$('[data-demo]').forEach(b => b.onclick = () => toast(t('xProtoBotao')));
@@ -343,6 +363,112 @@ function viewHub() {
 /* --- quem sou eu ---
    Vem antes do preço de propósito: quem confia na pessoa
    aceita melhor o valor. A foto e o texto saem dos Ajustes. */
+/* PERSONALIZE SEU PASSEIO COM A MARI
+   A Mari não vende passeio avulso: ela acompanha o grupo do aeroporto até o
+   embarque de volta. Esta tela é a porta disso — em vez de um formulário frio,
+   é uma conversa curta que termina no WhatsApp dela já com tudo escrito.
+   O pedido também fica guardado no painel (DB.pedidos). */
+const PERS_GOSTO = [
+  ['historia',  'História e castelos',        'History & castles'],
+  ['hygge',     'Hygge, cafés e vida local',  'Hygge, cafés & local life'],
+  ['bike',      'Andar de bicicleta',         'Cycling'],
+  ['arquitetura','Arquitetura e design',      'Architecture & design'],
+  ['natureza',  'Natureza e ar livre',        'Nature & outdoors'],
+  ['gastronomia','Gastronomia e cerveja',     'Food & beer'],
+  ['futebol',   'Futebol',                    'Football'],
+  ['criancas',  'Programas com crianças',     'With children'],
+  ['compras',   'Compras',                    'Shopping'],
+];
+const PERS_PRECISA = [
+  ['aeroporto', 'Buscar a gente no aeroporto',        'Airport pick-up'],
+  ['transfer',  'Transfers durante a viagem',         'Transfers during the trip'],
+  ['reservas',  'Reserva de restaurante e ingressos', 'Restaurant & ticket bookings'],
+  ['integral',  'Acompanhamento o dia inteiro',       'Full-day companion'],
+  ['roteiro',   'Montar o roteiro dos dias livres',   'Plan the free days'],
+  ['volta',     'Levar a gente de volta ao aeroporto','Drop-off at the airport'],
+];
+
+function viewPersonalizar() {
+  const P = viewPersonalizar._p = viewPersonalizar._p
+    || { nome: '', ini: '', fim: '', adultos: 2, criancas: 0, gosto: [], precisa: [], obs: '' };
+  const chip = (grupo, lista) => lista.map(([cod, pt, en]) =>
+    `<button class="pchip ${P[grupo].includes(cod) ? 'on' : ''}" data-g="${grupo}" data-v="${cod}">${LANG === 'en' ? en : pt}</button>`).join('');
+
+  app.innerHTML = `
+  <header class="topbar">
+    <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
+    <span class="tbrand">${logoMark(24, 'var(--brand-amarelo)')}<b>${esc(guiaNome())}</b></span>
+    ${langBar('right')}
+  </header>
+  <main class="wrap pers">
+    <h1 class="pageh">${t('persTit')}</h1>
+    <p class="desc lead">${t('persIntro')}</p>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('persQuem')}</span>
+      <label class="fld">${t('persNome')}<input id="pNome" value="${esc(P.nome)}" placeholder="${t('persNomePh')}"></label>
+      <div class="frow">
+        <label class="fld">${t('persIni')}<input id="pIni" type="date" value="${P.ini}"></label>
+        <label class="fld">${t('persFim')}<input id="pFim" type="date" value="${P.fim}"></label>
+      </div>
+      <div class="frow">
+        <label class="fld">${t('persAd')}<input id="pAd" type="number" min="1" max="40" value="${P.adultos}"></label>
+        <label class="fld">${t('persCri')}<input id="pCri" type="number" min="0" max="20" value="${P.criancas}"></label>
+      </div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('persGosto')}</span>
+      <div class="pchips">${chip('gosto', PERS_GOSTO)}</div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('persPrecisa')}</span>
+      <p class="why">${t('persPrecisaWhy')}</p>
+      <div class="pchips">${chip('precisa', PERS_PRECISA)}</div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('persObs')}</span>
+      <textarea id="pObs" rows="3" placeholder="${t('persObsPh')}">${esc(P.obs)}</textarea>
+    </section>
+
+    <button class="cta" id="pEnviar">${t('persEnviar')}</button>
+    <p class="why center">${t('persRodape')}</p>
+  </main>`;
+  bindLang(app);
+  $('#bk').onclick = () => go('/');
+  const guarda = () => {
+    P.nome = $('#pNome').value.trim(); P.ini = $('#pIni').value; P.fim = $('#pFim').value;
+    P.adultos = +$('#pAd').value || 1; P.criancas = +$('#pCri').value || 0; P.obs = $('#pObs').value.trim();
+  };
+  $$('.pchip').forEach(b => b.onclick = () => {
+    guarda();
+    const g = P[b.dataset.g], i = g.indexOf(b.dataset.v);
+    i < 0 ? g.push(b.dataset.v) : g.splice(i, 1);
+    viewPersonalizar();
+  });
+  $('#pEnviar').onclick = () => {
+    guarda();
+    const nome = (a, l) => a.map(c => (l.find(z => z[0] === c) || [])[LANG === 'en' ? 2 : 1]).filter(Boolean).join(', ');
+    const dia = (d) => d ? fmtDate(d) : '';
+    const L = [t('persMsgOi', { nome: P.nome || '' })];
+    if (P.ini || P.fim) L.push('🗓 ' + [dia(P.ini), dia(P.fim)].filter(Boolean).join(' → '));
+    L.push('👥 ' + t('persMsgQuem', { a: P.adultos, c: P.criancas }));
+    if (P.gosto.length) L.push('❤️ ' + nome(P.gosto, PERS_GOSTO));
+    if (P.precisa.length) L.push('✅ ' + nome(P.precisa, PERS_PRECISA));
+    if (P.obs) L.push('📝 ' + P.obs);
+    const texto = L.join('\n');
+    try {
+      DB.pedidos = DB.pedidos || [];
+      DB.pedidos.unshift({ id: 'p' + Date.now(), criadoEm: new Date().toISOString(), ...P });
+      save();
+    } catch (e) {}
+    window.open(waLink(texto), '_blank', 'noopener');
+    toast(t('persEnviado'));
+  };
+}
+
 /* A APRESENTAÇÃO DELA
    Pedido do Eugênio (23/09/2026): os clientes da Mari amam o material em PDF
    dela, então ele entra no app — página por página, como imagem, para abrir

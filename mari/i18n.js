@@ -127,10 +127,38 @@ const STR = {
   fDay: { pt: 'Dia inteiro', en: 'Full day' },
   upTo:        { pt: 'até', en: 'up to' }, people: { pt: 'pessoas', en: 'people' },
   apreLink:    { pt: 'Minha apresentação', en: 'My presentation' },
-  apreLinkSub: { pt: 'Os passeios e serviços, página por página', en: 'Tours and services, page by page' },
+  apreLinkSub: { pt: 'O material em PDF que eu mando, agora aqui dentro', en: 'The PDF I usually send, now right here' },
   apreTit:     { pt: 'Minha apresentação', en: 'My presentation' },
-  apreSub:     { pt: 'O mesmo material que eu mando por WhatsApp, agora aqui dentro.', en: 'The same material I send on WhatsApp, now right here.' },
+  apreSub:     { pt: 'A minha apresentação em PDF, a mesma que mando por WhatsApp — passeios, serviços e o jeito que eu trabalho.', en: 'My presentation in PDF, the same one I send on WhatsApp — tours, services and how I work.' },
   fTransfer:   { pt: 'Transfer', en: 'Transfer' },
+  /* A Mari e parceira do grupo do aeroporto ao embarque de volta — e isso
+     precisa aparecer antes de qualquer preco. */
+  parceiraLinha: { pt: 'Do aeroporto até o embarque de volta, eu fico com vocês.', en: 'From the airport to your flight home, I am with you.' },
+  persLink:    { pt: 'Personalize seu passeio com a Mari', en: 'Plan your trip with Mari' },
+  persLinkSub: { pt: 'Conte o que vocês querem e eu monto do jeito de vocês', en: 'Tell me what you want and I build it your way' },
+  trfLink:     { pt: 'Transfer e receptivo', en: 'Transfers & airport pick-up' },
+  trfLinkSub:  { pt: 'Aeroporto, hotel e passeios, com guia brasileira', en: 'Airport, hotel and tours, with a Brazilian guide' },
+  bikeLink:    { pt: 'Copenhague de bicicleta', en: 'Copenhagen by bike' },
+  bikeLinkSub: { pt: 'A cidade como o dinamarquês vive', en: 'The city the way Danes live it' },
+  persTit:     { pt: 'Personalize seu passeio comigo', en: 'Let’s plan your trip together' },
+  persIntro:   { pt: 'Mais do que guia, eu sou a parceira do seu grupo: busco vocês no aeroporto, fico junto nos dias de passeio, ajudo com reserva de restaurante e ingresso, e só me despeço no embarque de volta. Conte aqui o que vocês querem — eu respondo no WhatsApp com uma proposta de roteiro.', en: 'More than a guide, I am your group’s partner: I pick you up at the airport, stay with you on tour days, help with restaurant and ticket bookings, and only say goodbye at your flight home. Tell me what you want — I reply on WhatsApp with an itinerary.' },
+  persQuem:    { pt: 'Quem vem e quando', en: 'Who is coming and when' },
+  persNome:    { pt: 'Seu nome', en: 'Your name' },
+  persNomePh:  { pt: 'Como você quer que eu te chame', en: 'What should I call you' },
+  persIni:     { pt: 'Chegada', en: 'Arrival' },
+  persFim:     { pt: 'Volta', en: 'Departure' },
+  persAd:      { pt: 'Adultos', en: 'Adults' },
+  persCri:     { pt: 'Crianças', en: 'Children' },
+  persGosto:   { pt: 'O que vocês gostam', en: 'What you enjoy' },
+  persPrecisa: { pt: 'Do que vocês precisam', en: 'What you need' },
+  persPrecisaWhy: { pt: 'Marque tudo que fizer sentido — eu cuido de cada parte.', en: 'Tick everything that fits — I take care of each part.' },
+  persObs:     { pt: 'Mais alguma coisa?', en: 'Anything else?' },
+  persObsPh:   { pt: 'Aniversário na viagem, alguém com dificuldade de andar, o que vocês sonham ver…', en: 'A birthday during the trip, someone with limited mobility, what you dream of seeing…' },
+  persEnviar:  { pt: 'Enviar para a Mari no WhatsApp', en: 'Send to Mari on WhatsApp' },
+  persRodape:  { pt: 'Sem compromisso. Eu leio, penso no roteiro e te respondo.', en: 'No commitment. I read it, think about the itinerary and reply.' },
+  persEnviado: { pt: 'Pronto! Vou te responder por lá 😊', en: 'Done! I will reply there 😊' },
+  persMsgOi:   { pt: 'Oi Mari! Quero montar um roteiro com você. {nome}', en: 'Hi Mari! I would like to plan a trip with you. {nome}' },
+  persMsgQuem: { pt: '{a} adultos e {c} crianças', en: '{a} adults and {c} children' },
   fCarro:      { pt: 'De carro', en: 'By car' },
   priceAsk:    { pt: 'Sob consulta', en: 'On request' },
   priceAskWhy: { pt: 'O valor depende do grupo e do roteiro — escolha a data e receba o orçamento no WhatsApp.', en: 'The price depends on the group and the route — pick a date and get a quote on WhatsApp.' },
@@ -797,8 +825,9 @@ function t(key, vars) {
 function setLang(l) { LANG = l; DB.settings.lang = l; save(); }
 /* os seis idiomas do app. Português é a língua em que o guia escreve;
    os outros saem da tradução e, onde faltar, caem no inglês. */
-const LANGS = [['pt', 'PT', 'Português'], ['en', 'EN', 'English'], ['fr', 'FR', 'Français'],
-               ['it', 'IT', 'Italiano'], ['de', 'DE', 'Deutsch'], ['es', 'ES', 'Español']];
+/* So portugues e ingles: 95% do publico da Mari e brasileiro e 5% portugues
+   (reuniao de 23/09/2026). Frances, italiano, alemao e espanhol sairam. */
+const LANGS = [['pt', 'PT', 'Português'], ['en', 'EN', 'English']];
 const LOCALE = { pt: 'pt-BR', en: 'en-GB', fr: 'fr-FR', it: 'it-IT', de: 'de-DE', es: 'es-ES' };
 const locale = () => LOCALE[LANG] || 'en-GB';
 /* texto de conteúdo {pt, en, ...}: o idioma escolhido, senão inglês, senão português */

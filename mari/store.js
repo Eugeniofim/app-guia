@@ -121,7 +121,10 @@ function _seed() {
       + 'Trago comigo a hospitalidade gaúcha combinada com experiências autênticas na terra do hygge — esse jeitinho '
       + 'dinamarquês de valorizar o conforto, o bem-estar e os pequenos grandes momentos da vida.\n\n'
       + 'Cada passeio é planejado com cuidado e atenção aos detalhes, sempre com o desejo de criar conexões verdadeiras '
-      + 'com a cidade e com quem viaja comigo. Venha dinamarcar a sua viagem!',
+      + 'com a cidade e com quem viaja comigo.\n\n'
+      + 'E eu não sou só a guia de um dia: sou a parceira do seu grupo do começo ao fim. Busco vocês no aeroporto, '
+      + 'ajudo com o transporte, reservo restaurante e ingresso, fico junto nos dias de passeio, respondo no WhatsApp '
+      + 'se algo der errado — e só me despeço no embarque de volta. Venha dinamarcar a sua viagem!',
     en: 'Hi, I am Mari!\n\n'
       + 'I am from southern Brazil and in love with history, culture and, of course, Denmark. I am married to Cesar, a '
       + 'former professional footballer who played over five years for the Copenhagen club, and mother of two boys.\n\n'
@@ -130,7 +133,10 @@ function _seed() {
       + 'I bring Brazilian hospitality together with authentic experiences in the land of hygge — the Danish way of '
       + 'valuing comfort, wellbeing and the small great moments of life.\n\n'
       + 'Every tour is planned with care and attention to detail, always aiming to create real connections with the city '
-      + 'and with whoever travels with me.',
+      + 'and with whoever travels with me.\n\n'
+      + 'And I am not just a guide for a day: I am your group’s partner from start to finish. I pick you up at the '
+      + 'airport, help with transport, book restaurants and tickets, stay with you on tour days, answer on WhatsApp if '
+      + 'anything goes wrong — and only say goodbye at your flight home.',
   };
   /* A apresentacao dela em PDF, pagina por pagina: os clientes dela amam esse
      material, entao ele fica logo na entrada do app. */
@@ -528,7 +534,7 @@ function _seed() {
     },
     { id: "transfer", type: "transfer", region: "servicos",
       name: { pt: "Transfer e receptivo", en: "Transfers and airport pick-up" },
-      desc: { pt: "Receptivo no aeroporto, hotéis e atrações com guia brasileira. Preços tabelados e veículos modernos e confortáveis. Carro, van ou transporte público — você escolhe.",
+      desc: { pt: "Receptivo no aeroporto, hotéis e atrações com guia brasileira: aeroporto → hotel na chegada, hotel → aeroporto na volta, traslados entre atrações e carro à disposição por algumas horas. Preços tabelados e veículos modernos e confortáveis. Carro, van ou transporte público — você escolhe.",
               en: "Airport, hotel and attraction transfers with a Brazilian guide. Fixed prices and modern, comfortable vehicles. Car, van or public transport — you choose." },
       meeting: "Saímos da sua hospedagem",
       duration: "Conforme o trecho", distance: '', effort: 'easy',
