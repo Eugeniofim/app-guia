@@ -214,6 +214,7 @@ function _blank() {
            /* pixName e pixCity sao exigidos pelo padrao do BR Code:
               sem eles o banco recusa o codigo. */
            pixKey: '', pixName: '', pixCity: '', iban: '', ibanName: '', payNote: '',
+           site: '', roteiro: true, cupons: true,
            /* Wise: link de pagamento (wise.com/pay/...). Dinheiro no dia: o
               transfer dela e cobrado assim. Vazio/falso = nao aparece. */
            wiseLink: '', dinheiroNoDia: false,
@@ -267,31 +268,32 @@ function _seed() {
      (guiabrasileiroemmunique.com e guiamotorista.com) e do Instagram. Nada
      inventado; ele reescreve em Ajustes -> Sobre voce. */
   db.settings.homeText = {
-    pt: 'Guia oficial de Munique desde 1995. Passeios privativos em português por Munique, pela Baviera e pela Áustria.',
-    en: 'Official Munich guide since 1995. Private tours in Portuguese through Munich, Bavaria and Austria.',
+    pt: 'Guia oficial de Munique desde 1995. Passeios privativos em português por Munique e pela Baviera.',
+    en: 'Official Munich guide since 1995. Private tours in Portuguese through Munich and Bavaria.',
   };
-  db.settings.links = [
-    { id: 'motorista', icone: '🚘', url: 'https://www.guiamotorista.com/',
-      titulo: { pt: 'Guia-motorista pela Baviera', en: 'Driver-guide across Bavaria' },
-      sub: { pt: 'Dal Pra Guide & Driver Tours — carro confortável e guia certificado', en: 'Dal Pra Guide & Driver Tours — comfortable car and certified guide' } },
-  ];
+  /* O Mario pediu para tirar o link 'Guia-motorista pela Baviera' da primeira tela (22/09). */
+  db.settings.links = [];
   db.settings.youtube  = 'https://www.youtube.com/watch?v=RjdxgZKIgM0';
   db.settings.facebook = 'https://www.facebook.com/visitasguiadasemportugues';
-  db.settings.blog     = 'https://www.guiabrasileiroemmunique.com/';
-  db.settings.photo    = 'arte/avatar-mario.jpg';
+  db.settings.blog     = 'https://www.guiabrasileiroemmunique.com/#Blog';
+  db.settings.site     = 'https://www.guiabrasileiroemmunique.com/';
+  /* pedidos dele: sem 'Monte seu roteiro' e sem cupons */
+  db.settings.roteiro  = false;
+  db.settings.cupons   = false;
+  db.settings.photo    = 'arte/mario-parque.jpg';
   db.settings.bio = {
     pt: 'Sou o Mario Dal Pra, curitibano. Muito jovem fui morar no exterior — Buenos Aires, Edimburgo, Nova York — '
       + 'e há mais de 30 anos moro em Munique, onde me formei em Turismo.\n\n'
       + 'Sou guia oficial da cidade de Munique desde 1995, credenciado na Alemanha, tour leader pela Câmara de Indústria e '
       + 'Comércio de Munique e membro da Associação Federal de Guias Turísticos (BVGD). Falo português, espanhol, inglês e alemão.\n\n'
       + 'Minha missão é aproximar você de Munique com conhecimento, hospitalidade e a alegria de viver brasileira. '
-      + 'Todos os passeios são privativos e personalizados: a pé, de carro com guia-motorista, pela Baviera e pela Áustria.',
+      + 'Todos os passeios são privativos e personalizados: a pé, de carro com guia-motorista, por Munique e pela Baviera.',
     en: 'I am Mario Dal Pra, from Curitiba, Brazil. I moved abroad very young — Buenos Aires, Edinburgh, New York — '
       + 'and I have lived in Munich for over 30 years, where I studied Tourism.\n\n'
       + 'I have been an official Munich city guide since 1995, accredited in Germany, a tour leader certified by the Munich '
       + 'Chamber of Commerce and a member of the German Federation of Tourist Guides (BVGD). I speak Portuguese, Spanish, English and German.\n\n'
       + 'My mission is to bring you close to Munich with knowledge, hospitality and Brazilian joie de vivre. '
-      + 'Every tour is private and tailor-made: on foot, by car with a driver-guide, across Bavaria and Austria.',
+      + 'Every tour is private and tailor-made: on foot, by car with a driver-guide, across Munich and Bavaria.',
   };
 
   db.tours = [
@@ -881,7 +883,7 @@ let DB = null;
 
    So vale para a DEMONSTRACAO e sem nuvem: dados de verdade nunca sao
    trocados por exemplo. Os pedidos de roteiro feitos no aparelho ficam. */
-const SEED_VER = 7;   /* 7: so os 3 passeios do Mario no ar, fotos com credito (18/09/2026) */
+const SEED_VER = 8;   /* 8: pedidos do Mario de 22/09 (sem Áustria, sem roteiro, sem cupom, site) */
 
 function load() {
   try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }

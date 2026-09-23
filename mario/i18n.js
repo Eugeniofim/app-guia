@@ -195,6 +195,12 @@ const STR = {
   /* passeio sem preco cadastrado: o app nao inventa valor, faz orcamento */
   priceAsk:    { pt: 'Sob consulta', en: 'On request' },
   priceAskWhy: { pt: 'O valor depende do grupo e do roteiro — você escolhe a data e recebe o orçamento no WhatsApp.', en: 'The price depends on the group and the route — pick a date and get a quote on WhatsApp.' },
+  gcalAdd:     { pt: 'Google Agenda', en: 'Google Calendar' },
+  dtCalWhy:    { pt: 'Ou clique nos dias do mês: cada toque abre ou fecha o dia, com a hora e as vagas acima.', en: 'Or click the days below: each tap opens or closes that day, using the time and seats above.' },
+  ecLivre:     { pt: 'Dia fechado — toque para abrir', en: 'Closed — tap to open' },
+  ecAberto:    { pt: 'Dia aberto — toque para fechar', en: 'Open — tap to close' },
+  ecFechado:   { pt: 'Fechado por você — toque para reabrir', en: 'Closed by you — tap to reopen' },
+  ecBloqLongo: { pt: 'Este dia está dentro de um período bloqueado (suas férias). Tire o bloqueio na Agenda.', en: 'This day is inside a blocked period (your time off). Remove it in the Agenda.' },
   fromPrice:   { pt: 'a partir de', en: 'from' },
   perGroup:    { pt: 'no total', en: 'total' },
   perTable:    { pt: 'Tabela por nº de pessoas', en: 'Table by group size' },

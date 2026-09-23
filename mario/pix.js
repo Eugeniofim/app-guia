@@ -48,7 +48,7 @@ function pixTxid(codigo) {
 /* Monta o copia e cola.
    valor em reais (número). Sem valor, o cliente digita — evitamos isso. */
 /* CPF e CNPJ entram no codigo so com digitos: o guia digita
-   "12.345.678/0001-95" e o banco espera "12345678000195". Telefone vira
+   "58.728.880/0001-05" e o banco espera "58728880000105". Telefone vira
    +55...; e-mail e chave aleatoria vao como estao. */
 function pixChaveLimpa(chave) {
   const k = String(chave || '').trim();

@@ -334,6 +334,7 @@ function bindLang(root) {
    dos Ajustes: ela troca sem precisar de nos. */
 const ICONE_YT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.2 3.6-6.2 3.6Z"/></svg>';
 const ICONE_FB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12Z"/></svg>';
+const ICONE_SITE = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>';
 const ICONE_BLOG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>';
 
 function linkExterno(u) { return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
@@ -345,6 +346,7 @@ function viewHub() {
     st.insta    ? { u: 'https://instagram.com/' + st.insta.replace(/^@/, ''), ic: ICONE_IG, n: 'Instagram', c: 'ig' } : null,
     linkExterno(st.youtube)  ? { u: st.youtube,  ic: ICONE_YT,   n: 'YouTube',  c: 'yt' } : null,
     linkExterno(st.blog)     ? { u: st.blog,     ic: ICONE_BLOG, n: 'Blog',     c: 'bl' } : null,
+    linkExterno(st.site)     ? { u: st.site,     ic: ICONE_SITE, n: 'Site',     c: 'st' } : null,
     linkExterno(st.facebook) ? { u: st.facebook, ic: ICONE_FB,   n: 'Facebook', c: 'fb' } : null,
   ].filter(Boolean);
   const temTransfer = Tours.live().some(x => x.type === 'transfer');
@@ -367,9 +369,9 @@ function viewHub() {
       ${temTransfer ? `<button class="lk" id="goTransfer">
         <span class="ic">🚘</span><span><b>${t('hubTransfer')}</b><small>${t('hubTransferSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>` : ''}
-      <button class="lk" id="goRoteiro">
+      ${st.roteiro === false ? '' : `<button class="lk" id="goRoteiro">
         <span class="ic">🗺️</span><span><b>${t('hubRoteiro')}</b><small>${t('hubRoteiroSub')}</small></span><span class="go" aria-hidden="true">→</span>
-      </button>
+      </button>`}
       <button class="lk" id="goAbout">
         <span class="ic"><img id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt=""
           style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
@@ -384,7 +386,7 @@ function viewHub() {
   bindLang(app);
   $('#goTours').onclick = () => { viewShowcase._f = 'all'; go('/tours'); };
   if ($('#goTransfer')) $('#goTransfer').onclick = () => { viewShowcase._f = 'transfer'; go('/tours'); };
-  $('#goRoteiro').onclick = () => go('/roteiro');
+  if ($('#goRoteiro')) $('#goRoteiro').onclick = () => go('/roteiro');
   fallbackPhoto($('#hubFace'), '☺');
   $('#goAbout').onclick = () => go('/about');
   $('#admEntry').onclick = () => go('/adm/today');
@@ -1244,10 +1246,10 @@ function renderBook() {
         ${linhaReais(total)}
         ${(x.min > 1 && S.pax < x.min) ? `<p class="why">${t('minAviso', { n: x.min })}</p>` : ''}
       </div>
-      <details class="coupon"><summary>${t('haveCoupon')}</summary>
+      ${DB.settings.cupons === false ? '' : `<details class="coupon"><summary>${t('haveCoupon')}</summary>
         <div class="crow"><input id="cin" placeholder="VOLTA10"><button class="mini" id="capply">OK</button></div>
         <p class="cbad" id="cbad"></p>
-      </details>
+      </details>`}
       <button class="cta" id="next2" ${x.priceMode === 'transfer' && S.noCentro === null ? 'disabled' : ''}>${precisaOrcamento(x, S, pr) ? t('bigGroupBtn') : t('cont')}</button>
       <button class="linkbtn" id="back1" aria-label="${t('back')}">← ${t('back')}</button>`;
     /* Antes o piso era x.min (3 nos passeios dela): apertar "menos" com 2
@@ -1260,7 +1262,7 @@ function renderBook() {
     $$('[data-centro]', book).forEach(b => b.onclick = () => {
       S.noCentro = b.dataset.centro === 'sim'; renderBook();
     });
-    $('#capply').onclick = () => {
+    if ($('#capply')) $('#capply').onclick = () => {
       const v = Coupons.validate($('#cin').value, null);
       if (v.ok) { S.coupon = v.coupon.code; S.discount = Math.round(base * v.coupon.pct / 100); renderBook(); }
       else $('#cbad').textContent = t('couponBad');
@@ -1373,7 +1375,7 @@ const ADM_TABS = [
   ['money',    'admMoney'],
   ['reports',  'admReports'],
   ['clients',  'admClients'],
-  ['coupons',  'admCoupons'],
+  ['coupons',  'admCoupons'],   /* escondida quando settings.cupons === false */
   ['look',     'temaTit'],
   ['settings', 'admSettings'],
 ];
@@ -1418,7 +1420,7 @@ function admShell(tab, inner) {
   <div class="adm">
     <aside class="rail">
       <div class="brand">${logoFull({ mark: 26, sub: 'ADM' })}</div>
-      <nav>${ADM_TABS.map(([id, k]) =>
+      <nav>${ADM_TABS.filter(([id]) => !(id === 'coupons' && DB.settings.cupons === false)).map(([id, k]) =>
         `<button class="nb ${tab === id ? 'on' : ''}" data-tab="${id}" id="nb-${id}">${t(k)}</button>`).join('')}</nav>
       <div class="railfoot">
         <button class="nb ghost" id="viewSite">👁 ${t('viewSite')}</button>
@@ -1743,6 +1745,10 @@ function admTourEdit(id) {
             <label class="fld">${t('dtVagas')}<input id="oCap" type="number" min="1" value="${x.max}"></label>
           </div>
           <button class="cta sm" id="addOne">${t('dtBotao')}</button>
+          <div class="edcalhead"><button class="mini" id="ecPrev" aria-label="←">←</button>
+            <b id="ecMes"></b><button class="mini" id="ecNext" aria-label="→">→</button></div>
+          <p class="why">${t('dtCalWhy')}</p>
+          <div class="edcal" id="edCal"></div>
         </div>
 
         <details class="dtbloco">
@@ -2023,12 +2029,71 @@ function admTourEdit(id) {
     $('#addRule').onclick = () => {
       if (!wds.size) return toast(LANG === 'pt' ? 'Escolha os dias da semana.' : 'Pick the weekdays.');
       Cal.addRule({ tourId: x.id, weekdays: [...wds], time: $('#rTime').value, capacity: +$('#rCap').value || x.max, from: $('#rFrom').value, until: $('#rUntil').value });
-      drawRules(); toast('✓');
+      drawRules(); drawCal(); toast('✓');
     };
     $('#addOne').onclick = () => {
       Cal.addDeparture({ tourId: x.id, date: $('#oDate').value, time: $('#oTime').value, capacity: +$('#oCap').value || x.max });
-      drawRules(); toast('✓');
+      drawRules(); drawCal(); toast('✓');
     };
+    /* Calendario de clicar (pedido do Mario, 22/09): em vez de digitar data por
+       data, ele abre o mes e toca nos dias em que o passeio sai. Cada dia ligado
+       vira uma data avulsa com a hora e as vagas dos campos acima. */
+    let ecMes = isoToday().slice(0, 7);
+    function drawCal() {
+      const [Y, M] = ecMes.split('-').map(Number);
+      const diasNoMes = new Date(Y, M, 0).getDate();
+      const primeiro = (new Date(`${ecMes}-01T12:00:00`).getDay() + 6) % 7;  /* segunda = 0 */
+      const MN = LANG === 'pt'
+        ? ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+        : ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const WD = LANG === 'pt' ? ['s','t','q','q','s','s','d'] : ['m','t','w','t','f','s','s'];
+      const hoje = isoToday();
+      const marcados = {};
+      DB.departures.filter(d => d.tourId === x.id).forEach(d => (marcados[d.date] = { avulsa: d }));
+      Cal.rulesFor(x.id).forEach(r => {
+        let d = r.from;
+        while (d <= r.until) {
+          if (r.weekdays.includes(new Date(d + 'T12:00:00').getDay())) marcados[d] = marcados[d] || { regra: true };
+          d = addDays(d, 1);
+        }
+      });
+      let html = WD.map(w => `<span class="ecwd">${w}</span>`).join('');
+      for (let g = 0; g < primeiro; g++) html += '<span class="ecgap"></span>';
+      for (let n = 1; n <= diasNoMes; n++) {
+        const iso = `${ecMes}-${String(n).padStart(2, '0')}`;
+        const m = marcados[iso];
+        const fechado = Cal.blocked(iso);
+        const cls = fechado ? 'fechado' : (m ? (m.regra ? 'regra' : 'on') : '');
+        html += `<button class="ecd ${cls} ${iso < hoje ? 'passou' : ''}" data-ec="${iso}"
+                   title="${fechado ? t('ecFechado') : (m ? t('ecAberto') : t('ecLivre'))}">${n}</button>`;
+      }
+      $('#ecMes').textContent = MN[M - 1] + ' ' + Y;
+      $('#edCal').innerHTML = html;
+      /* Um toque abre o dia; outro fecha. Quatro casos:
+         dia fechado  -> reabre (tira o bloqueio);
+         data avulsa  -> apaga a data;
+         dia de regra -> fecha SÓ esse dia (bloqueio de um dia, a regra fica);
+         dia livre    -> cria a data com a hora e as vagas dos campos acima. */
+      $$('#edCal .ecd[data-ec]').forEach(b => b.onclick = () => {
+        const iso = b.dataset.ec;
+        const bloqueio = DB.blocks.find(z => iso >= z.from && iso <= z.until);
+        if (bloqueio) {
+          if (bloqueio.from !== bloqueio.until) return toast(t('ecBloqLongo'));
+          Cal.removeBlock(bloqueio.id);
+        } else {
+          const achado = DB.departures.find(d => d.tourId === x.id && d.date === iso);
+          const deRegra = Cal.rulesFor(x.id).some(r => iso >= r.from && iso <= r.until
+            && r.weekdays.includes(new Date(iso + 'T12:00:00').getDay()));
+          if (achado) Cal.removeDeparture(achado.id);
+          else if (deRegra) Cal.addBlock({ from: iso, until: iso, reason: t('ecFechado') });
+          else Cal.addDeparture({ tourId: x.id, date: iso, time: $('#oTime').value || '10:00', capacity: +$('#oCap').value || x.max });
+        }
+        drawCal(); drawRules();
+      });
+    }
+    $('#ecPrev').onclick = () => { const d = new Date(ecMes + '-01T12:00:00'); d.setMonth(d.getMonth() - 1); ecMes = d.toISOString().slice(0, 7); drawCal(); };
+    $('#ecNext').onclick = () => { const d = new Date(ecMes + '-01T12:00:00'); d.setMonth(d.getMonth() + 1); ecMes = d.toISOString().slice(0, 7); drawCal(); };
+
     function drawRules() {
       const rules = Cal.rulesFor(x.id);
       const ones = DB.departures.filter(d => d.tourId === x.id);
@@ -2038,9 +2103,10 @@ function admTourEdit(id) {
             + ones.map(d => `<div class="deprow"><span>${fmtDate(d.date)} · <b class="mono">${d.time}</b> · ${d.capacity} ${t('spotsLeft')}</span><button class="mini danger" data-rd="${d.id}">×</button></div>`).join('')
           : `<p class="empty">${t('noDates')}</p>`;
       $$('[data-rr]').forEach(b => b.onclick = () => { Cal.removeRule(b.dataset.rr); drawRules(); });
-      $$('[data-rd]').forEach(b => b.onclick = () => { Cal.removeDeparture(b.dataset.rd); drawRules(); });
+      $$('[data-rd]').forEach(b => b.onclick = () => { Cal.removeDeparture(b.dataset.rd); drawRules(); drawCal(); });
     }
     drawRules();
+    drawCal();
   }
 }
 
@@ -2838,6 +2904,31 @@ function admSettings() {
 /* =====================================================
    AGENDA — o mês do guia
 ===================================================== */
+/* ---- Google Agenda ----
+   Pedido do Mario (22/09): ver as saídas na agenda do Google. Sem login e sem
+   permissão: cada saída vira um link que abre o Google Agenda com o evento já
+   preenchido; ele confere e salva. A duração sai do passeio (o primeiro número
+   de horas que aparecer), e o local é o ponto de encontro. */
+function horasDe(x) {
+  const m = String(x && x.duration || '').match(/(\d+)\s*h/);
+  const h = m ? +m[1] : 3;
+  return Math.min(12, Math.max(1, h));
+}
+function linkGoogleAgenda(x, date, time, quem) {
+  const ini = new Date(date + 'T' + (time || '09:00') + ':00');
+  const fim = new Date(ini.getTime() + horasDe(x) * 3600e3);
+  const z = (d) => d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0')
+    + 'T' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + '00';
+  const p = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: (x.name[LANG] || x.name.pt) + (quem ? ' — ' + quem : ''),
+    dates: z(ini) + '/' + z(fim),
+    details: (quem ? quem + '\n' : '') + location.origin + location.pathname,
+    location: noIdioma(x.meeting) || '',
+  });
+  return 'https://calendar.google.com/calendar/render?' + p.toString();
+}
+
 function admAgenda() {
   const cur = admAgenda._m || isoToday().slice(0, 7);
   const [Y, M] = cur.split('-').map(Number);
@@ -2914,7 +3005,9 @@ function admAgenda() {
                                         && b.time === d.time && b.status !== 'cancelled');
           return `<div class="deprow">
             <div class="tinfo"><b>${d.time} · ${esc(d.tour.name[LANG] || d.tour.name.pt)}</b>
-              <small>${t('agBooked', { n: d.booked })} · ${t('agFree', { n: d.left })}</small></div>
+              <small>${t('agBooked', { n: d.booked })} · ${t('agFree', { n: d.left })}</small>
+              <a class="gcal" href="${esc(linkGoogleAgenda(d.tour, d.date, d.time, bs.map(b => b.name.split(' ')[0] + ' ×' + b.pax).join(', ')))}"
+                 target="_blank" rel="noopener">📅 ${t('gcalAdd')}</a></div>
             ${bs.length ? `<div class="paxlist">${bs.map(b =>
               `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(b.name.split(' ')[0])} ×${b.pax}</span>`).join('')}</div>` : ''}
           </div>`;
