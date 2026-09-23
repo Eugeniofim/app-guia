@@ -491,6 +491,7 @@ function cancelaTxt(x) {
 function viewTour(id) {
   const x = Tours.get(id);
   if (!x) return go('/tours');
+  Interesse.conta(x.id, 'visitas');   /* quantas vezes abriram este passeio */
   const S = viewTour._s = { tour: x, date: null, time: null, cap: 0, pax: x.priceMode === 'session' ? 1 : 2, step: 1, coupon: null, discount: 0, policy: x.payPolicy === 'split' ? 'split' : 'full' };
 
   const stops = Array.isArray(x.stops) ? x.stops : [];
@@ -797,7 +798,7 @@ function renderBook() {
       $$('[data-t]', book).forEach(z => z.classList.remove('on')); b.classList.add('on');
       $('#next1').disabled = false;
     });
-    $('#next1')?.addEventListener('click', () => { S.step = 2; renderBook(); });
+    $('#next1')?.addEventListener('click', () => { Interesse.conta(x.id, 'quase'); S.step = 2; renderBook(); });
 
     function timesHtml(list) {
       return `<p class="hint">${t('pickTime')}</p><div class="times">` + list.map(d => {
@@ -2268,6 +2269,20 @@ function admAgenda() {
 /* =====================================================
    RELATÓRIOS — como foi o período
 ===================================================== */
+/* o relatório em uma frase: o que o guia faria com esses números */
+function lerInteresse(linhas) {
+  if (!linhas.length) return '';
+  const avisos = [];
+  const maisVisto = linhas[0];
+  const vendeu = linhas.filter(r => r.reservas > 0).sort((a, b) => b.receita - a.receita)[0];
+  const vitrine = linhas.filter(r => r.visitas >= 10 && r.reservas === 0)[0];
+  const melhorConv = linhas.filter(r => r.visitas >= 5).sort((a, b) => b.conv - a.conv)[0];
+  if (maisVisto) avisos.push(t('rpIntVisto', { tour: tl(maisVisto.tour.name), n: maisVisto.visitas }));
+  if (vendeu) avisos.push(t('rpIntVende', { tour: tl(vendeu.tour.name), v: eur(vendeu.receita) }));
+  if (melhorConv && melhorConv.conv > 0) avisos.push(t('rpIntConv', { tour: tl(melhorConv.tour.name), p: melhorConv.conv }));
+  if (vitrine) avisos.push(t('rpIntVitrine', { tour: tl(vitrine.tour.name), n: vitrine.visitas }));
+  return `<ul class="lerel">${avisos.map(a => `<li>${a}</li>`).join('')}</ul>`;
+}
 function admReports() {
   const mode = admReports._m || 'month';
   const today = isoToday();
@@ -2275,6 +2290,7 @@ function admReports() {
   const T = Reports.totals(from, today);
   const tours = Reports.byTour(from, today);
   const origins = Reports.byOrigin(from, today);
+  const inter = Reports.interesse(from, today);
   const series = mode === 'week' ? Reports.byWeek(8)
     : Reports.byMonth(+today.slice(0, 4)).map((v, i) => ({
         label: new Date(2026, i, 1).toLocaleDateString(locale(), { month: 'short' }).replace('.', ''),
@@ -2299,6 +2315,21 @@ function admReports() {
     <section class="card">
       <h3>${mode === 'week' ? t('rpByWeek') : t('rpByMonth')}</h3>
       <div class="chartbox"><canvas id="repChart"></canvas></div>
+    </section>
+
+    <section class="card">
+      <h3>${t('rpInt')}</h3>
+      <p class="why">${t('rpIntHelp')}</p>
+      ${inter.length ? `<table class="tbl"><thead><tr>${t('rpIntCols').map((c, i) => `<th${i ? ' class="right"' : ''}>${c}</th>`).join('')}</tr></thead>
+        <tbody>${inter.map(r => `<tr>
+          <td>${esc(tl(r.tour.name))}</td>
+          <td class="mono right">${r.visitas}</td>
+          <td class="mono right">${r.quase}</td>
+          <td class="mono right">${r.reservas}</td>
+          <td class="right"><span class="conv ${r.conv >= 10 ? 'boa' : r.conv >= 4 ? 'media' : 'baixa'}">${r.conv}%</span></td>
+          <td class="mono right">${eur(r.receita)}</td></tr>`).join('')}</tbody></table>
+        ${lerInteresse(inter)}`
+      : `<p class="empty">${t('rpEmpty')}</p>`}
     </section>
 
     <div class="two-col">

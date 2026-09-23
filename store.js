@@ -50,6 +50,10 @@ function regiaoOpts(cur) {
 
 function _blank() {
   return { tours: [], rules: [], departures: [], blocks: [], bookings: [], coupons: [], seatCounts: [],
+           /* interesse: quantas vezes abriram cada passeio e quantas chegaram a
+              escolher data ("quase reservou"). Só contagem por dia, sem nada
+              de quem é a pessoa. */
+           interesse: {},
            settings: { lang: 'pt', tutorialClient: true, tutorialAdm: true,
            /* quem e o guia — nasce do config.js e o guia edita no painel */
            admName: GUIA_CFG.nome || 'Guia', negocio: GUIA_CFG.negocio || '',
@@ -98,6 +102,7 @@ function _blank() {
 function _seed() {
   const db = _blank();
   db.demo = true;
+  db.interesse = {};
 
   db.tours = [
     { id: 't1', type: 'walk', region: 'cidade',
@@ -228,6 +233,26 @@ function _seed() {
         : { ok: false },
       status: 'confirmed', createdAt: created + 'T10:00:00.000Z', origin,
     });
+  }
+  /* interesse de exemplo: para cada reserva, algumas visitas e alguns "quase"
+     no mesmo dia. É demonstração — no app de verdade isto vem do uso real. */
+  const porPasseio = {};
+  for (const b of db.bookings) (porPasseio[b.tourId] = porPasseio[b.tourId] || []).push(b.createdAt.slice(0, 10));
+  let k = 0;
+  for (const x of db.tours) {
+    const datas = porPasseio[x.id] || [];
+    const v = {}, q = {};
+    for (const d of datas) {
+      const vistas = 9 + (++k * 7) % 14;          /* 9 a 22 visitas por reserva */
+      v[d] = (v[d] || 0) + vistas;
+      q[d] = (q[d] || 0) + 2 + (k % 4);
+    }
+    /* passeio sem reserva nenhuma também é visto — é o caso mais útil do relatório */
+    if (!datas.length) {
+      const d = addDays(isoToday(), -(3 + (++k % 9)));
+      v[d] = 12 + (k * 5) % 20; q[d] = 1 + (k % 3);
+    }
+    db.interesse[x.id] = { visitas: v, quase: q };
   }
   /* francês, italiano, alemão e espanhol dos passeios de exemplo (idiomas.js) */
   return typeof traduzSemente === 'function' ? traduzSemente(db) : db;
@@ -550,6 +575,23 @@ const Clients = {
 };
 
 /* ---------- relatórios ---------- */
+/* conta uma visita ou um "quase reservou" — só no aparelho de quem olha;
+   no app de verdade isto sobe junto com o resto dos dados */
+const Interesse = {
+  conta(tourId, tipo) {
+    if (!tourId || (tipo !== 'visitas' && tipo !== 'quase')) return;
+    if (!DB.interesse) DB.interesse = {};
+    const i = DB.interesse[tourId] = DB.interesse[tourId] || {};
+    const c = i[tipo] = i[tipo] || {};
+    const hoje = isoToday();
+    c[hoje] = (+c[hoje] || 0) + 1;
+    /* guarda no máximo 120 dias por passeio, para não crescer sem fim */
+    const dias = Object.keys(c).sort();
+    if (dias.length > 120) for (const d of dias.slice(0, dias.length - 120)) delete c[d];
+    save();
+  },
+};
+
 const Reports = {
   /* receita por mês do ano corrente */
   byMonth(year) {
@@ -580,6 +622,20 @@ const Reports = {
       end = addDays(start, -1);
     }
     return out;
+  },
+  /* interesse por passeio: visitas, quem chegou a escolher data, reservas e conversão */
+  interesse(fromIso, toIso) {
+    const soma = (o) => Object.entries(o || {}).reduce((n, [d, v]) => n + (d >= fromIso && d <= toIso ? (+v || 0) : 0), 0);
+    const linhas = Tours.all().map(x => {
+      const i = (DB.interesse || {})[x.id] || {};
+      const bs = DB.bookings.filter(b => b.tourId === x.id && b.status !== 'cancelled' && b.date >= fromIso && b.date <= toIso);
+      const visitas = soma(i.visitas), quase = soma(i.quase), reservas = bs.length;
+      return { tour: x, visitas, quase, reservas,
+               pax: bs.reduce((n, b) => n + b.pax, 0),
+               receita: bs.reduce((n, b) => n + Bookings.paid(b), 0),
+               conv: visitas ? Math.round(reservas / visitas * 100) : 0 };
+    }).filter(r => r.visitas > 0 || r.reservas > 0);
+    return linhas.sort((a, b) => b.visitas - a.visitas || b.reservas - a.reservas);
   },
   /* desempenho por passeio no intervalo */
   byTour(fromIso, toIso) {
