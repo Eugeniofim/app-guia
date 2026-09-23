@@ -226,6 +226,67 @@
       "duracao": "6h",
       "encontro": "Buscamos você no hotel",
       "foto": "prospects/fotos/dubai-3.jpg"
+    },
+    {
+      "paradas": [
+        {
+          "t": "09h00",
+          "ph": "prospects/fotos/dubai-4-1.jpg",
+          "lat": 24.4128,
+          "lng": 54.475,
+          "n": {
+            "pt": "Mesquita Sheikh Zayed",
+            "en": "Sheikh Zayed Mosque"
+          },
+          "d": {
+            "pt": "Mármore branco, o maior tapete feito à mão do mundo e regras de vestimenta que a gente explica antes para ninguém passar sufoco.",
+            "en": "White marble, the world's largest hand-knotted carpet, and a dress code we explain beforehand so nobody is caught out."
+          }
+        },
+        {
+          "t": "12h00",
+          "ph": "prospects/fotos/dubai-4-2.jpg",
+          "lat": 24.5339,
+          "lng": 54.3981,
+          "n": {
+            "pt": "Louvre Abu Dhabi",
+            "en": "Louvre Abu Dhabi"
+          },
+          "d": {
+            "pt": "A cúpula que faz chover luz dentro do museu, e um acervo que conta a história do mundo inteiro numa sala só.",
+            "en": "The dome that rains light inside the museum, and a collection that tells the story of the whole world in a single room."
+          }
+        },
+        {
+          "t": "15h00",
+          "ph": "prospects/fotos/dubai-4-3.jpg",
+          "lat": 24.4667,
+          "lng": 54.3167,
+          "n": {
+            "pt": "Corniche e a orla dos palácios",
+            "en": "Corniche and the palace waterfront"
+          },
+          "d": {
+            "pt": "A avenida à beira-mar, o palácio presidencial e o hotel onde servem café com folha de ouro. Voltamos para Dubai no fim da tarde.",
+            "en": "The seafront avenue, the presidential palace and the hotel that serves coffee with gold leaf. We head back to Dubai in the late afternoon."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Abu Dhabi · Grande Mesquita e Louvre",
+        "en": "Abu Dhabi · Grand Mosque and Louvre"
+      },
+      "desc": {
+        "pt": "Dia inteiro na capital: a mesquita de mármore branco que cabe 40 mil pessoas, o Louvre do deserto e a orla dos palácios.",
+        "en": "A full day in the capital: the white marble mosque that holds 40,000 people, the desert Louvre and the palace waterfront."
+      },
+      "preco": 590,
+      "modo": "session",
+      "tipo": "day",
+      "regiao": "abudhabi",
+      "duracao": "Dia inteiro",
+      "encontro": "Buscamos você no hotel em Dubai",
+      "foto": "prospects/fotos/dubai-4.jpg"
     }
   ]
 }

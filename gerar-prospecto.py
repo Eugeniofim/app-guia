@@ -41,7 +41,7 @@ def gera(entrada: pathlib.Path) -> pathlib.Path:
 
     FOTOS.mkdir(parents=True, exist_ok=True)
     passeios = []
-    for i, p in enumerate(src['passeios'][:3], start=1):
+    for i, p in enumerate(src['passeios'][:4], start=1):
         foto = ''
         if p.get('unsplash'):
             alvo = FOTOS / f'{slug}-{i}.jpg'
