@@ -1,0 +1,154 @@
+/* =========================================================
+   CONEXÃO BERLIM — Design tokens (app-guia)
+   Contrastes medidos (WCAG AA). Não usar hex solto no código.
+   ========================================================= */
+
+:root{
+  /* ---------- MARCA (manual da Conexão Berlim, Studio Nama, v2.0 mai/2025) ----------
+     Duo de assinatura: MOOS + GOLD. Peso: 60% Moos, 20% Gold, 20% Offwhite.
+     O gold do manual (#8F7029) tem 3.6:1 sobre o offwhite: serve para o selo,
+     nunca para texto. Texto dourado usa --highlight-text. */
+  --brand-primaria:   #293629;   /* MOOS · a cor dela */
+  --brand-assinatura: #8F7029;   /* GOLD · selo e detalhes */
+  --brand-oro:        #BA9430;   /* ORO · preenchimento dourado com texto escuro */
+  --brand-offwhite:   #E8E3DE;
+  --brand-sand:       #E0D6C7;
+  --brand-iron:       #A3452B;   /* IRON · o botão terracota do site dela */
+  --brand-preto:      #171717;   /* CHARCOAL */
+  /* nomes antigos do app-guia: o código ainda chama por eles */
+  --brand-verde:   var(--brand-primaria);
+  --brand-amarelo: var(--brand-assinatura);
+
+  /* ---------- FUNDOS ---------- */
+  --paper:     #E8E3DE;  /* OFFWHITE do manual — o fundo do app */
+  --surface:   #F6F3EF;  /* cartões: um passo mais claro que o fundo */
+  --surface-2: #E0D6C7;  /* SAND — blocos secundários */
+  --surface-3: #D3C8B6;
+  --line:      #D6CEC3;
+  --line-2:    #C2B8A9;
+
+  /* ---------- TEXTO ---------- */
+  --ink:    #171717;   /* 14.1:1 sobre o fundo */
+  --ink-2:  #3A3F3A;   /* corpo secundário · 8.4:1 */
+  --ink-3:  #5A5E58;   /* legendas · 5.2:1 (4.6:1 sobre o sand) — mínimo */
+
+  /* ---------- AÇÃO ---------- */
+  --accent:       var(--brand-primaria);
+  --accent-ink:   #F6F3EF;          /* texto sobre o moos · 11.5:1 */
+  --accent-wash:  #D8DDD3;          /* fundo de pílula · moos por cima = 9.2:1 */
+  --accent-line:  #B4BDB0;
+
+  /* Dourado é assinatura: preenchimento (ORO) com texto escuro */
+  --highlight:      var(--brand-oro);
+  --highlight-ink:  #171717;        /* 6.3:1 sobre o oro */
+  --highlight-wash: #F0E6CC;
+  --highlight-text: #6B531C;        /* dourado escuro para texto · 5.7:1 */
+
+  /* ---------- ESTADOS (separados da paleta de marca) ---------- */
+  --ok:        #2F5A38;  --ok-wash:    #DCE5D8;   /* pago, confirmado */
+  --warn:      #6B531C;  --warn-wash:  #F0E6CC;   /* pendente, vence */
+  --danger:    #9A3F27;  --danger-wash:#F2DED6;   /* vencido, cancelado */
+  --neutral:   #3A3F3A;  --neutral-wash:#DEDAD3;
+
+  /* ---------- TIPOGRAFIA ---------- */
+  /* Manual (hierarquia de fontes, p. 30):
+     Helvetica Neue = interface e títulos em negrito ("Headline Small").
+     Arapey         = leitura: descrições, citações, a apresentação dela.
+     Voyage         = títulos grandes ("Headline Large"), com parcimônia.
+     Voyage é paga (VJ Type): até chegar o .woff2 web dela, Instrument Serif
+     segura o lugar — serifa fina de alto contraste, mesmo desenho. */
+  --f-display: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --f-titulo:  "Voyage", "Instrument Serif", Georgia, serif;
+  --f-serif:   "Arapey", Georgia, "Times New Roman", serif;
+  --f-ui:      "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --f-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --t-display: 700;   /* títulos em Helvetica: negrito. A Voyage (--f-titulo) é sempre 400 */
+  --t-strong:  600;
+  --t-body:    400;
+
+  /* escala (1.25) */
+  --fs-9:  44px;  --lh-9: 1.04;
+  --fs-8:  34px;  --lh-8: 1.08;
+  --fs-7:  27px;  --lh-7: 1.14;
+  --fs-6:  22px;  --lh-6: 1.22;
+  --fs-5:  18px;  --lh-5: 1.35;
+  --fs-4:  15px;  --lh-4: 1.55;   /* corpo */
+  --fs-3:  13px;  --lh-3: 1.5;
+  --fs-2:  11.5px;--lh-2: 1.45;
+  --fs-1:  10px;  --lh-1: 1.4;    /* etiquetas mono, maiúsculas, tracking .14em */
+
+  --track-display: -0.01em;
+  --track-label:    0.14em;
+
+  /* ---------- ESPAÇO ----------
+     Escala de passo 2 até 16px (a interface é densa), depois passo 8.
+     Regra: use o token mais próximo; não invente valores intermediários. */
+  --s-0:2px;  --s-1:4px;  --s-2:6px;  --s-3:8px;   --s-4:10px;
+  --s-5:12px; --s-6:14px; --s-7:16px; --s-8:20px;  --s-9:24px;
+  --s-10:32px; --s-11:40px; --s-12:48px; --s-14:64px;
+
+  /* ---------- FORMA ---------- */
+  --r-sm:8px; --r:12px; --r-lg:18px; --r-xl:26px; --r-pill:999px;
+
+  /* ---------- ELEVAÇÃO ---------- */
+  --sh-1: 0 1px 2px rgba(17,17,17,.04), 0 8px 22px -16px rgba(17,17,17,.28);
+  --sh-2: 0 2px 6px rgba(17,17,17,.05), 0 20px 44px -24px rgba(17,17,17,.34);
+  --sh-3: 0 28px 64px -30px rgba(17,17,17,.42);
+
+  /* ---------- MOVIMENTO ---------- */
+  --ease:   cubic-bezier(.22,1,.36,1);
+  --spring: cubic-bezier(.34,1.4,.5,1);
+  --d-fast: 180ms; --d-base: 260ms; --d-slow: 480ms;
+}
+
+/* Se ela nunca escolheu, o app segue o aparelho. Quem escolheu manda:
+   data-theme fixa e o media query abaixo nao se aplica. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --paper:#1C241C; --surface:#263226; --surface-2:#2F3C2F; --surface-3:#394839;
+    --line:#344234; --line-2:#465746;
+    --ink:#E8E3DE; --ink-2:#CCC5B9; --ink-3:#A7A194;
+    --brand-assinatura:#BA9430;
+    --accent:#E0D6C7; --accent-ink:#293629; --accent-wash:#2F3C2F; --accent-line:#4A5A4A;
+    --highlight:#BA9430; --highlight-ink:#171717; --highlight-wash:#3A331E; --highlight-text:#D4B45E;
+    --ok:#9CC79A;  --ok-wash:#243424;
+    --warn:#D4B45E; --warn-wash:#3A331E;
+    --danger:#E8927A; --danger-wash:#3D2520;
+    --neutral:#CCC5B9; --neutral-wash:#2F3C2F;
+    --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
+    --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
+    --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
+  }
+}
+
+/* Tema escuro — o musgo vira o fundo (60% Moos, como no App Preview do manual). */
+:root[data-theme="dark"]{
+  --paper:#1C241C; --surface:#263226; --surface-2:#2F3C2F; --surface-3:#394839;
+  --line:#344234; --line-2:#465746;
+  --ink:#E8E3DE; --ink-2:#CCC5B9; --ink-3:#A7A194;
+  --brand-assinatura:#BA9430;
+  --accent:#E0D6C7; --accent-ink:#293629; --accent-wash:#2F3C2F; --accent-line:#4A5A4A;
+  --highlight:#BA9430; --highlight-ink:#171717; --highlight-wash:#3A331E; --highlight-text:#D4B45E;
+  --ok:#9CC79A;  --ok-wash:#243424;
+  --warn:#D4B45E; --warn-wash:#3A331E;
+  --danger:#E8927A; --danger-wash:#3D2520;
+  --neutral:#CCC5B9; --neutral-wash:#2F3C2F;
+  --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
+  --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
+  --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
+}
+
+/* =========================================================
+   REGRAS QUE NÃO SE QUEBRAM
+   1. Dourado nunca é texto sobre fundo claro. Use --highlight-text.
+   2. Musgo é a ação principal. Um botão de ação por tela.
+   3. Terracota (danger) é urgência (vencido, últimas vagas). Não decora.
+   4. Cinza é legenda, nunca título.
+   5. Números sempre em --f-mono com font-variant-numeric: tabular-nums.
+   6. Toda cor sai daqui. Hex solto no componente = bug.
+      Exceção única: #fff sobre preenchimento de marca (verde/vinho).
+   7. Espaçamento sai de --s-*. Valor cru em px = dívida a pagar.
+   8. Todo controle clicável precisa de :focus-visible próprio ou herdado.
+   9. Botão só com ícone precisa de aria-label; ícone decorativo, aria-hidden.
+   ========================================================= */
