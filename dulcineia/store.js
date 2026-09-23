@@ -215,6 +215,7 @@ function _seed() {
     pt: 'Visitas guiadas em português com quem estuda esta cidade desde 2008. Você não vai ouvir a história de Berlim: vai caminhar por dentro dela.',
     en: 'Guided tours in Portuguese with someone who has studied this city since 2008. You will not just hear Berlin’s history: you will walk right through it.',
   };
+  db.settings.photo = 'fotos/dulcineia.jpg';   /* retrato que ela mandou (23/09/2026) */
   db.settings.homePhoto = 'fotos/home-portao-noite.jpg';
   db.settings.homePhotoCr = "Foto: Thomas Wolf, www.foto-tw.de · CC BY-SA 3.0 · Wikimedia Commons";
   db.settings.bio = {

@@ -26,7 +26,7 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=0.4.2">
+<link rel="stylesheet" href="tokens.css?v=0.4.6">
 <link rel="icon" href="arte/favicon.svg" type="image/svg+xml">
 <style>
 /* ============ base ============ */
@@ -122,6 +122,8 @@ small{color:var(--ink-3)}
 .adm-demo .ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.1);font-size:18px}
 .adm-demo b{display:block;font-size:16px} .adm-demo small{display:block;font-size:12.5px;opacity:.8;line-height:1.35;margin-top:2px}
 .adm-demo .go{margin-left:auto;font-size:20px;font-weight:700}
+/* a regra geral small{color:var(--ink-3)} vencia a herança: legenda clara sobre ouro (1,3:1) */
+.adm-demo small{color:inherit}
 .adm-demo:hover{transform:translateY(-1px)}
 @keyframes admPulsa{0%,100%{box-shadow:0 8px 28px rgba(186,148,48,.3)}50%{box-shadow:0 8px 36px rgba(186,148,48,.6)}}
 @media (prefers-reduced-motion:reduce){.adm-demo{animation:none}}
@@ -1038,6 +1040,10 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
   padding-bottom:calc(9px + env(safe-area-inset-bottom))}
 .protobar b{font-weight:700}
 body.em-adm #demoFaixa{display:none}
+/* com a faixa de demonstracao embaixo, o aviso de versao nova e as mensagens
+   sobem para cima dela — antes os tres se empilhavam no mesmo lugar */
+body:has(#demoFaixa):not(.em-adm) .novabar{bottom:calc(12px + var(--faixa-h, 52px))}
+body:has(#demoFaixa):not(.em-adm) .toast{bottom:calc(22px + var(--faixa-h, 52px))}
 .alert.nolog b{display:block;font-size:var(--fs-5);margin-bottom:var(--s-4)}
 .alert.nolog p{font-size:var(--fs-3);line-height:1.6;margin-bottom:var(--s-7);max-width:62ch}
 
@@ -1119,21 +1125,21 @@ html{font-synthesis:none}
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=0.4.2"></script>
-<script src="auth.js?v=0.4.2"></script>
-<script src="logo.js?v=0.4.2"></script>
-<script src="fx.js?v=0.4.2"></script>
-<script src="qrcode.js?v=0.4.2"></script>
-<script src="qr.js?v=0.4.2"></script>
-<script src="pix.js?v=0.4.2"></script>
-<script src="traduz.js?v=0.4.2"></script>
-<script src="idiomas.js?v=0.4.2"></script>
-<script src="store.js?v=0.4.2"></script>
-<script src="cloud.js?v=0.4.2"></script>
-<script src="i18n.js?v=0.4.2"></script>
-<script src="avisos.js?v=0.4.2"></script>
-<script src="app.js?v=0.4.2"></script>
-<script src="assistente.js?v=0.4.2"></script>
+<script src="config.js?v=0.4.6"></script>
+<script src="auth.js?v=0.4.6"></script>
+<script src="logo.js?v=0.4.6"></script>
+<script src="fx.js?v=0.4.6"></script>
+<script src="qrcode.js?v=0.4.6"></script>
+<script src="qr.js?v=0.4.6"></script>
+<script src="pix.js?v=0.4.6"></script>
+<script src="traduz.js?v=0.4.6"></script>
+<script src="idiomas.js?v=0.4.6"></script>
+<script src="store.js?v=0.4.6"></script>
+<script src="cloud.js?v=0.4.6"></script>
+<script src="i18n.js?v=0.4.6"></script>
+<script src="avisos.js?v=0.4.6"></script>
+<script src="app.js?v=0.4.6"></script>
+<script src="assistente.js?v=0.4.6"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

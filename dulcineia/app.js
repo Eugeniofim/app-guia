@@ -320,9 +320,11 @@ function viewHub() {
       </button>
       <a class="lk" href="https://instagram.com/${esc(DB.settings.insta)}" target="_blank" rel="noopener"><span class="ic ig">${ICONE_IG}</span><span><b>Instagram</b><small>@${esc(DB.settings.insta)}</small></span><span class="go" aria-hidden="true">→</span></a>
       <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b></span><span class="go" aria-hidden="true">→</span></a>
-      ${typeof temNuvem === 'function' && !temNuvem()
-        /* DEMONSTRACAO: a porta do painel é o que o prospect veio ver — o
-           botão discreto passava batido (22/09/2026) */
+      ${typeof temNuvem === 'function' && !temNuvem() && typeof APP_CONFIG !== 'undefined' && APP_CONFIG.vitrineVenda
+        /* DEMONSTRACAO DE VENDA: a porta do painel é o que o prospect veio ver —
+           o botão discreto passava batido (22/09/2026). Num app de CLIENTE
+           (Conexão Berlim) a vitrine é dos clientes dela: a porta do painel
+           fica discreta, como no app de verdade (23/09/2026). */
         ? `<button class="adm-demo" id="admEntry"><span class="ic" aria-hidden="true">✦</span><span><b>${t('admDemoTit')}</b><small>${t('admDemoSub')}</small></span><span class="go" aria-hidden="true">→</span></button>`
         : `<button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>`}
     </div>
@@ -334,7 +336,7 @@ function viewHub() {
   $('#admEntry').onclick = () => go('/adm/today');
   $$('[data-demo]').forEach(b => b.onclick = () => toast(t('xProtoBotao')));
   Coach.start([
-    { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.', fr: 'Votre client commence ici : toutes les visites avec les vraies dates.', it: 'Il vostro cliente parte da qui: tutti i tour con le date reali.', de: 'Ihr Gast startet hier: alle Touren mit echten Terminen.', es: 'Tu cliente empieza aquí: todos los tours con fechas reales.' } },
+    { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê cada passeio, com roteiro, fotos e como reservar.', en: 'Your guest starts here: all tours with live dates.', fr: 'Votre client commence ici : toutes les visites avec les vraies dates.', it: 'Il vostro cliente parte da qui: tutti i tour con le date reali.', de: 'Ihr Gast startet hier: alle Touren mit echten Terminen.', es: 'Tu cliente empieza aquí: todos los tours con fechas reales.' } },
     { sel: '#admEntry', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.', fr: 'Et voici VOTRE porte, ' + guiaNome() + ' — le panneau où vous gérez tout.', it: 'E questa è la VOSTRA porta, ' + guiaNome() + ' — il pannello dove controllate tutto.', de: 'Und das ist IHRE Tür, ' + guiaNome() + ' — das Panel, in dem Sie alles steuern.', es: 'Y esta es TU puerta, ' + guiaNome() + ' — el panel donde controlas todo.' } },
   ], 'tutorialClient');
 }
@@ -2666,6 +2668,8 @@ route();
     el.id = 'demoFaixa'; el.className = 'protobar';
     el.innerHTML = '<b>Demonstração</b> — o app está sendo preparado. Reservas feitas aqui ainda não são reais.';
     document.body.appendChild(el);
+    const mede = () => document.documentElement.style.setProperty('--faixa-h', el.offsetHeight + 'px');
+    mede(); addEventListener('resize', mede);
     if (typeof faixaAcimaDaBarra === 'function') faixaAcimaDaBarra();
   };
   if (document.body) poe(); else addEventListener('DOMContentLoaded', poe);
