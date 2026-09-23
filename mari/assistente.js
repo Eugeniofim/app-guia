@@ -2139,7 +2139,8 @@ function iaAtualizaFab() {
   const mostra = iaPodeVer();
   if (!mostra) iaEl.g.classList.remove('aberta');
   iaEl.fab.classList.toggle('on', mostra && !iaEl.g.classList.contains('aberta'));
-  iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}<small class="iaExtra">${ia('extra')}</small>`;
+  /* No app da Mari o assistente é PRESENTE: nada de selo "extra" nele. */
+  iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}<small class="iaExtra">${LANG === 'en' ? 'gift' : 'presente'}</small>`;
   iaEl.g.querySelector('#iaTit').textContent = ia('assistente') + ({ demo: ' · ' + ia('demoTit'), vivo: ' · ⚡ ' + ia('vivoTit') }[iaModo()] || '');
   iaEl.g.querySelector('#iaFecha').setAttribute('aria-label', ia('fechar'));
   const c = iaContexto();
@@ -2300,17 +2301,53 @@ if (!ADM_TABS.some(([id]) => id === 'marketing')) {
   const i = ADM_TABS.findIndex(([id]) => id === 'coupons');
   ADM_TABS.splice(i < 0 ? ADM_TABS.length : i + 1, 0, ['marketing', 'admMarketing']);
 }
+/* NO APP DA MARI (23/09/2026): o ASSISTENTE é presente e fica ligado. As abas
+   Atendimento e Marketing ficam com CADEADO — existem, dá para ver o que fazem,
+   mas só abrem quando ela contratar. Assim ela conhece sem a gente prometer o
+   que não entregou. */
+const ABAS_TRANCADAS = ['inbox', 'marketing'];
 const _viewAdmOriginal = viewAdm;
 viewAdm = function (tab, arg) {
-  if (tab === 'marketing') admMarketing(arg);
+  if (ABAS_TRANCADAS.includes(tab)) admTrancada(tab);
+  else if (tab === 'marketing') admMarketing(arg);
   else if (tab === 'inbox') admAtendimento(arg);
   else _viewAdmOriginal(tab, arg);
   marcaExtras();
 };
+
+function admTrancada(tab) {
+  const T = {
+    inbox: {
+      tit: { pt: 'Atendimento automático', en: 'Automatic replies' },
+      sub: { pt: 'O agente responde no WhatsApp e no Instagram com as suas datas, vagas e preços — e passa para você o que não souber.',
+             en: 'The agent answers on WhatsApp and Instagram with your dates, availability and prices — and hands over anything it does not know.' },
+      itens: { pt: ['Responde na hora, no idioma de quem escreveu', 'Nunca inventa: usa a sua agenda de verdade', 'Você escolhe o tom e escreve as respostas de sempre', 'Modo “eu aprovo antes de enviar”'],
+               en: ['Answers instantly, in the writer’s language', 'Never invents: uses your real calendar', 'You choose the tone and write the usual answers', '“I approve before sending” mode'] },
+    },
+    marketing: {
+      tit: { pt: 'Marketing da semana', en: 'This week’s marketing' },
+      sub: { pt: 'O app mostra onde sobra vaga e sugere o post ou o story daquele dia, com imagem e legenda prontas.',
+             en: 'The app shows where seats are left and suggests the post or story for the day, with image and caption ready.' },
+      itens: { pt: ['Vagas sobrando viram sugestão de post', 'Legenda e imagem prontas, no seu tom', 'Plano da semana por formato', 'Anúncios no Meta e no Google, se você quiser'],
+               en: ['Empty seats become post suggestions', 'Caption and image ready, in your tone', 'Weekly plan by format', 'Meta and Google ads, if you want'] },
+    },
+  }[tab];
+  const L = (o) => (o && (o[LANG] || o.pt)) || '';
+  admShell(tab, `
+    <div class="trancada">
+      <div class="trIcone" aria-hidden="true">🔒</div>
+      <h1 class="pageh">${esc(L(T.tit))}</h1>
+      <p class="desc lead">${esc(L(T.sub))}</p>
+      <ul class="trLista">${(T.itens[LANG] || T.itens.pt).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <p class="why">${LANG === 'en' ? 'Extra module — not included in your app yet. Talk to Eugênio to switch it on.'
+                                     : 'Módulo extra — ainda não está no seu app. Fale com o Eugênio para ligar.'}</p>
+    </div>`);
+}
+
 function marcaExtras() {
   for (const id of ['nb-inbox', 'nb-marketing']) {
     const b = document.getElementById(id);
-    if (b && !b.querySelector('.iaExtra')) b.insertAdjacentHTML('beforeend', ` <small class="iaExtra">${ia('extra')}</small>`);
+    if (b && !b.querySelector('.iaCad')) b.insertAdjacentHTML('beforeend', ' <small class="iaCad" aria-label="bloqueado">🔒</small>');
   }
 }
 /* francês, italiano, alemão e espanhol dos textos do assistente */
