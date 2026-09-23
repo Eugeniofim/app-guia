@@ -1,0 +1,231 @@
+{
+  "nome": "Guia em Dubai Brasileira",
+  "negocio": "Guia em Dubai Brasileira",
+  "cidade": "Dubai, Emirados Árabes",
+  "badge": "Guias brasileiras licenciadas · 16 anos em Dubai",
+  "prefixo": "DB",
+  "regioes": [
+    [
+      "dubai",
+      "Dubai",
+      "Dubai"
+    ],
+    [
+      "abudhabi",
+      "Abu Dhabi",
+      "Abu Dhabi"
+    ],
+    [
+      "deserto",
+      "Deserto",
+      "Desert"
+    ]
+  ],
+  "bio": {
+    "pt": "Somos guias brasileiras licenciadas e vivemos em Dubai há 16 anos.\n\nAtendemos em português, com tours privativos: o grupo é só seu, no seu ritmo, com o ar-condicionado ligado e a água gelada por nossa conta.\n\nDubai muda de cara a cada ano — e a graça está em entender o que está por trás do arranha-céu: de onde veio essa cidade, como as pessoas vivem aqui e o que vale mesmo a pena no meio de tanta oferta.",
+    "en": "We are licensed Brazilian guides and we have lived in Dubai for 16 years.\n\nWe work in Portuguese, with private tours: the group is yours alone, at your pace, air conditioning on and cold water on us.\n\nDubai changes face every year — and the fun is understanding what lies behind the skyscraper: where this city came from, how people live here and what is actually worth your time."
+  },
+  "tagline": {
+    "pt": "Tours privativos em português por Dubai e Abu Dhabi, com guias brasileiras licenciadas.",
+    "en": "Private tours in Portuguese through Dubai and Abu Dhabi, with licensed Brazilian guides."
+  },
+  "passeios": [
+    {
+      "paradas": [
+        {
+          "t": "09h00",
+          "ph": "prospects/fotos/dubai-1-1.jpg",
+          "lat": 25.1972,
+          "lng": 55.2744,
+          "n": {
+            "pt": "Burj Khalifa e Downtown",
+            "en": "Burj Khalifa and Downtown"
+          },
+          "d": {
+            "pt": "828 metros, 163 andares e uma fila que a gente já sabe evitar. Lá de cima dá para ver onde o deserto começa.",
+            "en": "828 metres, 163 floors and a queue we already know how to avoid. From the top you can see where the desert begins."
+          }
+        },
+        {
+          "t": "11h00",
+          "ph": "prospects/fotos/dubai-1-2.jpg",
+          "lat": 25.0805,
+          "lng": 55.1403,
+          "n": {
+            "pt": "Dubai Marina",
+            "en": "Dubai Marina"
+          },
+          "d": {
+            "pt": "O bairro que era deserto há vinte anos e hoje tem a maior marina artificial do mundo, com iates e arranha-céus tortos.",
+            "en": "The district that was desert twenty years ago and today has the world's largest man-made marina, with yachts and twisting towers."
+          }
+        },
+        {
+          "t": "12h30",
+          "ph": "prospects/fotos/dubai-1-3.jpg",
+          "lat": 25.1124,
+          "lng": 55.139,
+          "n": {
+            "pt": "Palm Jumeirah",
+            "en": "Palm Jumeirah"
+          },
+          "d": {
+            "pt": "A ilha em forma de palmeira, feita de areia dragada do fundo do mar. Paramos no ponto onde a foto sai inteira.",
+            "en": "The palm-shaped island, built from sand dredged off the sea floor. We stop where the whole thing fits in one photo."
+          }
+        },
+        {
+          "t": "13h30",
+          "ph": "prospects/fotos/dubai-1-4.jpg",
+          "lat": 25.2356,
+          "lng": 55.3003,
+          "n": {
+            "pt": "Dubai Frame",
+            "en": "Dubai Frame"
+          },
+          "d": {
+            "pt": "Uma moldura dourada de 150 metros: de um lado a cidade velha, do outro a nova. É a Dubai de ontem e a de hoje na mesma vista.",
+            "en": "A 150-metre golden frame: the old city on one side, the new one on the other. Yesterday's Dubai and today's in a single view."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Dubai clássica · Burj Khalifa, Marina e Palm",
+        "en": "Classic Dubai · Burj Khalifa, Marina and Palm"
+      },
+      "desc": {
+        "pt": "Cinco horas pela Dubai dos cartões-postais, com carro e guia brasileira: o prédio mais alto do mundo, a marina, a ilha em forma de palmeira e o Dubai Frame.",
+        "en": "Five hours through postcard Dubai, with car and Brazilian guide: the world's tallest building, the marina, the palm-shaped island and the Dubai Frame."
+      },
+      "preco": 450,
+      "modo": "session",
+      "tipo": "day",
+      "regiao": "dubai",
+      "duracao": "5h",
+      "encontro": "Buscamos você no hotel",
+      "foto": "prospects/fotos/dubai-1.jpg"
+    },
+    {
+      "paradas": [
+        {
+          "t": "09h00",
+          "ph": "prospects/fotos/dubai-2-1.jpg",
+          "lat": 25.2637,
+          "lng": 55.2972,
+          "n": {
+            "pt": "Al Fahidi, o bairro histórico",
+            "en": "Al Fahidi, the historic quarter"
+          },
+          "d": {
+            "pt": "Casas de coral e gesso, torres de vento que faziam o ar-condicionado antes da eletricidade, e ruas estreitas de propósito, para dar sombra.",
+            "en": "Coral and gypsum houses, wind towers that did the air conditioning before electricity, and streets deliberately narrow, to give shade."
+          }
+        },
+        {
+          "t": "10h30",
+          "ph": "prospects/fotos/dubai-2-2.jpg",
+          "lat": 25.2653,
+          "lng": 55.297,
+          "n": {
+            "pt": "Travessia do Creek de abra",
+            "en": "Crossing the Creek by abra"
+          },
+          "d": {
+            "pt": "O barquinho de madeira que atravessa o canal por um dirham. É o transporte mais antigo da cidade e ainda é o mais rápido.",
+            "en": "The wooden boat that crosses the creek for one dirham. It is the city's oldest transport and still the fastest."
+          }
+        },
+        {
+          "t": "11h15",
+          "ph": "prospects/fotos/dubai-2-3.jpg",
+          "lat": 25.2697,
+          "lng": 55.2971,
+          "n": {
+            "pt": "Souk do ouro e das especiarias",
+            "en": "Gold and spice souk"
+          },
+          "d": {
+            "pt": "Trezentas lojas de ouro numa rua só, e do lado o cheiro de açafrão, incenso e chá. Eu ensino a pechinchar sem pagar mico.",
+            "en": "Three hundred gold shops in one street, and next door the smell of saffron, incense and tea. I teach you how to haggle without embarrassment."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Dubai antiga · souk do ouro e travessia de abra",
+        "en": "Old Dubai · gold souk and abra crossing"
+      },
+      "desc": {
+        "pt": "Quatro horas na Dubai que existia antes do petróleo: o bairro histórico de Al Fahidi, a travessia do canal no barquinho de sempre e os souks de ouro e especiarias.",
+        "en": "Four hours in the Dubai that existed before oil: the historic Al Fahidi quarter, the creek crossing on the old wooden boat and the gold and spice souks."
+      },
+      "preco": 320,
+      "modo": "session",
+      "tipo": "walk",
+      "regiao": "dubai",
+      "duracao": "4h",
+      "encontro": "Buscamos você no hotel",
+      "foto": "prospects/fotos/dubai-2.jpg"
+    },
+    {
+      "paradas": [
+        {
+          "t": "15h30",
+          "ph": "prospects/fotos/dubai-3-1.jpg",
+          "lat": 24.8,
+          "lng": 55.65,
+          "n": {
+            "pt": "Dunas de areia vermelha",
+            "en": "Red sand dunes"
+          },
+          "d": {
+            "pt": "Quarenta minutos de sobe e desce nas dunas, com motorista experiente. Quem enjoa senta na frente — a gente avisa antes.",
+            "en": "Forty minutes up and down the dunes with an experienced driver. If you get car-sick you sit in front — we warn you beforehand."
+          }
+        },
+        {
+          "t": "17h30",
+          "ph": "prospects/fotos/dubai-3-2.jpg",
+          "lat": 24.81,
+          "lng": 55.66,
+          "n": {
+            "pt": "Camelos e o pôr do sol",
+            "en": "Camels and sunset"
+          },
+          "d": {
+            "pt": "O passeio curto de camelo e o melhor pôr do sol da viagem, com o deserto inteiro ficando cor de cobre.",
+            "en": "The short camel ride and the best sunset of the trip, with the whole desert turning copper."
+          }
+        },
+        {
+          "t": "19h00",
+          "ph": "prospects/fotos/dubai-3-3.jpg",
+          "lat": 24.82,
+          "lng": 55.67,
+          "n": {
+            "pt": "Jantar no acampamento",
+            "en": "Dinner at the camp"
+          },
+          "d": {
+            "pt": "Buffet árabe, chá de hortelã, henna e apresentação de dança. Voltamos ao hotel por volta das 21h30.",
+            "en": "Arabic buffet, mint tea, henna and a dance show. We are back at the hotel around 9.30pm."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Deserto · safári, camelo e jantar sob as estrelas",
+        "en": "Desert · safari, camel and dinner under the stars"
+      },
+      "desc": {
+        "pt": "Sai no fim da tarde: duna com 4x4, pôr do sol no deserto, passeio de camelo e jantar no acampamento, com dança e fogueira.",
+        "en": "Leaves in late afternoon: dune bashing in a 4x4, sunset in the desert, a camel ride and dinner at the camp, with dancing and a bonfire."
+      },
+      "preco": 390,
+      "modo": "session",
+      "tipo": "day",
+      "regiao": "deserto",
+      "duracao": "6h",
+      "encontro": "Buscamos você no hotel",
+      "foto": "prospects/fotos/dubai-3.jpg"
+    }
+  ]
+}
