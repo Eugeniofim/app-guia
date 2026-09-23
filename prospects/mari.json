@@ -1,0 +1,226 @@
+{
+  "nome": "Mari",
+  "negocio": "Tour na Dinamarca",
+  "cidade": "Copenhague, Dinamarca",
+  "badge": "Guia brasileira em Copenhague",
+  "prefixo": "TD",
+  "regioes": [
+    [
+      "copenhague",
+      "Copenhague",
+      "Copenhagen"
+    ],
+    [
+      "arredores",
+      "Arredores e castelos",
+      "Around & castles"
+    ]
+  ],
+  "bio": {
+    "pt": "Sou a Mari, brasileira, e moro na Dinamarca há 13 anos.\n\nFaço tours privados e personalizados em português: nada de grupo grande e crachá levantado, é você, quem vem com você e eu.\n\nCopenhague é uma cidade que se explica melhor caminhando — e é isso que a gente faz, no seu ritmo, com as histórias que só quem mora aqui sabe contar.",
+    "en": "I am Mari, Brazilian, and I have lived in Denmark for 13 years.\n\nI run private, tailor-made tours in Portuguese: no big groups and no raised badge — it is you, whoever comes with you, and me.\n\nCopenhagen is a city best explained on foot, and that is what we do, at your pace, with the stories only a local can tell."
+  },
+  "tagline": {
+    "pt": "Tours privados e personalizados em português, por quem vive a Dinamarca há 13 anos.",
+    "en": "Private, tailor-made tours in Portuguese, by someone who has lived in Denmark for 13 years."
+  },
+  "passeios": [
+    {
+      "paradas": [
+        {
+          "t": "10h00",
+          "ph": "prospects/fotos/mari-1-1.jpg",
+          "lat": 55.6797,
+          "lng": 12.5913,
+          "n": {
+            "pt": "Nyhavn",
+            "en": "Nyhavn"
+          },
+          "d": {
+            "pt": "O cartão-postal da Dinamarca: casas coloridas do século XVII, veleiros de madeira e a casa onde Hans Christian Andersen morou.",
+            "en": "Denmark's postcard: 17th-century coloured houses, wooden sailing boats and the house where Hans Christian Andersen lived."
+          }
+        },
+        {
+          "t": "11h00",
+          "ph": "prospects/fotos/mari-1-2.jpg",
+          "lat": 55.6841,
+          "lng": 12.5934,
+          "n": {
+            "pt": "Amalienborg e a troca da guarda",
+            "en": "Amalienborg and the changing of the guard"
+          },
+          "d": {
+            "pt": "O palácio onde a família real mora de verdade. Ao meio-dia a guarda troca, com os gorros de pele e a banda — e a gente chega antes para pegar lugar.",
+            "en": "The palace where the royal family actually lives. At noon the guard changes, bearskins and band included — and we get there early for a good spot."
+          }
+        },
+        {
+          "t": "12h00",
+          "ph": "prospects/fotos/mari-1-3.jpg",
+          "lat": 55.6929,
+          "lng": 12.5993,
+          "n": {
+            "pt": "A Pequena Sereia",
+            "en": "The Little Mermaid"
+          },
+          "d": {
+            "pt": "Menor do que todo mundo espera e cheia de história: já foi decapitada, pintada e roubada. Eu conto por que ela continua ali.",
+            "en": "Smaller than everyone expects and full of history: she has been beheaded, painted and stolen. I explain why she is still there."
+          }
+        },
+        {
+          "t": "12h40",
+          "ph": "prospects/fotos/mari-1-4.jpg",
+          "lat": 55.6857,
+          "lng": 12.5772,
+          "n": {
+            "pt": "Castelo de Rosenborg e os jardins",
+            "en": "Rosenborg Castle and the gardens"
+          },
+          "d": {
+            "pt": "O castelo de veraneio de Cristiano IV, com as joias da coroa no subsolo, e o parque onde os dinamarqueses deitam ao primeiro sol.",
+            "en": "Christian IV's summer castle, with the crown jewels in the basement, and the park where Danes lie down at the first hint of sun."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Copenhague clássica · a pé pelo centro",
+        "en": "Classic Copenhagen · the centre on foot"
+      },
+      "desc": {
+        "pt": "Três horas pelo coração da cidade: o porto colorido de Nyhavn, a troca da guarda no palácio real, a Pequena Sereia e os jardins de Rosenborg.",
+        "en": "Three hours through the heart of the city: the colourful Nyhavn harbour, the changing of the guard at the royal palace, the Little Mermaid and the Rosenborg gardens."
+      },
+      "preco": 90,
+      "modo": "pp",
+      "tipo": "walk",
+      "regiao": "copenhague",
+      "duracao": "3h",
+      "encontro": "Combinado por WhatsApp, normalmente no seu hotel",
+      "foto": "prospects/fotos/mari-1.jpg"
+    },
+    {
+      "paradas": [
+        {
+          "t": "09h00",
+          "ph": "prospects/fotos/mari-2-1.jpg",
+          "lat": 56.039,
+          "lng": 12.6212,
+          "n": {
+            "pt": "Castelo de Kronborg",
+            "en": "Kronborg Castle"
+          },
+          "d": {
+            "pt": "O castelo onde Shakespeare pôs Hamlet, em Helsingør. Do pátio se vê a Suécia, a quatro quilômetros de distância.",
+            "en": "The castle where Shakespeare set Hamlet, in Elsinore. From the courtyard you can see Sweden, four kilometres away."
+          }
+        },
+        {
+          "t": "12h30",
+          "ph": "prospects/fotos/mari-2-2.jpg",
+          "lat": 55.9352,
+          "lng": 12.3006,
+          "n": {
+            "pt": "Castelo de Frederiksborg",
+            "en": "Frederiksborg Castle"
+          },
+          "d": {
+            "pt": "Construído sobre três ilhas num lago, é o maior palácio renascentista do norte da Europa e abriga o Museu de História Nacional.",
+            "en": "Built across three islands in a lake, it is the largest Renaissance palace in northern Europe and home to the Museum of National History."
+          }
+        },
+        {
+          "t": "15h30",
+          "ph": "prospects/fotos/mari-2-3.jpg",
+          "lat": 55.6495,
+          "lng": 12.0805,
+          "n": {
+            "pt": "Navios viking de Roskilde",
+            "en": "The Roskilde Viking ships"
+          },
+          "d": {
+            "pt": "Na volta, cinco navios vikings de mil anos, resgatados do fundo do fiorde. Opcional, conforme o seu fôlego.",
+            "en": "On the way back, five thousand-year-old Viking ships raised from the bottom of the fjord. Optional, depending on your energy."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Castelos: Kronborg e Frederiksborg · dia inteiro",
+        "en": "Castles: Kronborg and Frederiksborg · full day"
+      },
+      "desc": {
+        "pt": "Um dia fora da cidade: o castelo de Hamlet à beira do mar, com a Suécia do outro lado, e o castelo mais bonito da Escandinávia, cercado de água.",
+        "en": "A day out of town: Hamlet's castle by the sea, with Sweden on the other side, and the most beautiful castle in Scandinavia, surrounded by water."
+      },
+      "preco": 185,
+      "modo": "pp",
+      "tipo": "day",
+      "regiao": "arredores",
+      "duracao": "Dia inteiro",
+      "encontro": "Busco você no hotel",
+      "foto": "prospects/fotos/mari-2.jpg"
+    },
+    {
+      "paradas": [
+        {
+          "t": "14h00",
+          "ph": "prospects/fotos/mari-3-1.jpg",
+          "lat": 55.6833,
+          "lng": 12.5697,
+          "n": {
+            "pt": "Mercado Torvehallerne",
+            "en": "Torvehallerne market"
+          },
+          "d": {
+            "pt": "Onde o dinamarquês almoça de verdade: smørrebrød, peixe defumado, licor de sabugueiro e o café que eles levam a sério.",
+            "en": "Where Danes actually have lunch: smørrebrød, smoked fish, elderflower cordial and the coffee they take very seriously."
+          }
+        },
+        {
+          "t": "15h30",
+          "ph": "prospects/fotos/mari-3-2.jpg",
+          "lat": 55.6736,
+          "lng": 12.593,
+          "n": {
+            "pt": "Canais de Christianshavn",
+            "en": "The Christianshavn canals"
+          },
+          "d": {
+            "pt": "De barco pelos canais, vendo a cidade de baixo: a ópera, a bolsa antiga e as casas-barco onde gente mora o ano inteiro.",
+            "en": "By boat along the canals, seeing the city from below: the opera house, the old stock exchange and the houseboats people live in all year."
+          }
+        },
+        {
+          "t": "17h00",
+          "ph": "prospects/fotos/mari-3-3.jpg",
+          "lat": 55.6737,
+          "lng": 12.5681,
+          "n": {
+            "pt": "Jardins do Tivoli",
+            "en": "Tivoli Gardens"
+          },
+          "d": {
+            "pt": "De 1843, e foi daqui que Walt Disney tirou a ideia. Ao anoitecer acendem cem mil lâmpadas e a cidade inteira parece de conto.",
+            "en": "From 1843, and this is where Walt Disney got the idea. At dusk a hundred thousand lamps come on and the whole city looks like a fairy tale."
+          }
+        }
+      ],
+      "nome": {
+        "pt": "Sabores de Copenhague · mercado, canais e Tivoli",
+        "en": "Flavours of Copenhagen · market, canals and Tivoli"
+      },
+      "desc": {
+        "pt": "A cidade pelo paladar: o mercado coberto, um passeio de barco pelos canais e o fim de tarde no parque mais antigo do mundo ainda em funcionamento.",
+        "en": "The city through taste: the covered market, a boat ride along the canals and late afternoon at the oldest amusement park still running."
+      },
+      "preco": 120,
+      "modo": "pp",
+      "tipo": "walk",
+      "regiao": "copenhague",
+      "duracao": "4h",
+      "encontro": "Na entrada do mercado Torvehallerne",
+      "foto": "prospects/fotos/mari-3.jpg"
+    }
+  ]
+}
