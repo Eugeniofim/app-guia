@@ -152,7 +152,7 @@ function _seed() {
 
   db.settings.bio = {"pt": "Sou Milena Fernandes, a Milla. Moro em Dubai desde 2010 e sou guia brasileira licenciada nos Emirados Árabes Unidos.\n\nA Yalla Experiences nasceu da paixão por conectar culturas, pessoas e oportunidades. Mais do que uma empresa de turismo, desenvolvemos experiências planejadas para apresentar o melhor dos Emirados e do Oriente Médio de forma personalizada, humana e exclusiva.\n\nAo longo dos anos construí uma rede de parceiros locais e fornecedores selecionados que permite aos nossos clientes viver muito além dos roteiros tradicionais.", "en": "I am Milena Fernandes, Milla. I have lived in Dubai since 2010 and I am a Brazilian guide licensed in the United Arab Emirates.\n\nYalla Experiences was born from a passion for connecting cultures, people and opportunities. More than a tourism company, we design experiences that show the best of the Emirates and the Middle East in a personal, human and exclusive way.\n\nOver the years I have built a network of local partners and selected suppliers that lets our clients go far beyond the usual itineraries."};
   db.settings.homeText = {"pt": "Experiências privativas, imersões de negócios e eventos nos Emirados Árabes Unidos. Cada experiência é única porque cada história também é.", "en": "Private experiences, business immersions and events in the United Arab Emirates. Every experience is unique because every story is too."};
-  db.settings.photo = 'arte/milla.jpg';
+  db.settings.photo = 'arte/milla-rosto.jpg';
   db.settings.homePhoto = 'arte/capa.jpg';
   return typeof traduzSemente === 'function' ? traduzSemente(db) : db;
 }

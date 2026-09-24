@@ -1070,6 +1070,35 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 .pchip:hover{border-color:var(--accent)}
 .pchip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 
+
+/* ---- Guias parceiros ---- */
+.gGrade{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px}
+.gCard{border:1px solid color-mix(in srgb, var(--brand-primaria) 18%, transparent);border-radius:16px;padding:16px;background:var(--surface)}
+.gTopo{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.gAv{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--brand-primaria) 18%,transparent);color:var(--brand-primaria);font:700 17px var(--f-ui);flex:none}
+.gQuem{flex:1;min-width:0} .gQuem b{display:block;font-size:16px} .gQuem small{color:var(--ink-3);font-size:12.5px}
+.gX{width:30px;height:30px;border:0;border-radius:50%;background:none;color:var(--ink-3);font-size:18px;cursor:pointer}
+.gLinha{display:flex;gap:10px;align-items:baseline;margin-bottom:8px;font-size:13px}
+.gRot{color:var(--ink-3);min-width:96px} .gVals{flex:1;display:flex;flex-wrap:wrap;gap:5px}
+.gVals i{font-style:normal;padding:2px 8px;border-radius:999px;background:var(--surface-2);font-size:12px}
+.gVals em{color:var(--ink-3);font-size:12.5px}
+.gBts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.gBts .mini{text-decoration:none}
+.gForm{margin:14px 0}
+.gBusca{margin:14px 0;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.gBusca .fld{flex:1 1 200px}
+.gLivres{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px}
+.gPill{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;background:color-mix(in srgb,var(--brand-primaria) 12%,transparent);border:1px solid color-mix(in srgb,var(--brand-primaria) 35%,transparent);font-size:13.5px}
+.gPill a{color:var(--brand-primaria);font-weight:600;text-decoration:none;font-size:12.5px}
+/* a página do guia */
+.gp .gpNav{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px}
+.gpGrade{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.gpDia{text-align:center;font:600 11px var(--f-ui);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;padding-bottom:4px}
+.gpCel{aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font:600 14px var(--f-ui);cursor:pointer}
+.gpCel.on{background:var(--brand-primaria);color:#0B0B0B;border-color:transparent}
+.gpCel.off{opacity:.3;cursor:default}
+.gpPass{padding:10px 0;border-top:1px solid var(--line)} .gpPass b{display:block;font-size:14.5px} .gpPass small{color:var(--ink-3);font-size:12.5px}
+
 </style>
 </head>
 <body>
@@ -1123,6 +1152,7 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 <script src="app.js?v=0.1.0"></script>
 <script src="prospecto.js?v=0.1.0"></script>
 <script src="assistente.js?v=0.1.0"></script>
+<script src="guias.js?v=0.1.0"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

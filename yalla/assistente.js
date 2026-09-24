@@ -2444,7 +2444,9 @@ if (!ADM_TABS.some(([id]) => id === 'inbox')) {
   const i = ADM_TABS.findIndex(([id]) => id === 'bookings');
   ADM_TABS.splice(i < 0 ? 1 : i + 1, 0, ['inbox', 'admInbox']);
 }
-if (!ADM_TABS.some(([id]) => id === 'marketing')) {
+/* A Yalla não contratou o módulo de Marketing (24/09/2026): a aba não entra.
+   Para ligar de novo, basta apagar o "false &&" daqui. */
+if (false && !ADM_TABS.some(([id]) => id === 'marketing')) {
   const i = ADM_TABS.findIndex(([id]) => id === 'coupons');
   ADM_TABS.splice(i < 0 ? ADM_TABS.length : i + 1, 0, ['marketing', 'admMarketing']);
 }

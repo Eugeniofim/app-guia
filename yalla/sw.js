@@ -6,7 +6,7 @@
 
 const VERSION = 'yalla-v0.1.0';
 const CORE = [
-  './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './idiomas.js', './store.js', './assistente.js', './auth.js', './logo.js', './cloud.js', './i18n.js', './prospecto.js', './tokens.css',
+  './', './index.html', './config.js', './app.js', './guias.js', './marca.css', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './idiomas.js', './store.js', './assistente.js', './auth.js', './logo.js', './cloud.js', './i18n.js', './prospecto.js', './tokens.css',
   './manifest.webmanifest', './capa.jpg', './home.jpg', './og.jpg', './guia.jpg', './exemplo-1.jpg', './exemplo-2.jpg', './exemplo-3.jpg',
 ];
 
