@@ -229,7 +229,16 @@ function _seed() {
       + 'If you want more than just to visit a city, I invite you to decipher Berlin through its past, its present and your own view of history.',
   };
 
-  db.rules = [];   /* datas: quando ela mandar os dias e horarios */
+  db.rules = [
+    { id: "r-berlim-historico-09", tourId: "berlim-historico", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "09:30", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
+    { id: "r-berlim-historico-14", tourId: "berlim-historico", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "14:00", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
+    { id: "r-bairro-judeu-09", tourId: "bairro-judeu", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "09:30", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
+    { id: "r-bairro-judeu-14", tourId: "bairro-judeu", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "14:00", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
+    { id: "r-potsdam-sanssouci-09", tourId: "potsdam-sanssouci", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "09:30", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
+    { id: "r-potsdam-sanssouci-14", tourId: "potsdam-sanssouci", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "14:00", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
+    { id: "r-sachsenhausen-09", tourId: "sachsenhausen", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "09:30", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
+    { id: "r-sachsenhausen-14", tourId: "sachsenhausen", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "14:00", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
+  ];   /* turnos: Manhã 09:30–13:30 e Tarde 14:00–18:00 (config.js guia.turnos) */
 
   db.coupons = [
     { code: 'VOLTA10', pct: 10, until: '2026-12-31', oncePerPerson: true, uses: [] },
@@ -318,6 +327,12 @@ function load() {
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
   }
   DB.settings = fillSettings(DB.settings);
+  /* os turnos do config.js vão para os ajustes: assim sobem para a nuvem e o
+     atendente do Instagram (servidor) oferece os mesmos turnos */
+  if (GUIA_CFG.turnos && !DB.settings.turnos) {
+    DB.settings.turnos = GUIA_CFG.turnos;
+    DB.settings.turnoExclusivo = !!GUIA_CFG.turnoExclusivo;
+  }
   return DB;
 }
 function save() {
@@ -359,6 +374,18 @@ const Tours = {
 function isoToday() { return new Date().toISOString().slice(0, 10); }
 function addDays(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
 
+/* turnos do dia (config.js guia.turnos → DB.settings.turnos) */
+function turnos() { return (DB && DB.settings && DB.settings.turnos) || GUIA_CFG.turnos || []; }
+function turnoDaHora(h) { return turnos().find(x => x.hora === h) || null; }
+/* agora em Berlim (AAAA-MM-DD e HH:MM) — turno que já começou não se reserva */
+function agoraBerlim() {
+  const p = {}; new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
+    .formatToParts(new Date()).forEach(x => { p[x.type] = x.value; });
+  return { data: `${p.year}-${p.month}-${p.day}`, hora: `${p.hour === '24' ? '00' : p.hour}:${p.minute}` };
+}
+function jaComecou(date, time) { const a = agoraBerlim(); return date < a.data || (date === a.data && time <= a.hora); }
+function turnoExclusivo() { return !!((DB && DB.settings && DB.settings.turnoExclusivo) ?? GUIA_CFG.turnoExclusivo); }
+
 const Cal = {
   rulesFor(tourId) { return DB.rules.filter(r => r.tourId === tourId); },
   addRule(r) { r.id = uid(); DB.rules.push(r); save(); return r; },
@@ -391,6 +418,14 @@ const Cal = {
   },
 
   seatsLeft(tourId, date, time, capacity) {
+    /* TURNO EXCLUSIVO (visita privativa): um grupo por turno e uma guia só —
+       qualquer reserva naquele dia e horário, em QUALQUER passeio, ocupa o
+       turno inteiro. Livre = cabe o grupo todo (capacity); ocupado = 0. */
+    if (turnoExclusivo()) {
+      const temLocal = DB.bookings.some(b => b.date === date && b.time === time && b.status === 'confirmed');
+      const temNuvem = Array.isArray(DB.seatCounts) && DB.seatCounts.some(c => c.date === date && c.time === time && +c.pax > 0);
+      return temLocal || temNuvem ? 0 : capacity;
+    }
     /* logada: conta pelas reservas. Visitante: usa a contagem pública,
        que não expõe nome nem telefone de ninguém. */
     const local = DB.bookings

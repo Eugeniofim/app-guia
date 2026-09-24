@@ -56,6 +56,15 @@ var APP_CONFIG = {
     badge: 'Visitas guiadas exclusivas · História e Reconstrução de Berlim',
     prefixo: 'CB',                 /* codigo da reserva: CB-4821 */
     idiomas: 'Português',          /* em que lingua ela guia (a pagina do passeio mostra) */
+    /* Visitas privativas em dois turnos por dia (Dulcineia, 24/09/2026).
+       Cada turno atende UM grupo — a mesma família pode pegar os dois, ou
+       vêm grupos diferentes. E ela é uma só: turno reservado em qualquer
+       passeio fica ocupado em todos (turnoExclusivo). */
+    turnos: [
+      { hora: '09:30', fim: '13:30', nome: 'Manhã' },
+      { hora: '14:00', fim: '18:00', nome: 'Tarde' },
+    ],
+    turnoExclusivo: true,
     linguas: ['pt'],               /* o app inteiro so em portugues: sem seletor de idioma (Eugenio, 23/09) */
     /* a marca dela, tirada em vetor do manual (Studio Nama, v2.0): o app pinta
        cada arquivo com a cor do tema. Razao = largura / altura do desenho. */

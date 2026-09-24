@@ -803,7 +803,29 @@ function renderBook() {
   const base = pr.total;
   const total = base - S.discount;
 
-  if (sobConsulta(x)) {
+  /* Sob consulta COM datas: o cliente escolhe o dia e o turno (passo 1, igual
+     a reserva), diz quantas pessoas, e o WhatsApp dela recebe tudo escrito.
+     Sem datas publicadas, direto para o WhatsApp. */
+  const temDatas = Cal.departures(x.id, isoToday(), addDays(isoToday(), 180)).some(d => !jaComecou(d.date, d.time));
+  if (sobConsulta(x) && temDatas && S.step >= 2) {
+    const tu = turnoDaHora(S.time);
+    const quando = fmtDate(S.date) + ' · ' + (tu ? `${tu.nome} (${tu.hora}–${tu.fim})` : S.time);
+    const msg = t('waAskQuoteTurno', { tour: tl(x.name), data: fmtDate(S.date), turno: tu ? `${tu.nome.toLowerCase()} (${tu.hora}–${tu.fim})` : S.time, n: S.pax });
+    book.innerHTML = `
+      <div class="bhead"><span class="bprice">${t('onRequest')}</span></div>
+      <div class="bstep">${t('step2')}</div>
+      <div class="paxrow"><b>${t('peopleLbl')}</b>
+        <div class="pm"><button id="mn" aria-label="−">−</button><span id="pax">${S.pax}</span><button id="pl" aria-label="+">+</button></div></div>
+      <div class="sums"><div><span>${esc(quando)}</span></div></div>
+      <p class="why">${t('onRequestSub')}</p>
+      <a class="cta wide" target="_blank" rel="noopener" href="${waLink(msg)}">${t('askQuoteTurnoBtn')}</a>
+      <button class="linkbtn" id="back1" aria-label="${t('back')}">← ${t('back')}</button>`;
+    $('#mn').onclick = () => { if (S.pax > 1) { S.pax--; renderBook(); } };
+    $('#pl').onclick = () => { if (S.pax < (x.max || 20)) { S.pax++; renderBook(); } else toast(t('maxNote', { n: x.max })); };
+    $('#back1').onclick = () => { S.step = 1; renderBook(); };
+    return;
+  }
+  if (sobConsulta(x) && !temDatas) {
     book.innerHTML = `
       <div class="bhead"><span class="bprice">${t('onRequest')}</span></div>
       <div class="nodates">
@@ -815,17 +837,20 @@ function renderBook() {
   }
   if (S.step === 1) {
     const today = isoToday();
-    const deps = Cal.departures(x.id, today, addDays(today, 120));
+    /* 6 meses de datas (brasileiro planeja cedo), 30 de cada vez; turno que já começou some */
+    const deps = Cal.departures(x.id, today, addDays(today, 180)).filter(d => !jaComecou(d.date, d.time));
     const byDate = {};
     deps.forEach(d => { (byDate[d.date] = byDate[d.date] || []).push(d); });
-    const dates = Object.keys(byDate).slice(0, 30);
+    const todas = Object.keys(byDate), limite = S.nDatas || 30;
+    const dates = todas.slice(0, limite);
     book.innerHTML = `
-      <div class="bhead"><span class="bprice">${priceLine}</span></div>
+      <div class="bhead"><span class="bprice">${sobConsulta(x) ? t('onRequest') : priceLine}</span></div>
       <div class="bstep">${t('step1')}</div>
       ${dates.length ? `
       <div class="dgrid">${dates.map(d =>
         `<button class="dcell ${S.date === d ? 'on' : ''}" data-d="${d}"><b>${fmtDate(d).split(',')[1] || fmtDate(d)}</b><small>${fmtDate(d).split(',')[0]}</small></button>`).join('')}
       </div>
+      ${todas.length > limite ? `<button class="linkbtn maisdatas" id="maisDatas">${t('maisDatas')} ↓</button>` : ''}
       <div id="times">${S.date ? timesHtml(byDate[S.date]) : `<p class="hint">${t('pickDate')}</p>`}</div>
       <button class="cta" id="next1" ${S.time ? '' : 'disabled'}>${t('cont')}</button>`
       : `<div class="nodates">
@@ -834,6 +859,7 @@ function renderBook() {
              href="${waLink(t('waAskDates', { tour: tl(x.name) }))}">${t('askDatesBtn')}</a>
         </div>`}`;
     $$('.dcell', book).forEach(b => b.onclick = () => { S.date = b.dataset.d; S.time = null; renderBook(); });
+    $('#maisDatas')?.addEventListener('click', () => { S.nDatas = limite + 30; renderBook(); });
     $$('[data-t]', book).forEach(b => b.onclick = () => {
       S.time = b.dataset.t; S.cap = +b.dataset.c;
       $$('[data-t]', book).forEach(z => z.classList.remove('on')); b.classList.add('on');
@@ -842,11 +868,15 @@ function renderBook() {
     $('#next1')?.addEventListener('click', () => { S.step = 2; renderBook(); });
 
     function timesHtml(list) {
-      return `<p class="hint">${t('pickTime')}</p><div class="times">` + list.map(d => {
+      const exclusivo = turnoExclusivo();
+      return `<p class="hint">${t(turnos().length ? 'pickTurno' : 'pickTime')}</p><div class="times ${turnos().length ? 'turnos' : ''}">` + list.map(d => {
         const left = Cal.seatsLeft(x.id, d.date, d.time, d.capacity);
+        const tu = turnoDaHora(d.time);
+        const rotulo = tu ? `<b>${esc(tu.nome)}</b><span>${tu.hora}–${tu.fim}</span>` : d.time;
+        const info = exclusivo ? t(left > 0 ? 'turnoLivre' : 'turnoOcupado') : (left > 0 ? `${left} ${t('spotsLeft')}` : '0');
         return left > 0
-          ? `<button class="slot ${S.time === d.time ? 'on' : ''}" data-t="${d.time}" data-c="${d.capacity}">${d.time}<small>${left} ${t('spotsLeft')}</small></button>`
-          : `<button class="slot off" disabled>${d.time}<small>0</small></button>`;
+          ? `<button class="slot ${S.time === d.time ? 'on' : ''}" data-t="${d.time}" data-c="${d.capacity}">${rotulo}<small>${info}</small></button>`
+          : `<button class="slot off" disabled>${rotulo}<small>${info}</small></button>`;
       }).join('') + '</div>';
     }
   }
@@ -860,7 +890,7 @@ function renderBook() {
         <div class="pm"><button id="mn">−</button><span id="pax">${S.pax}</span><button id="pl">+</button></div>
       </div>
       <div class="sums">
-        <div><span>${fmtDate(S.date)} · ${S.time}</span></div>
+        <div><span>${fmtDate(S.date)} · ${turnoDaHora(S.time) ? `${turnoDaHora(S.time).nome} (${turnoDaHora(S.time).hora}–${turnoDaHora(S.time).fim})` : S.time}</span></div>
         ${S.discount ? `<div><span>${t('couponOk', { c: S.coupon })}</span><b>−${eur(S.discount)}</b></div>` : ''}
         ${(pr.linhas && pr.linhas.length > 1) ? pr.linhas.map(l =>
           `<div class="quebra"><span>${t('linhaPreco', { qtd: l.qtd, valor: eur(l.valor) })}</span><b>${eur(l.qtd * l.valor)}</b></div>`).join('') : ''}

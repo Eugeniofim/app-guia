@@ -1,4 +1,16 @@
 /* =========================================================
+   FONTES — dentro do app (pasta fontes/), sem Google Fonts.
+   Arapey e Instrument Serif: licença SIL OFL (fontes/OFL-*.txt).
+   Voyage (títulos) e Helvetica Neue LT Pro: fontes PAGAS da marca — só entram
+   com licença WEB (a de computador não vale para site). Helvetica Neue já vem
+   no iPhone e no Mac; a Voyage entra aqui quando a licença web existir.
+   ========================================================= */
+@font-face{font-family:"Arapey";src:url(fontes/arapey-regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Arapey";src:url(fontes/arapey-italic.woff2) format("woff2");font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:"Instrument Serif";src:url(fontes/instrument-serif-regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Instrument Serif";src:url(fontes/instrument-serif-italic.woff2) format("woff2");font-weight:400;font-style:italic;font-display:swap}
+
+/* =========================================================
    CONEXÃO BERLIM — Design tokens (app-guia)
    Contrastes medidos (WCAG AA). Não usar hex solto no código.
    ========================================================= */
@@ -58,7 +70,7 @@
      Voyage é paga (VJ Type): até chegar o .woff2 web dela, Instrument Serif
      segura o lugar — serifa fina de alto contraste, mesmo desenho. */
   --f-display: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  --f-titulo:  "Voyage", "Instrument Serif", Georgia, serif;
+  --f-titulo:  "Instrument Serif", Georgia, serif;   /* lugar da Voyage até a licença web */
   --f-serif:   "Arapey", Georgia, "Times New Roman", serif;
   --f-ui:      "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
   --f-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
