@@ -231,8 +231,10 @@ function viewGuia(id) {
 
 /* ---------- liga no app: aba nova e rota nova ---------- */
 if (!ADM_TABS.some(([id]) => id === 'guias')) {
-  const i = ADM_TABS.findIndex(([id]) => id === 'clients');
-  ADM_TABS.splice(i < 0 ? ADM_TABS.length : i + 1, 0, ['guias', 'admGuias']);
+  /* logo depois de "Reservas": no celular a barra rola, e no fim da fila
+     ninguém acha (Eugênio, 24/09/2026) */
+  const i = ADM_TABS.findIndex(([id]) => id === 'bookings');
+  ADM_TABS.splice(i < 0 ? 1 : i + 1, 0, ['guias', 'admGuias']);
   /* o rail usa t(); o texto da aba mora aqui */
   if (typeof STR !== 'undefined') STR.admGuias = GUIA_TXT.admGuias;
 }
