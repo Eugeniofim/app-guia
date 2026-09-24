@@ -1,0 +1,66 @@
+/* =========================================================
+   YALLA EXPERIENCES — acabamento da marca
+   Luxury minimalism do brand kit dela: preto, fio dourado,
+   Playfair nos títulos e o losango como assinatura.
+   Este arquivo só ACRESCENTA — o app-guia continua igual.
+   ========================================================= */
+
+/* ---- títulos: Playfair com respiro ---- */
+.pageh, .vcard .vi-word b, .sobcons b, h1, h2 { letter-spacing: .01em; }
+.pageh { font-weight: 600; }
+
+/* ---- cartão da capa: fio dourado e assinatura da marca ---- */
+.vcard{ border:1px solid color-mix(in srgb, var(--brand-primaria) 30%, transparent);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--brand-primaria) 6%, var(--surface)), var(--surface)); }
+.vcard .vi-word b{ font-family:var(--f-display); font-size:27px; letter-spacing:.02em; }
+.vcard .vi-word small{ font-family:var(--f-ui); font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--highlight-text); }
+/* a linha da marca: — TRAVEL. CONNECT. ASCEND. — */
+.vcard .hub-brand::after{ content:"— TRAVEL. CONNECT. ASCEND. —"; display:block; margin-top:10px;
+  font:600 9.5px var(--f-ui); letter-spacing:.24em; color:var(--brand-primaria); opacity:.85; }
+.tagline{ font-family:var(--f-display); font-size:16.5px; line-height:1.55; color:var(--ink-2); }
+/* losango de separação, como no material dela */
+.vcard .tagline::before{ content:"◆"; display:block; margin:0 auto 12px; width:1em;
+  font-size:9px; color:var(--brand-primaria); }
+
+/* ---- botões da capa: fio dourado, fundo fumê ---- */
+.lk{ border:1px solid color-mix(in srgb, var(--brand-primaria) 22%, transparent);
+  background:color-mix(in srgb, var(--brand-primaria) 4%, var(--surface)); transition:border-color .15s, transform .15s; }
+.lk:hover{ border-color:color-mix(in srgb, var(--brand-primaria) 55%, transparent); transform:translateY(-1px); }
+.lk.main{ background:linear-gradient(120deg, var(--brand-primaria), #E6C55C); color:#0B0B0B; border:0; }
+.lk.main small{ color:rgba(11,11,11,.72); }
+.lk.main .ic{ background:rgba(0,0,0,.14); }
+
+/* ---- cartões de experiência ---- */
+.tourcard{ border:1px solid color-mix(in srgb, var(--brand-primaria) 18%, transparent); background:var(--surface);
+  transition:border-color .18s, transform .18s; }
+.tourcard:hover{ border-color:color-mix(in srgb, var(--brand-primaria) 50%, transparent); transform:translateY(-2px); }
+.tourcard .ph{ position:relative; }
+.tourcard .ph::after{ content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(0,0,0,.05) 40%, rgba(0,0,0,.65)); }
+.tourcard .tbadge{ position:relative; z-index:1; background:rgba(11,11,11,.72); color:var(--brand-primaria);
+  border:1px solid color-mix(in srgb, var(--brand-primaria) 45%, transparent);
+  font:700 10px var(--f-ui); letter-spacing:.14em; text-transform:uppercase; }
+.tourcard .bd b{ font-family:var(--f-display); font-size:18px; font-weight:600; }
+.tourcard .pr{ font:700 12px var(--f-ui); letter-spacing:.16em; text-transform:uppercase; color:var(--highlight-text); }
+.tourcard .cgo{ border:1px solid color-mix(in srgb, var(--brand-primaria) 40%, transparent); border-radius:50%;
+  width:34px; height:34px; display:grid; place-items:center; color:var(--brand-primaria); }
+
+/* ---- filtros ---- */
+.chip{ border:1px solid color-mix(in srgb, var(--brand-primaria) 20%, transparent); letter-spacing:.04em; }
+.chip.on{ background:var(--brand-primaria); color:#0B0B0B; border-color:transparent; font-weight:700; }
+
+/* ---- página da experiência ---- */
+.pricebox{ border:1px solid color-mix(in srgb, var(--brand-primaria) 25%, transparent);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--brand-primaria) 7%, var(--surface)), var(--surface)); }
+.pbmain b{ font-family:var(--f-display); letter-spacing:.02em; }
+.seclabel{ letter-spacing:.2em; color:var(--highlight-text); }
+.sobcons{ border-color:color-mix(in srgb, var(--brand-primaria) 30%, transparent);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--brand-primaria) 7%, var(--surface)), var(--surface)); }
+.sobcons b::before{ content:"◆"; display:block; margin:0 auto 10px; font-size:9px; color:var(--brand-primaria); }
+.sobcons .cta{ background:linear-gradient(120deg, var(--brand-primaria), #E6C55C); color:#0B0B0B; font-weight:700;
+  letter-spacing:.04em; }
+
+/* ---- o convite discreto para o painel ---- */
+.adm-dica{ letter-spacing:.01em; }
+.adm-entry.demo{ background:linear-gradient(120deg, var(--brand-primaria), #E6C55C); color:#0B0B0B; letter-spacing:.03em; }

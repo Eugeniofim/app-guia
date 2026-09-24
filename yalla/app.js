@@ -257,6 +257,7 @@ function route() {
   }
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
   else if (p[0] === 'about') viewAbout();
+  else if (p[0] === 'personalizar') viewPersonalizar();
   else if (p[0] === 'tours') viewShowcase();
   else if (p[0] === 'tour')  viewTour(p[1]);
   else                       viewHub();
@@ -309,6 +310,9 @@ function viewHub() {
       <button class="lk main" id="goTours">
         <span class="ic">📍</span><span><b>${t('seeTours')}</b><small>${t('seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
+      <button class="lk" id="goPers">
+        <span class="ic">✦</span><span><b>${t('persLink')}</b><small>${t('persLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>
       <button class="lk" id="goAbout">
         <span class="ic"><img id="hubFace" src="${esc(DB.settings.photo || 'guia.jpg')}" alt=""
           style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
@@ -326,6 +330,7 @@ function viewHub() {
   bindLang(app);
   $('#goTours').onclick = () => go('/tours');
   fallbackPhoto($('#hubFace'), '☺');
+  $('#goPers').onclick = () => go('/personalizar');
   $('#goAbout').onclick = () => go('/about');
   $('#admEntry').onclick = () => go('/adm/today');
   $$('[data-demo]').forEach(b => b.onclick = () => toast(t('xProtoBotao')));
@@ -402,6 +407,111 @@ const TYPE_LABEL = { day: 'fDay', walk: 'fWalk', photo: 'fPhoto', session: 'tSes
    reserva sai do app para a conversa (Yalla Experiences, 24/09/2026). */
 const semPreco = (x) => !(+x.price > 0);
 const precoTxt = (x) => semPreco(x) ? t('sobConsulta') : eur(x.price);
+
+const PERS_GOSTO = [
+  ['deserto',     'Deserto e safári',              'Desert & safari'],
+  ['arquitetura', 'Arquitetura e skyline',         'Architecture & skyline'],
+  ['cultura',     'Cultura e história local',      'Culture & local history'],
+  ['gastronomia', 'Gastronomia',                   'Food & dining'],
+  ['iate',        'Iate e praia',                  'Yacht & beach'],
+  ['compras',     'Compras',                       'Shopping'],
+  ['negocios',    'Negócios e networking',         'Business & networking'],
+  ['familia',     'Programas com crianças',        'With children'],
+  ['fotos',       'Ensaio de fotos',               'Photo session'],
+  ['abudhabi',    'Abu Dhabi',                     'Abu Dhabi'],
+];
+const PERS_PRECISA = [
+  ['aeroporto', 'Buscar no aeroporto',                 'Airport pick-up'],
+  ['transfer',  'Transfers durante a viagem',          'Transfers during the trip'],
+  ['motorista', 'Carro com motorista',                 'Car with driver'],
+  ['reservas',  'Reserva de restaurante e ingressos',  'Restaurant & ticket bookings'],
+  ['integral',  'Acompanhamento o dia inteiro',        'Full-day companion'],
+  ['hotel',     'Indicação de hotel',                  'Hotel recommendation'],
+  ['visto',     'Orientação de visto e chegada',       'Visa & arrival guidance'],
+  ['evento',    'Evento ou reunião de negócios',       'Event or business meeting'],
+  ['volta',     'Levar de volta ao aeroporto',         'Airport drop-off'],
+];
+
+function viewPersonalizar() {
+  const P = viewPersonalizar._p = viewPersonalizar._p
+    || { nome: '', ini: '', fim: '', adultos: 2, criancas: 0, gosto: [], precisa: [], obs: '' };
+  const chip = (grupo, lista) => lista.map(([cod, pt, en]) =>
+    `<button class="pchip ${P[grupo].includes(cod) ? 'on' : ''}" data-g="${grupo}" data-v="${cod}">${LANG === 'en' ? en : pt}</button>`).join('');
+
+  app.innerHTML = `
+  <header class="topbar">
+    <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
+    <span class="tbrand">${logoMark(24, 'var(--brand-amarelo)')}<b>${esc(guiaNome())}</b></span>
+    ${langBar('right')}
+  </header>
+  <main class="wrap pers">
+    <h1 class="pageh">${t('persTit')}</h1>
+    <p class="desc lead">${t('persIntro')}</p>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('persQuem')}</span>
+      <label class="fld">${t('persNome')}<input id="pNome" value="${esc(P.nome)}" placeholder="${t('persNomePh')}"></label>
+      <div class="frow">
+        <label class="fld">${t('persIni')}<input id="pIni" type="date" value="${P.ini}"></label>
+        <label class="fld">${t('persFim')}<input id="pFim" type="date" value="${P.fim}"></label>
+      </div>
+      <div class="frow">
+        <label class="fld">${t('persAd')}<input id="pAd" type="number" min="1" max="40" value="${P.adultos}"></label>
+        <label class="fld">${t('persCri')}<input id="pCri" type="number" min="0" max="20" value="${P.criancas}"></label>
+      </div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('persGosto')}</span>
+      <div class="pchips">${chip('gosto', PERS_GOSTO)}</div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('persPrecisa')}</span>
+      <p class="why">${t('persPrecisaWhy')}</p>
+      <div class="pchips">${chip('precisa', PERS_PRECISA)}</div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('persObs')}</span>
+      <textarea id="pObs" rows="3" placeholder="${t('persObsPh')}">${esc(P.obs)}</textarea>
+    </section>
+
+    <button class="cta" id="pEnviar">${t('persEnviar')}</button>
+    <p class="why center">${t('persRodape')}</p>
+  </main>`;
+  bindLang(app);
+  $('#bk').onclick = () => go('/');
+  const guarda = () => {
+    P.nome = $('#pNome').value.trim(); P.ini = $('#pIni').value; P.fim = $('#pFim').value;
+    P.adultos = +$('#pAd').value || 1; P.criancas = +$('#pCri').value || 0; P.obs = $('#pObs').value.trim();
+  };
+  $$('.pchip').forEach(b => b.onclick = () => {
+    guarda();
+    const g = P[b.dataset.g], i = g.indexOf(b.dataset.v);
+    i < 0 ? g.push(b.dataset.v) : g.splice(i, 1);
+    viewPersonalizar();
+  });
+  $('#pEnviar').onclick = () => {
+    guarda();
+    const nome = (a, l) => a.map(c => (l.find(z => z[0] === c) || [])[LANG === 'en' ? 2 : 1]).filter(Boolean).join(', ');
+    const dia = (d) => d ? fmtDate(d) : '';
+    const L = [t('persMsgOi', { nome: P.nome || '' })];
+    if (P.ini || P.fim) L.push('🗓 ' + [dia(P.ini), dia(P.fim)].filter(Boolean).join(' → '));
+    L.push('👥 ' + t('persMsgQuem', { a: P.adultos, c: P.criancas }));
+    if (P.gosto.length) L.push('❤️ ' + nome(P.gosto, PERS_GOSTO));
+    if (P.precisa.length) L.push('✅ ' + nome(P.precisa, PERS_PRECISA));
+    if (P.obs) L.push('📝 ' + P.obs);
+    const texto = L.join('\n');
+    try {
+      DB.pedidos = DB.pedidos || [];
+      DB.pedidos.unshift({ id: 'p' + Date.now(), criadoEm: new Date().toISOString(), ...P });
+      save();
+    } catch (e) {}
+    window.open(waLink(texto), '_blank', 'noopener');
+    toast(t('persEnviado'));
+  };
+}
 
 function viewShowcase() {
   const tours = Tours.live();
