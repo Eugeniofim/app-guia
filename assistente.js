@@ -485,10 +485,25 @@ const IA_FERRAMENTAS = [
   { name: 'apagar_criativo', description: 'Apaga um criativo.', input_schema: obj({ criativo_id: S_() }, ['criativo_id']) },
   { name: 'gerar_imagem', description: 'Gera uma imagem por IA (Gemini) para fundo, ilustração, conceito ou textura — nunca para fingir foto de um lugar real, do passeio ou de pessoas. Descreva em inglês, sem texto na imagem. Fica em Suas fotos com o selo IA; a ref volta no resultado para usar em criar_criativo.',
     input_schema: obj({ descricao: S_('em inglês'), formato: { type: 'string', enum: Object.keys(FORMATOS_CRIATIVO) } }, ['descricao']) },
+  { name: 'ver_clientes', description: 'Clientes que já reservaram: nome, contato, idioma, quantas reservas, total gasto e a última data.', input_schema: obj() },
+  { name: 'ver_relatorio', description: 'Números do período (AAAA-MM-DD): recebido, saídas, pessoas, a receber, e por passeio as visitas, reservas, conversão e receita.', input_schema: obj({ de: S_(), ate: S_() }) },
+  { name: 'ver_ajustes', description: 'Perfil do guia: nome, negócio, cidade, bio, texto da home, WhatsApp e Instagram.', input_schema: obj() },
+  { name: 'ver_ensino', description: 'Como o agente de atendimento está treinado: tom, respostas prontas, limites.', input_schema: obj() },
+  { name: 'criar_reserva', description: 'Cria uma reserva fechada fora do app (WhatsApp, Instagram, na rua). Só o que o guia informou; nunca invente valor recebido.',
+    input_schema: obj({ passeio_id: S_(), data: S_('AAAA-MM-DD'), hora: S_('HH:MM'), nome: S_(), pessoas: { type: 'integer' }, whats: S_(), email: S_(),
+      total: N_('total combinado; sem isto usa a tabela do passeio'), recebido: N_('quanto já entrou'), metodo: { type: 'string', enum: ['pix', 'card', 'cash', 'transfer'] } }, ['passeio_id', 'data', 'nome', 'pessoas']) },
+  { name: 'alterar_reserva', description: 'Muda data, hora, pessoas ou contato de uma reserva (código de ver_reservas).', input_schema: obj({ codigo: S_(), data: S_(), hora: S_(), pessoas: { type: 'integer' }, nome: S_(), whats: S_(), email: S_() }, ['codigo']) },
+  { name: 'cancelar_reserva', description: 'Cancela uma reserva (a vaga volta para a agenda).', input_schema: obj({ codigo: S_(), motivo: S_() }, ['codigo']) },
+  { name: 'registrar_pagamento', description: 'Registra dinheiro que entrou numa reserva. Sem valor, registra o que falta.', input_schema: obj({ codigo: S_(), valor: N_(), metodo: { type: 'string', enum: ['pix', 'card', 'cash', 'transfer'] } }, ['codigo']) },
+  { name: 'alterar_ajustes', description: 'Muda o perfil do guia: nome, negócio, cidade, bio, texto da home, WhatsApp, Instagram.', input_schema: obj({ nome: S_(), negocio: S_(), cidade: S_(), bio: S_(), texto_home: S_(), whats: S_(), insta: S_() }) },
+  { name: 'ensinar_agente', description: 'Treina o agente do WhatsApp/Instagram: tom, respostas prontas (pergunta e resposta), o que nunca dizer, quando passar a conversa para o guia.',
+    input_schema: obj({ tom: { type: 'string', enum: ['simp', 'formal', 'leve', 'direto'] }, detalhe: S_(), respostas: { type: 'array', items: obj({ pergunta: S_(), resposta: S_() }, ['pergunta', 'resposta']) },
+      nunca: S_(), passar: { type: 'array', items: { type: 'string', enum: ['hReclama', 'hDesconto', 'hGrupo', 'hEspecial'] } } }) },
   { name: 'guardar_memoria', description: 'Guarda uma regra ou preferência que vale para sempre.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'apagar_memoria', description: 'Apaga um item da memória.', input_schema: obj({ memoria_id: S_() }, ['memoria_id']) },
 ];
-const IA_LEITURA = new Set(['ver_passeios', 'ver_agenda', 'ver_reservas', 'ver_cupons', 'ver_bloqueios', 'ver_fotos', 'ver_marketing']);
+const IA_LEITURA = new Set(['ver_passeios', 'ver_agenda', 'ver_reservas', 'ver_cupons', 'ver_bloqueios', 'ver_fotos', 'ver_marketing',
+  'ver_clientes', 'ver_relatorio', 'ver_ajustes', 'ver_ensino']);
 
 function iaLeitura(nome, i) {
   if (nome === 'ver_passeios') return Tours.all().map(x => ({
@@ -511,6 +526,37 @@ function iaLeitura(nome, i) {
       codigo: b.code, cliente: b.name, idioma: b.lang || null, passeio: nomeTour(Tours.get(b.tourId)), data: b.date, hora: b.time,
       pessoas: b.pax, situacao: b.status, total: b.total, pago: Bookings.paid(b) }));
     return l.length ? l : 'nenhuma reserva neste período';
+  }
+  if (nome === 'ver_clientes') {
+    const m = {};
+    for (const b of DB.bookings) {
+      if (b.status === 'cancelled') continue;
+      const k = (b.email || b.whats || b.name || '?').toLowerCase();
+      const c = m[k] = m[k] || { nome: b.name, contato: b.email || b.whats || '', idioma: b.lang || null, reservas: 0, pessoas: 0, gasto: 0, ultima: '' };
+      c.reservas++; c.pessoas += b.pax; c.gasto += Bookings.paid(b);
+      if (b.date > c.ultima) c.ultima = b.date;
+    }
+    const l = Object.values(m).sort((a, b) => b.gasto - a.gasto).slice(0, 60);
+    return l.length ? l : 'nenhum cliente ainda';
+  }
+  if (nome === 'ver_relatorio') {
+    const de = isoOk(i.de) ? i.de : hojeIso().slice(0, 8) + '01', ate = isoOk(i.ate) ? i.ate : hojeIso();
+    const T = Reports.totals(de, ate);
+    return { periodo: { de, ate }, recebido: T.revenue, saidas: T.deps, pessoas: T.pax, a_receber: T.due, media_por_pessoa: T.ticket,
+      por_passeio: Reports.interesse(de, ate).map(r => ({ passeio: nomeTour(r.tour), visitas: r.visitas, quase_reservaram: r.quase,
+        reservas: r.reservas, conversao_pct: r.conv, receita: r.receita })),
+      de_onde_vieram: Reports.byOrigin(de, ate) };
+  }
+  if (nome === 'ver_ajustes') {
+    const st = DB.settings || {};
+    return { nome: st.admName || '', negocio: st.negocio || '', cidade: st.base || '', bio: st.bio || '', texto_home: st.homeText || '',
+      whats: st.whats || '', insta: st.insta || '', moeda: 'euro' };
+  }
+  if (nome === 'ver_ensino') {
+    const e = typeof ensino === 'function' ? ensino() : null;
+    if (!e) return 'o agente ainda usa o treino padrão';
+    return { tom: e.tom, detalhe: e.tomExtra || '', respostas: e.faq.filter(f => f.p && f.r).map(f => ({ pergunta: f.p, resposta: f.r })),
+      nunca: e.nunca || '', passa_para_o_guia: (e.passa || []).map(k => ia(k)) };
   }
   if (nome === 'ver_cupons') return DB.coupons.length ? DB.coupons.map(c => ({ codigo: c.code, desconto: c.pct + '%', validade: c.until })) : 'nenhum cupom';
   if (nome === 'ver_bloqueios') return DB.blocks.length ? DB.blocks.map(b => ({ id: b.id, de: b.from, ate: b.until, motivo: b.note || '' })) : 'nenhum bloqueio';
@@ -583,6 +629,92 @@ function iaPlano(nome, i) {
   if (nome === 'liberar_datas') {
     const b = DB.blocks.find(b => b.id === i.bloqueio_id); if (!b) return E_('bloqueio não encontrado');
     return { titulo: ia('cLiberar'), assumiu: [], linhas: [[ia('cPeriodo'), `${dataCurta(b.from)} – ${dataCurta(b.until)}`]], fazer: () => { Cal.removeBlock(b.id); return { ok: true }; } };
+  }
+  /* ---- reservas: o guia fecha por fora e o assistente registra ---- */
+  if (nome === 'criar_reserva') {
+    const x = Tours.get(i.passeio_id); if (!x) return E_('passeio não encontrado — use ver_passeios');
+    if (!isoOk(i.data)) return E_('data em AAAA-MM-DD');
+    const pax = Math.max(1, +i.pessoas || 1);
+    const hora = /^\d{2}:\d{2}$/.test(i.hora || '') ? i.hora : (Cal.rulesFor(x.id)[0] || {}).time;
+    if (!hora) return E_('falta a hora (o passeio não tem horário fixo)');
+    const livres = Cal.seatsLeft(x.id, i.data, hora, (Cal.rulesFor(x.id).find(r => r.time === hora) || {}).capacity || x.max);
+    if (livres < pax) return E_(`só há ${livres} lugar(es) em ${dataCurta(i.data)} ${hora}`);
+    const total = +i.total > 0 ? +i.total : Bookings.precoDe(x, x.id, i.data, hora, pax).total;
+    const recebido = Math.max(0, +i.recebido || 0);
+    const assumiu = [];
+    if (!i.hora) assumiu.push(`${ia('cHora')} ${hora}`);
+    if (!(+i.total > 0)) assumiu.push(`${ia('cPreco')} ${eur(total)}`);
+    return { titulo: ia('cCriarReserva'), assumiu,
+      linhas: [[ia('cCliente'), i.nome], [ia('xPasseio'), nomeTour(x)], [ia('cQuando'), `${dataCurta(i.data)} ${hora}`],
+        [ia('cPessoas'), String(pax)], [ia('cTotal'), eur(total)], ...(recebido ? [[ia('cRecebido'), eur(recebido)]] : [])],
+      fazer: () => { const b = Bookings.criarManual({ tourId: x.id, date: i.data, time: hora, name: i.nome, whats: i.whats || '', email: i.email || '',
+        pax, total, recebido, metodo: i.metodo || 'pix' }); return { ok: true, codigo: b.code }; } };
+  }
+  if (nome === 'alterar_reserva') {
+    const b = Bookings.byCode(String(i.codigo || '').toUpperCase()); if (!b) return E_('reserva não encontrada — use ver_reservas');
+    const x = Tours.get(b.tourId), muda = {}, linhas = [[ia('cCliente'), b.name], [ia('cCodigo'), b.code]];
+    if (isoOk(i.data) && i.data !== b.date) { muda.date = i.data; linhas.push([ia('cQuando'), `${dataCurta(b.date)} → ${dataCurta(i.data)}`]); }
+    if (/^\d{2}:\d{2}$/.test(i.hora || '') && i.hora !== b.time) { muda.time = i.hora; linhas.push([ia('cHora'), `${b.time} → ${i.hora}`]); }
+    if (+i.pessoas > 0 && +i.pessoas !== b.pax) { muda.pax = +i.pessoas; linhas.push([ia('cPessoas'), `${b.pax} → ${+i.pessoas}`]); }
+    if (i.nome && i.nome !== b.name) { muda.name = i.nome; linhas.push([ia('cNome'), `${b.name} → ${i.nome}`]); }
+    if (i.whats) { muda.whats = i.whats; linhas.push(['WhatsApp', i.whats]); }
+    if (i.email) { muda.email = i.email; linhas.push([ia('cEmail'), i.email]); }
+    if (!Object.keys(muda).length) return E_('nada para mudar');
+    const assumiu = [];
+    if (muda.pax) { const novo = Bookings.precoDe(x, b.tourId, muda.date || b.date, muda.time || b.time, muda.pax).total;
+      muda.total = novo; assumiu.push(`${ia('cTotal')} ${eur(novo)}`); }
+    return { titulo: ia('cAlterarReserva'), assumiu, linhas,
+      fazer: () => { Object.assign(b, muda); save(); if (typeof cloudPushBooking === 'function') cloudPushBooking(b); return { ok: true }; } };
+  }
+  if (nome === 'cancelar_reserva') {
+    const b = Bookings.byCode(String(i.codigo || '').toUpperCase()); if (!b) return E_('reserva não encontrada');
+    if (b.status === 'cancelled') return E_('essa reserva já está cancelada');
+    return { titulo: ia('cCancelarReserva'), assumiu: [],
+      linhas: [[ia('cCliente'), b.name], [ia('xPasseio'), nomeTour(Tours.get(b.tourId))], [ia('cQuando'), `${dataCurta(b.date)} ${b.time}`],
+        [ia('cPessoas'), String(b.pax)], ...(Bookings.paid(b) ? [[ia('cRecebido'), eur(Bookings.paid(b))]] : [])],
+      fazer: () => { Bookings.cancel(b.id); return { ok: true, aviso: 'quem avisa o cliente é o guia' }; } };
+  }
+  if (nome === 'registrar_pagamento') {
+    const b = Bookings.byCode(String(i.codigo || '').toUpperCase()); if (!b) return E_('reserva não encontrada');
+    const falta = Bookings.due(b);
+    const valor = +i.valor > 0 ? +i.valor : falta;
+    if (!(valor > 0)) return E_('essa reserva já está paga');
+    const metodo = ['pix', 'card', 'cash', 'transfer'].includes(i.metodo) ? i.metodo : 'pix';
+    return { titulo: ia('cPagamento'), assumiu: +i.valor > 0 ? [] : [`${ia('cValor')} ${eur(valor)}`],
+      linhas: [[ia('cCliente'), b.name], [ia('cCodigo'), b.code], [ia('cValor'), eur(valor)], [ia('cComo'), metodo],
+        [ia('cFalta'), eur(Math.max(0, falta - valor))]],
+      fazer: () => { b.payments.push({ amount: valor, date: hojeIso(), method: metodo, kind: Bookings.paid(b) ? 'balance' : 'deposit' });
+        save(); if (typeof cloudPushBooking === 'function') cloudPushBooking(b); return { ok: true }; } };
+  }
+  /* ---- perfil do guia ---- */
+  if (nome === 'alterar_ajustes') {
+    const st = DB.settings, mapa = [['nome', 'admName'], ['negocio', 'negocio'], ['cidade', 'base'], ['bio', 'bio'], ['texto_home', 'homeText'], ['whats', 'whats'], ['insta', 'insta']];
+    const muda = {}, linhas = [];
+    for (const [de, para] of mapa) if (i[de] !== undefined && String(i[de]).trim() && String(i[de]) !== String(st[para] || '')) {
+      muda[para] = String(i[de]).trim();
+      linhas.push([de === 'texto_home' ? ia('cTextoHome') : de === 'bio' ? ia('cBio') : de, String(i[de]).slice(0, 120)]);
+    }
+    if (!linhas.length) return E_('nada para mudar');
+    return { titulo: ia('cAjustes'), assumiu: [], linhas,
+      fazer: () => { Object.assign(st, muda); save(); if (typeof cloudPushState === 'function') cloudPushState(); return { ok: true }; } };
+  }
+  /* ---- treino do agente de atendimento ---- */
+  if (nome === 'ensinar_agente') {
+    if (typeof ensino !== 'function') return E_('esta parte não existe neste app');
+    const e = ensino(), linhas = [], novo = {};
+    if (i.tom && ENS_TONS[i.tom]) { novo.tom = i.tom; linhas.push([ia('ensP1'), ia('tom_' + i.tom)]); }
+    if (i.detalhe) { novo.tomExtra = String(i.detalhe).slice(0, 300); linhas.push([ia('ensP1'), novo.tomExtra]); }
+    const novas = (Array.isArray(i.respostas) ? i.respostas : []).filter(r => r && r.pergunta && r.resposta);
+    if (novas.length) linhas.push([ia('ensP2'), novas.map(r => '• ' + r.pergunta).join('\n')]);
+    if (i.nunca) { novo.nunca = String(i.nunca).slice(0, 500); linhas.push([ia('ensLimTit'), novo.nunca]); }
+    if (Array.isArray(i.passar) && i.passar.length) { novo.passa = i.passar.filter(k => ENS_PASSA.includes(k)); linhas.push([ia('ensPassaTit'), novo.passa.map(k => ia(k)).join(', ')]); }
+    if (!linhas.length) return E_('diga o que mudar no treino');
+    return { titulo: ia('cEnsinar'), assumiu: [], linhas,
+      fazer: () => { Object.assign(e, novo);
+        for (const r of novas) { const j = e.faq.findIndex(f => f.p.toLowerCase() === String(r.pergunta).toLowerCase());
+          const item = { k: '', p: String(r.pergunta).slice(0, 200), r: String(r.resposta).slice(0, 600) };
+          if (j >= 0) e.faq[j] = item; else e.faq.push(item); }
+        Mkt.salva(); return { ok: true, aviso: 'para valer no Instagram de verdade, use o botão Aplicar na aba Atendimento' }; } };
   }
   if (nome === 'criar_cupom') {
     const code = String(i.codigo || '').toUpperCase().replace(/\s+/g, ''), pct = +i.desconto;
@@ -787,6 +919,11 @@ function iaSistema() {
   const lingua = (LANGS.find(l => l[0] === LANG) || [0, 0, 'Português'])[2];
   return [
     { type: 'text', cache_control: { type: 'ephemeral' }, text: `Você é o assistente de ${guiaNome()} (${guiaNegocio()}), guia de turismo baseado em ${guiaBase()}. Trabalha dentro do app de reservas: conhece os passeios, a agenda, as vagas e as reservas, e escreve como a equipe de marketing da casa.
+
+## O que você faz dentro do app
+Você é o painel inteiro em forma de conversa. Lê: passeios, agenda, vagas, reservas, clientes, cupons, bloqueios, fotos, marketing, relatório (visitas, conversão e receita por passeio), ajustes e o treino do agente de atendimento. Grava, sempre com cartão de confirmação: passeio, preço, horário, bloqueio, cupom, plano de postagem, criativo, anúncio, memória, **reserva (criar, mudar, cancelar), pagamento recebido, perfil do guia e o treino do agente**.
+Quando o guia contar algo que cabe no app ("fechei com o Pedro no dia 10", "recebi 150 do João por Pix", "mudei o ponto de encontro", "o cliente sempre pergunta X"), ofereça gravar você mesmo, em uma frase, e chame a ferramenta. Vários pedidos numa mensagem: resolva todos, um cartão por ação.
+O que você não sabe (o dado só existe na cabeça dele), pergunte — uma pergunta por vez, a mais importante primeiro.
 
 ## Regra absoluta
 Você nunca fala com ninguém de fora: não contata cliente, não publica, não manda mensagem nem e-mail, não liga nem paga anúncio. Você escreve; quem envia e publica é o guia. Não existe ferramenta para mandar nada para fora — é de propósito.
@@ -2332,3 +2469,24 @@ addEventListener('hashchange', () => setTimeout(iaAtualizaFab, 30));
 addEventListener('resize', iaAtualizaFab);
 setInterval(iaAtualizaFab, 1500);
 if (location.hash.startsWith('#/adm')) route();
+
+/* rótulos dos cartões novos (reservas, pagamento, perfil e treino) */
+IA_TXT.cCriarReserva = { pt: 'Criar reserva', en: 'Create booking', fr: 'Créer une réservation', it: 'Crea prenotazione', de: 'Buchung anlegen', es: 'Crear reserva' };
+IA_TXT.cAlterarReserva = { pt: 'Mudar reserva', en: 'Change booking', fr: 'Modifier la réservation', it: 'Modifica prenotazione', de: 'Buchung ändern', es: 'Cambiar reserva' };
+IA_TXT.cCancelarReserva = { pt: 'Cancelar reserva', en: 'Cancel booking', fr: 'Annuler la réservation', it: 'Annulla prenotazione', de: 'Buchung stornieren', es: 'Cancelar reserva' };
+IA_TXT.cPagamento = { pt: 'Registrar pagamento', en: 'Record payment', fr: 'Enregistrer un paiement', it: 'Registra pagamento', de: 'Zahlung erfassen', es: 'Registrar pago' };
+IA_TXT.cAjustes = { pt: 'Mudar o perfil', en: 'Update profile', fr: 'Modifier le profil', it: 'Aggiorna profilo', de: 'Profil ändern', es: 'Cambiar el perfil' };
+IA_TXT.cEnsinar = { pt: 'Treinar o agente', en: 'Train the agent', fr: 'Former l’agent', it: 'Istruisci l’agente', de: 'Agenten anlernen', es: 'Entrenar al agente' };
+IA_TXT.cCliente = { pt: 'Cliente', en: 'Guest', fr: 'Client', it: 'Cliente', de: 'Gast', es: 'Cliente' };
+IA_TXT.cQuando = { pt: 'Quando', en: 'When', fr: 'Quand', it: 'Quando', de: 'Wann', es: 'Cuándo' };
+IA_TXT.cHora = { pt: 'Hora', en: 'Time', fr: 'Heure', it: 'Ora', de: 'Uhrzeit', es: 'Hora' };
+IA_TXT.cPessoas = { pt: 'Pessoas', en: 'People', fr: 'Personnes', it: 'Persone', de: 'Personen', es: 'Personas' };
+IA_TXT.cTotal = { pt: 'Total', en: 'Total', fr: 'Total', it: 'Totale', de: 'Gesamt', es: 'Total' };
+IA_TXT.cRecebido = { pt: 'Já recebido', en: 'Already received', fr: 'Déjà reçu', it: 'Già ricevuto', de: 'Bereits erhalten', es: 'Ya recibido' };
+IA_TXT.cValor = { pt: 'Valor', en: 'Amount', fr: 'Montant', it: 'Importo', de: 'Betrag', es: 'Importe' };
+IA_TXT.cComo = { pt: 'Como', en: 'Method', fr: 'Moyen', it: 'Metodo', de: 'Art', es: 'Método' };
+IA_TXT.cFalta = { pt: 'Ainda falta', en: 'Still due', fr: 'Reste à payer', it: 'Ancora da pagare', de: 'Noch offen', es: 'Aún falta' };
+IA_TXT.cCodigo = { pt: 'Código', en: 'Code', fr: 'Code', it: 'Codice', de: 'Code', es: 'Código' };
+IA_TXT.cEmail = { pt: 'E-mail', en: 'Email', fr: 'E-mail', it: 'E-mail', de: 'E-Mail', es: 'Correo' };
+IA_TXT.cBio = { pt: 'Quem sou eu', en: 'About you', fr: 'Qui je suis', it: 'Chi sono', de: 'Über dich', es: 'Quién soy' };
+IA_TXT.cTextoHome = { pt: 'Texto da capa', en: 'Home text', fr: 'Texte d’accueil', it: 'Testo della home', de: 'Startseitentext', es: 'Texto de portada' };
