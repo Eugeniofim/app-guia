@@ -18,7 +18,9 @@ var APP_CONFIG = {
      pronta. Num app de cliente fica vazio: lá o guia usa a chave dele. */
   cofre: 'https://guia-cofre.netlify.app',
   /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
-  agenteInstagram: '',   /* o agente ainda não está ligado no Instagram dela */
+  /* enquanto o Instagram DELA não é ligado, o cartão mostra o robô de
+     demonstração da Ti Artes, para ela ver funcionando de verdade */
+  agenteInstagram: 'estudio_ti_artes',
   /* número do WhatsApp do agente do demo (só dígitos; o de teste da Meta não entrega para o Brasil) */
   agenteWhatsapp: '', // vazio = botão escondido; o de teste era 15551558996. Pôr o número real quando o chip chegar
 
