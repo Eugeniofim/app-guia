@@ -333,6 +333,16 @@ function load() {
     DB.settings.turnos = GUIA_CFG.turnos;
     DB.settings.turnoExclusivo = !!GUIA_CFG.turnoExclusivo;
   }
+  /* TURNOS NOS PASSEIOS QUE JÁ EXISTIAM (24/09/2026). Quem abriu o app antes
+     guardou os passeios SEM datas — e ali o cliente nunca via Manhã/Tarde, ia
+     direto para o WhatsApp. Uma vez só: passeio sem NENHUMA regra ganha os
+     turnos. Passeio que ela já ajustou fica como está, e se ela apagar depois,
+     não volta (turnosSemeados). Sem passeio ainda (nuvem por carregar) espera. */
+  if (turnos().length && !DB.settings.turnosSemeados && DB.tours.length) {
+    for (const t of DB.tours) if (!DB.rules.some(r => r.tourId === t.id)) DB.rules.push(...regrasDeTurno(t));
+    DB.settings.turnosSemeados = true;
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  }
   return DB;
 }
 function save() {
@@ -349,7 +359,11 @@ const Tours = {
   all()      { return [...DB.tours].sort((a, b) => a.order - b.order); },
   live()     { return Tours.all().filter(t => t.status !== 'draft'); },
   get(id)    { return DB.tours.find(t => t.id === id); },
-  create(t)  { t.id = uid(); t.order = DB.tours.length + 1; DB.tours.push(t); save(); return t; },
+  create(t)  {
+    t.id = uid(); t.order = DB.tours.length + 1; DB.tours.push(t);
+    DB.rules.push(...regrasDeTurno(t));   /* passeio novo já nasce com Manhã e Tarde */
+    save(); return t;
+  },
   update(id, patch) { Object.assign(Tours.get(id), patch); save(); },
   duplicate(id) {
     const src = Tours.get(id); if (!src) return null;
@@ -384,6 +398,11 @@ function agoraBerlim() {
   return { data: `${p.year}-${p.month}-${p.day}`, hora: `${p.hour === '24' ? '00' : p.hour}:${p.minute}` };
 }
 function jaComecou(date, time) { const a = agoraBerlim(); return date < a.data || (date === a.data && time <= a.hora); }
+/* as regras de um passeio em turnos: todos os dias, pelos próximos 6 meses (ela ajusta na Agenda) */
+function regrasDeTurno(t) {
+  return turnos().map(tu => ({ id: uid(), tourId: t.id, weekdays: [0, 1, 2, 3, 4, 5, 6], time: tu.hora,
+    capacity: +t.max || 20, from: isoToday(), until: addDays(isoToday(), 180) }));
+}
 function turnoExclusivo() { return !!((DB && DB.settings && DB.settings.turnoExclusivo) ?? GUIA_CFG.turnoExclusivo); }
 
 const Cal = {

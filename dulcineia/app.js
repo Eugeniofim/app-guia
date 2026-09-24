@@ -448,7 +448,7 @@ function viewShowcase() {
           <span class="bd">
             <b>${esc(tl(x.name))}</b>
             ${x.tagline && tl(x.tagline) ? `<small class="ctag">${esc(tl(x.tagline))}</small>` : ''}
-            <small class="meta">${regiaoLabel(x.region)} · ${grupoTxt(x)}</small>
+            <small class="meta">${regiaoLabel(x.region)} · ${grupoTxt(x)}${turnos().length ? ' · ' + esc(turnos().map(tu => tu.nome.toLowerCase()).join(' ou ')) : ''}</small>
             <span class="cardfoot">
               ${sobConsulta(x) ? `<span class="pr consulta">${t('onRequest')}</span>`
               : `<span class="pr">${x.priceLate && x.earlySeats && x.priceMode !== 'session' ? `<u>${t('fromPrice')}</u> ` : ''}${eur(x.price)}
@@ -574,6 +574,8 @@ function viewTour(id) {
           <div><small>${t('fLeaves')}</small><b>${esc(noIdioma(x.meeting))}</b>
             ${x.pickup ? `<small class="sub">${t('pickupHotel')}</small>`
               : `<a class="linkmap" href="${mapLink(noIdioma(x.meeting))}" target="_blank" rel="noopener">${t('openMap')} ↗</a>`}</div>
+          ${turnos().length ? `<div><small>${t('fTurnos')}</small><b>${turnos().map(tu => `${esc(tu.nome)} ${tu.hora}–${tu.fim}`).join('<br>')}</b>
+            <small class="sub">${t('turnoUmGrupo')}</small></div>` : ''}
           ${x.duration ? `<div><small>${t('fHours')}</small><b>${esc(x.duration)}</b></div>` : ''}
           <div><small>${t('fGroup')}</small><b>${grupoTxt(x)}</b>
             ${x.privativo ? `<small class="sub">${t('privateSub')}</small>`

@@ -4,7 +4,7 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'berlim-v0.5.2';
+const VERSION = 'berlim-v0.5.3';
 const CORE = [
   './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './idiomas.js', './store.js', './assistente.js', './auth.js', './logo.js', './cloud.js', './i18n.js', './avisos.js', './creditos.js', './tokens.css', './fontes/arapey-regular.woff2', './fontes/arapey-italic.woff2', './fontes/instrument-serif-regular.woff2', './fontes/instrument-serif-italic.woff2',
   './manifest.webmanifest', './arte/selo-capsula.svg', './arte/logo-horizontal.svg', './arte/logo-palavra.svg', './arte/favicon.svg', './capa.jpg', './home.jpg', './og.jpg', './guia.jpg', './exemplo-1.jpg', './exemplo-2.jpg', './exemplo-3.jpg',
