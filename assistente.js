@@ -181,6 +181,13 @@ const IA_TXT = {
   inboxTxt: { pt: 'WhatsApp e Instagram num lugar só. O agente lê a pergunta, consulta as vagas de verdade e escreve a resposta no idioma do cliente.', en: 'WhatsApp and Instagram in one place. The agent reads the question, checks the real availability and writes the reply in the client’s language.' },
   inboxDemo: { pt: 'Demonstração: no app real, estas mensagens chegam do WhatsApp e do Instagram do guia.', en: 'Demo: in the real app, these messages arrive from the guide’s WhatsApp and Instagram.' },
   aoVivo: { pt: 'Ao vivo agora', en: 'Live now' },
+  sdBom:      { pt: 'Bom dia, {nome}.', en: 'Good morning, {nome}.', fr: 'Bonjour, {nome}.', it: 'Buongiorno, {nome}.', de: 'Guten Morgen, {nome}.', es: 'Buenos días, {nome}.' },
+  sdBoa:      { pt: 'Boa tarde, {nome}.', en: 'Good afternoon, {nome}.', fr: 'Bon après-midi, {nome}.', it: 'Buon pomeriggio, {nome}.', de: 'Guten Tag, {nome}.', es: 'Buenas tardes, {nome}.' },
+  sdNoite:    { pt: 'Boa noite, {nome}.', en: 'Good evening, {nome}.', fr: 'Bonsoir, {nome}.', it: 'Buonasera, {nome}.', de: 'Guten Abend, {nome}.', es: 'Buenas noches, {nome}.' },
+  sdHoje:     { pt: 'Hoje: {n} saída(s), {p} pessoas.', en: 'Today: {n} departure(s), {p} people.', fr: 'Aujourd’hui : {n} départ(s), {p} personnes.', it: 'Oggi: {n} partenza/e, {p} persone.', de: 'Heute: {n} Termin(e), {p} Personen.', es: 'Hoy: {n} salida(s), {p} personas.' },
+  sdHojeVazio:{ pt: 'Hoje não há saída marcada.', en: 'No departures today.', fr: 'Aucun départ aujourd’hui.', it: 'Oggi nessuna partenza.', de: 'Heute keine Termine.', es: 'Hoy no hay salidas.' },
+  sdFalta:    { pt: 'A receber: {v} em {n} reserva(s).', en: 'Still due: {v} across {n} booking(s).', fr: 'À recevoir : {v} sur {n} réservation(s).', it: 'Da incassare: {v} su {n} prenotazione/i.', de: 'Offen: {v} bei {n} Buchung(en).', es: 'Por cobrar: {v} en {n} reserva(s).' },
+  sdConvite:  { pt: 'Me diga o que precisa — eu preencho no app e mostro antes de gravar.', en: 'Tell me what you need — I fill it in the app and show you before saving.', fr: 'Dites-moi ce qu’il vous faut — je remplis l’app et vous montre avant d’enregistrer.', it: 'Dimmi di cosa hai bisogno — riempio l’app e ti mostro prima di salvare.', de: 'Sag mir, was du brauchst — ich trage es ein und zeige es dir vor dem Speichern.', es: 'Dime qué necesitas — lo relleno en la app y te lo muestro antes de guardar.' },
   aoVivoTit: { pt: 'Teste o agente de verdade', en: 'Try the real agent' },
   aoVivoTxt: { pt: 'Mande uma mensagem perguntando sobre um passeio: datas, vagas, preço. Em segundos chega a resposta, escrita pelo agente no seu idioma, com as vagas deste demo.', en: 'Send a message asking about a tour: dates, seats, price. Within seconds the agent replies in your language, with this demo’s availability.' },
   aoVivoNota: { pt: 'Enquanto a Meta analisa o app, o seu Instagram ou número precisa ser liberado antes — peça ao seu contato da Ti Artes (1 minuto).', en: 'While Meta reviews the app, your Instagram or number must be enabled first — ask your Ti Artes contact (1 minute).' },
@@ -914,11 +921,58 @@ function iaRedesenhaTela() {
 }
 
 /* ---------- instruções do Claude de verdade ---------- */
+/* O que está acontecendo no app AGORA — vai junto em toda mensagem, para ele
+   falar do dia dela sem precisar chamar ferramenta para o básico. */
+/* a primeira linha da conversa: o dia dela em uma frase, e o convite */
+function iaSaudacao() {
+  const h = new Date().getHours();
+  const parte = h < 12 ? 'sdBom' : h < 19 ? 'sdBoa' : 'sdNoite';
+  const hoje = hojeIso();
+  const bs = DB.bookings.filter(b => b.status !== 'cancelled');
+  const hj = bs.filter(b => b.date === hoje);
+  const pax = hj.reduce((n, b) => n + b.pax, 0);
+  const devendo = bs.filter(b => b.date >= hoje && Bookings.due(b) > 0);
+  const falta = devendo.reduce((n, b) => n + Bookings.due(b), 0);
+  const linhas = [ia(parte, { nome: guiaNome() })];
+  linhas.push(hj.length ? ia('sdHoje', { n: hj.length, p: pax }) : ia('sdHojeVazio'));
+  if (devendo.length) linhas.push(ia('sdFalta', { v: eur(falta), n: devendo.length }));
+  linhas.push(ia('sdConvite'));
+  return linhas.join('\n');
+}
+
+function iaAgora() {
+  const hoje = hojeIso(), fim = addDays(hoje, 7);
+  const bs = DB.bookings.filter(b => b.status !== 'cancelled');
+  const hojeSai = bs.filter(b => b.date === hoje);
+  const semana = bs.filter(b => b.date > hoje && b.date <= fim);
+  const devendo = bs.filter(b => b.date >= hoje && Bookings.due(b) > 0);
+  const vazias = (typeof saidasVazias === 'function' ? saidasVazias(7) : [])
+    .filter(x => x.livres >= Math.ceil(x.capacity / 2)).slice(0, 4);
+  const novas = bs.filter(b => (b.createdAt || '').slice(0, 10) >= addDays(hoje, -2));
+  const linha = (b) => `${dataCurta(b.date)} ${b.time} · ${nomeTour(Tours.get(b.tourId))} · ${b.name} (${b.pax})`;
+  return [
+    `Hoje é ${hoje}.`,
+    hojeSai.length ? `Saídas de hoje: ${hojeSai.map(linha).join(' | ')}` : 'Hoje não há saída.',
+    semana.length ? `Próximos 7 dias: ${semana.length} reserva(s) — ${semana.slice(0, 5).map(linha).join(' | ')}` : 'Próximos 7 dias sem reserva.',
+    devendo.length ? `A receber: ${devendo.map(b => `${b.code} ${b.name} ${eur(Bookings.due(b))}`).join(' | ')}` : 'Nada a receber nas próximas saídas.',
+    vazias.length ? `Saídas com vaga sobrando: ${vazias.map(x => `${dataCurta(x.date)} ${x.time} ${nomeTour(x.x)} (${x.livres} de ${x.capacity})`).join(' | ')}` : '',
+    novas.length ? `Reservas novas (48 h): ${novas.length}` : '',
+  ].filter(Boolean).join('\n');
+}
+
 function iaSistema() {
   const k = Mkt.get().kit, mem = Mkt.get().memoria;
   const lingua = (LANGS.find(l => l[0] === LANG) || [0, 0, 'Português'])[2];
   return [
     { type: 'text', cache_control: { type: 'ephemeral' }, text: `Você é o assistente de ${guiaNome()} (${guiaNegocio()}), guia de turismo baseado em ${guiaBase()}. Trabalha dentro do app de reservas: conhece os passeios, a agenda, as vagas e as reservas, e escreve como a equipe de marketing da casa.
+
+## Como você é
+Inteligente, elegante e gentil, como uma pessoa de confiança que trabalha com ela há anos. Fala pouco e resolve: frase curta, sem jargão, sem "como posso ajudar?". Chama ela pelo nome de vez em quando, não em toda linha. Nada de emoji em excesso — no máximo um, quando couber.
+Você é PROPOSITIVO: depois de responder, ofereça o próximo passo mais útil em uma linha ("quer que eu já ponha isso no plano?", "posso mandar o link do Pedro?"), e pare. Uma pergunta por vez.
+Você enxerga o app inteiro em tempo real — o bloco "SITUAÇÃO AGORA" abaixo vem atualizado a cada mensagem. Use esses números em vez de perguntar o óbvio; chame as ferramentas quando precisar de detalhe.
+Quando ela contar algo solto, você mesmo transforma em ação no app e mostra o cartão de confirmação. O trabalho dela é falar; o de preencher é seu.
+Se um pedido tiver várias partes, faça todas e confirme uma por uma, na ordem que faz sentido.
+Se algo estiver estranho no app (vaga sobrando perto da data, reserva sem pagamento, passeio muito visto que não vende), diga em uma linha, sem alarme.
 
 ## O que você faz dentro do app
 Você é o painel inteiro em forma de conversa. Lê: passeios, agenda, vagas, reservas, clientes, cupons, bloqueios, fotos, marketing, relatório (visitas, conversão e receita por passeio), ajustes e o treino do agente de atendimento. Grava, sempre com cartão de confirmação: passeio, preço, horário, bloqueio, cupom, plano de postagem, criativo, anúncio, memória, **reserva (criar, mudar, cancelar), pagamento recebido, perfil do guia e o treino do agente**.
@@ -951,6 +1005,7 @@ Anúncio (Meta): objetivo, público, verba diária e duração com o porquê em 
 
 ## Formato
 Responda em ${lingua}, curto. Texto para copiar vem pronto, sem comentário em volta. Negrito com parcimônia; nada de tabelas.` },
+    { type: 'text', text: `## SITUAÇÃO AGORA (atualizada a cada mensagem)\n${iaAgora()}` },
     { type: 'text', text: `Hoje é ${hojeIso()}. Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é a demonstração pública do app: quem conversa é um guia conhecendo o produto, e os passeios e reservas são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
       (mem.length ? '\n\n## Memória (o que o guia ensinou)\n' + mem.map(x => `- [${x.id}] ${x.texto}`).join('\n') : '') },
   ];
@@ -2324,7 +2379,7 @@ function iaDesenha() {
       ${demo ? `<button type="button" id="iaConecta">${ia('conectar')}</button>` : vivo ? '' : `<span id="iaGasto"></span>`}
       <span><button type="button" id="iaLimpa">${ia('nova')}</button>${demo || vivo ? '' : ` · <button type="button" id="iaTiraChave">${ia('trocarChave')}</button>`}</span></div>`;
   const msgs = corpo.querySelector('#iaMsgs');
-  iaBolha('assistant', ia('oi'), null, true);
+  iaBolha('assistant', iaSaudacao(), null, true);
   if (demo) {
     const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>${ia('demoTit')}</b>${esc(ia('demoTxt'))}<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>`; msgs.appendChild(d);
     iaMostraSugestoes();
