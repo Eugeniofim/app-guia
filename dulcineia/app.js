@@ -1295,8 +1295,11 @@ function admTourEdit(id) {
           <span class="seclabel">${t('dtAdicionar')}</span>
           <div class="frow">
             <label class="fld">${t('dtDia')}<input id="oDate" type="date" value="${addDays(isoToday(), 7)}"></label>
-            <label class="fld">${t('dtHora')}<input id="oTime" value="10:00" placeholder="09:00"></label>
-            <label class="fld">${t('dtVagas')}<input id="oCap" type="number" min="1" value="${x.max}"></label>
+            ${modoTurnos()
+              ? `<label class="fld">${t('dtTurno')}<select id="oTime">${turnos().map(tu => `<option value="${tu.hora}">${esc(rotuloTurno(tu))}</option>`).join('')}</select></label>
+                 <input id="oCap" type="hidden" value="${x.max}">`
+              : `<label class="fld">${t('dtHora')}<input id="oTime" value="10:00" placeholder="09:00"></label>
+                 <label class="fld">${t('dtVagas')}<input id="oCap" type="number" min="1" value="${x.max}"></label>`}
           </div>
           <button class="cta sm" id="addOne">${t('dtBotao')}</button>
         </div>
@@ -1307,8 +1310,12 @@ function admTourEdit(id) {
             <label class="fld nolabel">${t('dtEscolhaDia')}</label>
             <div class="wdrow" id="wdRow">${t('wd').map((w, i) => `<button class="wd" data-w="${i}">${w}</button>`).join('')}</div>
             <div class="frow">
-              <label class="fld">${t('dtHora')}<input id="rTime" value="16:30"></label>
-              <label class="fld">${t('dtVagas')}<input id="rCap" type="number" min="1" value="${x.max}"></label>
+              ${modoTurnos()
+                ? `<div class="fld"><span>${t('dtTurnos')}</span><div class="wdrow" id="rTurnos">${turnos().map(tu =>
+                    `<label class="chk turnochk"><input type="checkbox" value="${tu.hora}" checked> ${esc(rotuloTurno(tu))}</label>`).join('')}</div></div>
+                   <input id="rCap" type="hidden" value="${x.max}">`
+                : `<label class="fld">${t('dtHora')}<input id="rTime" value="16:30"></label>
+                   <label class="fld">${t('dtVagas')}<input id="rCap" type="number" min="1" value="${x.max}"></label>`}
             </div>
             <label class="fld nolabel">${t('dtPeriodo')}</label>
             <div class="frow">
@@ -1559,7 +1566,9 @@ function admTourEdit(id) {
     });
     $('#addRule').onclick = () => {
       if (!wds.size) return toast(t('xDiasSemana'));
-      Cal.addRule({ tourId: x.id, weekdays: [...wds], time: $('#rTime').value, capacity: +$('#rCap').value || x.max, from: $('#rFrom').value, until: $('#rUntil').value });
+      const horas = $('#rTurnos') ? $$('#rTurnos input:checked').map(i => i.value) : [$('#rTime').value];
+      if (!horas.length) return toast(t('dtEscolhaTurno'));
+      for (const h of horas) Cal.addRule({ tourId: x.id, weekdays: [...wds], time: h, capacity: +$('#rCap').value || x.max, from: $('#rFrom').value, until: $('#rUntil').value });
       drawRules(); toast('✓');
     };
     $('#addOne').onclick = () => {
@@ -1571,8 +1580,8 @@ function admTourEdit(id) {
       const ones = DB.departures.filter(d => d.tourId === x.id);
       $('#rulesList').innerHTML =
         (rules.length || ones.length)
-          ? rules.map(r => `<div class="deprow"><span>${r.weekdays.map(w => t('wd')[w]).join(', ')} · <b class="mono">${r.time}</b> · ${r.from} → ${r.until}</span><button class="mini danger" data-rr="${r.id}">×</button></div>`).join('')
-            + ones.map(d => `<div class="deprow"><span>${fmtDate(d.date)} · <b class="mono">${d.time}</b> · ${d.capacity} ${t('spotsLeft')}</span><button class="mini danger" data-rd="${d.id}">×</button></div>`).join('')
+          ? rules.map(r => `<div class="deprow"><span>${r.weekdays.length === 7 ? t('todosOsDias') : r.weekdays.map(w => t('wd')[w]).join(', ')} · <b>${turnoDaHora(r.time) ? esc(rotuloTurno(turnoDaHora(r.time))) : `<span class="mono">${r.time}</span>`}</b> · ${fmtDate(r.from)} → ${fmtDate(r.until)}</span><button class="mini danger" data-rr="${r.id}" aria-label="${t('xRemover')}">×</button></div>`).join('')
+            + ones.map(d => `<div class="deprow"><span>${fmtDate(d.date)} · <b>${turnoDaHora(d.time) ? esc(rotuloTurno(turnoDaHora(d.time))) : `<span class="mono">${d.time}</span>`}</b>${modoTurnos() ? '' : ` · ${d.capacity} ${t('spotsLeft')}`}</span><button class="mini danger" data-rd="${d.id}" aria-label="${t('xRemover')}">×</button></div>`).join('')
           : `<p class="empty">${t('noDates')}</p>`;
       $$('[data-rr]').forEach(b => b.onclick = () => { Cal.removeRule(b.dataset.rr); drawRules(); });
       $$('[data-rd]').forEach(b => b.onclick = () => { Cal.removeDeparture(b.dataset.rd); drawRules(); });
@@ -1612,7 +1621,7 @@ function admBookings() {
   const today = isoToday();
   admShell('bookings', `
     <h1 class="pageh">${t('admBookings')}</h1>
-    <details class="card novares">
+    <details class="card novares" ${admBookings._pre ? 'open' : ''}>
       <summary><b>${t('novaResTit')}</b><small class="why">${t('novaResSub')}</small></summary>
       <div class="frow">
         <label class="fld">${t('nrPasseio')}<select id="nrTour">${Tours.all().map(tt =>
@@ -1621,7 +1630,9 @@ function admBookings() {
       </div>
       <div class="frow">
         <label class="fld">${t('nrData')}<input id="nrData" type="date"></label>
-        <label class="fld">${t('nrHora')}<input id="nrHora" value="09:00"></label>
+        ${modoTurnos()
+          ? `<label class="fld">${t('dtTurno')}<select id="nrHora">${turnos().map(tu => `<option value="${tu.hora}" ${admBookings._pre && admBookings._pre.time === tu.hora ? 'selected' : ''}>${esc(rotuloTurno(tu))}</option>`).join('')}</select></label>`
+          : `<label class="fld">${t('nrHora')}<input id="nrHora" value="09:00"></label>`}
       </div>
       <div class="frow">
         <label class="fld">${t('nrNome')}<input id="nrNome" placeholder="Maria Silva"></label>
@@ -1668,7 +1679,7 @@ function admBookings() {
             : '');
       return `<div class="trow">
         <div class="tinfo"><b>${esc(b.name)}</b>
-          <small>${esc(x ? x.name.pt : '?')} · ${fmtDate(b.date)} ${esc(b.time)} · ${esc(b.pax)}p · <span class="mono">${esc(b.code)}</span></small></div>
+          <small>${esc(x ? x.name.pt : '?')} · ${fmtDate(b.date)} ${esc(rotuloHora(b.time))} · ${esc(b.pax)}p · <span class="mono">${esc(b.code)}</span></small></div>
         <b class="mono">${eur(b.total)}</b>${pill}
         <div class="tacts" id="ta-${esc(b.id)}">${cobrar}${act}${conf}</div>
       </div>`;
@@ -1687,7 +1698,8 @@ function admBookings() {
   ['#nrTour', '#nrPax', '#nrData', '#nrHora'].forEach(sel => {
     const el = $(sel); if (el) el.addEventListener('change', nrRecalcula);
   });
-  if ($('#nrData')) { $('#nrData').value = isoToday(); nrRecalcula(); }
+  if ($('#nrData')) { $('#nrData').value = (admBookings._pre && admBookings._pre.date) || isoToday(); nrRecalcula(); }
+  admBookings._pre = null;
 
   $('#nrSalvar').onclick = () => {
     const nome = $('#nrNome').value.trim();
@@ -1698,6 +1710,7 @@ function admBookings() {
     /* nao deixa estourar a lotacao da saida — a agenda tem que continuar honesta */
     const tt = Tours.get(tourId);
     const livres = Cal.seatsLeft(tourId, data, hora, tt ? tt.max : pax);
+    if (modoTurnos() && livres === 0) return toast(t('turnoJaOcupado'));
     if (Number.isFinite(livres) && pax > livres) return toast(t('nrSemVaga', { n: Math.max(0, livres) }));
 
     Bookings.criarManual({
@@ -2308,10 +2321,13 @@ function admAgenda() {
     const iso = `${cur}-${String(d).padStart(2, '0')}`;
     const list = byDay[iso] || [];
     const isToday = iso === isoToday();
-    const dots = list.slice(0, 4).map(x =>
-      `<i class="${x.left === 0 ? 'full' : x.left <= 2 ? 'low' : ''}"></i>`).join('');
-    cells += `<button class="agc ${list.length ? 'has' : ''} ${iso === sel ? 'on' : ''} ${isToday ? 'today' : ''}" data-d="${iso}">
-      <b>${d}</b>${list.length ? `<span class="agdots">${dots}</span>` : ''}</button>`;
+    /* em turnos: uma bolinha por turno — cheia = reservado, vazia = livre, riscada = fechado */
+    const dt = modoTurnos() ? diaEmTurnos(iso) : null;
+    const tem = dt ? dt.some(x => x.oferecido || x.reservas.length) : list.length;
+    const dots = dt ? dt.map(x => `<i class="${x.reservas.length ? 'full' : x.oferecido ? 'livre' : 'off'}"></i>`).join('')
+      : list.slice(0, 4).map(x => `<i class="${x.left === 0 ? 'full' : x.left <= 2 ? 'low' : ''}"></i>`).join('');
+    cells += `<button class="agc ${tem ? 'has' : ''} ${iso === sel ? 'on' : ''} ${isToday ? 'today' : ''}" data-d="${iso}">
+      <b>${d}</b>${tem ? `<span class="agdots">${dots}</span>` : ''}</button>`;
   }
 
   const selList = (byDay[sel] || []).sort((a, b) => a.time.localeCompare(b.time));
@@ -2328,11 +2344,23 @@ function admAgenda() {
       <section class="card">
         <div class="agrid head">${WD.map(w => `<span class="agwd">${w}</span>`).join('')}</div>
         <div class="agrid" id="agGrid">${cells}</div>
-        <p class="why">${t('agLegend')}</p>
+        <p class="why">${t(modoTurnos() ? 'agLegendTurnos' : 'agLegend')}</p>
       </section>
       <section class="card">
         <h3>${t('agDayOf', { d: fmtDate(sel) })}</h3>
-        ${selList.length ? selList.map(d => {
+        ${modoTurnos() ? diaEmTurnos(sel).map(({ tu, reservas, fechado, oferecido }) => {
+          const passou = jaComecou(sel, tu.hora);
+          const estado = reservas.length ? 'res' : fechado || !oferecido ? 'fechado' : 'livre';
+          return `<div class="turnorow ${estado}">
+            <div class="tinfo"><b>${esc(tu.nome)}</b><small class="mono">${tu.hora}–${tu.fim}</small></div>
+            <div class="trest">${reservas.length
+              ? reservas.map(b => { const x = Tours.get(b.tourId); return `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(b.name.split(' ')[0])} ×${b.pax}${x ? ' · ' + esc(tl(x.name)) : ''}</span>`; }).join('')
+              : `<span class="pill ${estado === 'livre' ? 'ok' : ''}">${t(estado === 'livre' ? 'turnoLivre' : 'turnoFechadoTxt')}</span>`}</div>
+            ${passou ? '' : `<div class="tacts">${reservas.length ? '' : estado === 'livre'
+              ? `<button class="mini" data-lanca="${tu.hora}">${t('turnoLancar')}</button><button class="mini" data-fecha="${tu.hora}">${t('turnoFechar')}</button>`
+              : Cal.turnoFechado(sel, tu.hora) ? `<button class="mini" data-abre="${tu.hora}">${t('turnoAbrir')}</button>` : ''}</div>`}
+          </div>`;
+        }).join('') : selList.length ? selList.map(d => {
           const bs = DB.bookings.filter(b => b.tourId === d.tour.id && b.date === d.date
                                         && b.time === d.time && b.status !== 'cancelled');
           return `<div class="deprow">
@@ -2353,6 +2381,10 @@ function admAgenda() {
   $('#agNext').onclick = () => shift(1);
   $('#agNow').onclick = () => { admAgenda._m = isoToday().slice(0, 7); admAgenda._d = isoToday(); admAgenda(); };
   $$('#agGrid .agc[data-d]').forEach(c => c.onclick = () => { admAgenda._d = c.dataset.d; admAgenda(); });
+  /* turnos: fechar/abrir e lançar reserva direto no turno */
+  $$('[data-fecha]').forEach(b => b.onclick = () => { Cal.fechaTurno(sel, b.dataset.fecha); cloudPushState(); admAgenda._d = sel; admAgenda(); toast(t('turnoFechadoOk')); });
+  $$('[data-abre]').forEach(b => b.onclick = () => { Cal.abreTurno(sel, b.dataset.abre); cloudPushState(); admAgenda._d = sel; admAgenda(); });
+  $$('[data-lanca]').forEach(b => b.onclick = () => { admBookings._pre = { date: sel, time: b.dataset.lanca }; go('/adm/bookings'); });
 }
 
 /* =====================================================

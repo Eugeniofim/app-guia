@@ -403,6 +403,19 @@ function regrasDeTurno(t) {
   return turnos().map(tu => ({ id: uid(), tourId: t.id, weekdays: [0, 1, 2, 3, 4, 5, 6], time: tu.hora,
     capacity: +t.max || 20, from: isoToday(), until: addDays(isoToday(), 180) }));
 }
+/* painel em turnos: há turnos e cada um é de um grupo só (Conexão Berlim) */
+function modoTurnos() { return turnos().length > 0 && turnoExclusivo(); }
+function rotuloHora(h) { const tu = turnoDaHora(h); return tu ? tu.nome : h; }
+function rotuloTurno(tu) { return `${tu.nome} · ${tu.hora}–${tu.fim}`; }
+/* o dia em turnos: para cada turno, se está aberto (algum passeio sai), fechado, e quem reservou */
+function diaEmTurnos(date) {
+  return turnos().map(tu => {
+    const reservas = DB.bookings.filter(b => b.date === date && b.time === tu.hora && b.status !== 'cancelled');
+    const fechado = Cal.turnoFechado(date, tu.hora) || Cal.blocked(date, tu.hora);
+    const oferecido = !fechado && DB.tours.some(x => x.status !== 'draft' && Cal.departures(x.id, date, date).some(d => d.time === tu.hora));
+    return { tu, reservas, fechado, oferecido };
+  });
+}
 function turnoExclusivo() { return !!((DB && DB.settings && DB.settings.turnoExclusivo) ?? GUIA_CFG.turnoExclusivo); }
 
 const Cal = {
@@ -413,7 +426,12 @@ const Cal = {
   removeDeparture(id) { DB.departures = DB.departures.filter(d => d.id !== id); save(); },
   addBlock(b) { b.id = uid(); DB.blocks.push(b); save(); return b; },
   removeBlock(id) { DB.blocks = DB.blocks.filter(x => x.id !== id); save(); },
-  blocked(date) { return DB.blocks.some(b => date >= b.from && date <= b.until); },
+  /* bloqueio do dia inteiro (férias) ou de UM turno (b.time): ela fecha a
+     manhã do dia 12 porque tem outro compromisso, e a tarde segue aberta */
+  blocked(date, time) { return DB.blocks.some(b => date >= b.from && date <= b.until && (!b.time || b.time === time)); },
+  turnoFechado(date, time) { return DB.blocks.some(b => b.from === date && b.until === date && b.time === time); },
+  fechaTurno(date, time) { if (!Cal.turnoFechado(date, time)) Cal.addBlock({ from: date, until: date, time, reason: 'turno' }); },
+  abreTurno(date, time) { DB.blocks = DB.blocks.filter(b => !(b.from === date && b.until === date && b.time === time)); save(); },
 
   /* todas as saídas de um passeio num intervalo: regras expandidas + avulsas − bloqueios */
   departures(tourId, fromIso, toIso) {
@@ -423,14 +441,14 @@ const Cal = {
       const end = toIso < r.until ? toIso : r.until;
       while (d <= end) {
         const wd = new Date(d + 'T12:00:00').getDay();
-        if (r.weekdays.includes(wd) && !Cal.blocked(d)) {
+        if (r.weekdays.includes(wd) && !Cal.blocked(d, r.time)) {
           out.push({ tourId, date: d, time: r.time, capacity: r.capacity, ruleId: r.id });
         }
         d = addDays(d, 1);
       }
     }
     for (const dep of DB.departures.filter(x => x.tourId === tourId)) {
-      if (dep.date >= fromIso && dep.date <= toIso && !Cal.blocked(dep.date)) out.push(dep);
+      if (dep.date >= fromIso && dep.date <= toIso && !Cal.blocked(dep.date, dep.time)) out.push(dep);
     }
     out.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
     return out;
