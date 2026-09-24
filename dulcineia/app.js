@@ -115,6 +115,26 @@ function mapLink(q) { return 'https://www.google.com/maps/search/?api=1&query=' 
 const ICONE_IG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.3"/><circle cx="17.6" cy="6.4" r="1.1" fill="currentColor" stroke="none"/></svg>';
 const ICONE_WA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
 const ICONE_WA_BTN = ICONE_WA.replace('<svg ', '<svg class="wa-ic" ');
+/* as redes da primeira tela (Dulcineia, 24/09/2026): Instagram, site, Spotify e Facebook */
+/* ícones de linha da primeira tela (no lugar dos emojis: 24/09/2026) */
+const ICONE_MENU = {
+  passeios: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>',
+  transfer: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16.5V11l1.8-4.2A2 2 0 0 1 8.6 5.5h6.8a2 2 0 0 1 1.8 1.3L19 11v5.5M5 11h14M5 16.5h14v1.8a.7.7 0 0 1-.7.7h-1.6a.7.7 0 0 1-.7-.7v-1.8M7 16.5v1.8a.7.7 0 0 1-.7.7H5.7a.7.7 0 0 1-.7-.7v-1.8"/><circle cx="8" cy="13.6" r=".9" fill="currentColor"/><circle cx="16" cy="13.6" r=".9" fill="currentColor"/></svg>',
+  roteiro: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.8"/></svg>',
+};
+const ICONE_FB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12Z"/></svg>';
+const ICONE_SPOTIFY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm5.5 17.3a.75.75 0 0 1-1 .25c-2.85-1.74-6.43-2.13-10.66-1.17a.75.75 0 1 1-.33-1.46c4.62-1.05 8.6-.6 11.74 1.33.36.22.47.69.25 1.05Zm1.47-3.27a.94.94 0 0 1-1.29.31c-3.26-2-8.23-2.59-12.09-1.42a.94.94 0 0 1-.54-1.8c4.4-1.33 9.88-.69 13.6 1.6.44.27.58.85.32 1.31Zm.13-3.4C15.2 8.3 8.73 8.08 5 9.22a1.13 1.13 0 1 1-.66-2.16c4.28-1.3 11.4-1.05 15.9 1.62a1.13 1.13 0 0 1-1.15 1.95Z"/></svg>';
+const ICONE_SITE = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.6 2.8 3.9 6 3.9 9.5s-1.3 6.7-3.9 9.5c-2.6-2.8-3.9-6-3.9-9.5s1.3-6.7 3.9-9.5Z"/></svg>';
+function linkExterno(u) { return /^https?:\/\/[^\s"'<>]+$/i.test(String(u || '').trim()) ? String(u).trim() : ''; }
+function redesDaGuia() {
+  const st = DB.settings;
+  return [
+    st.insta ? { u: 'https://instagram.com/' + String(st.insta).replace(/^@/, ''), ic: ICONE_IG, n: 'Instagram', c: 'ig' } : null,
+    linkExterno(st.site)     ? { u: linkExterno(st.site),     ic: ICONE_SITE,    n: 'Site oficial', c: 'site' } : null,
+    linkExterno(st.spotify)  ? { u: linkExterno(st.spotify),  ic: ICONE_SPOTIFY, n: 'Spotify',      c: 'sp' } : null,
+    linkExterno(st.facebook) ? { u: linkExterno(st.facebook), ic: ICONE_FB,      n: 'Facebook',     c: 'fb' } : null,
+  ].filter(Boolean);
+}
 /* O campo de horario e livre de proposito: o guia escreve "09h",
    "09h30" ou "10:00 as 18h" — e essa ultima diz mais ao cliente do que
    um horario seco. Mas o arquivo de calendario exige HHMMSS, e
@@ -248,6 +268,7 @@ function go(h) {
   else location.hash = h;
 }
 function route() {
+  if (typeof aplicaCores === 'function') aplicaCores();   /* cores da marca (Ajustes) */
   Coach.hide();
   const h = location.hash.slice(2) || '';
   const p = h.split('/');
@@ -262,6 +283,8 @@ function route() {
   else if (p[0] === 'about') viewAbout();
   else if (p[0] === 'tours') viewShowcase();
   else if (p[0] === 'tour')  viewTour(p[1]);
+  else if (p[0] === 'transfer') viewTransfer();
+  else if (p[0] === 'roteiro')  viewRoteiro();
   else                       viewHub();
   document.body.classList.toggle('em-adm', p[0] === 'adm');
   faixaAcimaDaBarra();
@@ -309,17 +332,26 @@ function viewHub() {
       <div class="vcard">
         <div class="hub-brand">${logoFull({ mark: 46, sub: esc(guiaBase()) })}</div>
         <p class="tagline">${esc(noIdioma(DB.settings.homeText) || t('tagline'))}</p>
+        ${redesDaGuia().length ? `<nav class="redes" aria-label="Redes de ${esc(guiaNome())}">${redesDaGuia().map(r =>
+          `<a class="rede ${r.c}" href="${esc(r.u)}" target="_blank" rel="noopener" aria-label="${r.n}" title="${r.n}">${r.ic}</a>`).join('')}</nav>` : ''}
         ${langBar('center')}
       </div>
       <button class="lk main" id="goTours">
-        <span class="ic">📍</span><span><b>${t('seeTours')}</b><small>${t(Tours.live().length && Tours.live().every(sobConsulta) ? 'seeToursSubQ' : 'seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
+        <span class="ic">${ICONE_MENU.passeios}</span><span><b>${t('seeTours')}</b><small>${t(Tours.live().length && Tours.live().every(sobConsulta) ? 'seeToursSubQ' : 'seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>
+      <button class="lk" id="goTransfer">
+        <span class="ic">${ICONE_MENU.transfer}</span><span><b>Transfer</b><small>Aeroporto, hotel ou entre cidades</small></span><span class="go" aria-hidden="true">→</span>
+      </button>
+      <button class="lk" id="goRoteiro">
+        <span class="ic">${ICONE_MENU.roteiro}</span><span><b>Monte seu roteiro</b><small>Você escolhe, eu organizo os dias</small></span><span class="go" aria-hidden="true">→</span>
       </button>
       <button class="lk" id="goAbout">
         <span class="ic"><img id="hubFace" src="${esc(DB.settings.photo || 'guia.jpg')}" alt=""
           style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
-      <a class="lk" href="https://instagram.com/${esc(DB.settings.insta)}" target="_blank" rel="noopener"><span class="ic ig">${ICONE_IG}</span><span><b>Instagram</b><small>@${esc(DB.settings.insta)}</small></span><span class="go" aria-hidden="true">→</span></a>
       <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b></span><span class="go" aria-hidden="true">→</span></a>
+      ${typeof secaoDepoimentos === 'function' ? secaoDepoimentos('noHub') : ''}
+      ${typeof secaoViagem === 'function' ? secaoViagem() : ''}
       ${typeof temNuvem === 'function' && !temNuvem() && typeof APP_CONFIG !== 'undefined' && APP_CONFIG.vitrineVenda
         /* DEMONSTRACAO DE VENDA: a porta do painel é o que o prospect veio ver —
            o botão discreto passava batido (22/09/2026). Num app de CLIENTE
@@ -333,6 +365,8 @@ function viewHub() {
   $('#goTours').onclick = () => go('/tours');
   fallbackPhoto($('#hubFace'), '☺');
   $('#goAbout').onclick = () => go('/about');
+  $('#goTransfer').onclick = () => go('/transfer');
+  $('#goRoteiro').onclick = () => go('/roteiro');
   $('#admEntry').onclick = () => go('/adm/today');
   $$('[data-demo]').forEach(b => b.onclick = () => toast(t('xProtoBotao')));
   Coach.start([
@@ -376,6 +410,7 @@ function viewAbout() {
       <div><small>${t('xPasseios')}</small><b>${nTours}</b></div>
     </div>
 
+    ${typeof secaoDepoimentos === 'function' ? secaoDepoimentos('noSobre') : ''}
     <div class="ab-cta">
       <h3>${t('aboutMeet')}</h3>
       <p>${t('aboutMeetSub')}</p>
@@ -421,8 +456,14 @@ function grupoTxt(x) { return x.privativo ? t('privateTour') : `${t('upTo')} ${x
 
 function viewShowcase() {
   const tours = Tours.live();
-  const filter = viewShowcase._f || 'all';
-  const list = filter === 'all' ? tours : tours.filter(x => x.type === filter || (filter === 'photo' && x.type === 'photo'));
+  /* o filtro de cima, como no app da Ingrid (a Dulcineia gostou, 24/09/2026):
+     primeiro ONDE (só as regiões que têm passeio), depois o TIPO dentro dela */
+  const regs = [...new Set(tours.map(x => x.region).filter(Boolean))];
+  const onde = regs.includes(viewShowcase._r) ? viewShowcase._r : 'all';
+  const base = onde === 'all' ? tours : tours.filter(x => x.region === onde);
+  const tipos = ['walk', 'day', 'photo', 'bike', 'session'].filter(f => base.some(x => x.type === f));
+  const filter = tipos.includes(viewShowcase._f) ? viewShowcase._f : 'all';
+  const list = filter === 'all' ? base : base.filter(x => x.type === filter);
   app.innerHTML = `
   <header class="topbar">
     <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
@@ -431,13 +472,15 @@ function viewShowcase() {
   </header>
   <main class="wrap">
     <h1 class="pageh">${t('chooseTour')}</h1>
+    ${regs.length > 1 ? `<div class="chips onde" id="ondeF">
+      <button class="chip ${onde === 'all' ? 'on' : ''}" data-r="all" aria-pressed="${onde === 'all'}">${esc(regiaoLabel(regs.includes('berlim') ? 'berlim' : regs[0]))} e arredores</button>
+      ${regs.map(c => `<button class="chip ${onde === c ? 'on' : ''}" data-r="${esc(c)}" aria-pressed="${onde === c}">📍 ${esc(regiaoLabel(c))}</button>`).join('')}
+      <button class="chip" id="ondeTransfer">🚘 Transfer</button>
+    </div>` : ''}
     <div class="chips" id="filters">
-      ${(() => {
-        /* filtro de um tipo que nao existe leva a uma tela vazia: so aparecem os que tem passeio */
-        const tipos = ['walk', 'day', 'photo', 'bike', 'session'].filter(f => tours.some(x => x.type === f));
-        return tipos.length > 1 ? ['all', ...tipos].map(f =>
-          `<button class="chip ${filter === f ? 'on' : ''}" data-f="${f}">${f === 'all' ? t('fAll') : esc(tipoLabel(f))}</button>`).join('') : '';
-      })()}
+      ${/* filtro de um tipo que nao existe leva a uma tela vazia: so aparecem os que tem passeio */
+        tipos.length > 1 ? ['all', ...tipos].map(f =>
+          `<button class="chip ${filter === f ? 'on' : ''}" data-f="${f}" aria-pressed="${filter === f}">${f === 'all' ? t('fAll') : esc(tipoLabel(f))}</button>`).join('') : ''}
     </div>
     <div class="cards" id="tourCards">
       ${list.length ? list.map(x => `
@@ -463,6 +506,8 @@ function viewShowcase() {
   bindLang(app);
   $('#bk').onclick = () => go('/');
   $$('#filters .chip').forEach(c => c.onclick = () => { viewShowcase._f = c.dataset.f; viewShowcase(); });
+  $$('#ondeF [data-r]').forEach(c => c.onclick = () => { viewShowcase._r = c.dataset.r; viewShowcase(); });
+  if ($('#ondeTransfer')) $('#ondeTransfer').onclick = () => go('/transfer');
   $$('.tourcard').forEach(c => c.onclick = () => go('/tour/' + c.dataset.id));
 }
 
@@ -808,7 +853,7 @@ function renderBook() {
   /* Sob consulta COM datas: o cliente escolhe o dia e o turno (passo 1, igual
      a reserva), diz quantas pessoas, e o WhatsApp dela recebe tudo escrito.
      Sem datas publicadas, direto para o WhatsApp. */
-  const temDatas = Cal.departures(x.id, isoToday(), addDays(isoToday(), 180)).some(d => !jaComecou(d.date, d.time));
+  const temDatas = Cal.departures(x.id, isoToday(), addDays(isoToday(), 430)).some(d => !jaComecou(d.date, d.time));
   if (sobConsulta(x) && temDatas && S.step >= 2) {
     const tu = turnoDaHora(S.time);
     const quando = fmtDate(S.date) + ' · ' + (tu ? `${tu.nome} (${tu.hora}–${tu.fim})` : S.time);
@@ -839,8 +884,8 @@ function renderBook() {
   }
   if (S.step === 1) {
     const today = isoToday();
-    /* 6 meses de datas (brasileiro planeja cedo), 30 de cada vez; turno que já começou some */
-    const deps = Cal.departures(x.id, today, addDays(today, 180)).filter(d => !jaComecou(d.date, d.time));
+    /* a temporada que vem inteira (brasileiro planeja cedo), 30 datas de cada vez; turno que já começou some */
+    const deps = Cal.departures(x.id, today, addDays(today, 430)).filter(d => !jaComecou(d.date, d.time));
     const byDate = {};
     deps.forEach(d => { (byDate[d.date] = byDate[d.date] || []).push(d); });
     const todas = Object.keys(byDate), limite = S.nDatas || 30;
@@ -1111,6 +1156,7 @@ function admToday() {
     <h1 class="pageh">${t('goodMorning')}</h1>
     ${late.length ? `<div class="alert bad">⚠ ${late.length} ${t('xAtrasados')} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} <button class="mini" id="goLate">${t('admBookings')} →</button></div>` : ''}
     ${dueTomorrow.length ? `<div class="alert warn">${dueTomorrow.length} ${t('xSaldosHoje')}</div>` : ''}
+    ${Pedidos.novos() ? `<div class="alert warn">🚘 ${Pedidos.novos()} ${Pedidos.novos() === 1 ? 'pedido novo' : 'pedidos novos'} de transfer ou roteiro <button class="mini" id="goPedidos">Ver →</button></div>` : ''}
     <section class="card">
       <h3>${t('admToday')}</h3>
       ${deps.length ? deps.map(d => {
@@ -1119,6 +1165,7 @@ function admToday() {
       }).join('') : `<p class="empty">${t('noDepToday')}</p>`}
     </section>`);
   $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
+  $('#goPedidos')?.addEventListener('click', () => go('/adm/bookings'));
   Coach.start([
     { sel: '#nb-tours',    txt: { pt: 'Aqui você cria e edita seus passeios — quantos quiser, com o calendário de cada um.', en: 'Create and edit your tours here — as many as you want, each with its own calendar.', fr: 'Créez et modifiez vos visites ici — autant que vous voulez, chacune avec son calendrier.', it: 'Qui create e modificate i vostri tour — quanti volete, ognuno con il suo calendario.', de: 'Hier legen Sie Ihre Touren an und bearbeiten sie — so viele Sie wollen, jede mit eigenem Kalender.', es: 'Aquí creas y editas tus tours — los que quieras, cada uno con su calendario.' } },
     { sel: '#nb-bookings', txt: { pt: 'Cada reserva aparece aqui: quem pagou tudo, quem pagou o sinal, quem atrasou.', en: 'Every booking lands here: paid in full, deposit only, or late.', fr: 'Chaque réservation arrive ici : payée en entier, acompte seulement ou en retard.', it: 'Ogni prenotazione arriva qui: pagata tutta, solo acconto o in ritardo.', de: 'Jede Buchung landet hier: voll bezahlt, nur Anzahlung oder überfällig.', es: 'Cada reserva llega aquí: pagada entera, solo anticipo o atrasada.' } },
@@ -1621,6 +1668,7 @@ function admBookings() {
   const today = isoToday();
   admShell('bookings', `
     <h1 class="pageh">${t('admBookings')}</h1>
+    ${pedidosHtml()}
     <details class="card novares" ${admBookings._pre ? 'open' : ''}>
       <summary><b>${t('novaResTit')}</b><small class="why">${t('novaResSub')}</small></summary>
       <div class="frow">
@@ -1685,6 +1733,7 @@ function admBookings() {
       </div>`;
     }).join('')}</div>`
     : `<div class="emptybox"><p>${t('emptyBookings')}</p></div>`}`);
+  ligaPedidos(admBookings);
   /* ---- lancamento manual ---- */
   const nrRecalcula = () => {
     const tt = Tours.get($('#nrTour').value);
@@ -1941,6 +1990,7 @@ function admSettings() {
       <button class="mini" id="demoRestore">${t('demoRestore')}</button>
     </div>`}
     ${typeof cartaoCreditos === 'function' && (typeof modulo === 'function' && (modulo('assistente') === true || modulo('atendimento') === true)) ? cartaoCreditos() : ''}
+    ${typeof cartaoCores === 'function' ? cartaoCores() : ''}
     <section class="card">
       <h3>${t('yourContact')}</h3>
       ${DB.settings.placeholderContact ? `<div class="alert warn">⚠ ${t('placeholderWarn')}</div>` : ''}
@@ -1948,9 +1998,15 @@ function admSettings() {
       <div class="frow">
         <label class="fld">${t('yourWhats')}<input id="setWhats" value="${esc(DB.settings.whats)}" placeholder="+49 152 …"></label>
         <label class="fld">${t('yourInsta')}<input id="setInsta" value="${esc(DB.settings.insta)}" placeholder="seu.instagram"></label>
-        <button class="cta sm" id="setContactSave">${t('saveBtn')}</button>
       </div>
+      <p class="why" style="margin-top:var(--s-5)">Ícones no topo da primeira tela. Cole o endereço completo (https://…); vazio = o ícone some.</p>
+      <label class="fld">Site oficial<input id="setSite" type="url" inputmode="url" value="${esc(DB.settings.site || '')}" placeholder="https://conexaoberlim.com.br"></label>
+      <label class="fld">Spotify<input id="setSpotify" type="url" inputmode="url" value="${esc(DB.settings.spotify || '')}" placeholder="https://open.spotify.com/…"></label>
+      <label class="fld">Facebook<input id="setFacebook" type="url" inputmode="url" value="${esc(DB.settings.facebook || '')}" placeholder="https://www.facebook.com/…"></label>
+      <button class="cta sm" id="setContactSave" style="margin-top:var(--s-5)">${t('saveBtn')}</button>
     </section>
+    ${typeof cartaoParceiros === 'function' ? cartaoParceiros() : ''}
+    ${typeof cartaoDepoimentos === 'function' ? cartaoDepoimentos() : ''}
     <section class="card">
       <h3>${t('admHome')}</h3>
       <p class="why">${t('admHomeHelp')}</p>
@@ -2095,6 +2151,13 @@ function admSettings() {
   $('#setContactSave').onclick = () => {
     DB.settings.whats = $('#setWhats').value.trim();
     DB.settings.insta = $('#setInsta').value.trim().replace(/^@/, '');
+    /* endereço sem https:// ganha o https://; vazio fica vazio (o ícone some) */
+    const url = (v) => { v = v.trim(); if (!v) return ''; if (!/^https?:\/\//i.test(v)) v = 'https://' + v; return linkExterno(v); };
+    for (const [k, id] of [['site', '#setSite'], ['spotify', '#setSpotify'], ['facebook', '#setFacebook']]) {
+      const bruto = $(id).value.trim(), v = url(bruto);
+      if (bruto && !v) return toast('Endereço inválido: ' + bruto);
+      DB.settings[k] = v;
+    }
     DB.settings.placeholderContact = false; save();
     toast(t('contactSaved')); admSettings();
   };
@@ -2240,6 +2303,9 @@ function admSettings() {
   };
   if (typeof ligaCartaoAvisos === 'function') ligaCartaoAvisos();
   if (typeof ligaCartaoCreditos === 'function') ligaCartaoCreditos();
+  if (typeof ligaCartaoCores === 'function') ligaCartaoCores();
+  if (typeof ligaCartaoParceiros === 'function') ligaCartaoParceiros();
+  if (typeof ligaCartaoDepoimentos === 'function') ligaCartaoDepoimentos();
   $('#sndToggle').onclick = () => {
     const off = localStorage.getItem('vi_som') === 'off';
     localStorage.setItem('vi_som', off ? 'on' : 'off');

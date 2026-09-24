@@ -52,6 +52,34 @@ var APP_CONFIG = {
     cidade: 'Berlim, Alemanha',
     whats: '+4915238240861',
     insta: 'conexaoberlim',
+    /* ícones no topo da primeira tela (pedido de 24/09/2026). O SITE fica vazio
+       de propósito: conexaoberlim.com.br está "em construção" e com spam de
+       cassino injetado (conferido em 24/09) — mandar cliente para lá queima a
+       marca. Quando estiver limpo, ela cola o endereço em Ajustes. Spotify:
+       falta o link dela. */
+    /* PARA A SUA VIAGEM (primeira tela). Link de parceira é DELA — nunca o de
+       outra guia (a comissão vai para quem está no código do link). Sem link,
+       o cartão abre o WhatsApp dela com o pedido. Ela edita em Ajustes. */
+    parceiros: [
+      { tipo: 'hotel', titulo: 'Reserve seu hotel', sub: 'Hotéis em Berlim no Booking', url: 'https://www.booking.com/city/de/berlin.pt-br.html', selo: '' },
+      { tipo: 'chip', titulo: 'Chip de viagem', sub: 'Chegue em Berlim já conectado', url: '', selo: 'desconto' },
+      { tipo: 'seguro', titulo: 'Seguro viagem', sub: 'Viaje protegido pela Europa', url: '', selo: '' },
+    ],
+    /* DEPOIMENTOS — do destaque "Depoimentos" do Instagram dela (conferido
+       24/09/2026). Os 4 ESCRITOS, com o primeiro nome e o mês; texto levemente
+       enxugado (confirmar com ela). O resto (~39 clientes) é vídeo: não se
+       republica o rosto de ninguém — o último cartão leva ao destaque. */
+    depoimentos: [
+      { texto: 'Nem um ano inteirinho na escola proporcionaria o conhecimento da manhã de hoje. Que sensação poder escutar a história aqui, onde tudo aconteceu!', nome: 'E. F.', quando: 'jun. 2022' },
+      { texto: 'A história é um grande quebra-cabeça que vai sendo montado… Obrigada por enriquecer nossa viagem, Dulcinéia!', nome: 'Adriana', quando: 'jul. 2022' },
+      { texto: 'Nossas visitas aqui foram guiadas pela Dulce, inclusive ao campo de concentração. Aconselho vocês a buscarem o perfil dela!', nome: 'Maisa', quando: 'set. 2021' },
+      { texto: 'Fim da viagem com essa guia sensacional!', nome: 'Vic', quando: 'mai. 2022' },
+    ],
+    depoimentosVideo: 'https://www.instagram.com/stories/highlights/17964166591764249/',
+    depoimentosVideoTxt: 'Mais de 30 clientes contam em vídeo',
+    facebook: 'https://www.facebook.com/conexaoberlim',
+    site: '',
+    spotify: '',
     /* as palavras dela, do Instagram */
     badge: 'Visitas guiadas exclusivas · História e Reconstrução de Berlim',
     prefixo: 'CB',                 /* codigo da reserva: CB-4821 */
@@ -65,6 +93,9 @@ var APP_CONFIG = {
       { hora: '14:00', fim: '18:00', nome: 'Tarde' },
     ],
     turnoExclusivo: true,
+    /* temporada dos passeios: de 1º de março a 31 de outubro (Dulcineia, 24/09/2026).
+       Fora dela o app não oferece data nenhuma. */
+    temporada: { de: '03-01', ate: '10-31' },
     linguas: ['pt'],               /* o app inteiro so em portugues: sem seletor de idioma (Eugenio, 23/09) */
     /* a marca dela, tirada em vetor do manual (Studio Nama, v2.0): o app pinta
        cada arquivo com a cor do tema. Razao = largura / altura do desenho. */

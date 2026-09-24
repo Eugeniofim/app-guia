@@ -17,12 +17,14 @@
 
 :root{
   /* ---------- MARCA (manual da Conexão Berlim, Studio Nama, v2.0 mai/2025) ----------
-     Duo de assinatura: MOOS + GOLD. Peso: 60% Moos, 20% Gold, 20% Offwhite.
-     O gold do manual (#8F7029) tem 3.6:1 sobre o offwhite: serve para o selo,
-     nunca para texto. Texto dourado usa --highlight-text. */
+     Pedido dela (24/09/2026): NADA de verde com amarelo — parece a bandeira do
+     Brasil. O destaque é o CIDRA (#B0B094), da própria paleta; o dourado saiu.
+     Em Ajustes → Cores da marca ela troca principal e destaque dentro da
+     paleta do manual (cores.js); estes são os valores de fábrica. */
   --brand-primaria:   #293629;   /* MOOS · a cor dela */
-  --brand-assinatura: #8F7029;   /* GOLD · selo e detalhes */
-  --brand-oro:        #BA9430;   /* ORO · preenchimento dourado com texto escuro */
+  --brand-assinatura: #293629;   /* selo e logo sobre fundo claro (no escuro vira o Cidra) */
+  --brand-cidra:      #B0B094;   /* CIDRA · o destaque: preenchimento com texto escuro */
+  --brand-oro:        var(--brand-cidra);   /* nome antigo (splash, pílulas) */
   --brand-offwhite:   #E8E3DE;
   --brand-sand:       #E0D6C7;
   --brand-iron:       #A3452B;   /* IRON · o botão terracota do site dela */
@@ -50,15 +52,15 @@
   --accent-wash:  #D8DDD3;          /* fundo de pílula · moos por cima = 9.2:1 */
   --accent-line:  #B4BDB0;
 
-  /* Dourado é assinatura: preenchimento (ORO) com texto escuro */
-  --highlight:      var(--brand-oro);
-  --highlight-ink:  #171717;        /* 6.3:1 sobre o oro */
-  --highlight-wash: #F0E6CC;
-  --highlight-text: #6B531C;        /* dourado escuro para texto · 5.7:1 */
+  /* Destaque (Cidra): preenchimento com texto escuro */
+  --highlight:      var(--brand-cidra);
+  --highlight-ink:  #171717;        /* 8.1:1 sobre o cidra */
+  --highlight-wash: #E4E4D8;
+  --highlight-text: #4E4E36;        /* cidra escuro para texto · 6.7:1 */
 
   /* ---------- ESTADOS (separados da paleta de marca) ---------- */
   --ok:        #2F5A38;  --ok-wash:    #DCE5D8;   /* pago, confirmado */
-  --warn:      #6B531C;  --warn-wash:  #F0E6CC;   /* pendente, vence */
+  --warn:      #7A4E26;  --warn-wash:  #F3E4D6;   /* pendente, vence · Dulce de Leche escuro, 5.6:1 */
   --danger:    #9A3F27;  --danger-wash:#F2DED6;   /* vencido, cancelado */
   --neutral:   #3A3F3A;  --neutral-wash:#DEDAD3;
 
@@ -121,11 +123,11 @@
     --paper:#1C241C; --surface:#263226; --surface-2:#2F3C2F; --surface-3:#394839;
     --line:#344234; --line-2:#465746;
     --ink:#E8E3DE; --ink-2:#CCC5B9; --ink-3:#A7A194;
-    --brand-assinatura:#BA9430;
+    --brand-assinatura:#B0B094;
     --accent:#E0D6C7; --accent-ink:#293629; --accent-wash:#2F3C2F; --accent-line:#4A5A4A;
-    --highlight:#BA9430; --highlight-ink:#171717; --highlight-wash:#3A331E; --highlight-text:#D4B45E;
+    --highlight:#B0B094; --highlight-ink:#171717; --highlight-wash:#2C3124; --highlight-text:#B0B094;
     --ok:#9CC79A;  --ok-wash:#243424;
-    --warn:#D4B45E; --warn-wash:#3A331E;
+    --warn:#D9A77A; --warn-wash:#3B2A1C;
     --danger:#E8927A; --danger-wash:#3D2520;
     --neutral:#CCC5B9; --neutral-wash:#2F3C2F;
     --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
@@ -139,11 +141,11 @@
   --paper:#1C241C; --surface:#263226; --surface-2:#2F3C2F; --surface-3:#394839;
   --line:#344234; --line-2:#465746;
   --ink:#E8E3DE; --ink-2:#CCC5B9; --ink-3:#A7A194;
-  --brand-assinatura:#BA9430;
+  --brand-assinatura:#B0B094;
   --accent:#E0D6C7; --accent-ink:#293629; --accent-wash:#2F3C2F; --accent-line:#4A5A4A;
-  --highlight:#BA9430; --highlight-ink:#171717; --highlight-wash:#3A331E; --highlight-text:#D4B45E;
+  --highlight:#B0B094; --highlight-ink:#171717; --highlight-wash:#2C3124; --highlight-text:#B0B094;
   --ok:#9CC79A;  --ok-wash:#243424;
-  --warn:#D4B45E; --warn-wash:#3A331E;
+  --warn:#D9A77A; --warn-wash:#3B2A1C;
   --danger:#E8927A; --danger-wash:#3D2520;
   --neutral:#CCC5B9; --neutral-wash:#2F3C2F;
   --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
@@ -153,7 +155,7 @@
 
 /* =========================================================
    REGRAS QUE NÃO SE QUEBRAM
-   1. Dourado nunca é texto sobre fundo claro. Use --highlight-text.
+   1. Destaque (Cidra) nunca é texto sobre fundo claro. Use --highlight-text.
    2. Musgo é a ação principal. Um botão de ação por tela.
    3. Terracota (danger) é urgência (vencido, últimas vagas). Não decora.
    4. Cinza é legenda, nunca título.

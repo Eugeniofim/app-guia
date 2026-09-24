@@ -192,6 +192,36 @@ async function cloudUpdateBooking(b) {
   } catch (e) { qPush({ path, method: 'PATCH', body }); }
 }
 
+/* ---------- pedidos (Transfer e Monte seu roteiro) ----------
+   Tabela própria, como as reservas: o cliente só CRIA, só a dona lê.
+   Nunca vai no appstate — que qualquer visitante lê. O banco avisa a
+   Dulcineia sozinho (gatilho pedidos_avisa → push + e-mail). */
+async function cloudPushPedido(p) {
+  const body = { id: p.id, data: p };
+  try {
+    const r = await supaFetch('pedidos', { method: 'POST', body: JSON.stringify(body) });
+    if (!r.ok && r.status !== 409) { qPush({ path: 'pedidos', method: 'POST', body }); return { ok: false }; }
+    p.naNuvem = true; localStorage.setItem(DB_KEY, JSON.stringify(DB));
+    return { ok: true };
+  } catch (e) { qPush({ path: 'pedidos', method: 'POST', body }); return { ok: false }; }
+}
+async function cloudUpdatePedido(p) {
+  if (!SUPA_URL) return;
+  const path = 'pedidos?id=eq.' + encodeURIComponent(p.id), body = { data: p };
+  try { const r = await patchConta(path, body); if (!r.ok) qPush({ path, method: 'PATCH', body }); }
+  catch (e) { qPush({ path, method: 'PATCH', body }); }
+}
+async function cloudPullPedidos() {
+  try {
+    const r = await supaFetch('pedidos?select=data&order=created_at.asc', { headers: { Prefer: '' } });
+    if (!r.ok) return;   /* tabela ainda não criada: fica o que está no aparelho */
+    const nuvem = (await r.json()).map(x => x.data).filter(Boolean);
+    const ids = new Set(nuvem.map(x => x.id));
+    nuvem.forEach(x => { x.naNuvem = true; });
+    DB.pedidos = nuvem.concat((DB.pedidos || []).filter(x => !ids.has(x.id) && !x.naNuvem));
+  } catch (e) { /* sem rede: segue com o que tem */ }
+}
+
 /* ---------- puxar tudo ---------- */
 let lastBookingIds = null;
 let lastStamp = null;
@@ -268,6 +298,7 @@ async function cloudPull() {
     /* reservas: nuvem + locais que ainda não subiram.
        Se a busca das reservas falhou, mantemos as que ja estao no aparelho —
        apagar por causa de um erro de rede seria pior. */
+    if (logged) await cloudPullPedidos();
     if (logged && reservasOk) {
       const cloudIds = new Set(bk.map(b => b.id));
       /* Se a reserva ja confirmou subida e agora nao esta mais la, ela foi

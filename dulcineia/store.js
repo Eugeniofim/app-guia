@@ -49,11 +49,15 @@ function regiaoOpts(cur) {
 }
 
 function _blank() {
-  return { tours: [], rules: [], departures: [], blocks: [], bookings: [], coupons: [], seatCounts: [],
+  return { tours: [], rules: [], departures: [], blocks: [], bookings: [], coupons: [], seatCounts: [], pedidos: [],
            settings: { lang: 'pt', tutorialClient: true, tutorialAdm: true,
            /* quem e o guia — nasce do config.js e o guia edita no painel */
            admName: GUIA_CFG.nome || 'Guia', negocio: GUIA_CFG.negocio || '',
            whats: GUIA_CFG.whats || '', insta: GUIA_CFG.insta || '', placeholderContact: false,
+           /* ícones da primeira tela; vazio = some (ela troca em Ajustes → Seu contato) */
+           site: '', spotify: '', facebook: '',
+           parceiros: [],
+           depoimentos: [], depoimentosVideo: '', depoimentosVideoTxt: '',
            /* o cliente ve antes de reservar */
            photo: '', badge: GUIA_CFG.badge || '',
            base: GUIA_CFG.cidade || '',
@@ -229,16 +233,7 @@ function _seed() {
       + 'If you want more than just to visit a city, I invite you to decipher Berlin through its past, its present and your own view of history.',
   };
 
-  db.rules = [
-    { id: "r-berlim-historico-09", tourId: "berlim-historico", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "09:30", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
-    { id: "r-berlim-historico-14", tourId: "berlim-historico", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "14:00", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
-    { id: "r-bairro-judeu-09", tourId: "bairro-judeu", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "09:30", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
-    { id: "r-bairro-judeu-14", tourId: "bairro-judeu", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "14:00", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
-    { id: "r-potsdam-sanssouci-09", tourId: "potsdam-sanssouci", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "09:30", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
-    { id: "r-potsdam-sanssouci-14", tourId: "potsdam-sanssouci", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "14:00", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
-    { id: "r-sachsenhausen-09", tourId: "sachsenhausen", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "09:30", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
-    { id: "r-sachsenhausen-14", tourId: "sachsenhausen", weekdays: [0, 1, 2, 3, 4, 5, 6], time: "14:00", capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) },
-  ];   /* turnos: Manhã 09:30–13:30 e Tarde 14:00–18:00 (config.js guia.turnos) */
+  db.rules = db.tours.flatMap(t => regrasDeTurno(t));   /* turnos Manhã/Tarde, todos os dias da temporada (config.js guia.turnos e guia.temporada) */
 
   db.coupons = [
     { code: 'VOLTA10', pct: 10, until: '2026-12-31', oncePerPerson: true, uses: [] },
@@ -327,6 +322,27 @@ function load() {
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
   }
   DB.settings = fillSettings(DB.settings);
+  if (!Array.isArray(DB.pedidos)) DB.pedidos = [];
+  /* REDES DA PRIMEIRA TELA (24/09/2026): uma vez só, o que veio no config.js.
+     Depois é dela: se apagar um endereço em Ajustes, o ícone não volta. */
+  if (!DB.settings.redesSemeadas) {
+    for (const k of ['site', 'spotify', 'facebook']) if (!DB.settings[k] && GUIA_CFG[k]) DB.settings[k] = GUIA_CFG[k];
+    DB.settings.redesSemeadas = true;
+  }
+  /* PARA A SUA VIAGEM: uma vez só, os do config.js; depois é dela */
+  if (!DB.settings.parceirosSemeados) {
+    if (!Array.isArray(DB.settings.parceiros) || !DB.settings.parceiros.length)
+      DB.settings.parceiros = (GUIA_CFG.parceiros || []).map((p, i) => ({ id: p.tipo + '-' + i, ...p }));
+    DB.settings.parceirosSemeados = true;
+  }
+  /* DEPOIMENTOS: uma vez só, os do config.js; depois é dela */
+  if (!DB.settings.depoimentosSemeados) {
+    if (!Array.isArray(DB.settings.depoimentos) || !DB.settings.depoimentos.length)
+      DB.settings.depoimentos = (GUIA_CFG.depoimentos || []).map(d => ({ ...d }));
+    if (!DB.settings.depoimentosVideo) DB.settings.depoimentosVideo = GUIA_CFG.depoimentosVideo || '';
+    if (!DB.settings.depoimentosVideoTxt) DB.settings.depoimentosVideoTxt = GUIA_CFG.depoimentosVideoTxt || '';
+    DB.settings.depoimentosSemeados = true;
+  }
   /* os turnos do config.js vão para os ajustes: assim sobem para a nuvem e o
      atendente do Instagram (servidor) oferece os mesmos turnos */
   if (GUIA_CFG.turnos && !DB.settings.turnos) {
@@ -341,6 +357,20 @@ function load() {
   if (turnos().length && !DB.settings.turnosSemeados && DB.tours.length) {
     for (const t of DB.tours) if (!DB.rules.some(r => r.tourId === t.id)) DB.rules.push(...regrasDeTurno(t));
     DB.settings.turnosSemeados = true;
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  }
+  /* TEMPORADA (24/09/2026): os turnos semeados antes iam "todos os dias por 6
+     meses" — entrando em novembro a fevereiro. Uma vez só, as regras de turno
+     todos-os-dias viram as janelas da temporada (março a outubro). */
+  const tpChave = GUIA_CFG.temporada ? GUIA_CFG.temporada.de + '/' + GUIA_CFG.temporada.ate : '';
+  if (tpChave && turnos().length && DB.settings.temporadaAplicada !== tpChave && DB.tours.length) {
+    const eTurnoTodoDia = r => r.weekdays && r.weekdays.length === 7 && turnoDaHora(r.time);
+    for (const t of DB.tours) {
+      if (!DB.rules.some(r => r.tourId === t.id && eTurnoTodoDia(r))) continue;
+      DB.rules = DB.rules.filter(r => !(r.tourId === t.id && eTurnoTodoDia(r)));
+      DB.rules.push(...regrasDeTurno(t));
+    }
+    DB.settings.temporadaAplicada = tpChave;
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
   }
   return DB;
@@ -398,10 +428,23 @@ function agoraBerlim() {
   return { data: `${p.year}-${p.month}-${p.day}`, hora: `${p.hour === '24' ? '00' : p.hour}:${p.minute}` };
 }
 function jaComecou(date, time) { const a = agoraBerlim(); return date < a.data || (date === a.data && time <= a.hora); }
-/* as regras de um passeio em turnos: todos os dias, pelos próximos 6 meses (ela ajusta na Agenda) */
+/* TEMPORADA (config.js guia.temporada, ex.: março a outubro): as janelas de
+   datas a partir de hoje — o resto desta temporada e a próxima inteira. */
+function janelasTemporada() {
+  const tp = GUIA_CFG.temporada, hoje = isoToday();
+  if (!tp) return [{ from: hoje, until: addDays(hoje, 180) }];
+  const ano = +hoje.slice(0, 4), out = [];
+  for (const y of [ano, ano + 1]) {
+    const de = `${y}-${tp.de}`, ate = `${y}-${tp.ate}`;
+    if (ate < hoje) continue;
+    out.push({ from: de < hoje ? hoje : de, until: ate });
+  }
+  return out;
+}
+/* as regras de um passeio em turnos: todos os dias da temporada (ela ajusta na Agenda) */
 function regrasDeTurno(t) {
-  return turnos().map(tu => ({ id: uid(), tourId: t.id, weekdays: [0, 1, 2, 3, 4, 5, 6], time: tu.hora,
-    capacity: +t.max || 20, from: isoToday(), until: addDays(isoToday(), 180) }));
+  return janelasTemporada().flatMap(j => turnos().map(tu => ({ id: uid(), tourId: t.id, weekdays: [0, 1, 2, 3, 4, 5, 6], time: tu.hora,
+    capacity: +t.max || 20, from: j.from, until: j.until, auto: true })));
 }
 /* painel em turnos: há turnos e cada um é de um grupo só (Conexão Berlim) */
 function modoTurnos() { return turnos().length > 0 && turnoExclusivo(); }

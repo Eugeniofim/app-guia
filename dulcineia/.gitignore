@@ -1,0 +1,5 @@
+node_modules/
+.DS_Store
+
+# fontes pagas da marca (Voyage, Helvetica Neue LT Pro): nunca publicar sem licença web
+fonteos de tipografia/
