@@ -28,7 +28,7 @@ var APP_CONFIG = {
     nome: 'Milla',
     negocio: 'Yalla Experiences',
     cidade: 'Dubai, Emirados Árabes Unidos',
-    whats: '+971556826677',
+    whats: '+5511951971111',
     insta: 'yalla_experiences',
     /* as palavras dela, do material da marca */
     badge: 'Guia brasileira licenciada nos Emirados · Travel. Connect. Ascend.',
