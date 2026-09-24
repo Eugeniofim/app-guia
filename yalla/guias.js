@@ -252,3 +252,97 @@ route = function () {
    segundo clique. */
 addEventListener('hashchange', () => route());
 if (/^#\/(adm\/guias|guia\/)/.test(location.hash)) route();
+
+/* =====================================================
+   O ASSISTENTE ENXERGA OS GUIAS
+
+   Ela pergunta "quem está livre sábado?" ou "escala o Ahmed no passeio do
+   dia 10" e o assistente resolve — com o mesmo cartão de confirmação.
+   ===================================================== */
+if (typeof IA_FERRAMENTAS !== 'undefined') {
+  const S = (d) => ({ type: 'string', ...(d ? { description: d } : {}) });
+  IA_FERRAMENTAS.push(
+    { name: 'ver_guias', description: 'Guias parceiros: nome, WhatsApp, idiomas, o que guiam, cachê, datas livres daqui para a frente e quantos passeios já têm.',
+      input_schema: { type: 'object', properties: {} } },
+    { name: 'guias_livres', description: 'Quem está livre numa data (AAAA-MM-DD).',
+      input_schema: { type: 'object', properties: { data: S('AAAA-MM-DD') }, required: ['data'] } },
+    { name: 'cadastrar_guia', description: 'Cadastra um guia parceiro novo.',
+      input_schema: { type: 'object', properties: { nome: S(), whats: S(), idiomas: S(), especialidade: S(), cache: { type: 'number' } }, required: ['nome'] } },
+    { name: 'marcar_datas_guia', description: 'Marca (ou desmarca) datas livres de um guia. datas em AAAA-MM-DD.',
+      input_schema: { type: 'object', properties: { guia: S('nome ou id'), datas: { type: 'array', items: S() }, tirar: { type: 'boolean' } }, required: ['guia', 'datas'] } },
+    { name: 'escalar_guia', description: 'Põe um guia numa reserva (código de ver_reservas). O guia vê o passeio no link dele.',
+      input_schema: { type: 'object', properties: { codigo: S(), guia: S('nome ou id') }, required: ['codigo', 'guia'] } },
+  );
+  if (typeof IA_LEITURA !== 'undefined') { IA_LEITURA.add('ver_guias'); IA_LEITURA.add('guias_livres'); }
+
+  const achaGuia = (q) => {
+    const s = String(q || '').toLowerCase().trim();
+    return Guias.get(q) || Guias.todos().find(g => g.nome.toLowerCase() === s)
+      || Guias.todos().find(g => g.nome.toLowerCase().includes(s));
+  };
+  const _leituraSemGuias = iaLeitura;
+  iaLeitura = function (nome, i) {
+    i = i || {};
+    if (nome === 'ver_guias') {
+      const l = Guias.todos().map(g => ({ id: g.id, nome: g.nome, whats: g.whats || null, idiomas: g.idiomas || null,
+        guia: g.espec || null, cache: g.cache || 0, passeios: Guias.passeios(g.id).length,
+        datas_livres: (g.livres || []).filter(d => d >= isoToday()).sort().slice(0, 30) }));
+      return l.length ? l : 'nenhum guia cadastrado ainda';
+    }
+    if (nome === 'guias_livres') {
+      const l = Guias.livresEm(i.data).map(g => ({ id: g.id, nome: g.nome, whats: g.whats || null, guia: g.espec || null }));
+      return l.length ? l : `ninguém marcou ${i.data} como livre`;
+    }
+    return _leituraSemGuias(nome, i);
+  };
+
+  const _planoSemGuias = iaPlano;
+  iaPlano = function (nome, i) {
+    i = i || {};
+    const E = (m) => ({ erro: m });
+    if (nome === 'cadastrar_guia') {
+      const n = String(i.nome || '').trim();
+      if (!n) return E('falta o nome');
+      if (Guias.todos().some(g => g.nome.toLowerCase() === n.toLowerCase())) return E('já existe um guia com esse nome');
+      return { titulo: gt('gNovo').replace('+ ', ''), assumiu: [],
+        linhas: [[gt('gNome'), n], ...(i.whats ? [[gt('gWhats'), i.whats]] : []), ...(i.idiomas ? [[gt('gIdiomas'), i.idiomas]] : []),
+          ...(i.especialidade ? [[gt('gEspec'), i.especialidade]] : [])],
+        fazer: () => { const g = { id: 'g' + Date.now(), nome: n, whats: i.whats || '', idiomas: i.idiomas || '',
+          espec: i.especialidade || '', cache: +i.cache || 0, livres: [] }; Guias.salva(g); return { ok: true, guia_id: g.id }; } };
+    }
+    if (nome === 'marcar_datas_guia') {
+      const g = achaGuia(i.guia); if (!g) return E('guia não encontrado — use ver_guias');
+      const datas = (Array.isArray(i.datas) ? i.datas : []).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+      if (!datas.length) return E('datas em AAAA-MM-DD');
+      const tirar = i.tirar === true;
+      return { titulo: gt('gDatas') + ' · ' + g.nome, assumiu: [],
+        linhas: [[gt('gNome'), g.nome], [tirar ? '−' : '+', datas.map(d => dataCurta(d)).join(', ')]],
+        fazer: () => { const s = new Set(g.livres || []);
+          datas.forEach(d => tirar ? s.delete(d) : s.add(d));
+          g.livres = [...s].sort(); Guias.salva(g); return { ok: true, datas_livres: g.livres.filter(d => d >= isoToday()) }; } };
+    }
+    if (nome === 'escalar_guia') {
+      const b = Bookings.byCode(String(i.codigo || '').toUpperCase()); if (!b) return E('reserva não encontrada');
+      const g = achaGuia(i.guia); if (!g) return E('guia não encontrado — use ver_guias');
+      const livre = (g.livres || []).includes(b.date);
+      return { titulo: 'Escalar guia', assumiu: livre ? [] : ['esse guia não marcou esse dia como livre'],
+        linhas: [[gt('gNome'), g.nome], [ia('cCliente'), b.name], [ia('xPasseio'), nomeTour(Tours.get(b.tourId))],
+          [ia('cQuando'), `${dataCurta(b.date)} ${b.time}`]],
+        fazer: () => { b.guiaId = g.id; save();
+          return { ok: true, avise: g.whats ? `mande no WhatsApp dele: ${waLinkPara(g.whats, `Oi, ${g.nome}! Você está escalado para ${nomeTour(Tours.get(b.tourId))} em ${dataCurta(b.date)} às ${b.time}. Confere no seu link.`)}` : 'esse guia não tem WhatsApp cadastrado' }; } };
+    }
+    return _planoSemGuias(nome, i);
+  };
+
+  /* o assistente precisa saber que isso existe */
+  const _sistemaSemGuias = iaSistema;
+  iaSistema = function () {
+    const s = _sistemaSemGuias();
+    const extra = `
+
+## Guias parceiros (Yalla Experiences)
+Ela trabalha com guias freelancers. Cada guia marca as datas livres no link dele e você lê isso em ver_guias / guias_livres. Antes de prometer data, confira se há guia livre; se não houver, diga quem costuma atender aquele tipo de passeio e ofereça perguntar. Pode cadastrar guia, marcar ou tirar datas e escalar um guia numa reserva — sempre com confirmação. Nunca fale com o guia: você prepara a mensagem, quem manda é ela.`;
+    if (Array.isArray(s) && s[0] && typeof s[0].text === 'string') { s[0] = { ...s[0], text: s[0].text + extra }; return s; }
+    return typeof s === 'string' ? s + extra : s;
+  };
+}
