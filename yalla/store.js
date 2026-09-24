@@ -150,6 +150,18 @@ function _seed() {
   db.rules = [];
   db.coupons = [];
 
+  /* guias parceiros de exemplo (demonstração) — ela troca pelos dela */
+  db.guias = [
+    { id: 'g-ahmed', nome: 'Ahmed Al Mansoori', whats: '+971501234567', idiomas: 'Árabe, inglês',
+      espec: 'Deserto, safári e cultura local', cache: 0,
+      livres: [addDays(isoToday(), 2), addDays(isoToday(), 3), addDays(isoToday(), 6), addDays(isoToday(), 9)] },
+    { id: 'g-carol', nome: 'Carolina Reis', whats: '+971502223344', idiomas: 'Português, inglês, espanhol',
+      espec: 'City tour, compras e famílias', cache: 0,
+      livres: [addDays(isoToday(), 1), addDays(isoToday(), 2), addDays(isoToday(), 8), addDays(isoToday(), 12)] },
+    { id: 'g-rafa', nome: 'Rafael Antunes', whats: '+971505556677', idiomas: 'Português, inglês',
+      espec: 'Corporativo, visitas técnicas e Abu Dhabi', cache: 0,
+      livres: [addDays(isoToday(), 4), addDays(isoToday(), 5), addDays(isoToday(), 11)] },
+  ];
   db.settings.bio = {"pt": "Sou Milena Fernandes, a Milla. Moro em Dubai desde 2010 e sou guia brasileira licenciada nos Emirados Árabes Unidos.\n\nA Yalla Experiences nasceu da paixão por conectar culturas, pessoas e oportunidades. Mais do que uma empresa de turismo, desenvolvemos experiências planejadas para apresentar o melhor dos Emirados e do Oriente Médio de forma personalizada, humana e exclusiva.\n\nAo longo dos anos construí uma rede de parceiros locais e fornecedores selecionados que permite aos nossos clientes viver muito além dos roteiros tradicionais.", "en": "I am Milena Fernandes, Milla. I have lived in Dubai since 2010 and I am a Brazilian guide licensed in the United Arab Emirates.\n\nYalla Experiences was born from a passion for connecting cultures, people and opportunities. More than a tourism company, we design experiences that show the best of the Emirates and the Middle East in a personal, human and exclusive way.\n\nOver the years I have built a network of local partners and selected suppliers that lets our clients go far beyond the usual itineraries."};
   db.settings.homeText = {"pt": "Experiências privativas, imersões de negócios e eventos nos Emirados Árabes Unidos. Cada experiência é única porque cada história também é.", "en": "Private experiences, business immersions and events in the United Arab Emirates. Every experience is unique because every story is too."};
   db.settings.photo = 'arte/milla-rosto.jpg';

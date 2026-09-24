@@ -253,7 +253,7 @@ route = function () {
    assumimos os dois aqui, senão a aba e o link do guia só funcionariam no
    segundo clique. */
 addEventListener('hashchange', () => route());
-if (/^#\/(adm\/guias|guia\/)/.test(location.hash)) route();
+if (/^#\/(adm|guia\/)/.test(location.hash)) route();   /* o painel já foi desenhado sem a aba: redesenha */
 
 /* =====================================================
    O ASSISTENTE ENXERGA OS GUIAS
