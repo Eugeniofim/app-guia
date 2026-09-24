@@ -1825,48 +1825,58 @@ body:has(.coach) #iaFab{display:none!important}
 #iaGaveta{position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:950;display:flex;flex-direction:column;background:var(--surface,#fff);color:var(--ink,#222);
   box-shadow:-8px 0 30px rgba(0,0,0,.18);transform:translateX(105%);transition:transform .22s ease;font-family:var(--f-ui,system-ui)}
 #iaGaveta.aberta{transform:none}
-#iaGaveta header{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--line,#e5e5e5)}
-#iaGaveta header b{flex:1;font-size:16px}
-#iaGaveta .x{border:0;background:none;font-size:26px;line-height:1;cursor:pointer;color:inherit;min-width:44px;min-height:44px}
-#iaCtx{padding:6px 16px;font-size:12.5px;color:var(--ink-3,#777);border-bottom:1px solid var(--line,#eee)}
-#iaMsgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-.iaB{max-width:92%;padding:10px 13px;border-radius:14px;font-size:14.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
-.iaB img{display:block;max-width:100%;border-radius:10px;margin-bottom:6px}
+#iaGaveta header{display:flex;align-items:center;gap:12px;padding:12px 8px 12px 16px;border-bottom:1px solid var(--line,#e5e5e5)}
+#iaGaveta .iaAv{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--accent,#064c3f);color:#fff;font-size:16px}
+#iaGaveta .iaCab{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+#iaGaveta header b{font-size:15.5px;display:flex;align-items:center;gap:8px}
+.iaModo{font:700 10.5px var(--f-ui);letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--surface-2,#f1efec);color:var(--ink-2,#555)}
+#iaCtx{font-size:12px;color:var(--ink-3,#888);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#iaCtx:empty{display:none}
+#iaGaveta .x{border:0;background:none;font-size:24px;line-height:1;cursor:pointer;color:var(--ink-3,#888);min-width:44px;min-height:44px;border-radius:50%}
+#iaGaveta .x:hover{background:var(--surface-2,#f1efec);color:inherit}
+#iaMsgs{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;background:var(--surface-2,#f7f5f2)}
+.iaB{position:relative;max-width:86%;padding:11px 14px;border-radius:18px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.iaB img{display:block;max-width:100%;border-radius:12px;margin-bottom:6px}
 .iaFotos{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:4px;margin-bottom:6px} .iaFotos img{margin:0;aspect-ratio:1;object-fit:cover;width:100%}
-.iaB.user{align-self:flex-end;background:var(--accent,#064c3f);color:#fff;border-bottom-right-radius:4px}
-.iaB.assistant{align-self:flex-start;background:var(--surface-2,#f4f2ef);border-bottom-left-radius:4px}
-.iaB.pensa{align-self:flex-start;color:var(--ink-3,#888);font-style:italic;background:none;padding:4px 2px}
-.iaB.erro{align-self:stretch;background:var(--danger-wash,#fde8e8);color:var(--danger,#a00)}
-.iaB .cp{display:block;margin-top:8px;border:0;background:none;color:var(--accent,#064c3f);font:600 12.5px inherit;cursor:pointer;padding:6px 0}
+.iaB.user{align-self:flex-end;background:var(--accent,#064c3f);color:#fff;border-bottom-right-radius:6px}
+.iaB.assistant{align-self:flex-start;background:var(--surface,#fff);border-bottom-left-radius:6px}
+.iaB.pensa{align-self:flex-start;color:var(--ink-3,#888);font-style:italic;background:none;box-shadow:none;padding:4px 2px}
+.iaB.erro{align-self:stretch;background:var(--danger-wash,#fde8e8);color:var(--danger,#a00);box-shadow:none}
+.iaB .cp{display:flex;width:fit-content;margin:10px 0 0 auto;align-items:center;gap:5px;border:1px solid var(--line,#e2e0dc);background:none;color:var(--ink-2,#555);font:600 12px var(--f-ui);cursor:pointer;padding:5px 11px;border-radius:999px}
+.iaB .cp:hover{border-color:var(--accent,#064c3f);color:var(--accent,#064c3f)}
 .iaDemo{align-self:stretch;border:1px dashed var(--line-2,#ccc);border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.45;color:var(--ink-2,#555)}
 .iaDemo b{display:block;margin-bottom:4px;color:var(--ink,#222)}
 .iaSug{align-self:stretch;display:flex;flex-direction:column;gap:6px}
 .iaSug small{color:var(--ink-3,#888)}
-.iaSug button{text-align:left;min-height:44px;padding:10px 12px;border-radius:12px;border:1px solid var(--line,#ddd);background:var(--surface,#fff);color:inherit;font:14px inherit;cursor:pointer}
+.iaSug button{text-align:left;min-height:44px;padding:10px 13px;border-radius:14px;border:1px solid var(--line,#ddd);background:var(--surface,#fff);color:inherit;font:14px var(--f-ui);cursor:pointer}
 .iaSug button:hover{border-color:var(--accent,#064c3f)}
-.iaCard{align-self:stretch;border:2px solid var(--highlight,#FFD23F);border-radius:14px;padding:12px 14px;background:var(--surface,#fff)}
+.iaCard{align-self:stretch;border:2px solid var(--highlight,#FFD23F);border-radius:16px;padding:14px;background:var(--surface,#fff)}
 .iaCard h4{margin:0 0 8px;font-size:15px}
 .iaCard dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
 .iaCard dt{color:var(--ink-3,#777)} .iaCard dd{margin:0;font-weight:600;white-space:pre-wrap}
 .iaCard .ass{margin:8px 0 0;font-size:12.5px;color:var(--ink-3,#777)}
 .iaCard .bts{display:flex;gap:8px;margin-top:12px}
-.iaCard .bts button,.iaChave button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line,#ddd);background:var(--surface,#fff);font:600 14.5px inherit;cursor:pointer;color:inherit}
+.iaCard .bts button,.iaChave button{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line,#ddd);background:var(--surface,#fff);font:600 14.5px var(--f-ui);cursor:pointer;color:inherit}
 .iaCard .bts .sim,.iaChave .sim{background:var(--accent,#064c3f);color:#fff;border-color:transparent}
 .iaCard.feito{border-color:var(--line,#ddd);opacity:.75}
-#iaForm{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line,#e5e5e5);align-items:flex-end}
-#iaTxt{flex:1;resize:none;min-height:44px;max-height:140px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:12px;font:15px inherit;background:var(--surface,#fff);color:inherit}
-#iaEnviar{min-width:64px;min-height:44px;border:0;border-radius:12px;background:var(--accent,#064c3f);color:#fff;font:600 14.5px inherit;cursor:pointer}
-#iaEnviar:disabled{opacity:.5}
-#iaClip{min-width:44px;min-height:44px;border:1px solid var(--line,#ddd);border-radius:12px;background:none;color:inherit;font-size:18px;cursor:pointer}
-#iaAnexo{display:none;padding:0 12px 6px;font-size:12.5px;color:var(--ink-3,#888)} #iaAnexo.on{display:flex;gap:8px;align-items:center}
-#iaAnexo img{height:44px;width:44px;object-fit:cover;border-radius:6px;margin-right:2px} #iaAnexo button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
-#iaPe{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:space-between;align-items:center;padding:0 16px 10px;font-size:12px;color:var(--ink-3,#888)}
-#iaPe button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit;padding:6px 0}
-#iaPe label{display:flex;gap:6px;align-items:center;cursor:pointer}
+#iaForm{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line,#e5e5e5);align-items:flex-end;background:var(--surface,#fff)}
+#iaTxt{flex:1;min-width:0;resize:none;min-height:44px;max-height:140px;padding:11px 16px;border:1px solid var(--line,#ddd);border-radius:22px;font:15px var(--f-ui);background:var(--surface-2,#f7f5f2);color:inherit;box-sizing:border-box}
+#iaTxt:focus{outline:2px solid color-mix(in srgb,var(--accent,#064c3f) 40%,transparent);outline-offset:1px}
+#iaEnviar{flex:none;width:44px;height:44px;border:0;border-radius:50%;background:var(--accent,#064c3f);color:#fff;font-size:19px;line-height:1;cursor:pointer;display:grid;place-items:center}
+#iaEnviar:disabled{opacity:.45}
+#iaClip{flex:none;width:44px;height:44px;border:1px solid var(--line,#ddd);border-radius:50%;background:none;color:var(--ink-3,#888);cursor:pointer;display:grid;place-items:center;transition:color .12s,border-color .12s}
+#iaClip:hover{color:var(--accent,#064c3f);border-color:var(--accent,#064c3f)}
+#iaAnexo{display:none;padding:0 12px 6px;font-size:12.5px;color:var(--ink-3,#888)} #iaAnexo.on{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#iaAnexo img{height:44px;width:44px;object-fit:cover;border-radius:8px;margin-right:2px} #iaAnexo button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
+#iaPe{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:space-between;align-items:center;padding:8px 16px calc(10px + env(safe-area-inset-bottom));font-size:12px;color:var(--ink-3,#888);border-top:1px solid var(--line,#eee);background:var(--surface,#fff)}
+#iaPe button{border:0;background:none;color:var(--ink-2,#555);cursor:pointer;font:600 12px var(--f-ui);padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+#iaPe label{display:flex;gap:7px;align-items:center;cursor:pointer;line-height:1.3}
+#iaPe input[type=checkbox]{width:16px;height:16px;flex:none;accent-color:var(--accent,#064c3f)}
+#iaGasto{font-variant-numeric:tabular-nums;white-space:nowrap}
 .iaChave{padding:18px 16px;display:flex;flex-direction:column;gap:10px;font-size:14.5px;line-height:1.45;overflow-y:auto}
 .iaChave input{min-height:44px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font:14px var(--f-mono,monospace);background:var(--surface,#fff);color:inherit}
 .iaChave ol{margin:0;padding-left:20px} .iaChave .volta{background:none;border:0;text-decoration:underline;flex:none}
-@media (max-width:640px){#iaGaveta{width:100vw}}
+@media (max-width:640px){#iaGaveta{width:100vw} .iaB{max-width:90%}}
 .mkHead{display:flex;gap:12px;align-items:center;flex-wrap:wrap} .mkLead{margin:0;flex:1 1 240px}
 .mkNav{display:flex;gap:10px;align-items:center;flex:1} .mkNav b{min-width:170px;text-align:center}
 .mkDia{display:flex;gap:16px;align-items:flex-start}
@@ -2117,7 +2127,7 @@ function iaMonta() {
   const st = document.createElement('style'); st.textContent = IA_CSS; document.head.appendChild(st);
   const fab = document.createElement('button'); fab.id = 'iaFab'; fab.type = 'button'; fab.onclick = iaAbre;
   const g = document.createElement('aside'); g.id = 'iaGaveta';
-  g.innerHTML = `<header><b id="iaTit"></b><button class="x" id="iaFecha">×</button></header><div id="iaCtx"></div>
+  g.innerHTML = `<header><span class="iaAv" aria-hidden="true">✦</span><span class="iaCab"><b id="iaTit"></b><small id="iaCtx"></small></span><button class="x" id="iaFecha" aria-label="${esc(ia('fechar'))}">×</button></header>
     <div id="iaCorpo" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>`;
   document.body.append(fab, g);
   g.querySelector('#iaFecha').onclick = iaFecha;
@@ -2140,7 +2150,8 @@ function iaAtualizaFab() {
   if (!mostra) iaEl.g.classList.remove('aberta');
   iaEl.fab.classList.toggle('on', mostra && !iaEl.g.classList.contains('aberta'));
   iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}<small class="iaExtra">${ia('extra')}</small>`;
-  iaEl.g.querySelector('#iaTit').textContent = ia('assistente') + ({ demo: ' · ' + ia('demoTit'), vivo: ' · ⚡ ' + ia('vivoTit') }[iaModo()] || '');
+  const selo = { demo: ia('demoTit'), vivo: '⚡ ' + ia('vivoTit') }[iaModo()] || '';
+  iaEl.g.querySelector('#iaTit').innerHTML = esc(ia('assistente')) + (selo ? ` <span class="iaModo">${esc(selo)}</span>` : '');
   iaEl.g.querySelector('#iaFecha').setAttribute('aria-label', ia('fechar'));
   const c = iaContexto();
   iaEl.g.querySelector('#iaCtx').textContent = c ? ia('vendo') + ': ' + c.txt : '';
@@ -2169,9 +2180,9 @@ function iaDesenha() {
   }
   const demo = iaDemo(), vivo = iaModo() === 'vivo';
   corpo.innerHTML = `<div id="iaMsgs"></div><div id="iaAnexo"></div>
-    ${demo ? '' : `<form id="iaForm"><button type="button" id="iaClip" title="${esc(ia('foto'))}" aria-label="${esc(ia('foto'))}">📷</button>
+    ${demo ? '' : `<form id="iaForm"><button type="button" id="iaClip" title="${esc(ia('foto'))}" aria-label="${esc(ia('foto'))}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8-8a3.5 3.5 0 1 1 5 5l-8 8a2 2 0 0 1-3-3l7.5-7.5"/></svg></button>
       <input type="file" id="iaArq" accept="image/*" multiple hidden><textarea id="iaTxt" rows="1" placeholder="${esc(ia('ph'))}"></textarea>
-      <button id="iaEnviar" type="submit">${ia('enviar')}</button></form>`}
+      <button id="iaEnviar" type="submit" aria-label="${esc(ia('enviar'))}" title="${esc(ia('enviar'))}">↑</button></form>`}
     <div id="iaPe"><label><input type="checkbox" id="iaConf" ${iaPerguntaAntes() ? 'checked' : ''}> ${ia('perguntar')}</label>
       ${demo ? `<button type="button" id="iaConecta">${ia('conectar')}</button>` : vivo ? '' : `<span id="iaGasto"></span>`}
       <span><button type="button" id="iaLimpa">${ia('nova')}</button>${demo || vivo ? '' : ` · <button type="button" id="iaTiraChave">${ia('trocarChave')}</button>`}</span></div>`;
