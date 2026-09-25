@@ -19,6 +19,10 @@ var APP_CONFIG = {
      Mudou de casa em 24/09/2026: era a Netlify (guia-cofre.netlify.app),
      que travava por falta de créditos de publicação. */
   cofre: 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre',
+  /* Quem é este app dentro do cofre. Cada cliente tem o seu (uma linha na
+     tabela cofre_clientes) com os passeios, o treino e as chaves DELE.
+     É isto que faz a tela "Ensinar o agente" treinar o robô certo. */
+  clienteCofre: 'demo',
   /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
   agenteInstagram: 'estudio_ti_artes',
   /* número do WhatsApp do agente do demo (só dígitos; o de teste da Meta não entrega para o Brasil) */

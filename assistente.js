@@ -43,6 +43,10 @@ const iaChave = () => { try { return (localStorage.getItem(IA_CHAVE) || '').trim
               servidor, limite por pessoa e por dia) — ver guia-cofre;
    - 'demo':  sem nada disso, pedidos prontos que rodam as ferramentas. */
 const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
+/* De qual cliente é este app. Sem isto, a tela de treino de TODO app
+   escreveria por cima do treino do demo — um cliente apagaria o outro. */
+const CLIENTE_COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.clienteCofre) || 'demo';
+const urlEnsino = () => COFRE + '/api/ensino?cliente=' + encodeURIComponent(CLIENTE_COFRE);
 const COFRE_FIM = 'guia_cofre_fim';
 let cofreEstado = { claude: false, imagem: false, instagram: false, whatsapp: false };
 const cofreEsgotado = (tipo) => { try { return sessionStorage.getItem(COFRE_FIM + tipo) === new Date().toISOString().slice(0, 10); } catch (e) { return false; } };
@@ -1964,7 +1968,7 @@ let ensAplMsg = '', ensCofreTemCodigo = null;
 function ensSondaCodigo() {
   if (ensCofreTemCodigo !== null || !COFRE) return;
   ensCofreTemCodigo = false;
-  fetch(COFRE + '/api/ensino', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+  fetch(urlEnsino(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
     .then(r => { ensCofreTemCodigo = r.status === 401 || r.status === 200; if (ensCofreTemCodigo && $('.ensForm') && !$('.ensApl')) admEnsinar(); }).catch(() => {});
 }
 function ensAplicarCartao() {
@@ -1981,7 +1985,7 @@ function ensAplicarCartao() {
 async function ensAplicar(codigo) {
   try { sessionStorage.setItem('guia_admin_codigo', codigo); } catch (e) {}
   const e = ensino();
-  let r; try { r = await fetch(COFRE + '/api/ensino', { method: 'POST', headers: { 'content-type': 'application/json', 'x-codigo': codigo }, body: JSON.stringify({ ensino: e }) }); } catch (x) { r = null; }
+  let r; try { r = await fetch(urlEnsino(), { method: 'POST', headers: { 'content-type': 'application/json', 'x-codigo': codigo }, body: JSON.stringify({ ensino: e }) }); } catch (x) { r = null; }
   const hora = new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
   ensAplMsg = r && r.ok ? '✓ ' + ia('ensAplOk') + ' (' + hora + ')' : r && r.status === 401 ? '⚠ ' + ia('ensAplErro') : r && r.status === 503 ? '⚠ ' + ia('ensAplSem') : '⚠ ' + ia('ensAplFalhou');
   if (r && r.status === 401) try { sessionStorage.removeItem('guia_admin_codigo'); } catch (x) {}
@@ -1989,7 +1993,7 @@ async function ensAplicar(codigo) {
 }
 async function ensTrazer() {
   try {
-    const j = await fetch(COFRE + '/api/ensino', { cache: 'no-store' }).then(r => r.json());
+    const j = await fetch(urlEnsino(), { cache: 'no-store' }).then(r => r.json());
     if (j && j.ensino) { const m = Mkt.get(); m.ensino = { ...ensino(), ...j.ensino, faq: j.ensino.faq.map(f => ({ k: '', p: f.p, r: f.r })) }; Mkt.salva(); ensAplMsg = '✓ ' + ia('ensTrouxe'); }
     else ensAplMsg = ia('ensNadaNoAr');
   } catch (x) { ensAplMsg = '⚠ ' + ia('ensAplFalhou'); }
