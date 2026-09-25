@@ -12,11 +12,13 @@ var APP_CONFIG = {
   supabaseUrl: '',   /* ex.: 'https://SEU-PROJETO.supabase.co' */
   supabaseKey: '',   /* a chave "publishable" do projeto; nunca a secreta */
 
-  /* Cofre do demo (repositório guia-cofre, no Netlify): guarda as chaves do
-     Claude e do Gemini no servidor e deixa o demo público usar a IA de
-     verdade, com limite por pessoa e por dia. Vazio = só a demonstração
-     pronta. Num app de cliente fica vazio: lá o guia usa a chave dele. */
-  cofre: 'https://guia-cofre.netlify.app',
+  /* Cofre do demo (repositório guia-cofre): guarda as chaves do Claude e do
+     Gemini no servidor e deixa o demo público usar a IA de verdade, com
+     limite por pessoa e por dia. Vazio = só a demonstração pronta. Num app
+     de cliente fica vazio: lá o guia usa a chave dele.
+     Mudou de casa em 24/09/2026: era a Netlify (guia-cofre.netlify.app),
+     que travava por falta de créditos de publicação. */
+  cofre: 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre',
   /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
   agenteInstagram: 'estudio_ti_artes',
   /* número do WhatsApp do agente do demo (só dígitos; o de teste da Meta não entrega para o Brasil) */

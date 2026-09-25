@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Conectar o Instagram · Ti Artes</title>
+<style>
+  :root{ --fundo:#0e1d1c; --cartao:#142827; --tinta:#ecebe8; --suave:#9fb0ad;
+         --marca:#2EE6C5; --linha:#23403d; --erro:#ff8a7a; }
+  @media (prefers-color-scheme: light){ :root{ --fundo:#f6f8f7; --cartao:#fff; --tinta:#14201f;
+         --suave:#5b6b68; --linha:#dde7e5; } }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--fundo); color:var(--tinta); padding:24px 16px 64px;
+        font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main{ max-width:560px; margin:0 auto }
+  .marca{ display:flex; align-items:center; gap:10px; margin-bottom:22px }
+  .marca img{ width:36px; height:36px; border-radius:9px }
+  .marca b{ font-size:15px; letter-spacing:.02em }
+  h1{ font-size:24px; line-height:1.25; margin:0 0 8px }
+  .lede{ color:var(--suave); margin:0 0 22px }
+  .cartao{ background:var(--cartao); border:1px solid var(--linha); border-radius:14px; padding:20px; margin-bottom:14px }
+  .bt{ display:block; width:100%; text-align:center; text-decoration:none; border:0; cursor:pointer;
+       background:var(--marca); color:#06201c; font:600 16px/1 system-ui; padding:15px; border-radius:11px }
+  .bt.fraco{ background:transparent; color:var(--suave); border:1px solid var(--linha); font-weight:500; margin-top:10px }
+  .perfil{ display:flex; align-items:center; gap:14px }
+  .perfil img{ width:62px; height:62px; border-radius:50%; object-fit:cover; background:var(--linha) }
+  .perfil .ini{ width:62px; height:62px; border-radius:50%; background:var(--marca); color:#06201c;
+       display:grid; place-items:center; font:700 24px/1 system-ui }
+  .arroba{ font-size:19px; font-weight:600; margin:0 }
+  .id{ color:var(--suave); font-size:13px; margin:2px 0 0; word-break:break-all }
+  .selo{ display:inline-flex; align-items:center; gap:6px; background:rgba(46,230,197,.14); color:var(--marca);
+         border-radius:999px; padding:5px 12px; font-size:13px; font-weight:600; margin-bottom:12px }
+  h2{ font-size:15px; margin:0 0 8px }
+  ol{ margin:0; padding-left:20px; color:var(--suave) } ol li{ margin-bottom:6px }
+  .en{ color:var(--suave); font-size:14px; border-top:1px solid var(--linha); margin-top:22px; padding-top:16px }
+  .erro{ color:var(--erro) }
+  a{ color:var(--marca) }
+</style>
+</head>
+<body>
+<main>
+  <div class="marca">
+    <img src="/ti-artes-perfil.jpg" alt="">
+    <b>Ti Artes · Atendimento automático</b>
+  </div>
+
+  <h1>Conecte o seu Instagram</h1>
+  <p class="lede">O assistente passa a responder as mensagens diretas da sua conta profissional —
+  sobre passeios, datas, vagas e preços — no idioma de quem escreve.
+  <span class="en" style="border:0;padding:0;margin:0;display:block">Connect your Instagram professional account so the assistant can reply to your direct messages.</span></p>
+
+  <div class="cartao" id="quadro">
+    <p class="lede" style="margin:0">Carregando…</p>
+  </div>
+
+  <div class="cartao">
+    <h2>O que acontece quando você conecta</h2>
+    <ol>
+      <li>Você autoriza no próprio Instagram — nós nunca vemos a sua senha.</li>
+      <li>Guardamos o identificador da conta e a autorização, para poder responder por ela.</li>
+      <li>Mensagens ficam guardadas por 24 horas; escrever <b>apagar</b> na conversa limpa tudo na hora.</li>
+      <li>Você desconecta quando quiser, aqui ou no próprio Instagram.</li>
+    </ol>
+  </div>
+
+  <p class="en">
+    <b>What happens when you connect.</b> You authorize inside Instagram — we never see your password.
+    We store the account identifier and the authorization so the assistant can reply on your behalf.
+    Conversations are kept for 24 hours; writing <b>delete</b> in the chat erases everything immediately.
+    You can disconnect at any time, here or from Instagram.<br>
+    <a href="/privacidade.html">Privacy policy</a> · <a href="/termos.html">Terms</a> · <a href="/dados.html">Data deletion</a>
+  </p>
+</main>
+
+<script src="../config.js"></script>
+<script>
+/* O endereço do cofre vem do config.js, como tudo que é banco neste repo.
+   Quem está conectando: o padrão é "revisor", assim quem abre esta página
+   para testar NUNCA sobrescreve a conta de um cliente de verdade. O painel
+   de cada guia abre esta mesma página com o slug dele. */
+const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
+const p = new URLSearchParams(location.search);
+const CLIENTE = (p.get('cliente') || 'revisor').slice(0, 60);
+const quadro = document.getElementById('quadro');
+const esc = (s) => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const linkConectar = COFRE + '/ig-conectar?cliente=' + encodeURIComponent(CLIENTE)
+  + '&voltar=' + encodeURIComponent(location.origin + location.pathname + '?cliente=' + encodeURIComponent(CLIENTE));
+
+function desconectado(msg) {
+  quadro.innerHTML =
+    (msg ? '<p class="erro" style="margin:0 0 12px">' + esc(msg) + '</p>' : '') +
+    '<a class="bt" href="' + esc(linkConectar) + '">Conectar meu Instagram</a>' +
+    '<p class="lede" style="margin:12px 0 0;font-size:14px">Precisa ser uma conta <b>profissional</b> (Empresa ou Criador).<br>' +
+    '<span class="en" style="border:0;padding:0;margin:0">Requires a professional account (Business or Creator).</span></p>';
+}
+
+function conectado(d) {
+  const ini = (d.usuario || '?')[0].toUpperCase();
+  quadro.innerHTML =
+    '<span class="selo">● Conectado / Connected</span>' +
+    '<div class="perfil">' +
+      (d.foto ? '<img src="' + esc(d.foto) + '" alt="">' : '<div class="ini">' + esc(ini) + '</div>') +
+      '<div><p class="arroba">@' + esc(d.usuario || '—') + '</p>' +
+      '<p class="id">Instagram account ID: ' + esc(d.conta) + '</p></div>' +
+    '</div>' +
+    '<a class="bt fraco" href="' + esc(linkConectar) + '">Conectar outra conta / Connect another account</a>';
+}
+
+if (!COFRE) desconectado('Este app ainda não tem o atendimento ligado.');
+else fetch(COFRE + '/ig-perfil?cliente=' + encodeURIComponent(CLIENTE))
+  .then(r => r.json())
+  .then(d => {
+    const veio = p.get('ig');
+    if (veio === 'erro') return desconectado('Não consegui conectar. Tente de novo.');
+    d.conectado ? conectado(d) : desconectado('');
+  })
+  .catch(() => desconectado('Não consegui falar com o servidor.'));
+</script>
+</body>
+</html>
