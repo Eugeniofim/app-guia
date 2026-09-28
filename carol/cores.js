@@ -1,8 +1,8 @@
 /* =====================================================
    CORES DA MARCA — Ajustes → Cores da marca
    Ela escolhe a cor PRINCIPAL e a de DESTAQUE, sempre dentro das cores do
-   site dela (lovelylondon.uk) — por combinação pronta ou cor a cor.
-   De fábrica: Bordô + Dourado, o par do logo "Lovely London by Carol".
+   manual de marca dela — por combinação pronta ou cor a cor.
+   De fábrica: Lovely + Skyline, o par do logo no manual.
 
    Para cada escolha o app DERIVA os tons (texto, fundos, tema escuro) e
    garante contraste de leitura (testes/cores.test.js confere todas as
@@ -11,7 +11,7 @@
    ===================================================== */
 'use strict';
 
-const CORES_PADRAO = { principal: 'lovely', destaque: 'dourado' };
+const CORES_PADRAO = { principal: 'lovely', destaque: 'skyline' };
 
 /* ---------- cor: conta pura (também roda no teste, em Node) ---------- */
 const corRgb = (h) => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
@@ -22,15 +22,12 @@ function corLum(h) {
   const [r, g, b] = corRgb(h); return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 }
 function corContraste(a, b) { const x = corLum(a), y = corLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
-/* A PALETA da Lovely London: as cores do site dela (css/main.css, :root) e
-   do logo. primaria = as que já são da marca dela no site. */
+/* A PALETA da Lovely London: as 5 cores do manual de marca (Identidade
+   Visual da agência). Nada fora delas. */
 const PALETA = [
-  { id: 'lovely', nome: 'Lovely (bordô)', hex: '#700420', primaria: 1 }, { id: 'lovely-escuro', nome: 'Bordô escuro', hex: '#5A0318' },
-  { id: 'lovely-vivo', nome: 'Bordô vivo', hex: '#8B0528' }, { id: 'blackfriars', nome: 'Blackfriars', hex: '#292828', primaria: 1 },
-  { id: 'notting-hill', nome: 'Notting Hill (caramelo)', hex: '#955425', primaria: 1 },
-  { id: 'dourado', nome: 'Dourado "by Carol"', hex: '#EAB36C', primaria: 1 }, { id: 'dourado-suave', nome: 'Dourado suave', hex: '#D4B77F' },
-  { id: 'skyline', nome: 'Skyline (nude)', hex: '#DAB59A', primaria: 1 }, { id: 'thames', nome: 'Thames (azul)', hex: '#7FA1C3', primaria: 1 },
-  { id: 'fog', nome: 'Fog white', hex: '#F8F9FA' },
+  { id: 'lovely', nome: 'Lovely', hex: '#700420', primaria: 1 }, { id: 'notting-hill', nome: 'Notting Hill', hex: '#955425', primaria: 1 },
+  { id: 'skyline', nome: 'Skyline', hex: '#DAB59A', primaria: 1 }, { id: 'fog', nome: 'Fog White', hex: '#FFF5F4', primaria: 1 },
+  { id: 'blackfriars', nome: 'Blackfriars', hex: '#292828', primaria: 1 },
 ];
 /* principal = fundo de botões e barras: tem que aceitar texto claro por cima (11 das 25).
    destaque = selo e detalhes: qualquer uma, menos as duas cores de FUNDO do app (sumiriam). */
@@ -40,8 +37,8 @@ const PALETA_PRINCIPAL = PALETA.filter(podePrincipal);
 const PALETA_DESTAQUE = PALETA.filter(podeDestaque);
 /* combinações prontas: as duplas do manual (p. 23) — sem verde com amarelo, pedido dela */
 const COMBINACOES = [
-  { p: 'lovely', d: 'dourado' }, { p: 'lovely', d: 'skyline' }, { p: 'blackfriars', d: 'dourado' }, { p: 'lovely-escuro', d: 'dourado-suave' },
-  { p: 'notting-hill', d: 'skyline' }, { p: 'blackfriars', d: 'skyline' }, { p: 'lovely', d: 'thames' }, { p: 'lovely-vivo', d: 'dourado' },
+  { p: 'lovely', d: 'skyline' }, { p: 'blackfriars', d: 'skyline' }, { p: 'notting-hill', d: 'skyline' },
+  { p: 'lovely', d: 'notting-hill' }, { p: 'blackfriars', d: 'lovely' },
 ];
 /* escurece (rumo ao preto) ou clareia (rumo ao branco) até ler bem sobre TODOS os fundos */
 function corLegivel(h, fundos, alvo, rumo) {
@@ -71,7 +68,7 @@ function preenchimento(D) {
 
 /* todas as variáveis de cor, claro e escuro, a partir das duas escolhas */
 function derivaCores(P, D) {
-  const PAPER = '#FAF6F3', SURF = '#FFFFFF', INK = '#292828', OFF = '#FFFFFF';
+  const PAPER = '#FFF5F4', SURF = '#FFFFFF', INK = '#292828', OFF = '#FFFFFF';
   /* o destaque como FUNDO de etiqueta: se nem texto preto nem branco leem
      bem nele (Dulce de Leche dá 4,3:1), mexe no tom o mínimo necessário.
      O selo continua na cor exata da marca (--brand-cidra). */
@@ -179,7 +176,7 @@ function cartaoCores() {
   };
   return `<section class="card" id="coresCard">
     <h3>Cores da marca</h3>
-    <p class="why">Só cores da sua marca (as do site). A <b>principal</b> vai nos fundos e botões; o <b>destaque</b>, no selo e nos detalhes. Muda o app inteiro na hora — para você, para os seus clientes e nos e-mails.</p>
+    <p class="why">Só as cores do seu manual de marca. A <b>principal</b> vai nos fundos e botões; o <b>destaque</b>, no selo e nos detalhes. Muda o app inteiro na hora — para você, para os seus clientes e nos e-mails.</p>
     <div class="corVista">
       ${corMockup(p, d)}
       <p class="corLegenda">Assim seus clientes veem<b>${p.nome} + ${d.nome}</b><small>Toque numa combinação abaixo: o celular muda na hora.</small></p>
@@ -195,7 +192,7 @@ function cartaoCores() {
       <p class="why">${corModo === 'principal' ? 'Toque na cor principal. As claras ficam apagadas: o texto dos botões não leria em cima delas.' : 'Toque na cor de destaque. O Fog white fica de fora: sumiria no fundo do app.'}</p>
       <div class="corPaleta">${PALETA.map(tile).join('')}</div>
     </details>
-    <button type="button" class="mkLink" id="corPadrao">Voltar ao padrão (Bordô + Dourado)</button>
+    <button type="button" class="mkLink" id="corPadrao">Voltar ao padrão (Lovely + Skyline)</button>
   </section>`;
 }
 function ligaCartaoCores() {

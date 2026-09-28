@@ -26,20 +26,22 @@
   --brand-assinatura: #700420;   /* logo e monograma sobre fundo claro */
   --brand-escuro:     #5A0318;   /* hover do site */
   --brand-vivo:       #8B0528;   /* fim do gradiente --gradient-lovely */
-  --brand-dourado:    #EAB36C;   /* o "by Carol" do logo */
+  /* Manual de marca (Identidade Visual, 28/09/2026): 5 cores — Lovely #700420,
+     Notting Hill #955425, Skyline #DAB59A, Fog White #FFF5F4, Blackfriars #292828.
+     O dourado #DAB59A era do site antigo e NÃO está no manual: o destaque é Skyline. */
+  --brand-dourado:    #DAB59A;   /* Skyline (nome antigo mantido: muita regra usa) */
   --brand-cidra:      var(--brand-dourado);   /* nome antigo (pílulas, selo) */
   --brand-oro:        var(--brand-dourado);
   --brand-nude:       #DAB59A;   /* --skyline: o monograma LL */
   --brand-caramelo:   #955425;   /* --notting-hill */
-  --brand-thames:     #7FA1C3;   /* --thames */
-  --brand-offwhite:   #FAF6F3;
+  --brand-offwhite:   #FFF5F4;   /* Fog White */
   --brand-preto:      #292828;   /* --blackfriars */
   /* nomes antigos do app-guia: o código ainda chama por eles */
   --brand-verde:   var(--brand-primaria);
   --brand-amarelo: var(--brand-assinatura);
 
   /* ---------- FUNDOS (o creme rosado dos roteiros e do voucher dela) ---------- */
-  --paper:     #FAF6F3;
+  --paper:     #FFF5F4;
   --surface:   #FFFFFF;
   --surface-2: #F4ECE8;
   --surface-3: #EADDD7;
@@ -60,8 +62,8 @@
   /* Destaque (dourado do "by Carol"): preenchimento com texto escuro */
   --highlight:      var(--brand-dourado);
   --highlight-ink:  #292828;        /* 7.8:1 */
-  --highlight-wash: #F8EBDD;
-  --highlight-text: #8A5518;        /* dourado escuro para texto · 5.8:1 */
+  --highlight-wash: #F5EAE3;
+  --highlight-text: #955425;        /* Notting Hill para texto · 5.5:1 no Fog White */
 
   /* ---------- ESTADOS ---------- */
   --ok:        #2F5A3F;  --ok-wash:    #DDEBE1;
@@ -120,9 +122,9 @@
     --paper:#1C1012; --surface:#261619; --surface-2:#2E1A1E; --surface-3:#3A2227;
     --line:#3A2428; --line-2:#553339;
     --ink:#F2E9E4; --ink-2:#CFC2BD; --ink-3:#A99A95;
-    --brand-assinatura:#EAB36C;
-    --accent:#EAB36C; --accent-ink:#1C1012; --accent-wash:#2E1A1E; --accent-line:#5A3A2A;
-    --highlight:#EAB36C; --highlight-ink:#1C1012; --highlight-wash:#33241A; --highlight-text:#EAB36C;
+    --brand-assinatura:#DAB59A;
+    --accent:#DAB59A; --accent-ink:#1C1012; --accent-wash:#2E1A1E; --accent-line:#5A3A2A;
+    --highlight:#DAB59A; --highlight-ink:#1C1012; --highlight-wash:#33241A; --highlight-text:#DAB59A;
     --ok:#9CC7A8;  --ok-wash:#1F2E24;
     --warn:#E3B27A; --warn-wash:#3A2A1A;
     --danger:#F0909C; --danger-wash:#3D1E23;
@@ -136,9 +138,9 @@
   --paper:#1C1012; --surface:#261619; --surface-2:#2E1A1E; --surface-3:#3A2227;
   --line:#3A2428; --line-2:#553339;
   --ink:#F2E9E4; --ink-2:#CFC2BD; --ink-3:#A99A95;
-  --brand-assinatura:#EAB36C;
-  --accent:#EAB36C; --accent-ink:#1C1012; --accent-wash:#2E1A1E; --accent-line:#5A3A2A;
-  --highlight:#EAB36C; --highlight-ink:#1C1012; --highlight-wash:#33241A; --highlight-text:#EAB36C;
+  --brand-assinatura:#DAB59A;
+  --accent:#DAB59A; --accent-ink:#1C1012; --accent-wash:#2E1A1E; --accent-line:#5A3A2A;
+  --highlight:#DAB59A; --highlight-ink:#1C1012; --highlight-wash:#33241A; --highlight-text:#DAB59A;
   --ok:#9CC7A8;  --ok-wash:#1F2E24;
   --warn:#E3B27A; --warn-wash:#3A2A1A;
   --danger:#F0909C; --danger-wash:#3D1E23;
