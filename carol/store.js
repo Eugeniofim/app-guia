@@ -53,9 +53,10 @@ function _blank() {
   return { tours: [], rules: [], departures: [], blocks: [], bookings: [], coupons: [], seatCounts: [], pedidos: [],
            /* Lovely London (28/09/2026): agências B2B e invoices, e-mails varridos,
               motoristas parceiros, roteiros ("Monte seu roteiro" e passeios ocultos),
-              vale-presente, avaliações, tarefas e recados, pontos editados por ela */
+              vale-presente, avaliações, tarefas e recados, pontos editados por ela,
+              e o que ela anota na ficha de cada cliente (fichas.js) */
            agencias: [], trabalhosAgencia: [], emails: [], motoristas: [], roteiros: [], giftcards: [],
-           avaliacoes: [], tarefas: [], recados: [], pontos: [], cliquesIngressos: {},
+           avaliacoes: [], tarefas: [], recados: [], pontos: [], fichas: [], cliquesIngressos: {},
            settings: { lang: 'pt', tutorialClient: true, tutorialAdm: true,
            /* quem e o guia — nasce do config.js e o guia edita no painel */
            admName: GUIA_CFG.nome || 'Guia', negocio: GUIA_CFG.negocio || '',
@@ -114,7 +115,7 @@ function _blank() {
 
 /* versão da semente do PROTÓTIPO: subir quando o catálogo de exemplo mudar,
    senão quem já abriu o link continua vendo o velho (lição da Dulcineia). */
-const SEED_VER = 3;
+const SEED_VER = 4;
 
 function _seed() {
   const db = _blank();
@@ -238,7 +239,7 @@ function load() {
   if (!temNuvem() && DB.demo && DB.seedVer !== SEED_VER) { DB = _seed(); localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
   DB.settings = fillSettings(DB.settings);
   if (!Array.isArray(DB.pedidos)) DB.pedidos = [];
-  for (const k of ['agencias', 'trabalhosAgencia', 'emails', 'motoristas', 'roteiros', 'giftcards', 'avaliacoes', 'tarefas', 'recados', 'pontos'])
+  for (const k of ['agencias', 'trabalhosAgencia', 'emails', 'motoristas', 'roteiros', 'giftcards', 'avaliacoes', 'tarefas', 'recados', 'pontos', 'fichas'])
     if (!Array.isArray(DB[k])) DB[k] = [];
   if (!DB.cliquesIngressos || typeof DB.cliquesIngressos !== 'object') DB.cliquesIngressos = {};
   if (!DB.settings.termos || !DB.settings.termos.pt) DB.settings.termos = TERMOS_PADRAO;

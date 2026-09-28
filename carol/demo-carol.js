@@ -44,6 +44,8 @@ function demoCarol(db) {
   bk({ tourId: 'londres-classica', date: d(-20), time: '09:30', horas: 6, pax: 6, name: 'Camila Rocha', email: 'camila.rocha@exemplo.com', whats: '+55 51 93333 6006', sinal: true, quitado: true, criado: d(-60), origin: 'friend' });
   bk({ tourId: 'consultoria', date: d(2), time: '20:00', pax: 1, name: 'Patrícia Nunes', email: 'pati.nunes@exemplo.com', whats: '+55 61 92222 7007', policy: 'full', quitado: false, criado: d(-1), origin: 'site' });
   db.bookings[db.bookings.length - 1].payments.push({ amount: 50, date: d(-1), method: 'card', kind: 'full' });
+  /* a mesma família que comprou o roteiro (rt1) reservou um dia com a Carol: vira UMA ficha (junta pelo WhatsApp) */
+  bk({ tourId: 'torre-de-londres', date: d(15), time: '09:30', horas: 2, pax: 4, name: 'Paula Castro', email: 'castro@exemplo.com', whats: '+55 19 98989 1212', sinal: true, criado: d(-1), origin: 'site', hotel: 'Hotel perto de Covent Garden' });
 
   /* ---- AGÊNCIAS (o que ela chamou de B2C: empresas que a contratam por e-mail) ---- */
   db.agencias = [
@@ -104,6 +106,11 @@ function demoCarol(db) {
   db.avaliacoes = [
     { id: 'av1', nome: 'Juliana', estrelas: 5, texto: 'A Carol transformou a Torre de Londres numa aula que as crianças não queriam que acabasse. Voltaríamos amanhã!', tourId: 'torre-de-londres', data: d(-4), publicar: false, exemplo: true },
     { id: 'av2', nome: 'Fernando', estrelas: 5, texto: 'Roteiro no British Museum perfeito para quem tem pouco tempo. Pontual, simpática e muito preparada.', tourId: 'british-museum', data: d(-11), publicar: false, exemplo: true },
+  ];
+  /* FICHAS: o que a Carol anotou (o resto a ficha monta sozinha dos pagamentos) */
+  db.fichas = [
+    { id: 'wa5511988881001', idades: '2 adultos e 2 adolescentes (14 e 16)', mobilidade: 'A mãe operou o joelho: ritmo tranquilo, evitar escadas do metrô',
+      alimentacao: '', ocasiao: 'Primeira vez em Londres', pais: 'São Paulo', tags: ['Ocasião especial'], notas: 'Querem foto na Tower Bridge no fim. Achou a Carol pelo Instagram.', vistaEm: d(-7) + 'T12:00:00.000Z', exemplo: true },
   ];
   /* TAREFAS e RECADOS (a parte de "gestão pessoal" que ela pediu) */
   db.tarefas = [

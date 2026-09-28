@@ -135,7 +135,7 @@ admToday = function () {
   blocos.push(`<section class="card hj"><h3>🔔 Amanhã — lembretes de véspera</h3>
     ${lembretes.length || agAmanha.length ? '' : '<p class="empty">Nenhum tour amanhã.</p>'}
     ${lembretes.map(b => { const x = Tours.get(b.tourId) || { name: { pt: '' } }; return item('🗓', esc(b.name) + ' · ' + esc(tl(x.name)), janelaDoTour({ time: b.time, horas: b.horas }) + ' · ' + b.pax + ' pessoas',
-      `<a class="mini" target="_blank" rel="noopener" href="${esc(waLink(msgLembrete(b), String(b.whats).replace(/\D/g, '')))}">Mandar lembrete</a>`); }).join('')}
+      `<a class="mini" target="_blank" rel="noopener" href="${esc(waLink(msgLembrete(b), String(b.whats).replace(/\D/g, '')))}">Mandar lembrete</a>${typeof fichaDe === 'function' ? `<a class="mini" href="#/adm/clients/${encodeURIComponent(fichaDe(b))}">Ficha</a>` : ''}`); }).join('')}
     ${agAmanha.map(j => item('🏢', esc(agenciaDe(j.agencia).nome) + ' · ' + esc(j.servico), esc(j.cliente) + ' · ' + j.pax + ' pessoas')).join('')}
     ${proximas.length ? `<p class="rotMini">Próximos tours</p>${proximas.slice(0, 4).map(b => { const x = Tours.get(b.tourId) || { name: { pt: '' } }; return item('📅', dtBR(b.date) + ' · ' + esc(primeiroNome(b.name)), esc(tl(x.name)) + ' · ' + janelaDoTour({ time: b.time, horas: b.horas }),
       `<a class="mini" target="_blank" rel="noopener" href="${esc(waLink(msgLembrete(b), String(b.whats).replace(/\D/g, '')))}">Lembrete</a>`); }).join('')}` : ''}

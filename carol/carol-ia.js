@@ -80,6 +80,17 @@ const IA_COLECOES = {
   recados: { rotulo: 'recado', aba: 'tarefas', achar: ['nome', 'texto'], nomear: (r) => `${r.nome}: ${String(r.texto).slice(0, 40)}`,
     campos: { atendido: MX.bool }, semCriar: true,
     ver: (r) => ({ id: r.id, canal: r.canal, nome: r.nome, texto: r.texto, chegou: r.chegou, atendido: !!r.atendido }) },
+  fichas: { rotulo: 'ficha de cliente', aba: 'clients', achar: ['nome', 'whats', 'email', 'hotel'], nomear: (f) => f.nome,
+    campos: { idades: MX.txtOuNada, pais: MX.txtOuNada, mobilidade: MX.txtOuNada, alimentacao: MX.txtOuNada, ocasiao: MX.txtOuNada, notas: MX.txtOuNada,
+      tags: (v) => { const l = (Array.isArray(v) ? v : String(v).split(',')).map(x => String(x).trim()).filter(Boolean);
+        const ok = typeof TAGS_FICHA !== 'undefined' ? TAGS_FICHA : l; const fora = l.filter(x => !ok.includes(x));
+        if (fora.length) throw new Error('etiquetas aceitas: ' + ok.join(', ')); return l; } },
+    semCriar: true,
+    ver: (f) => ({ id: f.id, nome: f.nome, whats: f.whats, email: f.email, instagram: f.insta || undefined, hotel: f.hotel, grupo: typeof grupoTexto === 'function' ? grupoTexto(f) : '',
+      proximo: f.proximo ? { data: f.proximo.data, passeio: tl((Tours.get(f.proximo.ref.tourId) || { name: { pt: '' } }).name), horario: janelaDoTour({ time: f.proximo.ref.time, horas: f.proximo.ref.horas }),
+        pago: Bookings.paid(f.proximo.ref), falta: Bookings.due(f.proximo.ref) } : null,
+      compras: f.itens.map(i => (typeof rotuloItem === 'function' ? rotuloItem(i) : i.tipo)), total: f.total, pago: f.pago, a_receber: f.aReceber,
+      idades: f.notas.idades, de_onde: f.notas.pais, mobilidade: f.notas.mobilidade, alimentacao: f.notas.alimentacao, ocasiao: f.notas.ocasiao, notas: f.notas.notas, etiquetas: f.notas.tags }) },
   pontos: { rotulo: 'ponto do mapa', aba: 'pontos', achar: ['n', 'area'], nomear: (p) => p.n,
     campos: { n: MX.txt, d: MX.txt, dica: MX.txtOuNada, area: MX.txtOuNada }, semCriar: true,
     ver: (p) => ({ id: p.id, nome: p.n, area: p.area, texto: p.d, dica: p.dica || '', fonte: p.fonte === 'carol' ? 'texto da Carol' : 'texto de base (revisar)' }) },
@@ -90,6 +101,7 @@ const IA_CAMPOS_TXT = Object.entries(IA_COLECOES).map(([k, c]) => `${k} (${c.rot
 /* pontos: a lista é a base (pontos.js) + o que ela editou (DB.pontos) */
 function iaLista(onde) {
   if (onde === 'pontos') return typeof todosPontos === 'function' ? todosPontos() : (typeof PONTOS !== 'undefined' ? PONTOS : []);
+  if (onde === 'fichas') return typeof fichasTodas === 'function' ? fichasTodas() : [];
   if (!Array.isArray(DB[onde])) DB[onde] = [];
   return DB[onde];
 }
@@ -114,11 +126,11 @@ function iaConverte(C, campos, parcial) {
   if (!parcial) for (const k of C.obrigatorios || []) if (out[k] === undefined || out[k] === '') throw new Error('faltou ' + k);
   return { out, linhas };
 }
-const iaMostra = (k, v) => k === 'agencia' ? nomeAg(v) : typeof v === 'boolean' ? (v ? 'sim' : 'não') : (/^(data|validade)$/.test(k) && v ? dtIa(v) : k === 'valor' ? eur(v) : String(v === '' ? '—' : v));
+const iaMostra = (k, v) => Array.isArray(v) ? (v.join(', ') || '—') : k === 'agencia' ? nomeAg(v) : typeof v === 'boolean' ? (v ? 'sim' : 'não') : (/^(data|validade)$/.test(k) && v ? dtIa(v) : k === 'valor' ? eur(v) : String(v === '' ? '—' : v));
 
 /* ---------- as ferramentas ---------- */
 IA_FERRAMENTAS.push(
-  { name: 'ver_dados', description: 'Lê as abas da Lovely London que não têm ferramenta própria: agencias, trabalhosAgencia (trabalhos e invoices), emails (varredura), roteiros (Monte seu roteiro, pagos), pedidos (transfer), motoristas, giftcards (vale-presente), avaliacoes, tarefas, recados, pontos (mapa/imersivo; use busca). Devolve os ids.',
+  { name: 'ver_dados', description: 'Lê as abas da Lovely London que não têm ferramenta própria: fichas (cliente: tudo de uma pessoa que pagou), agencias, trabalhosAgencia (trabalhos e invoices), emails (varredura), roteiros (Monte seu roteiro, pagos), pedidos (transfer), motoristas, giftcards (vale-presente), avaliacoes, tarefas, recados, pontos (mapa/imersivo; use busca). Devolve os ids.',
     input_schema: obj({ o_que: { type: 'string', enum: Object.keys(IA_COLECOES) }, busca: S_('texto para filtrar (opcional)') }, ['o_que']) },
   { name: 'mexer', description: 'Cria, muda ou apaga um registro dessas abas. quem = id (de ver_dados) ou nome; se servir para dois, a ferramenta devolve as opções — pergunte qual. Campos aceitos por aba: ' + IA_CAMPOS_TXT + '. Datas AAAA-MM-DD; "sem" tira o dia de uma tarefa.',
     input_schema: obj({ onde: { type: 'string', enum: Object.keys(IA_COLECOES) }, acao: { type: 'string', enum: ['criar', 'mudar', 'apagar'] }, quem: S_('id ou nome (mudar/apagar)'),
@@ -168,6 +180,7 @@ iaPlano = function (nome, i) {
       return { titulo: tit, linhas: [[C.rotulo, C.nomear(x)]], assumiu: [],
         fazer: () => {
           if (i.onde === 'pontos') DB.pontos = (DB.pontos || []).filter(z => z.id !== x.id);   /* ponto da base volta ao texto original */
+          else if (i.onde === 'fichas') DB.fichas = (DB.fichas || []).filter(z => z.id !== x.id);   /* só as anotações: as compras continuam */
           else DB[i.onde] = DB[i.onde].filter(z => z.id !== x.id);
           grava(); return { ok: true };
         } };
@@ -176,7 +189,8 @@ iaPlano = function (nome, i) {
       const { out } = iaConverte(C, i.campos, true);
       if (!Object.keys(out).length) return E_('nada muda — diga os campos');
       if (i.onde === 'avaliacoes' && out.publicar && x.autorizou === false) return E_('o cliente NÃO autorizou publicar esta avaliação');
-      const linhas = [[C.rotulo, C.nomear(x)]].concat(Object.entries(out).map(([k, v]) => [k, `${iaMostra(k, x[k] === undefined ? '' : x[k])} → ${iaMostra(k, v)}`]));
+      const antes = i.onde === 'fichas' ? (x.notas || {}) : x;
+      const linhas = [[C.rotulo, C.nomear(x)]].concat(Object.entries(out).map(([k, v]) => [k, `${iaMostra(k, antes[k] === undefined ? '' : antes[k])} → ${iaMostra(k, v)}`]));
       const avisos = [];
       if (i.onde === 'trabalhosAgencia' && out.data && out.data !== x.data && typeof conflitoDoDia === 'function') { const c = conflitoDoDia(out.data); if (c) avisos.push('⚠️ ' + c); }
       return { titulo: tit, linhas, assumiu: avisos,
@@ -185,6 +199,7 @@ iaPlano = function (nome, i) {
           if (i.onde === 'tarefas' && 'feita' in out) extra.feitaEm = out.feita ? new Date().toISOString() : '';
           if (i.onde === 'tarefas' && out.data === '') extra.hora = '';          /* tirou o dia: tira a hora junto */
           if (i.onde === 'pontos') { DB.pontos = (DB.pontos || []).filter(z => z.id !== x.id).concat([{ ...x, ...out, fonte: 'carol' }]); }
+          else if (i.onde === 'fichas') { DB.fichas = DB.fichas || []; let r = DB.fichas.find(z => z.id === x.id); if (!r) { r = { id: x.id }; DB.fichas.push(r); } Object.assign(r, out); }
           else Object.assign(x, out, extra);
           grava(); return { ok: true };
         } };
@@ -207,12 +222,14 @@ iaSistema = function () {
 - Vale-presente: ver_dados giftcards; mexer (usado, validade…).
 - Avaliações: ver_dados avaliacoes; mexer publicar — só se o cliente autorizou.
 - Tarefas e recados: anotar_tarefa; ver_dados tarefas / recados; mexer (feita, data, atendido…).
+- Clientes (a ficha de cada pessoa que pagou): ver_dados fichas com busca pelo nome ou WhatsApp — traz próximo tour, hotel, grupo, compras, quanto falta e as anotações; mexer onde=fichas para anotar idades, mobilidade, alimentação, ocasião, notas e etiquetas.
 - Pontos do mapa e do roteiro imersivo: ver_dados pontos com busca; mexer onde=pontos para trocar texto (d) e dica.
 - O que nenhuma ferramenta faz: abrir_aba e diga o que tocar. Nunca responda só "não consigo".
 
 ## Onde guardar cada coisa
 - Coisa para fazer ou pensar depois (ideia, brainstorm) → anotar_tarefa: título curto em texto, a ideia inteira em nota. Com dia, entra na lista do dia.
 - Trabalho vindo de agência → mexer trabalhosAgencia criar (o cartão avisa se o dia já tem cliente: agência tem prioridade).
+- Coisa sobre um cliente (idade, alergia, mobilidade, gosto, aniversário) → mexer fichas mudar, nunca guardar_memoria.
 - Regra ou preferência que vale para sempre → guardar_memoria.
 - Se você escrever "anotei", "registrei" ou "marquei", você TEM que ter chamado a ferramenta neste mesmo turno.
 

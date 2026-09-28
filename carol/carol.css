@@ -396,3 +396,43 @@
 .trMot small{display:block;font-size:var(--fs-2);color:var(--ink-3)}
 .pdmsg{max-height:220px;overflow:auto}
 .vchFaixa small,.rtCapa small,.gcExp{color:rgba(255,255,255,.86)!important}
+
+/* =====================================================
+   FICHA DO CLIENTE (fichas.js)
+   ===================================================== */
+.fcBusca input{ width:100%; min-height:44px; padding:10px 14px; border:1px solid var(--line-2); border-radius:var(--r-2, 4px); background:var(--surface); color:var(--ink); font:inherit; font-size:16px; }
+.fcFiltros{ margin:10px 0 14px; }
+.fcLista{ display:grid; gap:10px; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); }
+.fcCard{ display:flex; flex-direction:column; gap:4px; text-decoration:none; color:inherit; position:relative; padding:14px 16px; transition:border-color .15s, transform .15s; }
+.fcCard:hover{ border-color:var(--accent); transform:translateY(-1px); }
+.fcCard small{ color:var(--ink-2); line-height:1.4; }
+.fcTopo{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding-right:84px; }
+.fcTopo b{ font-family:var(--f-titulo); font-size:1.12rem; font-weight:400; }
+.fcValor{ position:absolute; top:14px; right:16px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
+.fcValor em{ display:block; font-style:normal; font-weight:400; font-size:.78rem; color:var(--warn, #9A5A12); }
+.fichaDoc{ margin-top:10px; }
+.fcCab{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:flex-end; margin-bottom:10px; }
+.fcCab .pageh{ margin:2px 0 4px; }
+.fcSub{ margin:0; color:var(--ink-2); }
+.fcContato{ display:flex; flex-wrap:wrap; gap:6px; }
+.fcAcoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:6px 0 14px; }
+.fcProx{ border-left:3px solid var(--highlight); }
+.fcProx p{ margin:4px 0; }
+.fcObs{ font-style:italic; color:var(--ink-2); }
+.fcTags{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
+.fcTime{ display:grid; gap:2px; }
+.fcItem{ display:grid; grid-template-columns:28px 1fr auto; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); }
+.fcItem:last-child{ border-bottom:0; }
+.fcItem small{ display:block; color:var(--ink-3); margin-top:2px; }
+.fcIc{ font-size:1.15rem; text-align:center; }
+.fcKpis{ margin-top:12px; }
+.fcPriv{ margin-top:14px; }
+@media (max-width:560px){ .fcItem{ grid-template-columns:24px 1fr; } .fcItem .tacts{ grid-column:2; } }
+/* PDF: só a ficha, sem o painel em volta */
+@media print{
+  body.imprimeFicha *{ visibility:hidden !important; }
+  body.imprimeFicha .fichaDoc, body.imprimeFicha .fichaDoc *{ visibility:visible !important; }
+  body.imprimeFicha .fichaDoc{ position:absolute; left:0; top:0; width:100%; margin:0; padding:12mm; background:#fff; color:#222; }
+  body.imprimeFicha .fichaDoc .noprint{ display:none !important; }
+  body.imprimeFicha .fichaDoc input, body.imprimeFicha .fichaDoc textarea{ border:0; padding:0; background:none; }
+}
