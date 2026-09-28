@@ -289,10 +289,12 @@ function route() {
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
   else if (p[0] === 'about') viewAbout();
   else if (p[0] === 'roteiro') viewRoteiro();
+  else if (p[0] === 'pedido') viewPedido();
   else if (p[0] === 'tours') viewShowcase();
   else if (p[0] === 'tour')  viewTour(p[1]);
   else                       viewHub();
   document.body.classList.toggle('em-adm', p[0] === 'adm');
+  cestaBarra(p[0]);
   faixaAcimaDaBarra();
   scrollTo(0, 0);
 }
@@ -423,6 +425,13 @@ const ROTEIRO_PRECISA = [
   ['ingressos', 'Ajuda com ingressos', 'Help with tickets'], ['hotel', 'Dica de hotel', 'Hotel tips'],
   ['papal', 'Audiência Papal', 'Papal Audience'],
 ];
+/* "Crie seu roteiro com consultoria de especialista": para quem NAO quer
+   guia e paga pela experiencia dela para passear sozinho. */
+const ROTEIRO_MODO = [
+  ['guia', 'Com guia particular', 'With a private guide'],
+  ['consultoria', 'Sozinho, com roteiro de especialista (consultoria)', 'On my own, with a specialist route (consulting)'],
+  ['nao-sei', 'Ainda não sei', 'Not sure yet'],
+];
 const ROTEIRO_RITMO = [['calmo', 'Tranquilo', 'Relaxed'], ['medio', 'Equilibrado', 'Balanced'], ['intenso', 'Ver tudo que der', 'See as much as possible']];
 
 /* A mensagem que chega no WhatsApp dela: uma ficha, nao um "oi". Sai no
@@ -434,6 +443,7 @@ function msgRoteiro(ped) {
   const L = [];
   L.push(en ? 'Hi ' + guiaNome() + '! I would like a tailor-made trip:' : 'Olá, ' + guiaNome() + '! Quero montar um roteiro personalizado:');
   L.push('');
+  if (ped.modo) L.push((en ? '🧭 How: ' : '🧭 Como: ') + nome(ROTEIRO_MODO, ped.modo));
   if (ped.ini || ped.fim) L.push((en ? '🗓 Dates: ' : '🗓 Datas: ') + [d(ped.ini), d(ped.fim)].filter(Boolean).join(' → '));
   const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
   L.push((en ? '👥 Group: ' : '👥 Grupo: ')
@@ -465,6 +475,11 @@ function viewRoteiro() {
   <main class="wrap roteiro">
     <h1 class="pageh">${t('rtTit')}</h1>
     <p class="rtintro">${t('rtIntro')}</p>
+
+    <section class="rtbloco"><h3>${LANG === 'en' ? 'How do you want to explore?' : 'Como você quer conhecer?'}</h3>
+      <div class="chips">${ROTEIRO_MODO.map(o => `<button type="button" class="chip ${R.modo === o[0] ? 'on' : ''}" data-modo="${o[0]}">${esc(nm(o))}</button>`).join('')}</div>
+      ${R.modo === 'consultoria' ? `<small class="why">${LANG === 'en' ? 'You explore on your own, with a route made by a specialist for you: which streets, where to eat, what to skip — vegan, lactose-free, the best gelato...' : 'Você passeia sozinho, com um roteiro feito por uma especialista para você: por onde ir, onde comer, o que evitar — vegano, sem lactose, o melhor tiramisù, tour de sorvete...'}</small>` : ''}
+    </section>
 
     <section class="rtbloco"><h3>${t('rtQuando')}</h3>
       <div class="frow">
@@ -528,6 +543,7 @@ function viewRoteiro() {
     viewRoteiro();
   });
   $$('[data-ritmo]').forEach(b => b.onclick = () => { guarda(); R.ritmo = b.dataset.ritmo; viewRoteiro(); });
+  $$('[data-modo]').forEach(b => b.onclick = () => { guarda(); R.modo = R.modo === b.dataset.modo ? '' : b.dataset.modo; viewRoteiro(); });
   $$('[data-rc]').forEach(b => b.onclick = () => {
     guarda();
     const k = b.dataset.rc, min = k === 'adultos' ? 1 : 0;
@@ -1247,7 +1263,16 @@ function renderBook() {
         <p class="cbad" id="cbad"></p>
       </details>
       <button class="cta" id="next2" ${x.priceMode === 'transfer' && S.noCentro === null ? 'disabled' : ''}>${precisaOrcamento(x, S, pr) ? t('bigGroupBtn') : t('cont')}</button>
+      <button class="cta soft" id="toCesta">＋ ${LANG === 'en' ? 'Add to one request with other services' : 'Juntar com outros serviços num pedido só'}</button>
       <button class="linkbtn" id="back1" aria-label="${t('back')}">← ${t('back')}</button>`;
+    /* O cliente que quer varias coisas (transfer, Vaticano, Florenca...) junta
+       tudo e manda UM pedido — chega para ela em Sob consulta e no WhatsApp. */
+    $('#toCesta').onclick = () => {
+      cestaAdd({ tourId: x.id, nome: x.name[LANG] || x.name.pt, data: S.date, hora: S.time, pax: S.pax,
+                 opcao: S.opcao || 0, valor: pr.consultar ? 0 : total });
+      toast(LANG === 'en' ? 'Added to your request' : 'Acrescentado ao seu pedido');
+      go('/tours');
+    };
     /* Antes o piso era x.min (3 nos passeios dela): apertar "menos" com 2
        pessoas SUBIA para 3, e um casal nao conseguia reservar de jeito nenhum.
        O minimo dela e a regra de saida, nao o tamanho minimo de uma reserva. */
@@ -1300,6 +1325,8 @@ function renderBook() {
       </div>` : ''}
       <button class="cta" id="payBtn">${x.priceMode === 'transfer' && pr.sinal ? t('payNowBtn', { v: eur(pr.sinal) }) : S.policy === 'split' && splitAllowed ? t('payNowBtn', { v: eur(half) }) : t('payBtn', { v: eur(total) })}</button>
       <p class="fine">${cancelaTxt(x)} · ${t('noHidden')}</p>
+      ${DB.settings.termos && (DB.settings.termos[LANG] || DB.settings.termos.pt) ? `<details class="termos-ck"><summary>${LANG === 'en' ? 'By paying you accept the terms and conditions' : 'Ao pagar você aceita os termos e condições'}</summary>
+        <p>${esc(DB.settings.termos[LANG] || DB.settings.termos.pt).replace(/\n/g, '<br>')}</p></details>` : ''}
       <p class="fine demo">${t('payAfter')}</p>
       <button class="linkbtn" id="back2" aria-label="${t('back')}">← ${t('back')}</button>`;
     $$('.popt', book).forEach(b => b.onclick = () => {
@@ -1363,14 +1390,18 @@ function renderBook() {
 /* =====================================================
    ADM
 ===================================================== */
+/* A ordem do dia dela (reuniao de 28/09/2026): o que acontece hoje, o que
+   chegou pedindo orcamento, quem faz, e so depois o resto. */
 const ADM_TABS = [
   ['today',    'admToday'],
+  ['consulta', 'admConsulta'],
+  ['guias',    'admGuias'],
   ['agenda',   'admAgenda'],
-  ['tours',    'admTours'],
   ['bookings', 'admBookings'],
-  ['money',    'admMoney'],
-  ['reports',  'admReports'],
   ['clients',  'admClients'],
+  ['money',    'admMoney'],
+  ['tours',    'admTours'],
+  ['reports',  'admReports'],
   ['coupons',  'admCoupons'],
   ['look',     'temaTit'],
   ['settings', 'admSettings'],
@@ -1436,7 +1467,12 @@ function admShell(tab, inner) {
 }
 
 function viewAdm(tab, arg) {
-  if (tab === 'today')    admToday();
+  if (tab === 'today')    admToday(arg);
+  else if (tab === 'guias')    admGuias(arg);
+  else if (tab === 'consulta') admConsulta(arg);
+  else if (tab === 'voucher')  opDocVoucher(arg);
+  else if (tab === 'orcdoc')   opDocOrc(arg);
+  else if (tab === 'clients' && arg) admFicha(arg);
   else if (tab === 'tours' && arg) admTourEdit(arg);
   else if (tab === 'tours')    admTours();
   else if (tab === 'bookings') admBookings();
@@ -1450,37 +1486,17 @@ function viewAdm(tab, arg) {
   else admToday();
 }
 
-/* ---- Hoje ---- */
-function admToday() {
+/* ---- Hoje ----
+   O painel da emergencia (operacao-telas.js): cliente, voo, quem faz, quanto
+   paga no dia e para quem. Aqui fica so o convite de criar senha. */
+function admToday(arg) {
   if (temNuvem() && !DB.settings.authRequired && !isLoggedIn() && !admToday._asked) {
     admToday._asked = true;
     setTimeout(() => {
       if (confirm(t('protectWhy') + '\n\n' + t('protectNow') + '?')) go('/login');
     }, 900);
   }
-  const today = isoToday();
-  const deps = Tours.all().flatMap(x =>
-    Cal.departures(x.id, today, today).map(d => ({ ...d, tour: x })));
-  const late = Bookings.all().filter(b => b.status === 'confirmed' && Bookings.due(b) > 0 && Bookings.dueDate(b) < today);
-  const dueTomorrow = Bookings.all().filter(b => b.status === 'confirmed' && Bookings.due(b) > 0 && Bookings.dueDate(b) === today);
-  admShell('today', `
-    <h1 class="pageh">${t('goodMorning')}</h1>
-    ${late.length ? `<div class="alert bad">⚠ ${late.length} ${LANG === 'pt' ? 'pagamentos atrasados' : 'late payments'} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} <button class="mini" id="goLate">${t('admBookings')} →</button></div>` : ''}
-    ${dueTomorrow.length ? `<div class="alert warn">${dueTomorrow.length} ${LANG === 'pt' ? 'saldos programados para hoje' : 'balances scheduled today'}</div>` : ''}
-    <section class="card">
-      <h3>${t('admToday')}</h3>
-      ${deps.length ? deps.map(d => {
-        const left = Cal.seatsLeft(d.tourId, d.date, d.time, d.capacity);
-        return `<div class="deprow"><b class="mono">${d.time}</b><span>${esc(d.tour.name[LANG] || d.tour.name.pt)}</span><span class="pill ${left === 0 ? 'ok' : 'n'}">${d.capacity - left}/${d.capacity}</span></div>`;
-      }).join('') : `<p class="empty">${t('noDepToday')}</p>`}
-    </section>`);
-  $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
-  Coach.start([
-    { sel: '#nb-tours',    audio: 'adm-1', txt: { pt: 'Aqui você cria e edita seus passeios — quantos quiser, com o calendário de cada um.', en: 'Create and edit your tours here — as many as you want, each with its own calendar.' } },
-    { sel: '#nb-bookings', audio: 'adm-2', txt: { pt: 'Cada reserva aparece aqui: quem pagou tudo, quem pagou o sinal, quem atrasou.', en: 'Every booking lands here: paid in full, deposit only, or late.' } },
-    { sel: '#nb-money',    audio: 'adm-3', txt: { pt: 'O extrato que vai para o contador: cliente, serviço, valor, forma e data de pagamento.', en: 'The statement for your accountant: guest, service, amount, method and date.' } },
-    { sel: '#viewSite',    audio: 'adm-4', txt: { pt: 'A qualquer momento, veja o site exatamente como o cliente vê.', en: 'At any time, see the site exactly as your guest does.' } },
-  ], 'tutorialAdm');
+  admHoje(arg);
 }
 
 /* ---- Passeios ---- */
@@ -1689,6 +1705,8 @@ function admTourEdit(id) {
         </div>
         <label class="fld">${t('edCancel')}<input id="fCancelPt" value="${esc((x.cancel && x.cancel.pt) || '')}" placeholder="Cancelamento gratis ate 48h antes"><small class="why">${t('edCancelWhy')}</small></label>
         <label class="fld campo-en">${t('edCancel')} (EN)<input id="fCancelEn" value="${esc((x.cancel && x.cancel.en) || '')}"></label>
+        <label class="fld">${LANG === 'en' ? 'Tips for the voucher' : 'Dicas para o voucher'}<textarea id="fDicasPt" rows="3" placeholder="${LANG === 'en' ? 'What the guest needs on the day: dress code, where to meet...' : 'O que o cliente precisa saber no dia: como se vestir, onde encontrar, o que levar...'}">${esc((x.dicas && x.dicas.pt) || '')}</textarea></label>
+        <label class="fld campo-en">${LANG === 'en' ? 'Tips for the voucher' : 'Dicas para o voucher'} (EN)<textarea id="fDicasEn" rows="3">${esc((x.dicas && x.dicas.en) || '')}</textarea></label>
         <div class="btnrow">
           <button class="cta sm" id="savePub">${t('savePub')}</button>
           <button class="mini" id="saveDraft">${t('saveDraft')}</button>
@@ -1897,6 +1915,7 @@ function admTourEdit(id) {
       tagline:   par('#fTagPt', '#fTagEn'),
       priceNote: par('#fPNotePt', '#fPNoteEn'),
       cancel:    par('#fCancelPt', '#fCancelEn'),
+      dicas:     par('#fDicasPt', '#fDicasEn'),
       closing:   par('#fClosePt', '#fCloseEn'),
       earlySeats: +$('#fEarlyN').value || 0,
       priceLate:  +$('#fLate').value || 0,
@@ -2246,69 +2265,9 @@ function destinoPgto(metodo) {
   return PGTO_BRASIL.includes(String(metodo || '').toLowerCase()) ? 'brasil' : 'europa';
 }
 
-function admMoney() {
-  const mode = admMoney._m || 'month';
-  const today = isoToday();
-  const from = mode === 'week' ? addDays(today, -7) : today.slice(0, 8) + '01';
-  const rows = Bookings.statement(from, today);
-  const total = rows.reduce((s, r) => s + r.amount, 0);
-  const KIND = { full: 'kindFull', deposit: 'kindDep', balance: 'kindBal' };
-  const cols = t('stCols');
-  const europa = rows.filter(r => destinoPgto(r.method) === 'europa');
-  const brasil = rows.filter(r => destinoPgto(r.method) === 'brasil');
-  const soma = (a) => a.reduce((s, r) => s + r.amount, 0);
-
-  const tabela = (lista, vazio) => lista.length
-    ? `<table class="tbl"><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-       <tbody>${lista.map(r => {
-         const x = Tours.get(r.tourId);
-         return `<tr><td class="mono">${r.date}</td><td>${esc(r.client)}</td>
-           <td>${esc(x ? (x.name[LANG] || x.name.pt) : '?')}</td>
-           <td>${t(KIND[r.kind])}</td><td>${formaPg(r.method)}</td>
-           <td class="mono right">${eur(r.amount)}</td></tr>`;
-       }).join('')}</tbody>
-       <tfoot><tr><td colspan="5"><b>${t('received')}</b></td>
-         <td class="mono right"><b>${eur(soma(lista))}</b></td></tr></tfoot></table>`
-    : `<p class="empty">${vazio}</p>`;
-  admShell('money', `
-    <div class="pagehead"><h1 class="pageh">${t('stTitle')}</h1>
-      <div class="chips">
-        <button class="chip ${mode === 'week' ? 'on' : ''}" id="mW">${t('thisWeek')}</button>
-        <button class="chip ${mode === 'month' ? 'on' : ''}" id="mM">${t('thisMonth')}</button>
-        <button class="mini" id="dlCont">${t('exCsvCont')}</button>
-        <button class="mini" id="dlCsv">${t('exCsvTudo')}</button>
-        <button class="mini" id="prn">${t('print')}</button>
-      </div></div>
-    <p class="why">${t('exRegra')}</p>
-    <section class="card">
-      <span class="seclabel">${t('exEuropa')}</span>
-      ${tabela(europa, t('exNadaEuro'))}
-    </section>
-    <section class="card">
-      <span class="seclabel">${t('exBrasil')}</span>
-      ${tabela(brasil, t('exNadaBr'))}
-    </section>
-    ${rows.length ? `<section class="card totalgeral">
-      <span>${t('exTotalGeral')}</span><b class="mono">${eur(total)}</b>
-    </section>` : ''}`);
-  $('#mW').onclick = () => { admMoney._m = 'week'; admMoney(); };
-  $('#mM').onclick = () => { admMoney._m = 'month'; admMoney(); };
-  $('#prn').onclick = () => print();
-  /* O contador francês recebe só o que caiu na conta europeia. */
-  const baixaCsv = (lista, nome) => {
-    const csv = [cols.join(';')].concat(lista.map(r => {
-      const x = Tours.get(r.tourId);
-      return [r.date, r.client, x ? (x.name[LANG] || x.name.pt) : '',
-              t(KIND[r.kind]), formaPg(r.method), r.amount].join(';');
-    })).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = nome; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  };
-  $('#dlCont').onclick = () => baixaCsv(europa, 'extrato-contador-' + from + '-a-' + today + '.csv');
-  $('#dlCsv').onclick  = () => baixaCsv(rows,   'extrato-completo-' + from + '-a-' + today + '.csv');
-}
+/* Contabilidade por conta (operacao-telas.js): cada conta sabe de que lado
+   fica, e cada contador recebe so o dele. */
+function admMoney() { admContabilidade(); }
 
 /* ---- Cupons ---- */
 function admCoupons() {
@@ -2561,6 +2520,7 @@ function admSettings() {
       </div>
       <button class="cta sm" id="pgSave">${t('saveBtn')}</button>
     </section>
+    ${opAjustesHtml()}
     <section class="card">
       <h3>${t('admAviso')}</h3>
       <p class="why">${t('admAvisoHelp')}</p>
@@ -2701,6 +2661,8 @@ function admSettings() {
       passeios: DB.tours, regras: DB.rules, datas: DB.departures,
       bloqueios: DB.blocks, cupons: DB.coupons,
       configuracoes: DB.settings, reservas: DB.bookings,
+      pedidos: DB.pedidos || [], equipe: DB.equipe || [], disponibilidade: DB.disp || [],
+      contas: DB.contas || [], orcamentos: DB.orcamentos || [], fichas: DB.fichas || {},
     };
     baixaArquivo(JSON.stringify(pacote, null, 2), 'backup-' + hojeArq() + '.json', 'application/json');
     toast(t('bkpFeito'));
@@ -2733,7 +2695,7 @@ function admSettings() {
       await Promise.all(chaves.map(k => caches.delete(k)));
     } catch (e) {}
     try {
-      localStorage.removeItem('vi_db_v1');
+      localStorage.removeItem(DB_KEY);
       localStorage.removeItem('vi_queue_v1');
       localStorage.removeItem('vi_migr_naNuvem');
     } catch (e) {}
@@ -2818,6 +2780,7 @@ function admSettings() {
     go('/adm/today');
   };
   $('#reset').onclick = () => { if (confirm(t('resetWarn'))) { resetDemo(); route(); } };
+  opAjustesLiga();
 }
 
 /* ---------- link vindo do e-mail ----------
@@ -3060,7 +3023,7 @@ function admClients() {
     <section class="card">
       ${list.length ? `<table class="tbl"><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
       <tbody>${list.map(c => `<tr>
-        <td><b>${esc(c.name)}</b>${c.acompanhante
+        <td><a class="clink" href="#/adm/clients/${encodeURIComponent(c.key)}"><b>${esc(c.name)}</b></a>${c.acompanhante
               ? `<br><small class="veiocom">${t('grpCameWith', { n: esc(c.veioCom || '') })}${c.nasc ? ' · ' + esc(c.nasc) : ''}</small>`
               : `<br><small class="mono">${esc(c.email || '')}</small>`}</td>
         <td>${c.tours > 1 ? `<span class="pill ok">${t('clRepeat', { n: c.tours })}</span>`
@@ -3210,7 +3173,7 @@ function viewLogin(mode) {
     busy(false);
 
     DB.settings.authRequired = true;
-    localStorage.setItem('vi_db_v1', JSON.stringify(DB));   /* grava aqui, sem empurrar */
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));   /* grava aqui, sem empurrar */
     toast(t('loginHi'));
     go('/adm/today');
   };
@@ -3242,6 +3205,7 @@ function isBusyEditing() {
   const S = viewTour._s;
   if (h.startsWith('#/tour/') && S && (S.step > 1 || S.date || S.time)) return true;
   if (/^#\/adm\/tours\//.test(h)) return true;                      // editando passeio
+  if (/^#\/adm\/consulta\/./.test(h)) return true;                  // montando orcamento
   const ae = document.activeElement;
   if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true; // digitando
   return false;

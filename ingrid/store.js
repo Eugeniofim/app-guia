@@ -1758,7 +1758,7 @@ const Bookings = {
       for (const p of b.payments) {
         if (p.date >= fromIso && p.date <= toIso) {
           rows.push({ date: p.date, client: b.name, tourId: b.tourId,
-                      kind: p.kind, method: p.method, amount: p.amount, code: b.code });
+                      kind: p.kind, method: p.method, amount: p.amount, code: b.code, conta: p.conta || '' });
         }
       }
     }
@@ -1787,7 +1787,7 @@ const Roteiros = {
       adultos: Math.max(1, +r.adultos || 1), criancas: Math.max(0, +r.criancas || 0), idades: limpa(r.idades),
       onde: [...(r.onde || [])], ondeOutro: limpa(r.ondeOutro),
       gosto: [...(r.gosto || [])], precisa: [...(r.precisa || [])], ritmo: r.ritmo || '',
-      obs: limpa(r.obs),
+      obs: limpa(r.obs), modo: r.modo || '',
       lang: (typeof LANG !== 'undefined' && LANG === 'en') ? 'en' : 'pt',
     };
     DB.pedidos = DB.pedidos || [];
@@ -1810,7 +1810,7 @@ const Clients = {
     for (const b of DB.bookings) {
       if (b.status === 'cancelled') continue;
       const key = (b.email || b.whats || b.name).toLowerCase();
-      const c = map.get(key) || { name: b.name, email: b.email, whats: b.whats, insta: b.insta,
+      const c = map.get(key) || { key, name: b.name, email: b.email, whats: b.whats, insta: b.insta,
                                   tours: 0, spent: 0, last: '', origins: new Set(), consent: false, consentAt: '' };
       c.tours += 1;
       c.spent += Bookings.paid(b);
@@ -1837,7 +1837,7 @@ const Clients = {
         const gnome = String((g && g.nome) || '').trim();
         if (!gnome) continue;
         const gk = 'g:' + gnome.toLowerCase();
-        const gc = map.get(gk) || { name: gnome, email: '', whats: '', insta: '',
+        const gc = map.get(gk) || { key: gk, name: gnome, email: '', whats: '', insta: '',
                                     nasc: String((g && g.nasc) || '').trim(), veioCom: b.name, acompanhante: true,
                                     tours: 0, spent: 0, last: '', origins: new Set(),
                                     consent: false, consentAt: '' };
