@@ -571,3 +571,6 @@
 .vozCard .iavLinha{display:flex;gap:8px}
 .vozCard .vzKey{flex:1;min-height:44px}
 .vozCard .vzSel{min-height:44px}
+
+/* Créditos de IA: erro ao ligar a chave tem que ser impossível de não ver */
+#crMsg.crErro{margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--danger-wash);color:var(--danger);font-weight:600;font-size:14px}

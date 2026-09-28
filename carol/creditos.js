@@ -156,7 +156,10 @@ async function ligaCartaoCreditos() {
     document.getElementById('crLigar').onclick = async () => {
       const m = document.getElementById('crMsg'); m.textContent = 'Testando a chave…';
       const erro = await crConectar(document.getElementById('crChave').value, document.getElementById('crColocado').value);
-      if (erro) { m.textContent = erro; return; }
+      /* o aviso embaixo do campo passava batido (28/09: "não salvou"): agora
+         também sobe num balão grande e o campo fica marcado */
+      if (erro) { m.textContent = '⚠️ ' + erro + ' A chave NÃO foi salva.'; m.classList.add('crErro'); document.getElementById('crChave').classList.add('invalid');
+        if (typeof toast === 'function') toast('⚠️ ' + erro, 6000); return; }
       if (typeof toast === 'function') toast('IA ligada ✓');
       ligaCartaoCreditos(); crAtualizaPilulas();
     };
