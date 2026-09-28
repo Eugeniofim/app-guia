@@ -1,0 +1,163 @@
+/* as livres primeiro: @import só vale no topo do arquivo */
+@import url(fontes/fontes-livres.css);
+/* =========================================================
+   FONTES — dentro do app (pasta fontes/), sem Google Fonts (LGPD/GDPR:
+   fonte do Google carregada sem consentimento já deu multa na Europa).
+
+   As da MARCA são as mesmas do site lovelylondon.uk: Giften Sans (títulos),
+   Buvera (texto) e Gastela (a manuscrita do "by Carol"). São comerciais:
+   ficam em fontes/marca/ SÓ na cópia local e só vão ao ar com licença WEB.
+   Sem elas, entram as equivalentes livres (SIL OFL): Playfair Display,
+   Outfit e Allura — mesmo desenho geral, contraste e largura.
+   ========================================================= */
+@font-face{font-family:"Giften Sans";src:url(fontes/marca/giften-sans.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Buvera";src:url(fontes/marca/buvera.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Gastela";src:url(fontes/marca/gastela.ttf) format("truetype");font-weight:400;font-style:normal;font-display:swap}
+
+/* =========================================================
+   LOVELY LONDON BY CAROL — Design tokens
+   Cores do site dela (css/main.css, :root) e do logo. Contrastes medidos
+   (WCAG AA). Não usar hex solto no código.
+   ========================================================= */
+
+:root{
+  /* ---------- MARCA ---------- */
+  --brand-primaria:   #700420;   /* --lovely: o bordô da marca */
+  --brand-assinatura: #700420;   /* logo e monograma sobre fundo claro */
+  --brand-escuro:     #5A0318;   /* hover do site */
+  --brand-vivo:       #8B0528;   /* fim do gradiente --gradient-lovely */
+  --brand-dourado:    #EAB36C;   /* o "by Carol" do logo */
+  --brand-cidra:      var(--brand-dourado);   /* nome antigo (pílulas, selo) */
+  --brand-oro:        var(--brand-dourado);
+  --brand-nude:       #DAB59A;   /* --skyline: o monograma LL */
+  --brand-caramelo:   #955425;   /* --notting-hill */
+  --brand-thames:     #7FA1C3;   /* --thames */
+  --brand-offwhite:   #FAF6F3;
+  --brand-preto:      #292828;   /* --blackfriars */
+  /* nomes antigos do app-guia: o código ainda chama por eles */
+  --brand-verde:   var(--brand-primaria);
+  --brand-amarelo: var(--brand-assinatura);
+
+  /* ---------- FUNDOS (o creme rosado dos roteiros e do voucher dela) ---------- */
+  --paper:     #FAF6F3;
+  --surface:   #FFFFFF;
+  --surface-2: #F4ECE8;
+  --surface-3: #EADDD7;
+  --line:      #E8DCD6;
+  --line-2:    #D5C3BC;
+
+  /* ---------- TEXTO ---------- */
+  --ink:    #292828;   /* 13.7:1 */
+  --ink-2:  #4A4546;   /* 8.8:1 */
+  --ink-3:  #6A6263;   /* 5.5:1 (4.9:1 sobre o surface-2) — mínimo */
+
+  /* ---------- AÇÃO ---------- */
+  --accent:       var(--brand-primaria);
+  --accent-ink:   #FFFFFF;          /* 12.2:1 */
+  --accent-wash:  #F4E3E6;          /* bordô por cima = 9.8:1 */
+  --accent-line:  #DDB3BD;
+
+  /* Destaque (dourado do "by Carol"): preenchimento com texto escuro */
+  --highlight:      var(--brand-dourado);
+  --highlight-ink:  #292828;        /* 7.8:1 */
+  --highlight-wash: #F8EBDD;
+  --highlight-text: #8A5518;        /* dourado escuro para texto · 5.8:1 */
+
+  /* ---------- ESTADOS ---------- */
+  --ok:        #2F5A3F;  --ok-wash:    #DDEBE1;
+  --warn:      #8A5518;  --warn-wash:  #F8EBDD;
+  --danger:    #A3202F;  --danger-wash:#F6DEE1;
+  --neutral:   #4A4546;  --neutral-wash:#EFE6E2;
+
+  /* ---------- TIPOGRAFIA ---------- */
+  --f-display: "Giften Sans", "Playfair Display", Georgia, serif;
+  --f-titulo:  "Giften Sans", "Playfair Display", Georgia, serif;
+  --f-serif:   "Buvera", "Outfit", "Helvetica Neue", Arial, sans-serif;   /* leitura: no site o texto é sem serifa */
+  --f-ui:      "Buvera", "Outfit", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --f-script:  "Gastela", "Allura", cursive;
+  --f-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --t-display: 500;
+  --t-strong:  600;
+  --t-body:    400;
+
+  /* escala (1.25) */
+  --fs-9:  44px;  --lh-9: 1.04;
+  --fs-8:  34px;  --lh-8: 1.08;
+  --fs-7:  27px;  --lh-7: 1.14;
+  --fs-6:  22px;  --lh-6: 1.22;
+  --fs-5:  18px;  --lh-5: 1.35;
+  --fs-4:  15px;  --lh-4: 1.6;
+  --fs-3:  13px;  --lh-3: 1.5;
+  --fs-2:  11.5px;--lh-2: 1.45;
+  --fs-1:  10px;  --lh-1: 1.4;
+
+  --track-display: -0.005em;
+  --track-label:    0.14em;
+
+  /* ---------- ESPAÇO ---------- */
+  --s-0:2px;  --s-1:4px;  --s-2:6px;  --s-3:8px;   --s-4:10px;
+  --s-5:12px; --s-6:14px; --s-7:16px; --s-8:20px;  --s-9:24px;
+  --s-10:32px; --s-11:40px; --s-12:48px; --s-14:64px;
+
+  /* ---------- FORMA: editorial, cantos quase retos (o site usa 0) ---------- */
+  --r-sm:2px; --r:4px; --r-lg:6px; --r-xl:10px; --r-pill:999px;
+
+  /* ---------- ELEVAÇÃO (sombra bordô do site: rgba(112,4,32,…)) ---------- */
+  --sh-1: 0 1px 2px rgba(41,40,40,.05), 0 8px 22px -16px rgba(112,4,32,.30);
+  --sh-2: 0 2px 6px rgba(41,40,40,.06), 0 20px 44px -24px rgba(112,4,32,.34);
+  --sh-3: 0 28px 64px -30px rgba(112,4,32,.42);
+
+  /* ---------- MOVIMENTO ---------- */
+  --ease:   cubic-bezier(.22,1,.36,1);
+  --spring: cubic-bezier(.34,1.4,.5,1);
+  --d-fast: 180ms; --d-base: 260ms; --d-slow: 480ms;
+}
+
+/* Tema escuro: o vinho vira o fundo, o dourado vira a assinatura. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --paper:#1C1012; --surface:#261619; --surface-2:#2E1A1E; --surface-3:#3A2227;
+    --line:#3A2428; --line-2:#553339;
+    --ink:#F2E9E4; --ink-2:#CFC2BD; --ink-3:#A99A95;
+    --brand-assinatura:#EAB36C;
+    --accent:#EAB36C; --accent-ink:#1C1012; --accent-wash:#2E1A1E; --accent-line:#5A3A2A;
+    --highlight:#EAB36C; --highlight-ink:#1C1012; --highlight-wash:#33241A; --highlight-text:#EAB36C;
+    --ok:#9CC7A8;  --ok-wash:#1F2E24;
+    --warn:#E3B27A; --warn-wash:#3A2A1A;
+    --danger:#F0909C; --danger-wash:#3D1E23;
+    --neutral:#CFC2BD; --neutral-wash:#2E1A1E;
+    --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
+    --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
+    --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1C1012; --surface:#261619; --surface-2:#2E1A1E; --surface-3:#3A2227;
+  --line:#3A2428; --line-2:#553339;
+  --ink:#F2E9E4; --ink-2:#CFC2BD; --ink-3:#A99A95;
+  --brand-assinatura:#EAB36C;
+  --accent:#EAB36C; --accent-ink:#1C1012; --accent-wash:#2E1A1E; --accent-line:#5A3A2A;
+  --highlight:#EAB36C; --highlight-ink:#1C1012; --highlight-wash:#33241A; --highlight-text:#EAB36C;
+  --ok:#9CC7A8;  --ok-wash:#1F2E24;
+  --warn:#E3B27A; --warn-wash:#3A2A1A;
+  --danger:#F0909C; --danger-wash:#3D1E23;
+  --neutral:#CFC2BD; --neutral-wash:#2E1A1E;
+  --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
+  --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
+  --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
+}
+
+/* =========================================================
+   REGRAS QUE NÃO SE QUEBRAM
+   1. Destaque (dourado) nunca é texto sobre fundo claro. Use --highlight-text.
+   2. Bordô é a ação principal. Um botão de ação por tela.
+   3. Terracota (danger) é urgência (vencido, últimas vagas). Não decora.
+   4. Cinza é legenda, nunca título.
+   5. Números sempre em --f-mono com font-variant-numeric: tabular-nums.
+   6. Toda cor sai daqui. Hex solto no componente = bug.
+      Exceção única: #fff sobre preenchimento de marca (verde/vinho).
+   7. Espaçamento sai de --s-*. Valor cru em px = dívida a pagar.
+   8. Todo controle clicável precisa de :focus-visible próprio ou herdado.
+   9. Botão só com ícone precisa de aria-label; ícone decorativo, aria-hidden.
+   ========================================================= */
