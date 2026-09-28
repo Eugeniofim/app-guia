@@ -614,3 +614,39 @@ admSettings = function () {
 };
 
 if (typeof module !== 'undefined') module.exports = { prazoInvoice, conflitoDoDia, msgLembrete };
+
+/* =====================================================
+   PAINEL LATERAL — agrupar as 20 abas por assunto (UI/UX, 28/09)
+   A lista corrida cansava. Aqui os botões são reagrupados sob títulos,
+   sem reordenar o ADM_TABS nem mexer no roteador: só movo os botões no
+   DOM (o onclick fica no próprio botão, então continua funcionando) e
+   ponho um rótulo antes de cada grupo. Aba que eu não listar (ou futura)
+   vai para "Mais", nunca some.
+   ===================================================== */
+const NAV_GRUPOS = [
+  ['Dia a dia', ['today', 'tarefas', 'agenda']],
+  ['Passeios e reservas', ['tours', 'pontos', 'bookings', 'roteiros']],
+  ['Clientes', ['clients', 'avaliacoes']],
+  ['Agências e pedidos', ['agencias', 'emails', 'transfer']],
+  ['Dinheiro', ['financeiro', 'money', 'extrato', 'reports']],
+  ['Crescer', ['atendimento', 'inbox', 'marketing', 'coupons']],
+  ['Configurar', ['look', 'settings']],
+];
+const _admShellBase = admShell;
+admShell = function (tab, inner) {
+  _admShellBase(tab, inner);
+  const nav = document.querySelector('.rail nav'); if (!nav || nav.dataset.agrupado) return;
+  const botoes = {};
+  nav.querySelectorAll('.nb[data-tab]').forEach(b => { botoes[b.dataset.tab] = b; });
+  const usados = new Set();
+  nav.innerHTML = '';
+  const grupo = (titulo, ids) => {
+    const nos = ids.map(id => botoes[id]).filter(Boolean); if (!nos.length) return;
+    const h = document.createElement('p'); h.className = 'navRot'; h.textContent = titulo; nav.appendChild(h);
+    nos.forEach(b => { nav.appendChild(b); usados.add(b.dataset.tab); });
+  };
+  NAV_GRUPOS.forEach(([t2, ids]) => grupo(t2, ids));
+  const sobra = Object.values(botoes).filter(b => !usados.has(b.dataset.tab));
+  if (sobra.length) { const h = document.createElement('p'); h.className = 'navRot'; h.textContent = 'Mais'; nav.appendChild(h); sobra.forEach(b => nav.appendChild(b)); }
+  nav.dataset.agrupado = '1';
+};

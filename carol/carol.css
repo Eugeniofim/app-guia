@@ -574,3 +574,10 @@
 
 /* Créditos de IA: erro ao ligar a chave tem que ser impossível de não ver */
 #crMsg.crErro{margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--danger-wash);color:var(--danger);font-weight:600;font-size:14px}
+
+/* painel lateral: grupos e polimento (UI/UX 28/09) */
+.rail .brand{padding:4px 8px 10px}
+.rail nav .navRot{margin:14px 8px 4px;font:600 10.5px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);opacity:.75}
+.rail nav .navRot:first-child{margin-top:2px}
+.rail .nb{font-family:var(--f-ui);font-size:14px;padding:9px 12px;transition:background .12s,color .12s}
+.rail .nb.on{font-weight:600;box-shadow:inset 3px 0 0 var(--accent)}
