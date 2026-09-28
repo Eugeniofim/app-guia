@@ -121,8 +121,6 @@ function viewHub() {
       ${bt('goRoteiro', ICONE_MENU.roteiro, 'Monte seu roteiro', 'Dia a dia, com mapa — e audioguia na minha voz')}
       ${bt('goImersivo', IC.imersivo, 'Roteiro imersivo · prévia', 'City of London com GPS e a voz da Carol')}
       ${bt('goTransfer', ICONE_MENU.transfer, 'Transfer', 'Aeroporto, hotel e bate-volta com motorista')}
-      ${bt('goIngressos', IC.ingresso, 'Ingressos antecipados', 'Abadia, Torre, Windsor… compre antes, sem fila')}
-      ${bt('goPresente', IC.presente, 'Vale-presente', 'Dê um tour com a Carol de presente')}
 
       <p class="hubRot">Conheça</p>
       <button class="lk" id="goAbout"><span class="ic"><img id="hubFace" src="${esc(st.photo || 'fotos/carol.jpg')}" alt=""
@@ -132,6 +130,10 @@ function viewHub() {
       <a class="lk" href="${waLink('Olá, Carol! Vim pelo app e queria saber mais sobre os tours em Londres.')}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>Fale comigo no WhatsApp</b><small>+44 7950 400919</small></span><span class="go" aria-hidden="true">→</span></a>
 
       ${typeof secaoDepoimentos === 'function' ? secaoDepoimentos('noHub') : ''}
+
+      <p class="hubRot">Ingressos e presentes</p>
+      ${bt('goIngressos', IC.ingresso, 'Ingressos antecipados', 'Abadia, Torre, Windsor… compre antes, sem fila')}
+      ${bt('goPresente', IC.presente, 'Vale-presente', 'Dê um tour com a Carol de presente')}
       ${typeof secaoViagem === 'function' ? secaoViagem() : ''}
       <button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>
     </div>
