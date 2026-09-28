@@ -433,7 +433,9 @@ function iavMenu() {
 function iavVozCfgHtml() {
   const el = iaLe(IAV_EL, {});
   return `<div class="iavVozCfg"><b>Voz das respostas</b>
-    <small>${el.chave && el.voz ? `Voz de estúdio (ElevenLabs): <b>${esc(el.nomeVoz || el.voz)}</b>.` : 'Agora: a voz do aparelho. Com a ElevenLabs, a voz fica de gente — e pode ser a voz clonada da Carol, com a autorização dela.'}</small>
+    <small class="vzEstado">${el.chave && el.voz ? `✓ Chave salva neste aparelho · voz de estúdio: <b>${esc(el.nomeVoz || el.voz)}</b>`
+      : el.chave ? '✓ Chave salva neste aparelho · <b>falta escolher a voz</b> — toque em Buscar vozes e escolha uma'
+      : 'Sem chave: usa a voz do aparelho. Com a ElevenLabs, a voz fica de gente — e pode ser a voz clonada da Carol, com a autorização dela.'}</small>
     <label class="vzRot">Chave da ElevenLabs <small>elevenlabs.io → seu perfil → API Keys → Create. Fica só neste aparelho.</small></label>
     <div class="iavLinha"><input type="password" class="vzKey" autocomplete="off" placeholder="cole aqui (sk_…)" value="${el.chave ? '••••••••' : ''}" aria-label="Chave da ElevenLabs">
       <button type="button" class="mini vzBusca">Buscar vozes</button></div>
@@ -456,8 +458,14 @@ function iavLigaVozCfg(root, redesenha) {
       if (!r.ok) throw new Error(r.status === 401 ? 'a chave foi recusada (confira se copiou inteira)' : r.status === 403 ? 'a chave não tem a permissão "Voices" (leitura)' : 'erro ' + r.status);
       const vs = ((await r.json()).voices || []).map(v => ({ id: v.voice_id, nome: v.name, clonada: v.category === 'cloned' }));
       if (!vs.length) throw new Error('nenhuma voz na sua conta — adicione uma na Voice Library');
+      /* a chave já vale: fica salva AQUI, antes de escolher a voz. Antes só
+         gravava ao escolher — quem fechava a tela no meio perdia a chave. */
+      const mesma = chave === el.chave;
+      iaGrava(IAV_EL, { chave, voz: mesma ? el.voz : '', nomeVoz: mesma ? el.nomeVoz : '' });
+      const est = q('.vzEstado'); if (est) est.innerHTML = '✓ Chave salva neste aparelho · <b>agora escolha a voz</b>';
       const sel = q('.vzSel'); sel.hidden = false;
       sel.innerHTML = '<option value="">escolha a voz…</option>' + vs.map(v => `<option value="${esc(v.id)}">${esc(v.nome)}${v.clonada ? ' (clonada)' : ''}</option>`).join('');
+      if (mesma && el.voz) sel.value = el.voz;
       sel.onchange = () => { const v = vs.find(x => x.id === sel.value); if (!v) return; iaGrava(IAV_EL, { chave, voz: v.id, nomeVoz: v.nome }); iavPintaVoz(); toast('Voz escolhida: ' + v.nome + ' — toque em Ouvir um teste'); redesenha(); };
       toast(vs.length + ' vozes — escolha uma');
     } catch (e) { toast('ElevenLabs: ' + (e.name === 'AbortError' ? 'não respondeu' : e.message)); }
