@@ -402,16 +402,10 @@ function iavMoveOrbeTopo() {
 function iavMenu() {
   const m = iaEl && iaEl.g.querySelector('#iavMenu'); if (!m) return;
   m.hidden = !IAV.menu; if (!IAV.menu) return;
-  const el = iaLe(IAV_EL, {}), demo = iaDemo(), vivo = iaModo() === 'vivo';
+  const demo = iaDemo(), vivo = iaModo() === 'vivo';
   m.innerHTML = `<label class="iavLiga"><input type="checkbox" id="iaConf" ${iaPerguntaAntes() ? 'checked' : ''}><span><b>Perguntar antes de gravar</b><small>O cartão "confirma?" antes de mexer no app.</small></span></label>
     <label class="iavLiga"><input type="checkbox" id="iavEnvia" ${iaLe(IAV_ENVIA, true) !== false ? 'checked' : ''}><span><b>Mandar sozinho quando eu parar de falar</b><small>Desligado, o texto fica na caixa para você revisar.</small></span></label>
-    <div class="iavVozCfg"><b>Voz das respostas</b>
-      <small>${el.chave && el.voz ? `Voz de estúdio (ElevenLabs): <b>${esc(el.nomeVoz || el.voz)}</b>.` : 'Agora: a voz do aparelho. Com a ElevenLabs, a voz fica de gente — e pode ser a voz clonada da Carol, com a autorização dela.'}</small>
-      <div class="iavLinha"><input type="password" id="iavElKey" autocomplete="off" placeholder="chave da ElevenLabs (sk_…)" value="${el.chave ? '••••••••' : ''}" aria-label="Chave da ElevenLabs">
-        <button type="button" class="mini" id="iavElVozes">Buscar vozes</button></div>
-      <select id="iavElSel" hidden aria-label="Escolher a voz"></select>
-      ${el.chave ? '<button type="button" class="mkLink" id="iavElTira">Voltar para a voz do aparelho</button>' : ''}
-      <button type="button" class="mini" id="iavTestaVoz">▶ Ouvir um teste</button></div>
+    ${iavVozCfgHtml()}
     <div class="iavMenuPe"><span id="iaGastoMenu"></span>
       <button type="button" class="mini" id="iaLimpa">Nova conversa</button>
       ${demo || vivo ? '' : '<button type="button" class="mkLink" id="iaTiraChave">Trocar a chave da IA</button>'}</div>`;
@@ -419,22 +413,60 @@ function iavMenu() {
   m.querySelector('#iavEnvia').onchange = (e) => iaGrava(IAV_ENVIA, e.target.checked);
   m.querySelector('#iaLimpa').onclick = () => { iaGrava(IA_HIST, []); IAV.menu = false; iavPararFala(); iaDesenha(); };
   const tc = m.querySelector('#iaTiraChave'); if (tc) tc.onclick = () => { if (!confirm(ia('tirarChave'))) return; localStorage.removeItem(IA_CHAVE); IAV.menu = false; iaAtualizaFab(); iaDesenha(); };
-  m.querySelector('#iavTestaVoz').onclick = () => iavFalar('Oi, Carol! Amanhã você guia a família Souza: Londres Clássica, das 9 e 30 à 1 e meia, com saída na Parliament Square.');
-  const tira = m.querySelector('#iavElTira'); if (tira) tira.onclick = () => { iaGrava(IAV_EL, {}); iavMenu(); };
-  m.querySelector('#iavElVozes').onclick = async () => {
-    const inp = m.querySelector('#iavElKey'); const chave = /^•+$/.test(inp.value) ? el.chave : inp.value.trim();
-    if (!chave) return toast('Cole a chave da ElevenLabs');
-    try {
-      const r = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': chave } });
-      if (!r.ok) throw new Error(r.status === 401 ? 'chave recusada' : 'erro ' + r.status);
-      const vs = ((await r.json()).voices || []).map(v => ({ id: v.voice_id, nome: v.name, clonada: v.category === 'cloned' }));
-      const sel = m.querySelector('#iavElSel'); sel.hidden = false;
-      sel.innerHTML = '<option value="">escolha a voz…</option>' + vs.map(v => `<option value="${esc(v.id)}">${esc(v.nome)}${v.clonada ? ' (clonada)' : ''}</option>`).join('');
-      sel.onchange = () => { const v = vs.find(x => x.id === sel.value); if (!v) return; iaGrava(IAV_EL, { chave, voz: v.id, nomeVoz: v.nome }); toast('Voz escolhida: ' + v.nome); iavMenu(); };
-    } catch (e) { toast('ElevenLabs: ' + e.message); }
-  };
+  iavLigaVozCfg(m, iavMenu);
   if (typeof crResumo === 'function') crResumo(true).then(r => { const x = crSituacao(r); const s = m.querySelector('#iaGastoMenu'); if (s) s.innerHTML = `<button type="button" class="crPilula ${x.classe}" onclick="irParaCreditos()">✦ ${x.curto}</button>`; }).catch(() => {});
 }
+
+/* a voz das respostas — o MESMO bloco na engrenagem da gaveta e em
+   Ajustes → "Voz do assistente" (é em Ajustes que se procura onde pôr
+   chave: foi lá que o Eugênio procurou, 28/09). Classes, não ids: os dois
+   podem estar abertos ao mesmo tempo. A chave fica só neste aparelho. */
+function iavVozCfgHtml() {
+  const el = iaLe(IAV_EL, {});
+  return `<div class="iavVozCfg"><b>Voz das respostas</b>
+    <small>${el.chave && el.voz ? `Voz de estúdio (ElevenLabs): <b>${esc(el.nomeVoz || el.voz)}</b>.` : 'Agora: a voz do aparelho. Com a ElevenLabs, a voz fica de gente — e pode ser a voz clonada da Carol, com a autorização dela.'}</small>
+    <label class="vzRot">Chave da ElevenLabs <small>elevenlabs.io → seu perfil → API Keys → Create. Fica só neste aparelho.</small></label>
+    <div class="iavLinha"><input type="password" class="vzKey" autocomplete="off" placeholder="cole aqui (sk_…)" value="${el.chave ? '••••••••' : ''}" aria-label="Chave da ElevenLabs">
+      <button type="button" class="mini vzBusca">Buscar vozes</button></div>
+    <select class="vzSel" hidden aria-label="Escolher a voz"></select>
+    <div class="iavLinha vzBts"><button type="button" class="mini vzTeste">▶ Ouvir um teste</button>
+      ${el.chave ? '<button type="button" class="mkLink vzTira">Voltar para a voz do aparelho</button>' : ''}</div>
+  </div>`;
+}
+function iavLigaVozCfg(root, redesenha) {
+  const q = (c) => root.querySelector(c), el = iaLe(IAV_EL, {});
+  q('.vzTeste').onclick = () => iavFalar('Oi, Carol! Amanhã você guia a família Souza: Londres Clássica, das 9 e 30 à 1 e meia, com saída na Parliament Square.');
+  if (q('.vzTira')) q('.vzTira').onclick = () => { iaGrava(IAV_EL, {}); toast('Voltei para a voz do aparelho'); redesenha(); };
+  q('.vzBusca').onclick = async () => {
+    const inp = q('.vzKey'); const chave = /^•+$/.test(inp.value) ? el.chave : inp.value.trim();
+    if (!chave) { toast('Cole a chave da ElevenLabs'); inp.focus(); return; }
+    const b = q('.vzBusca'); b.disabled = true; b.textContent = 'Buscando…';
+    try {
+      const ctrl = new AbortController(), corta = setTimeout(() => ctrl.abort(), 12000);
+      const r = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': chave }, signal: ctrl.signal }).finally(() => clearTimeout(corta));
+      if (!r.ok) throw new Error(r.status === 401 ? 'a chave foi recusada (confira se copiou inteira)' : r.status === 403 ? 'a chave não tem a permissão "Voices" (leitura)' : 'erro ' + r.status);
+      const vs = ((await r.json()).voices || []).map(v => ({ id: v.voice_id, nome: v.name, clonada: v.category === 'cloned' }));
+      if (!vs.length) throw new Error('nenhuma voz na sua conta — adicione uma na Voice Library');
+      const sel = q('.vzSel'); sel.hidden = false;
+      sel.innerHTML = '<option value="">escolha a voz…</option>' + vs.map(v => `<option value="${esc(v.id)}">${esc(v.nome)}${v.clonada ? ' (clonada)' : ''}</option>`).join('');
+      sel.onchange = () => { const v = vs.find(x => x.id === sel.value); if (!v) return; iaGrava(IAV_EL, { chave, voz: v.id, nomeVoz: v.nome }); iavPintaVoz(); toast('Voz escolhida: ' + v.nome + ' — toque em Ouvir um teste'); redesenha(); };
+      toast(vs.length + ' vozes — escolha uma');
+    } catch (e) { toast('ElevenLabs: ' + (e.name === 'AbortError' ? 'não respondeu' : e.message)); }
+    finally { b.disabled = false; b.textContent = 'Buscar vozes'; }
+  };
+}
+/* Ajustes → cartão "Voz do assistente", logo abaixo de Créditos de IA */
+const _admSettingsVoz = admSettings;
+admSettings = function () {
+  _admSettingsVoz();
+  const stage = document.getElementById('stage'); if (!stage || document.getElementById('vozCard')) return;
+  const depois = document.getElementById('creditos') || document.getElementById('regrasLL') || stage.querySelector('.pageh'); if (!depois) return;
+  depois.insertAdjacentHTML('afterend', `<section class="card vozCard" id="vozCard"><h3>🔊 Voz do assistente</h3>
+    <p class="why">Com a voz ligada (o 🔊 no topo do assistente), ele lê as respostas em voz alta. Sem chave, usa a voz do aparelho.</p>${iavVozCfgHtml()}</section>`);
+  const card = document.getElementById('vozCard');
+  const re = () => { const n = document.getElementById('vozCard'); if (!n) return; n.querySelector('.iavVozCfg').outerHTML = iavVozCfgHtml(); iavLigaVozCfg(n, re); };
+  iavLigaVozCfg(card, re);
+};
 
 /* anexos à espera (fotos e PDF) */
 iaMostraAnexo = function () {

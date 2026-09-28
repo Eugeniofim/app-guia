@@ -559,3 +559,15 @@
 #iaGaveta.iav header:has(.iavOrbeTopo.vazio) + #iaCtx{padding-left:14px}
 @media (pointer:coarse){ #iaGaveta.iav .iavAcoes button{min-height:44px} }
 #iaGaveta.iav #iaTxt{-webkit-appearance:none;appearance:none;box-shadow:none}
+/* a voz das respostas: rótulo da chave (gaveta e Ajustes) */
+.iavVozCfg .vzRot{font-weight:600;font-size:13.5px;margin-top:4px}
+.iavVozCfg .vzRot small{font-weight:400}
+.iavVozCfg .vzBts{flex-wrap:wrap;align-items:center}
+#iavMenu .iavVozCfg .vzKey,#iavMenu .iavVozCfg .vzSel{flex:1;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--v-line);background:var(--v-bg);color:var(--v-tx);font:15px var(--f-ui)}
+/* em Ajustes, nas cores do painel */
+.vozCard .iavVozCfg{border-top:0;padding-top:0}
+.vozCard .iavVozCfg > b{display:none}
+.vozCard .iavVozCfg small{color:var(--ink-3)}
+.vozCard .iavLinha{display:flex;gap:8px}
+.vozCard .vzKey{flex:1;min-height:44px}
+.vozCard .vzSel{min-height:44px}
