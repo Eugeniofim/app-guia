@@ -182,9 +182,13 @@ function iavParaOuvir(mandar) {
   IAV.naMao = !mandar;
   try { IAV.rec && IAV.rec.stop(); } catch (e) {}
 }
-function iavOuvir() {
+async function iavOuvir() {
   if (IAV.rec) { iavParaOuvir(false); return; }
   if (!iavTemMic()) { toast('Este navegador não ouve — no iPhone use o Safari; no computador, Chrome ou Safari'); return; }
+  /* o microfone já foi negado neste navegador? Avisar ANTES, com o caminho:
+     o ditado sozinho falha em silêncio e ela acha que o app está quebrado */
+  try { const p = await navigator.permissions.query({ name: 'microphone' });
+    if (p.state === 'denied') { toast('O microfone está bloqueado neste navegador. Toque no cadeado ao lado do endereço e permita o microfone — ou abra o app no Chrome ou no Safari.', 6000); return; } } catch (e) {}
   iavPararFala();                                  /* não ouvir a si mesmo falando */
   const ta = iaEl.g.querySelector('#iaTxt'); if (!ta) return;
   const r = new FALA_REC();
@@ -256,7 +260,7 @@ async function iavFalaEleven(t) {
   const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(el.voz) + '?output_format=mp3_44100_128', {
     method: 'POST', headers: { 'xi-api-key': el.chave, 'content-type': 'application/json', accept: 'audio/mpeg' },
     body: JSON.stringify({ text: t, model_id: 'eleven_flash_v2_5', language_code: 'pt' }) });
-  if (!r.ok) throw new Error('ElevenLabs ' + r.status);
+  if (!r.ok) throw new Error(r.status === 401 ? 'chave recusada' : r.status === 402 || r.status === 429 ? 'cota da ElevenLabs esgotada' : r.status === 403 ? 'a chave não tem permissão de Text to Speech' : 'erro ' + r.status);
   const url = URL.createObjectURL(await r.blob());
   IAV_AUDIO = IAV_AUDIO || new Audio();
   IAV_AUDIO.src = url; IAV_AUDIO.onended = () => { Orbe.calar(); URL.revokeObjectURL(url); };
@@ -264,6 +268,7 @@ async function iavFalaEleven(t) {
 }
 function iavFalar(texto) {
   const t = paraFalar(texto); if (!t) return;
+  if (!LER && !iaLe(IAV_EL, {}).chave) { toast('Este navegador não tem voz. Cole a chave da ElevenLabs em Ajustes → Voz do assistente.'); return; }
   iavPararFala();
   Orbe.falar(Math.min(26000, 400 + t.length * 62));   /* ~62 ms por caractere em português */
   const el = iaLe(IAV_EL, {});
@@ -271,9 +276,11 @@ function iavFalar(texto) {
     if (!LER) return;
     const u = new SpeechSynthesisUtterance(t); const v = iavMelhorVoz();
     if (v) u.voice = v; u.lang = (v && v.lang) || 'pt-BR'; u.rate = 1.02;
-    u.onend = () => Orbe.calar(); LER.speak(u);
+    u.onend = () => Orbe.calar();
+    u.onerror = (e) => { Orbe.calar(); if (e.error !== 'interrupted' && e.error !== 'canceled') toast('A voz do aparelho falhou (' + (e.error || '?') + ')'); };
+    LER.speak(u);
   };
-  if (el.chave && el.voz) iavFalaEleven(t).catch(() => { toast('A voz de estúdio não respondeu — usei a do aparelho'); aparelho(); });
+  if (el.chave && el.voz) iavFalaEleven(t).catch((e) => { toast('ElevenLabs: ' + (e.message || 'não respondeu') + ' — usei a voz do aparelho'); aparelho(); });
   else aparelho();
 }
 
@@ -314,7 +321,9 @@ iaDesenha = function () {
     cab.querySelector('#iaFecha').insertAdjacentHTML('beforebegin', `<button type="button" class="iavIco" id="iavEng" aria-label="Ajustes do assistente" title="Ajustes do assistente">${iavSvg('eng')}</button>`);
     cab.querySelector('#iavEng').onclick = () => { IAV.menu = !IAV.menu; iavMenu(); };
     cab.querySelector('#iavEng').insertAdjacentHTML('beforebegin', '<button type="button" class="iavIco" id="iavVoz"></button>');
-    cab.querySelector('#iavVoz').onclick = () => { const on = !iavVozOn(); iaGrava(IAV_VOZ, on); if (!on) iavPararFala(); iavPintaVoz(); toast(on ? 'Vou ler as respostas em voz alta' : 'Voz desligada'); };
+    cab.querySelector('#iavVoz').onclick = () => { const on = !iavVozOn(); iaGrava(IAV_VOZ, on); if (!on) iavPararFala(); iavPintaVoz();
+      toast(on ? 'Ligado: vou ler cada resposta em voz alta' : 'Desligado: só falo quando você tocar em "Ouvir" numa resposta');
+      if (on) iavFalar('Voz ligada. Agora eu leio as respostas.'); };
   }
   iavPintaVoz();
   cab.querySelector('#iaFecha').onclick = () => iaFecha();   /* o × foi ligado antes deste arquivo: passa a calar a voz e soltar o microfone */

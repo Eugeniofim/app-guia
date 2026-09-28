@@ -191,9 +191,10 @@ function readImageResized(file, maxW = 1100, quality = 0.78) {
 const toastEl = document.createElement('div');
 toastEl.className = 'toast'; document.body.appendChild(toastEl);
 let toastT = null;
-function toast(msg) {
+function toast(msg, ms) {
   toastEl.textContent = msg; toastEl.classList.add('on');
-  clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('on'), 3400);
+  /* aviso longo (ex.: "microfone bloqueado, toque no cadeado") fica mais tempo */
+  clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('on'), ms || 3400);
 }
 
 /* ---------- tutorial de balões ---------- */
