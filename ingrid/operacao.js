@@ -707,6 +707,166 @@ function opSemeiaDemo() {
   }
 }
 
+/* ---------- PAINEL DE NUMEROS (a aba Relatorios) ----------
+   Cada marcador compara com o periodo ANTERIOR de mesmo tamanho: "este mes
+   ate hoje" contra "o mes passado ate o mesmo dia". Sem isto, o dia 3 do mes
+   sempre pareceria uma queda contra o mes inteiro anterior.
+
+   Dinheiro que a guia ou o motorista recebeu na mao NAO e receita dela: fica
+   fora do "recebido" e aparece separado. */
+function _dias(a, b) { return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5); }
+function _fimDoMes(iso) { const d = new Date(iso.slice(0, 7) + '-15T12:00:00'); d.setMonth(d.getMonth() + 1); d.setDate(0); return d.toISOString().slice(0, 10); }
+const Painel = {
+  periodo(preset, hoje) {
+    hoje = hoje || isoToday();
+    if (preset === 'semana') return { de: addDays(hoje, -6), ate: hoje, antDe: addDays(hoje, -13), antAte: addDays(hoje, -7), nome: 'últimos 7 dias', ant: 'os 7 dias antes', antCurto: 'semana anterior' };
+    if (preset === '90') return { de: addDays(hoje, -89), ate: hoje, antDe: addDays(hoje, -179), antAte: addDays(hoje, -90), nome: 'últimos 90 dias', ant: 'os 90 dias antes', antCurto: '90 dias antes' };
+    if (preset === 'ano') {
+      const y = +hoje.slice(0, 4);
+      return { de: y + '-01-01', ate: hoje, antDe: (y - 1) + '-01-01', antAte: (y - 1) + hoje.slice(4), nome: 'este ano', ant: 'o mesmo período de ' + (y - 1), antCurto: String(y - 1) };
+    }
+    /* mes: do dia 1 ate hoje, contra o mes passado ate o mesmo dia */
+    const de = hoje.slice(0, 8) + '01';
+    const antDe = addDays(de, -1).slice(0, 8) + '01';
+    const fimAnt = _fimDoMes(antDe);
+    const mesmoDia = antDe.slice(0, 8) + hoje.slice(8, 10);
+    return { de, ate: hoje, antDe, antAte: mesmoDia > fimAnt ? fimAnt : mesmoDia, nome: 'este mês', ant: 'o mês passado até o mesmo dia', antCurto: 'mês passado' };
+  },
+  delta(cur, ant) { return ant ? (cur - ant) / ant : (cur ? null : 0); },
+  _ativos() { return DB.bookings.filter(b => b.status !== 'cancelled'); },
+  recebido(de, ate) {
+    let voce = 0, prest = 0, n = 0;
+    for (const b of DB.bookings) for (const p of b.payments || []) {
+      if (!p.date || p.date < de || p.date > ate) continue;
+      if (ladoDoPagamento(p) === 'prestador') prest += p.amount; else { voce += p.amount; n++; }
+    }
+    return { voce, prest, n };
+  },
+  /* o que ela VENDEU no periodo: reservas feitas nele, seja qual for a data do servico */
+  vendido(de, ate) {
+    const bs = Painel._ativos().filter(b => { const c = String(b.createdAt || '').slice(0, 10); return c >= de && c <= ate; });
+    return { valor: bs.reduce((s, b) => s + (+b.total || 0), 0), n: bs.length, pax: bs.reduce((s, b) => s + (+b.pax || 0), 0) };
+  },
+  /* servicos que acontecem no periodo */
+  servicos(de, ate) {
+    const bs = Painel._ativos().filter(b => b.date >= de && b.date <= ate);
+    return { n: bs.length, pax: bs.reduce((s, b) => s + (+b.pax || 0), 0), lista: bs };
+  },
+  /* a margem so existe onde ela preencheu o custo (Detalhes do servico) */
+  margem(de, ate) {
+    const bs = Painel.servicos(de, ate).lista;
+    const com = bs.filter(b => +b.custo > 0);
+    const receita = com.reduce((s, b) => s + (+b.total || 0), 0), custo = com.reduce((s, b) => s + (+b.custo || 0), 0);
+    return { receita, custo, margem: receita - custo, pct: receita ? (receita - custo) / receita : null, n: com.length, semCusto: bs.length - com.length };
+  },
+  aReceber(hoje) {
+    hoje = hoje || isoToday();
+    let comVoce = 0, noDia = 0, atrasado = 0;
+    for (const b of Painel._ativos()) {
+      const falta = Bookings.due(b); if (falta <= 0) continue;
+      if (Op.restoPara(b) === 'prestador') { if (b.date >= hoje) noDia += falta; continue; }
+      comVoce += falta;
+      if (Bookings.dueDate(b) < hoje) atrasado += falta;
+    }
+    return { comVoce, noDia, atrasado };
+  },
+  orcamentos(de, ate) {
+    const os = (DB.orcamentos || []).filter(o => { const c = String(o.criado || '').slice(0, 10); return c >= de && c <= ate; });
+    const conta = (st) => os.filter(o => o.status === st).length;
+    const fechados = conta('fechado'), perdidos = conta('perdido'), enviados = conta('enviado');
+    const decididos = fechados + perdidos;
+    return { n: os.length, novos: conta('novo') + conta('rascunho'), enviados, fechados, perdidos,
+             valorFechado: os.filter(o => o.status === 'fechado').reduce((s, o) => s + Orc.total(o), 0),
+             taxa: decididos ? fechados / decididos : null };
+  },
+  /* quem veio: novo ou de volta, e quem veio JUNTO (as indicacoes dela) */
+  clientes(de, ate) {
+    const bs = Painel.servicos(de, ate).lista;
+    const chaves = new Set(bs.map(chaveCliente));
+    let voltaram = 0;
+    for (const k of chaves) {
+      const antes = Painel._ativos().some(b => chaveCliente(b) === k && b.date < de);
+      if (antes) voltaram++;
+    }
+    const junto = bs.reduce((s, b) => s + (b.group || []).filter(g => g && g.nome).length, 0);
+    return { n: chaves.size, voltaram, novos: chaves.size - voltaram, junto };
+  },
+  /* series para os mini-graficos e o grafico de entrada de dinheiro */
+  semanas(n, ate, fn) {
+    ate = ate || isoToday();
+    const out = [];
+    let fim = ate;
+    for (let i = 0; i < n; i++) {
+      const ini = addDays(fim, -6);
+      out.unshift({ de: ini, ate: fim, rot: ini.slice(8, 10) + '/' + ini.slice(5, 7), v: fn(ini, fim) });
+      fim = addDays(ini, -1);
+    }
+    return out;
+  },
+  meses(ano, fn) {
+    const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    return MES.map((m, i) => { const de = `${ano}-${String(i + 1).padStart(2, '0')}-01`; return { de, ate: _fimDoMes(de), rot: m, v: fn(de, _fimDoMes(de)) }; });
+  },
+  /* O QUE JA ESTA VENDIDO para as proximas semanas: quanto ja entrou e quanto falta */
+  futuro(semanas, hoje) {
+    hoje = hoje || isoToday();
+    const out = [];
+    for (let i = 0; i < (semanas || 8); i++) {
+      const de = addDays(hoje, i * 7), ate = addDays(de, 6);
+      const bs = Painel._ativos().filter(b => b.date >= de && b.date <= ate);
+      const total = bs.reduce((s, b) => s + (+b.total || 0), 0);
+      const pago = bs.reduce((s, b) => s + Bookings.paid(b), 0);
+      out.push({ de, ate, rot: de.slice(8, 10) + '/' + de.slice(5, 7), total, pago, falta: Math.max(0, total - pago), n: bs.length, pax: bs.reduce((s, b) => s + (+b.pax || 0), 0) });
+    }
+    return out;
+  },
+  /* dia da semana x turno: onde a semana dela aperta (e onde faltam guias) */
+  calor(de, ate) {
+    const m = Array.from({ length: 7 }, () => ({ manha: 0, tarde: 0, noite: 0 }));
+    for (const b of Painel.servicos(de, ate).lista) {
+      const wd = (new Date(b.date + 'T12:00:00').getDay() + 6) % 7; /* segunda = 0 */
+      for (const tu of turnosDoServico(b)) m[wd][tu] += 1;
+    }
+    return m;
+  },
+  porServico(de, ate) {
+    const map = new Map();
+    for (const b of Painel.servicos(de, ate).lista) {
+      const r = map.get(b.tourId) || { tourId: b.tourId, valor: 0, n: 0, pax: 0 };
+      r.valor += +b.total || 0; r.n++; r.pax += +b.pax || 0;
+      map.set(b.tourId, r);
+    }
+    return [...map.values()].sort((a, b) => b.valor - a.valor || b.n - a.n);
+  },
+  origens(de, ate) {
+    const bs = Painel.servicos(de, ate).lista;
+    const map = {};
+    for (const b of bs) { const o = b.origin || 'site'; map[o] = (map[o] || 0) + 1; }
+    return Object.entries(map).map(([origem, n]) => ({ origem, n, pct: bs.length ? n / bs.length : 0 })).sort((a, b) => b.n - a.n);
+  },
+  equipe(de, ate) {
+    const map = new Map();
+    let sem = 0;
+    for (const b of Painel.servicos(de, ate).lista) {
+      if (!b.prestadorId) { sem++; continue; }
+      const r = map.get(b.prestadorId) || { pessoa: Equipe.get(b.prestadorId), n: 0, pax: 0, noDia: 0 };
+      r.n++; r.pax += +b.pax || 0;
+      r.noDia += (b.payments || []).filter(p => p.conta === CONTA_PRESTADOR).reduce((s, p) => s + p.amount, 0)
+               + (Op.restoPara(b) === 'prestador' ? Bookings.due(b) : 0);
+      map.set(b.prestadorId, r);
+    }
+    return { lista: [...map.values()].filter(r => r.pessoa).sort((a, b) => b.n - a.n), sem };
+  },
+  /* com quanta antecedencia reservam: quando comecar a divulgar cada temporada */
+  antecedencia(de, ate) {
+    const faixas = [['até 7 dias', 0, 7, 'até 7'], ['8 a 30 dias', 8, 30, '8–30'], ['31 a 90 dias', 31, 90, '31–90'], ['mais de 90 dias', 91, 1e9, '+90']];
+    const dias = Painel.servicos(de, ate).lista.filter(b => b.createdAt).map(b => Math.max(0, _dias(String(b.createdAt).slice(0, 10), b.date)));
+    const ord = [...dias].sort((a, b) => a - b);
+    const mediana = ord.length ? (ord.length % 2 ? ord[(ord.length - 1) / 2] : Math.round((ord[ord.length / 2 - 1] + ord[ord.length / 2]) / 2)) : null;
+    return { faixas: faixas.map(([rot, a, z, curto]) => ({ rot, curto, n: dias.filter(d => d >= a && d <= z).length })), mediana, n: dias.length };
+  },
+};
+
 /* ---------- textos das abas novas ---------- */
 if (typeof STR !== 'undefined') {
   Object.assign(STR, {

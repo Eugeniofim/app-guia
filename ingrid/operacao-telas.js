@@ -1003,3 +1003,310 @@ function viewPedido() {
       <a class="cta soft" href="#/">${L('Voltar ao início', 'Back to start')}</a>`;
   };
 }
+
+/* =====================================================
+   RELATORIOS — o painel de numeros dela
+
+   Um numero principal (o dinheiro que entrou), marcadores com a comparacao
+   contra o periodo anterior e um mini-grafico de 12 semanas, e graficos que
+   respondem perguntas dela: o que ja esta vendido para as proximas semanas,
+   quando a semana aperta (para as guias), o que mais vende, de onde vem o
+   cliente, com quanta antecedencia reservam, como vao os orcamentos.
+
+   Regras dos graficos (guia de visualizacao): uma cor so por serie (o vinho
+   dela), destaque em vinho e o resto em cinza, grade em linha fina e solida,
+   rotulo so onde importa, dica ao passar o dedo/mouse e, em todo grafico,
+   "ver em tabela" — nenhum numero fica preso so no desenho.
+===================================================== */
+const RP_ORIGEM = { site: 'Site', instagram: 'Instagram', whatsapp: 'WhatsApp', agency: 'Agência', friend: 'Indicação',
+                    orcamento: 'Orçamento', manual: 'Lançada por você' };
+function rpEur(v) {
+  const n = Math.round(+v || 0);
+  if (Math.abs(n) >= 10000) return '€ ' + (n / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil';
+  return eur(n);
+}
+function rpPct(x) { return x == null ? '—' : Math.round(x * 100) + '%'; }
+function rpTopo(v) {
+  if (v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+/* a setinha do marcador: sobe/desce com texto, nunca so cor */
+function rpDelta(d, bomSubir, antNome) {
+  if (d == null) return `<span class="rp-d n" title="sem base de comparação">novo · ${esc(antNome)} sem movimento</span>`;
+  const r = Math.round(d * 100);
+  if (r === 0) return `<span class="rp-d n">= igual a ${esc(antNome)}</span>`;
+  const bom = (r > 0) === (bomSubir !== false);
+  return `<span class="rp-d ${bom ? 'ok' : 'bad'}">${r > 0 ? '▲ +' : '▼ '}${r}% <span class="rp-vs">vs ${esc(antNome)}</span></span>`;
+}
+/* mini-grafico: 12 semanas em cinza, a atual em vinho */
+function rpSpark(vals) {
+  const W = 120, H = 30, n = vals.length;
+  if (!n) return '';
+  const max = Math.max(1, ...vals), x = (i) => 2 + i * ((W - 6) / Math.max(1, n - 1)), y = (v) => H - 4 - (v / max) * (H - 8);
+  const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  return `<svg class="rp-spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">
+    <polygon points="${x(0)},${H - 4} ${pts} ${x(n - 1)},${H - 4}" fill="var(--cv-mute)" opacity=".18"/>
+    <polyline points="${pts}" fill="none" stroke="var(--cv-mute)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${x(n - 1)}" cy="${y(vals[n - 1])}" r="4" fill="var(--cv-main)" stroke="var(--surface)" stroke-width="2"/></svg>`;
+}
+function rpTile(rotulo, valor, delta, spark, extra) {
+  return `<div class="rp-tile"><small>${rotulo}</small><b>${valor}</b>${delta || ''}${extra ? `<span class="rp-extra">${extra}</span>` : ''}${spark || ''}</div>`;
+}
+function rpTabela(cabecalho, linhas) {
+  return `<details class="rp-tab"><summary>ver em tabela</summary><div class="rp-tabwrap"><table class="tbl"><thead><tr>${cabecalho.map((c, i) => `<th class="${i ? 'right' : ''}">${esc(c)}</th>`).join('')}</tr></thead>
+    <tbody>${linhas.map(l => `<tr>${l.map((c, i) => `<td class="${i ? 'mono right' : ''}">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`;
+}
+
+/* colunas em SVG, na largura real do cartao. Uma serie: destaque em vinho,
+   o resto em cinza. Duas (empilhadas): o mesmo vinho em dois tons, com
+   legenda. A dica sai do atributo data-tip (texto puro). */
+function rpColunas(el, dados, opt) {
+  if (!el) return;
+  const W = Math.max(260, el.clientWidth || 600), H = opt.h || 190;
+  const tot = (d) => opt.pilha ? d.partes.reduce((s, p) => s + p.v, 0) : d.v;
+  const topo = rpTopo(Math.max(0, ...dados.map(tot)) * 1.05);
+  const fmtE = (t) => opt.fmtEixo ? opt.fmtEixo(t) : rpEur(t);
+  /* 10px mono: ~6.2px por letra. A margem cabe o maior numero do eixo. */
+  const pL = Math.ceil(Math.max(...[0, topo / 2, topo].map(t => fmtE(t).length)) * 6.2) + 12;
+  const pR = 6, pT = 24, pB = 26, w = W - pL - pR, h = H - pT - pB;
+  const Y = (v) => pT + h - (v / topo) * h;
+  const banda = w / dados.length, bw = Math.min(24, banda * 0.62);
+  const max = Math.max(...dados.map(tot));
+  /* rotulos que nao cabem nao encavalam: com coluna estreita, mostra uma data
+     sim outra nao (a da coluna em destaque sempre); o valor da maior coluna so
+     aparece se ela nao estiver colada na coluna em destaque */
+  const cada = Math.max(1, Math.ceil((Math.max(...dados.map(d => String(d.rot).length)) * 6.2 + 10) / banda));
+  const iDest = dados.findIndex(d => d.destaque);
+  const iMax = dados.findIndex(d => tot(d) === max);
+  const mostraValor = (i) => i === iDest || (i === iMax && (iDest < 0 || Math.abs(iMax - iDest) > 1));
+  let g = '';
+  for (const t of [0, topo / 2, topo]) {
+    g += `<line x1="${pL}" x2="${W - pR}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--cv-grid)" stroke-width="1"/>`
+       + `<text x="${pL - 8}" y="${Y(t) + 4}" text-anchor="end" class="rp-ax">${esc(fmtE(t))}</text>`;
+  }
+  const colTopo = (x, y0, y1, cor, arred) => {
+    const hh = y0 - y1; if (hh <= 0.5) return '';
+    const r = arred ? Math.min(4, hh, bw / 2) : 0;
+    return `<path d="M${x},${y0} V${y1 + r} Q${x},${y1} ${x + r},${y1} H${x + bw - r} Q${x + bw},${y1} ${x + bw},${y1 + r} V${y0} Z" fill="${cor}"/>`;
+  };
+  dados.forEach((d, i) => {
+    const x = pL + i * banda + (banda - bw) / 2;
+    if (opt.pilha) {
+      let base = Y(0);
+      d.partes.forEach((p, k) => {
+        const topoY = Y(d.partes.slice(0, k + 1).reduce((s, q) => s + q.v, 0));
+        const ultimo = d.partes.slice(k + 1).every(q => q.v <= 0);
+        /* 2px de fundo entre os pedacos: separa sem desenhar borda */
+        g += colTopo(x, base - (k ? 2 : 0), topoY, p.cor, ultimo);
+        if (p.v > 0) base = topoY;
+      });
+    } else {
+      g += colTopo(x, Y(0), Y(d.v), d.cor || (d.destaque ? 'var(--cv-main)' : (opt.cor || 'var(--cv-mute)')), true);
+    }
+    const v = tot(d);
+    if (mostraValor(i) && v > 0 && !opt.semRotulo) {
+      const txt = opt.fmt ? opt.fmt(v) : rpEur(v), meia = txt.length * 3.6;
+      const cx = Math.min(W - 2 - meia, Math.max(pL + meia, x + bw / 2));
+      g += `<text x="${cx}" y="${Y(v) - 7}" text-anchor="middle" class="rp-val">${esc(txt)}</text>`;
+    }
+    if (d.destaque || (opt.rotDoInicio ? i : dados.length - 1 - i) % cada === 0) g += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" class="rp-ax ${d.destaque ? 'on' : ''}">${esc(d.rot)}</text>`;
+    g += `<rect class="rp-hit" x="${pL + i * banda}" y="${pT}" width="${banda}" height="${h}" fill="transparent" tabindex="0" role="img"
+      aria-label="${esc(d.tip.join(' · '))}" data-tip="${esc(JSON.stringify(d.tip))}"/>`;
+  });
+  el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="rp-svg">${g}</svg>`;
+}
+/* barras deitadas em HTML: nome, barra fina e o valor na ponta */
+function rpBarras(lista, opt) {
+  const max = Math.max(1, ...lista.map(r => r.v));
+  return `<div class="rp-hbars">${lista.map(r => `<div class="rp-hb" tabindex="0" data-tip="${esc(JSON.stringify(r.tip || [r.rotulo, String(r.v)]))}">
+      <span class="rp-hb-nome">${esc(r.rotulo)}${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span>
+      <span class="rp-hb-pista"><i style="width:${Math.max(2, r.v / max * 100)}%;${r.cor ? 'background:' + r.cor : ''}"></i><em>${esc(r.txt)}</em></span>
+    </div>`).join('')}</div>`;
+}
+/* a dica: uma so para a tela toda, texto puro (textContent) */
+function rpLigaDicas(raiz) {
+  let tip = document.getElementById('rpTip');
+  if (!tip) { tip = document.createElement('div'); tip.id = 'rpTip'; tip.className = 'rp-tip'; tip.hidden = true; document.body.appendChild(tip); }
+  const mostra = (alvo, x, y) => {
+    let linhas; try { linhas = JSON.parse(alvo.dataset.tip); } catch (e) { return; }
+    tip.textContent = '';
+    linhas.forEach((l, i) => { const el = document.createElement(i ? 'span' : 'b'); el.textContent = l; tip.appendChild(el); });
+    tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(innerWidth - r.width - 8, x - r.width / 2)) + 'px';
+    tip.style.top = Math.max(8, y - r.height - 14) + 'px';
+    alvo.classList.add('rp-on');
+  };
+  const some = (alvo) => { tip.hidden = true; if (alvo) alvo.classList.remove('rp-on'); };
+  raiz.querySelectorAll('[data-tip]').forEach(a => {
+    a.addEventListener('pointermove', (e) => mostra(a, e.clientX, e.clientY));
+    a.addEventListener('pointerleave', () => some(a));
+    a.addEventListener('focus', () => { const r = a.getBoundingClientRect(); mostra(a, r.left + r.width / 2, r.top); });
+    a.addEventListener('blur', () => some(a));
+  });
+}
+
+function admRelatorios() {
+  const S = admRelatorios._s = admRelatorios._s || { p: 'mes' };
+  const hoje = isoToday();
+  const P = Painel.periodo(S.p, hoje);
+  const rec = Painel.recebido(P.de, P.ate), recA = Painel.recebido(P.antDe, P.antAte);
+  const ven = Painel.vendido(P.de, P.ate), venA = Painel.vendido(P.antDe, P.antAte);
+  const srv = Painel.servicos(P.de, P.ate), srvA = Painel.servicos(P.antDe, P.antAte);
+  const mg = Painel.margem(P.de, P.ate);
+  const ar = Painel.aReceber(hoje);
+  const oc = Painel.orcamentos(P.de, P.ate);
+  const cli = Painel.clientes(P.de, P.ate);
+  const fut = Painel.futuro(8, hoje);
+  const calor = Painel.calor(P.de, P.ate);
+  const porS = Painel.porServico(P.de, P.ate);
+  const ori = Painel.origens(P.de, P.ate);
+  const eq = Painel.equipe(P.de, P.ate);
+  const ant = Painel.antecedencia(P.de, P.ate);
+  const ticket = ven.n ? ven.valor / ven.n : 0, ticketA = venA.n ? venA.valor / venA.n : 0;
+  const sem12 = (fn) => Painel.semanas(12, hoje, fn).map(s => s.v);
+  const entrada = S.p === 'ano'
+    ? Painel.meses(+hoje.slice(0, 4), (a, z) => Painel.recebido(a, z > hoje ? hoje : z).voce).map((m, i) => ({ ...m, destaque: i === +hoje.slice(5, 7) - 1 }))
+    : Painel.semanas(12, hoje, (a, z) => Painel.recebido(a, z).voce).map((s, i, arr) => ({ ...s, destaque: i === arr.length - 1 }));
+  const futTot = fut.reduce((s, f) => s + f.total, 0), futPago = fut.reduce((s, f) => s + f.pago, 0);
+  const DIAS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+  const TUR = [['manha', 'Manhã'], ['tarde', 'Tarde'], ['noite', 'Noite']];
+  const calMax = Math.max(0, ...calor.flatMap(d => TUR.map(([k]) => d[k])));
+  const passo = (n) => !n ? 0 : Math.min(4, Math.max(1, Math.ceil(n / calMax * 4)));
+  let pico = null;
+  const DIAS_EXT = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+  const TUR_EXT = { manha: 'de manhã', tarde: 'à tarde', noite: 'à noite' };
+  calor.forEach((d, i) => TUR.forEach(([k]) => { if (d[k] && (!pico || d[k] > pico.n)) pico = { n: d[k], txt: DIAS_EXT[i] + ' ' + TUR_EXT[k] }; }));
+
+  /* o que os numeros dizem, em frases — o "detalhe incrivel" e ler isto */
+  const frases = [];
+  if (porS[0]) { const x = Tours.get(porS[0].tourId); frases.push(`<b>${esc(x ? x.name.pt : '?')}</b> é o serviço que mais rende no período: ${rpEur(porS[0].valor)} em ${porS[0].n} ${porS[0].n > 1 ? 'reservas' : 'reserva'}.`); }
+  if (futTot) frases.push(`Você já tem <b>${rpEur(futTot)}</b> vendidos para as próximas 8 semanas — ${rpEur(futPago)} já entraram e ${rpEur(futTot - futPago)} ainda vão chegar.`);
+  if (pico) frases.push(`O turno mais cheio é <b>${pico.txt}</b> (${pico.n} ${pico.n > 1 ? 'serviços' : 'serviço'}). É onde vale ter guias confirmadas com antecedência.`);
+  if (ant.mediana != null) frases.push(`Metade dos clientes reserva com até <b>${ant.mediana} ${ant.mediana === 1 ? 'dia' : 'dias'}</b> de antecedência — é esse o prazo para começar a divulgar uma data.`);
+  if (cli.junto) frases.push(`<b>${cli.junto} ${cli.junto > 1 ? 'pessoas vieram' : 'pessoa veio'} junto</b> com quem reservou. Estão na sua base com o nome de quem trouxe: são as suas próximas indicações.`);
+  if (cli.voltaram) frases.push(`<b>${cli.voltaram} de ${cli.n}</b> clientes do período já tinham viajado com você antes.`);
+  if (mg.semCusto && srv.n) frases.push(`Em ${mg.semCusto} ${mg.semCusto > 1 ? 'serviços' : 'serviço'} falta o custo da guia/motorista. Preencha em Detalhes para ver a sua margem real.`);
+  if (rec.prest) frases.push(`${rpEur(rec.prest)} foram pagos no dia direto às guias e motoristas — não contam como entrada sua.`);
+
+  admShell('reports', `
+    <div class="pagehead"><h1 class="pageh">Relatórios</h1>
+      <div class="chips">${[['semana', '7 dias'], ['mes', 'Este mês'], ['90', '90 dias'], ['ano', 'Este ano']].map(([v, l]) =>
+        `<button class="chip ${S.p === v ? 'on' : ''}" data-rp="${v}">${l}</button>`).join('')}</div></div>
+    <p class="why rp-per">${fmtDate(P.de)} a ${fmtDate(P.ate)} · comparado com ${esc(P.ant)} (${opCurta(P.antDe)} a ${opCurta(P.antAte)})</p>
+
+    <section class="card rp-hero">
+      <div class="rp-hero-num">
+        <small>Entrou para você · ${esc(P.nome)}</small>
+        <b>${eur(rec.voce)}</b>
+        ${rpDelta(Painel.delta(rec.voce, recA.voce), true, P.antCurto)}
+        <span class="rp-extra">${rec.n} ${rec.n === 1 ? 'pagamento' : 'pagamentos'}${rec.prest ? ` · + ${rpEur(rec.prest)} pagos direto às guias e motoristas` : ''}</span>
+      </div>
+      <div class="rp-hero-graf">
+        <span class="op-lbl">${S.p === 'ano' ? 'Mês a mês' : 'Semana a semana · últimas 12'}</span>
+        <div id="rpEntrada" class="rp-plot"></div>
+      </div>
+      <div class="rp-full">${rpTabela([S.p === 'ano' ? 'Mês' : 'Semana', 'Entrou'], entrada.map(e => [S.p === 'ano' ? e.rot : `${opCurta(e.de)} a ${opCurta(e.ate)}`, eur(e.v)]))}</div>
+    </section>
+
+    ${frases.length ? `<section class="card rp-frases"><h3>O que os números dizem</h3><ul>${frases.map(f => `<li>${f}</li>`).join('')}</ul></section>` : ''}
+
+    <div class="rp-tiles">
+      ${rpTile('Vendido no período', eur(ven.valor), rpDelta(Painel.delta(ven.valor, venA.valor), true, P.antCurto), rpSpark(sem12((a, z) => Painel.vendido(a, z).valor)), `${ven.n} ${ven.n === 1 ? 'reserva' : 'reservas'} feitas`)}
+      ${rpTile('Serviços no período', `${srv.n} <span class="rp-un">· ${srv.pax} pessoas</span>`, rpDelta(Painel.delta(srv.pax, srvA.pax), true, P.antCurto), rpSpark(sem12((a, z) => Painel.servicos(a, z).pax)), 'a setinha compara as pessoas')}
+      ${rpTile('Ticket médio', eur(Math.round(ticket)), rpDelta(Painel.delta(ticket, ticketA), true, P.antCurto), '', 'por reserva vendida')}
+      ${rpTile('Sua margem', mg.n ? eur(mg.margem) : '—', mg.n ? `<span class="rp-d n">${rpPct(mg.pct)} do valor dos serviços</span>` : '', '', mg.n ? `em ${mg.n} ${mg.n > 1 ? 'serviços' : 'serviço'} com custo preenchido` : 'preencha o custo em Detalhes')}
+      ${rpTile('A receber', eur(ar.comVoce), ar.atrasado ? `<span class="rp-d bad">⚠ ${eur(ar.atrasado)} atrasados</span>` : `<span class="rp-d ok">✓ nada atrasado</span>`, '', `+ ${rpEur(ar.noDia)} que os clientes pagam no dia às guias e motoristas`)}
+      ${rpTile('Orçamentos', oc.taxa == null ? `${oc.n}` : rpPct(oc.taxa), oc.taxa == null ? `<span class="rp-d n">nenhum decidido ainda</span>` : `<span class="rp-d n">fecharam ${oc.fechados} de ${oc.fechados + oc.perdidos}</span>`, '', `${oc.n} no período · ${rpEur(oc.valorFechado)} fechados`)}
+    </div>
+
+    <section class="card">
+      <div class="rp-cab"><h3>Já vendido para as próximas 8 semanas</h3>
+        <span class="rp-leg"><i style="background:var(--cv-main)"></i>já entrou <i style="background:var(--cv-soft)"></i>falta receber</span></div>
+      <p class="why">${rpEur(futTot)} em serviços marcados daqui para frente · ${rpEur(futPago)} já pagos. Cada coluna é uma semana, a partir de hoje.</p>
+      <div id="rpFuturo" class="rp-plot"></div>
+      ${rpTabela(['Semana', 'Serviços', 'Pessoas', 'Já entrou', 'Falta', 'Total'], fut.map(f => [`${opCurta(f.de)} a ${opCurta(f.ate)}`, f.n, f.pax, eur(f.pago), eur(f.falta), eur(f.total)]))}
+    </section>
+
+    <div class="two-col rp-duas">
+      <section class="card">
+        <h3>Quando a semana aperta</h3>
+        <p class="why">Serviços por dia e turno no período. Onde está mais escuro é onde você mais precisa de guia confirmada.</p>
+        <div class="rp-calor" role="table" aria-label="Serviços por dia da semana e turno">
+          <span></span>${DIAS.map(d => `<span class="rp-cd">${d}</span>`).join('')}
+          ${TUR.map(([k, nome]) => `<span class="rp-ct">${nome}</span>${calor.map((d, i) => `<span class="rp-cel s${passo(d[k])}" tabindex="0"
+             data-tip="${esc(JSON.stringify([d[k] + (d[k] === 1 ? ' serviço' : ' serviços'), DIAS[i] + ' · ' + nome.toLowerCase()]))}">${d[k] || ''}</span>`).join('')}`).join('')}
+        </div>
+        <div class="rp-escala"><span>menos</span>${[1, 2, 3, 4].map(n => `<i class="s${n}"></i>`).join('')}<span>mais</span></div>
+        ${rpTabela(['Turno', ...DIAS], TUR.map(([k, nome]) => [nome, ...calor.map(d => d[k])]))}
+      </section>
+      <section class="card">
+        <h3>Com quanta antecedência reservam</h3>
+        <p class="why">${ant.n ? `Dias entre a reserva e o serviço. Mediana: <b>${ant.mediana} ${ant.mediana === 1 ? 'dia' : 'dias'}</b> (${ant.n} ${ant.n > 1 ? 'reservas' : 'reserva'}).` : 'Sem reservas no período.'}</p>
+        <div id="rpAntec" class="rp-plot"></div>
+        ${rpTabela(['Antecedência', 'Reservas'], ant.faixas.map(f => [f.rot, f.n]))}
+      </section>
+    </div>
+
+    <div class="two-col rp-duas">
+      <section class="card">
+        <h3>Os serviços que mais rendem</h3>
+        ${porS.length ? rpBarras(porS.slice(0, 7).map(r => { const x = Tours.get(r.tourId); const nm = x ? x.name.pt : '?';
+          return { rotulo: nm, sub: `${r.n} ${r.n > 1 ? 'reservas' : 'reserva'} · ${r.pax} pessoas`, v: r.valor, txt: rpEur(r.valor), tip: [eur(r.valor), nm, `${r.n} reservas · ${r.pax} pessoas`] }; })) : '<p class="empty">Nenhum serviço no período.</p>'}
+        ${porS.length > 7 ? `<p class="why">+ ${porS.length - 7} outros serviços na tabela abaixo.</p>` : ''}
+        ${rpTabela(['Serviço', 'Reservas', 'Pessoas', 'Valor'], porS.map(r => [(Tours.get(r.tourId) || { name: { pt: '?' } }).name.pt, r.n, r.pax, eur(r.valor)]))}
+      </section>
+      <section class="card">
+        <h3>De onde vêm os clientes</h3>
+        ${ori.length ? rpBarras(ori.map(o => ({ rotulo: RP_ORIGEM[o.origem] || o.origem, v: o.n, txt: `${rpPct(o.pct)} · ${o.n}`,
+          tip: [`${o.n} ${o.n > 1 ? 'reservas' : 'reserva'} (${rpPct(o.pct)})`, RP_ORIGEM[o.origem] || o.origem] }))) : '<p class="empty">Nenhum serviço no período.</p>'}
+        <div class="rp-mini">
+          <div><b>${cli.novos}</b><small>clientes novos</small></div>
+          <div><b>${cli.voltaram}</b><small>voltaram</small></div>
+          <div><b>${cli.junto}</b><small>vieram junto · indicações</small></div>
+        </div>
+        ${rpTabela(['Origem', 'Reservas', '%'], ori.map(o => [RP_ORIGEM[o.origem] || o.origem, o.n, rpPct(o.pct)]))}
+      </section>
+    </div>
+
+    <div class="two-col rp-duas">
+      <section class="card">
+        <h3>Guias e motoristas no período</h3>
+        ${eq.lista.length ? rpBarras(eq.lista.map(r => ({ rotulo: r.pessoa.nome, sub: `${r.pessoa.tipo === 'motorista' ? 'motorista' : 'guia'} · ${r.pax} pessoas`, v: r.n,
+          txt: `${r.n} ${r.n > 1 ? 'serviços' : 'serviço'}`, tip: [`${r.n} serviços · ${r.pax} pessoas`, r.pessoa.nome, `${eur(r.noDia)} pagos pelos clientes no dia`] }))) : '<p class="empty">Ninguém escalado no período.</p>'}
+        ${eq.sem ? `<p class="why">⚠ ${eq.sem} ${eq.sem > 1 ? 'serviços' : 'serviço'} do período sem guia ou motorista. <a href="#/adm/guias">Escalar</a></p>` : ''}
+        ${rpTabela(['Quem', 'Serviços', 'Pessoas', 'Recebeu no dia'], eq.lista.map(r => [r.pessoa.nome, r.n, r.pax, eur(r.noDia)]))}
+      </section>
+      <section class="card">
+        <h3>Sob consulta: do pedido ao fechado</h3>
+        ${oc.n ? rpBarras([
+          { rotulo: 'Pedidos que chegaram', v: oc.n, txt: String(oc.n), cor: 'var(--cv-s1)', tip: [oc.n + ' pedidos', 'chegaram no período'] },
+          { rotulo: 'Orçamentos enviados', v: oc.enviados + oc.fechados + oc.perdidos, txt: String(oc.enviados + oc.fechados + oc.perdidos), cor: 'var(--cv-s2)', tip: [(oc.enviados + oc.fechados + oc.perdidos) + ' enviados', 'inclui os que já fecharam ou não fecharam'] },
+          { rotulo: 'Fecharam', v: oc.fechados, txt: `${oc.fechados} · ${rpEur(oc.valorFechado)}`, cor: 'var(--cv-s4)', tip: [oc.fechados + ' fechados', rpEur(oc.valorFechado)] },
+        ]) : '<p class="empty">Nenhum pedido no período.</p>'}
+        ${oc.novos ? `<p class="why">${oc.novos} ${oc.novos > 1 ? 'pedidos esperando' : 'pedido esperando'} você montar o orçamento. <a href="#/adm/consulta">Abrir</a></p>` : ''}
+        ${rpTabela(['Etapa', 'Quantos'], [['Chegaram', oc.n], ['Em montagem', oc.novos], ['Enviados (aguardando)', oc.enviados], ['Fecharam', oc.fechados], ['Não fecharam', oc.perdidos]])}
+      </section>
+    </div>`);
+
+  $$('[data-rp]').forEach(b => b.onclick = () => { S.p = b.dataset.rp; admRelatorios(); });
+  const desenha = () => {
+    rpColunas($('#rpEntrada'), entrada.map(e => ({ rot: e.rot, v: e.v, destaque: e.destaque,
+      tip: [eur(e.v), S.p === 'ano' ? e.rot + ' ' + hoje.slice(0, 4) : `semana de ${opCurta(e.de)} a ${opCurta(e.ate)}`] })), { h: 180 });
+    rpColunas($('#rpFuturo'), fut.map(f => ({ rot: f.rot, pilha: true,
+      partes: [{ v: f.pago, cor: 'var(--cv-main)' }, { v: f.falta, cor: 'var(--cv-soft)' }],
+      tip: [eur(f.total), `semana de ${opCurta(f.de)} a ${opCurta(f.ate)}`, `${eur(f.pago)} já entrou · ${eur(f.falta)} falta`, `${f.n} serviços · ${f.pax} pessoas`] })), { h: 200, pilha: true, rotDoInicio: true });
+    const cores = ['var(--cv-s1)', 'var(--cv-s2)', 'var(--cv-s3)', 'var(--cv-s4)'];
+    /* faixas de antecedencia em ordem: um tom do vinho por faixa, do claro ao escuro */
+    rpColunas($('#rpAntec'), ant.faixas.map((f, i) => ({ rot: f.curto, v: f.n, cor: cores[i],
+      tip: [`${f.n} ${f.n === 1 ? 'reserva' : 'reservas'}`, f.rot + ' antes'] })), { h: 170, fmt: (v) => String(v), fmtEixo: (v) => String(Math.round(v * 10) / 10) });
+    rpLigaDicas($('#stage'));
+  };
+  desenha();
+  clearTimeout(admRelatorios._t);
+  if (!admRelatorios._ro) {
+    admRelatorios._ro = true;
+    addEventListener('resize', () => { clearTimeout(admRelatorios._t); admRelatorios._t = setTimeout(() => { if (location.hash.startsWith('#/adm/reports')) admRelatorios(); }, 200); });
+  }
+}
