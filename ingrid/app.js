@@ -1444,6 +1444,10 @@ function onCloudRejected() {
 }
 
 function admShell(tab, inner) {
+  /* reserva que chegou do site ganha o cadastro; e a sincronia por linha
+     (nuvem-itens.js) liga na primeira tela do painel com ela logada */
+  if (typeof cadastroEmDia === 'function') cadastroEmDia();
+  if (typeof itLigar === 'function') itLigar(() => { if (isBusyEditing()) pendingSync = true; else route(); });
   app.innerHTML = `
   <div class="adm">
     <aside class="rail">
@@ -1482,7 +1486,7 @@ function viewAdm(tab, arg) {
   else if (tab === 'agenda')   admAgenda();
   else if (tab === 'reports')  admReports();
   else if (tab === 'clients')  admClients();
-  else if (tab === 'coupons')  admCoupons();
+  else if (tab === 'coupons')  admParcerias();
   else if (tab === 'look')     admAparencia();
   else if (tab === 'settings') admSettings();
   else admToday();

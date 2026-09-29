@@ -30,7 +30,7 @@ for (const id of ['marketing', 'inbox']) {
 const ING_FORA = new Set(['ver_marketing', 'salvar_posts', 'mudar_post', 'apagar_post', 'salvar_anuncio', 'apagar_anuncio',
   'criar_criativo', 'mudar_criativo', 'apagar_criativo', 'gerar_imagem', 'ver_ensino', 'ensinar_agente',
   /* estas duas voltam abaixo no modelo dela (relatorio pelo Painel, pagamento com a conta) */
-  'ver_relatorio', 'registrar_pagamento']);
+  'ver_relatorio', 'registrar_pagamento', 'ver_clientes']);
 for (let k = IA_FERRAMENTAS.length - 1; k >= 0; k--) if (ING_FORA.has(IA_FERRAMENTAS[k].name)) IA_FERRAMENTAS.splice(k, 1);
 
 /* ---------- achar as coisas pelo nome — e perguntar quando der dois ---------- */
@@ -48,7 +48,8 @@ function ingAchaGuia(q) {
 function ingAchaCliente(q) {
   if (!q) return { erro: 'diga qual cliente' };
   const n = ingN(q), dig = String(q).replace(/\D/g, '');
-  const todos = Clients.all();
+  /* o cadastro guardado (operacao.js), no formato que as ferramentas usam */
+  const todos = Cadastro.all().map(c => ({ key: chaveFicha(c), id: c.id, name: c.nome, email: c.email, whats: c.whats, veioCom: c.grupoDe ? (Cadastro.get(c.grupoDe) || {}).nome : '' }));
   const exato = todos.filter(c => ingN(c.name) === n);
   const l = exato.length ? exato : todos.filter(c => (n && ingN(c.name).includes(n)) || (c.email && ingN(c.email) === n)
     || (dig.length >= 6 && String(c.whats || '').replace(/\D/g, '').endsWith(dig.slice(-8))));
@@ -105,6 +106,9 @@ const ING_FERRAMENTAS = [
   { name: 'ver_relatorio', description: 'Os números do período (semana, mês, 90 dias, ano): o que entrou, vendido, serviços, ticket, margem, a receber, orçamentos, o que já está vendido para as próximas semanas, serviço que mais rende, turno mais cheio, antecedência.', input_schema: obj({ periodo: { type: 'string', enum: ['semana', 'mes', '90', 'ano'] } }) },
   { name: 'ver_contas', description: 'As contas onde ela recebe (id, nome, Brasil ou Europa).', input_schema: obj() },
   { name: 'ver_backup', description: 'Quando foi o último backup, onde (pasta do computador/Google Drive ou baixado) e se o de hoje já foi feito.', input_schema: obj() },
+  { name: 'ver_clientes', description: 'Clientes cadastrados: veio por, indicado por, passeios, quanto pagou, quanto deve, próximo serviço. Filtro opcional.', input_schema: obj({ filtro: { type: 'string', enum: ['todos', 'compraram', 'vieram_junto', 'com_servico', 'devem', 'voltaram', 'aniversario_mes'] }, veio_por: S_() }) },
+  { name: 'ver_crm', description: 'O CRM dela (a planilha): pedidos por etapa (aberto/enviado, confirmado, avaliar, finalizado, perdido) com cliente, serviço, cliente paga, Ingrid paga, total, sinal, repescagens.', input_schema: obj({ etapa: { type: 'string', enum: ['aberto', 'confirmado', 'avaliar', 'finalizado', 'perdido', 'todos'] } }) },
+  { name: 'ver_parceiros', description: 'Influencers, agências e parceiros com cupom: reservas trazidas, faturado, comissão devida, paga e a pagar.', input_schema: obj() },
   { name: 'abrir_aba', description: 'Leva ela até uma tela do app (e, se quiser, a um item).', input_schema: obj({ aba: { type: 'string', enum: ING_ABAS }, item: S_('id do orçamento, código da reserva ou chave do cliente (opcional)') }, ['aba']) },
   /* gravar */
   { name: 'anotar_tarefa', description: 'Cria tarefa (com dia e hora se houver; entende "amanhã 9h" no texto). Mandar mensagem/cobrar/orçamento já vêm com o passo seguinte ("aguardar resposta").', input_schema: obj({ texto: S_(), dia: S_('AAAA-MM-DD'), hora: S_('HH:MM'), cliente: S_(), detalhe: S_() }, ['texto']) },
@@ -127,6 +131,15 @@ const ING_FERRAMENTAS = [
   { name: 'cadastrar_conta', description: 'Acrescenta ou muda uma conta onde ela recebe (define se vai para o contador do Brasil ou da Europa).', input_schema: obj({ conta: S_('id de ver_contas para mudar; vazio = nova'), nome: S_(), lado: { type: 'string', enum: ['brasil', 'europa'] }, tipo: { type: 'string', enum: ['pix', 'transfer', 'card', 'cash', 'other'] } }, ['nome', 'lado']) },
   { name: 'lembrete_feito', description: 'Marca um lembrete do app (ver_tarefas → lembretes_do_app) como feito, para sumir da lista.', input_schema: obj({ lembrete: S_('pedaço do texto do lembrete') }, ['lembrete']) },
   { name: 'fazer_backup', description: 'Faz o backup de tudo agora: na pasta escolhida (que pode ser a do Google Drive) ou, sem pasta, baixa o arquivo.', input_schema: obj() },
+  { name: 'cadastrar_cliente', description: 'Cadastra um cliente novo (quem compra; acompanhante entra pela reserva).', input_schema: obj({ nome: S_(), whats: S_(), email: S_(), nascimento: S_('dd/mm/aaaa'), veio_por: { type: 'string', enum: VEIO_POR.map(v => v[0]) }, indicado_por: S_() }, ['nome']) },
+  { name: 'mudar_cliente', description: 'Muda o cadastro: contato, nascimento, país, veio por, indicado por, parceiro, e a viagem (hotel, chegada, partida, bagagem).', input_schema: obj({ cliente: S_(), nome: S_(), whats: S_(), email: S_(), nascimento: S_(), pais: S_(), veio_por: { type: 'string', enum: VEIO_POR.map(v => v[0]) }, indicado_por: S_(), parceiro: S_(), hotel: S_(), chegada: S_(), partida: S_(), bagagem: S_() }, ['cliente']) },
+  { name: 'quem_vai', description: 'Registra quem vai num serviço (nome completo e nascimento de cada um — os ingressos são nominais) e se quem comprou também vai.', input_schema: obj({ codigo: S_(), comprador_vai: { type: 'boolean' }, nascimento_comprador: S_(), pessoas: { type: 'array', items: obj({ nome: S_(), nascimento: S_('dd/mm/aaaa') }, ['nome']) } }, ['codigo']) },
+  { name: 'ingressos_comprados', description: 'Marca que os ingressos de um serviço já foram comprados (ou desmarca).', input_schema: obj({ codigo: S_(), comprados: { type: 'boolean' } }, ['codigo', 'comprados']) },
+  { name: 'link_servico', description: 'Guarda um link no serviço (PDF do ingresso, QR code, voucher do parceiro).', input_schema: obj({ codigo: S_(), nome: S_(), url: S_() }, ['codigo', 'url']) },
+  { name: 'marcar_perdido', description: 'Marca um orçamento como perdido, com o motivo.', input_schema: obj({ numero: S_(), motivo: { type: 'string', enum: MOTIVOS_PERDA } }, ['numero', 'motivo']) },
+  { name: 'avaliacao_pedida', description: 'Registra que ela já pediu a avaliação ao cliente (o serviço vai para Finalizado). A mensagem ela manda pelo botão do CRM.', input_schema: obj({ codigo: S_() }, ['codigo']) },
+  { name: 'cadastrar_parceiro', description: 'Cadastra ou muda um influencer/agência/parceiro com cupom, desconto e comissão.', input_schema: obj({ nome: S_(), tipo: { type: 'string', enum: TIPOS_PARCEIRO.map(t => t[0]) }, contato: S_(), cupom: S_(), desconto: N_(), comissao: N_() }, ['nome']) },
+  { name: 'comissao_paga', description: 'Registra comissão paga a um parceiro.', input_schema: obj({ parceiro: S_(), valor: N_() }, ['parceiro', 'valor']) },
   { name: 'mudar_tabela', description: 'Muda a tabela de preço por número de pessoas de um passeio (preço do grupo).', input_schema: obj({ passeio_id: S_(), de_pessoas: { type: 'integer' }, ate_pessoas: { type: 'integer' }, valor: N_() }, ['passeio_id', 'de_pessoas', 'valor']) },
 ];
 IA_FERRAMENTAS.push(...ING_FERRAMENTAS);
@@ -174,9 +187,11 @@ const ING_LER = {
   },
   ver_ficha(i) {
     const r = ingAchaCliente(i.cliente); if (!r.c) return r;
-    const c = r.c, k = c.key, bs = Fichas.reservas(k), f = Fichas.get(k), o = Fichas.doCliente(k, c.whats, c.email);
-    return { nome: c.name, email: c.email, whats: c.whats, veio_com: c.veioCom || undefined, etiquetas: f.tags, anotacoes: f.notas,
-      servicos: bs.map(ingServ), tarefas: Tarefas.doCliente(k, c.whats).filter(t => !t.feita).map(t => ({ tarefa_id: t.id, texto: t.texto, dia: t.prazo })),
+    const c = r.c, k = c.key, cad = Cadastro.get(c.id), bs = Cadastro.reservas(cad), f = Fichas.get(k), o = Fichas.doCliente(k, c.whats, c.email), R = Cadastro.resumo(cad);
+    return { nome: c.name, email: c.email, whats: c.whats, nascimento: cad.nasc, idade: idadeDe(cad.nasc), pais: cad.pais, veio_por: veioPorNome(cad.veioPor), indicado_por: cad.indicadoNome,
+      veio_com: c.veioCom || undefined, viagem: cad.viagem || {}, pagou: R.gasto, deve: R.deve, indicou: Cadastro.indicou(cad).map(x => x.nome), trouxe: Cadastro.trouxe(cad).map(x => x.nome),
+      etiquetas: f.tags, anotacoes: f.notas,
+      servicos: bs.map(b => ({ ...ingServ(b), quem_vai: participantesDe(b).map(p => ({ nome: p.nome, idade: idadeDe(p.nasc, b.date) })), ingressos_comprados: Op.precisaIngresso(b) ? !!b.ingressosOk : 'não precisa', links: (b.links || []).map(l => l.nome + ': ' + l.url) })), tarefas: Tarefas.doCliente(k, c.whats).filter(t => !t.feita).map(t => ({ tarefa_id: t.id, texto: t.texto, dia: t.prazo })),
       orcamentos: o.orcamentos.map(x => ({ numero: x.num, situacao: x.status, total: Orc.total(x) })) };
   },
   ver_relatorio(i) {
@@ -195,6 +210,25 @@ const ING_LER = {
     return { ultimo: u.em || 'nunca', onde: u.onde === 'pasta' ? 'na pasta ' + u.arquivo : u.onde === 'download' ? 'baixado no computador' : '—', o_de_hoje_ja_foi: Backup.feitoHoje(),
       como_ligar_o_drive: 'Ajustes → Backup automático: instalar o Google Drive para computador e escolher a pasta Backup EmRoma' };
   },
+  ver_clientes(i) {
+    const hoje = hojeIso(), mes = +hoje.slice(5, 7);
+    let l = Cadastro.all();
+    const f = i.filtro || 'todos';
+    if (f === 'compraram') l = l.filter(c => !c.grupoDe); if (f === 'vieram_junto') l = l.filter(c => c.grupoDe);
+    if (f === 'com_servico') l = l.filter(c => Cadastro.resumo(c).prox); if (f === 'devem') l = l.filter(c => Cadastro.resumo(c).deve > 0);
+    if (f === 'voltaram') l = l.filter(c => DB.bookings.filter(b => b.clienteId === c.id).length > 1); if (f === 'aniversario_mes') l = l.filter(c => aniversarioNoMes(c.nasc, mes));
+    if (i.veio_por) l = l.filter(c => c.veioPor === i.veio_por);
+    const out = l.slice(0, 80).map(c => { const R = Cadastro.resumo(c); return { nome: c.nome, whats: c.whats, veio_por: veioPorNome(c.veioPor), indicado_por: c.indicadoNome || undefined,
+      veio_com: c.grupoDe ? (Cadastro.get(c.grupoDe) || {}).nome : undefined, idade: idadeDe(c.nasc) ?? undefined, passeios: R.reservas, pagou: R.gasto, deve: R.deve, proximo: R.prox ? R.prox.date + ' ' + nomeDoServico(R.prox) : undefined }; });
+    return out.length ? { total: l.length, clientes: out } : 'nenhum cliente';
+  },
+  ver_crm(i) {
+    const e = i.etapa || 'aberto';
+    const l = crmLinhas().filter(r => e === 'todos' || r.etapa === e).slice(0, 80);
+    return l.length ? l.map(r => ({ etapa: r.etapa, cliente: r.nome, whats: r.whats, veio: r.veio, servico: r.servico, dia: r.dataServ, pax: r.pax, cliente_paga: r.clientePaga, ingrid_paga: r.ingridPaga,
+      total_pedido: r.totalPedido, sinal: r.sinal, parceiro: r.parceiro || undefined, repescagens: (r.repescagens || []).map(x => `${x.n}ª ${x.data} ${x.resultado}`), numero: r.o ? r.o.num : undefined, codigo: r.b ? r.b.code : undefined, motivo_perda: r.motivo || undefined })) : 'nada nesta etapa';
+  },
+  ver_parceiros() { const l = Parceiros.all().map(p => ({ nome: p.nome, tipo: p.tipo, cupom: p.cupom, desconto: p.desconto, comissao_pct: p.comissao, ...Parceiros.conta(p) })); return l.length ? l : 'nenhum parceiro'; },
   ver_contas() { return Contas.all().map(c => ({ conta: c.id, nome: c.nome, lado: c.pais })).concat([{ conta: CONTA_PRESTADOR, nome: 'pago na mão da guia/motorista', lado: 'fora do caixa dela' }]); },
   abrir_aba(i) {
     if (!ING_ABAS.includes(i.aba)) return E_('aba desconhecida');
@@ -384,6 +418,70 @@ const ING_PLANO = {
     return { titulo: 'Backup agora', assumiu: [], linhas: [['O quê', 'tudo: clientes, reservas, pagamentos, guias, orçamentos, tarefas'], ['Onde', 'na pasta escolhida em Ajustes (Google Drive) — sem pasta, baixa o arquivo']],
       fazer: async () => { const r = await bkpAgora(true); return r.ok ? { ok: true, onde: r.pasta ? 'pasta ' + r.pasta : 'baixado', arquivo: r.arquivo || r.baixado } : { erro: 'não salvou: ' + (r.erro || '') }; } };
   },
+  cadastrar_cliente(i) {
+    if (!String(i.nome || '').trim()) return E_('faltou o nome');
+    if (Cadastro.acha({ nome: i.nome, whats: i.whats, email: i.email })) return E_('esse cliente já existe — use mudar_cliente');
+    if (i.nascimento && !nascOk(i.nascimento)) return E_('nascimento em dd/mm/aaaa');
+    const ind = i.indicado_por ? Cadastro.acha({ nome: i.indicado_por }) : null;
+    return { titulo: 'Cadastrar cliente', assumiu: [], linhas: [['Nome', i.nome], ...(i.whats ? [['WhatsApp', i.whats]] : []), ...(i.veio_por ? [['Veio por', veioPorNome(i.veio_por)]] : []), ...(i.indicado_por ? [['Indicado por', i.indicado_por]] : [])],
+      fazer: () => { const c = Cadastro.novo({ nome: i.nome, whats: i.whats, email: i.email, nasc: i.nascimento, veioPor: i.veio_por || (i.indicado_por ? 'indicacao' : ''), indicadoPor: ind ? ind.id : '', indicadoNome: ind ? ind.nome : (i.indicado_por || '') }); return { ok: true, cliente: c.nome }; } };
+  },
+  mudar_cliente(i) {
+    const r = ingAchaCliente(i.cliente); if (!r.c) return r;
+    const c = Cadastro.get(r.c.id), muda = {}, linhas = [['Cliente', c.nome]];
+    const par = [['nome', 'nome', 'Nome'], ['whats', 'whats', 'WhatsApp'], ['email', 'email', 'E-mail'], ['nascimento', 'nasc', 'Nascimento'], ['pais', 'pais', 'País/cidade']];
+    for (const [de, para, rot] of par) if (i[de]) { muda[para] = i[de]; linhas.push([rot, i[de]]); }
+    if (muda.nasc && !nascOk(muda.nasc)) return E_('nascimento em dd/mm/aaaa');
+    if (i.veio_por) { muda.veioPor = i.veio_por; linhas.push(['Veio por', veioPorNome(i.veio_por)]); }
+    if (i.indicado_por) { const ind = Cadastro.acha({ nome: i.indicado_por }); muda.indicadoPor = ind ? ind.id : ''; muda.indicadoNome = ind ? ind.nome : i.indicado_por; if (!i.veio_por) muda.veioPor = 'indicacao'; linhas.push(['Indicado por', muda.indicadoNome]); }
+    if (i.parceiro) { const p = Parceiros.all().find(x => ingN(x.nome).includes(ingN(i.parceiro)) || x.cupom === String(i.parceiro).toUpperCase()); if (!p) return E_('parceiro não encontrado — use ver_parceiros'); muda.parceiroId = p.id; linhas.push(['Parceiro', p.nome]); }
+    const v = { ...(c.viagem || {}) }; let mv = false;
+    for (const k of ['hotel', 'chegada', 'partida', 'bagagem']) if (i[k]) { v[k] = i[k]; mv = true; linhas.push([k[0].toUpperCase() + k.slice(1), i[k]]); }
+    if (mv) muda.viagem = v;
+    if (linhas.length === 1) return E_('nada para mudar');
+    return { titulo: 'Mudar cadastro', assumiu: [], linhas, fazer: () => { Cadastro.salva(c.id, muda); return { ok: true }; } };
+  },
+  quem_vai(i) {
+    const rb = ingAchaReserva(i.codigo); if (!rb.b) return rb;
+    const b = rb.b, pessoas = (i.pessoas || []).filter(p => p && String(p.nome || '').trim());
+    const ruim = pessoas.find(p => p.nascimento && !nascOk(p.nascimento)); if (ruim) return E_(`nascimento de ${ruim.nome} em dd/mm/aaaa`);
+    if (i.nascimento_comprador && !nascOk(i.nascimento_comprador)) return E_('nascimento de quem comprou em dd/mm/aaaa');
+    const vai = i.comprador_vai !== false, total = pessoas.length + (vai ? 1 : 0);
+    return { titulo: 'Quem vai no passeio', assumiu: total !== b.pax ? [`a reserva é de ${b.pax} pessoa(s); aqui são ${total}`] : [],
+      linhas: [['Serviço', `${nomeDoServico(b)} · ${ingData(b.date)}`], ...(vai ? [[b.name + ' (comprou)', i.nascimento_comprador || b.nasc || 'sem nascimento']] : [['Quem comprou', 'não vai']]), ...pessoas.map(p => [p.nome, p.nascimento || 'sem nascimento'])],
+      fazer: () => { b.compradorVai = vai; if (i.nascimento_comprador) b.nasc = i.nascimento_comprador;
+        const antes = b.group || []; b.group = pessoas.map(p => ({ nome: p.nome.trim(), nasc: p.nascimento || '', clienteId: (antes.find(a => ingN(a.nome) === ingN(p.nome)) || {}).clienteId || '' }));
+        cadastroDaReserva(b); _opSaveBooking(b); return { ok: true, pessoas: participantesDe(b).length }; } };
+  },
+  ingressos_comprados(i) {
+    const rb = ingAchaReserva(i.codigo); if (!rb.b) return rb;
+    return { titulo: 'Ingressos', assumiu: [], linhas: [['Serviço', `${nomeDoServico(rb.b)} · ${rb.b.name}`], ['Ingressos', i.comprados ? 'comprados ✓' : 'a comprar']], fazer: () => { Op.ingressosOk(rb.b.id, !!i.comprados); return { ok: true }; } };
+  },
+  link_servico(i) {
+    const rb = ingAchaReserva(i.codigo); if (!rb.b) return rb;
+    if (!/^https?:\/\//i.test(String(i.url || ''))) return E_('o link precisa começar com http');
+    return { titulo: 'Guardar link', assumiu: [], linhas: [['Serviço', `${nomeDoServico(rb.b)} · ${rb.b.name}`], ['Link', (i.nome || 'link') + ' — ' + i.url]], fazer: () => { Op.linkAdd(rb.b.id, i.nome, i.url); return { ok: true }; } };
+  },
+  marcar_perdido(i) {
+    const r = ingAchaOrc(i.numero); if (!r.o) return r;
+    return { titulo: 'Orçamento perdido', assumiu: [], linhas: [['Orçamento', `${r.o.num} · ${r.o.cliente.nome}`], ['Motivo', i.motivo]], fazer: () => { perdeOrcamento(r.o.id, i.motivo); Tarefas.sincroniza(); return { ok: true }; } };
+  },
+  avaliacao_pedida(i) {
+    const rb = ingAchaReserva(i.codigo); if (!rb.b) return rb;
+    return { titulo: 'Avaliação pedida', assumiu: [], linhas: [['Cliente', rb.b.name], ['Serviço', nomeDoServico(rb.b)], ['Vai para', '💚 Finalizado']], fazer: () => { marcaAvaliacao(rb.b.id); return { ok: true }; } };
+  },
+  cadastrar_parceiro(i) {
+    const ja = Parceiros.all().find(p => ingN(p.nome) === ingN(i.nome));
+    return { titulo: ja ? 'Mudar parceiro' : 'Cadastrar parceiro', assumiu: [], linhas: [['Nome', i.nome], ...(i.cupom ? [['Cupom', String(i.cupom).toUpperCase()]] : []), ['Desconto', (i.desconto ?? (ja ? ja.desconto : 0)) + '%'], ['Comissão', (i.comissao ?? (ja ? ja.comissao : 0)) + '%']],
+      fazer: () => { const r = Parceiros.salva({ ...(ja || {}), ...Object.fromEntries(Object.entries({ nome: i.nome, tipo: i.tipo, contato: i.contato, cupom: i.cupom, desconto: i.desconto, comissao: i.comissao }).filter(([, v]) => v !== undefined)) });
+        return r.erro ? { erro: r.erro } : { ok: true, cupom: r.cupom }; } };
+  },
+  comissao_paga(i) {
+    const p = Parceiros.all().find(x => ingN(x.nome).includes(ingN(i.parceiro)) || x.cupom === String(i.parceiro).toUpperCase());
+    if (!p) return E_('parceiro não encontrado — use ver_parceiros');
+    if (!(+i.valor > 0)) return E_('valor maior que zero');
+    return { titulo: 'Comissão paga', assumiu: [], linhas: [['Parceiro', p.nome], ['Valor', eur(+i.valor)], ['Ainda a pagar', eur(Math.max(0, Parceiros.conta(p).saldo - +i.valor))]], fazer: () => { Parceiros.paga(p.id, +i.valor); return { ok: true }; } };
+  },
   mudar_tabela(i) {
     const x = Tours.get(i.passeio_id); if (!x) return E_('passeio não encontrado — use ver_passeios');
     if (x.priceMode !== 'tabela') return E_('este passeio não tem tabela por pessoas' + (x.priceMode === 'transfer' ? ' (transfer tem tabela própria: Meus passeios)' : ' — use mudar_preco'));
@@ -449,7 +547,10 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Guias e motoristas: ver_guias, quem_esta_livre, marcar_disponibilidade, cadastrar_guia, mudar_guia (inclui preferência), remover_guia, escalar
 - Agenda: ver_agenda, ver_hoje com a data; tarefas com dia aparecem na Agenda sozinhas
 - Reservas: ver_reservas, criar_reserva, alterar_reserva, cancelar_reserva, registrar_pagamento
-- Clientes e ficha: ver_clientes, ver_ficha, anotar_cliente
+- Clientes e ficha: ver_clientes (dashboard, filtros), ver_ficha (tudo de um cliente: viagem, serviços com quem vai, ingressos, links, histórico), cadastrar_cliente, mudar_cliente, anotar_cliente
+- CRM (a planilha dela, dentro de Clientes): ver_crm (etapas aberto/confirmado/avaliar/finalizado/perdido), marcar_perdido, avaliacao_pedida
+- Quem vai no passeio (ingressos nominais): quem_vai, ingressos_comprados, link_servico
+- Cupons e parcerias: ver_parceiros, cadastrar_parceiro, comissao_paga, ver_cupons, criar_cupom
 - Contabilidade: ver_contabilidade, ver_contas, registrar_pagamento (a CONTA decide Brasil ou Europa; "prestador" = pago na mão da guia, fora do caixa dela)
 - Meus passeios: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, mudar_tabela (preço por número de pessoas), adicionar_horario, remover_horario
 - Relatórios: ver_relatorio

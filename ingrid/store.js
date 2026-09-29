@@ -1478,6 +1478,7 @@ function load() {
 function save() {
   localStorage.setItem(DB_KEY, JSON.stringify(DB));
   if (typeof cloudPushState === 'function') cloudPushState();
+  if (typeof itAgendar === 'function') itAgendar();
 }
 function resetDemo() { DB = _seed(); save(); }
 
@@ -1803,6 +1804,8 @@ const Roteiros = {
     DB.pedidos = DB.pedidos || [];
     DB.pedidos.push(ped);
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
+    /* o cliente no site: o pedido vai para o banco e chega no celular dela */
+    if (typeof itPedidoPublico === 'function' && !(typeof isLoggedIn === 'function' && isLoggedIn())) itPedidoPublico('pedidos', ped);
     return ped;
   },
   marca(id, respondido) {

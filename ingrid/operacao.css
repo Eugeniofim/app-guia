@@ -369,3 +369,11 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .op-links .frow{align-items:end}
 .tf-ing{margin:0}
 .grupo.veio select{width:100%;padding:11px 12px;border:1px solid var(--line-2);border-radius:11px;background:var(--surface);font:inherit;margin-top:6px}
+
+.par-nums{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:10px 0}
+.par-nums span{background:var(--surface-2);border-radius:var(--r);padding:8px 10px}
+.par-nums small{display:block;font-size:var(--fs-1);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+.par-nums b{font-family:var(--f-display);font-size:var(--fs-5)}
+.par-nums .par-deve{background:var(--highlight-wash)}
+.par-val{width:110px;padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--line-2)}
+@media(max-width:700px){.par-nums{grid-template-columns:repeat(3,minmax(0,1fr))}}

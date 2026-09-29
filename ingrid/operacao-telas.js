@@ -1348,6 +1348,7 @@ function viewPedido() {
         ? { ...Orc.itemDoCatalogo(i.tourId, { pax: i.pax, data: i.data, hora: i.hora, opcao: i.opcao }), obs: '' }
         : { desc: i.nome, pax: i.pax, data: i.data, valor: i.valor || 0 }),
     });
+    if (typeof itPedidoPublico === 'function') itPedidoPublico('orcamentos', o);
     const msg = [L(`Olá ${guiaNome()}! Meu pedido (${o.num}):`, `Hi ${guiaNome()}! My request (${o.num}):`), '',
       ...itens.map((i, n) => `${n + 1}. ${i.nome}${i.data ? ' — ' + opCurta(i.data) + (i.hora ? ' ' + i.hora : '') : ''} · ${i.pax}p`),
       ...(mais ? ['', mais] : []), '', `${nome} · ${wa}`].join('\n');
@@ -2117,4 +2118,66 @@ function lerParticipantes(x) {
       return { erro: L(`Falta o nome completo ou a data de nascimento da pessoa ${k + (vai ? 2 : 1)} — os ingressos são nominais.`, `Full name or date of birth missing for person ${k + (vai ? 2 : 1)} — tickets are issued by name.`) }; }
   }
   return { vai, nasc, grupo: grupo.filter(g => g.nome), veioPor: ($('#fVeio') || {}).value || '', indicadoPor: ($('#fInd') || {}).value || '' };
+}
+
+/* =====================================================
+   CUPONS E PARCERIAS — influencer, agencia, parceiro
+   Cada um com o cupom dele; o app conta reservas, faturado e comissao.
+===================================================== */
+function admParcerias() {
+  const S = admParcerias._s = admParcerias._s || { ed: '' };
+  const ps = Parceiros.all(), contas = new Map(ps.map(p => [p.id, Parceiros.conta(p)]));
+  const tot = (k) => [...contas.values()].reduce((s2, c) => s2 + c[k], 0);
+  const ed = S.ed ? Parceiros.get(S.ed) : null;
+  const avulsos = DB.coupons.filter(c => !c.parceiroId);
+  admShell('coupons', `
+    <div class="pagehead"><h1 class="pageh">Cupons e parcerias</h1></div>
+    <div class="rp-tiles">
+      ${rpTile('Parceiros', String(ps.length), '', '', 'influencers, agências e parceiros')}
+      ${rpTile('Reservas por parceiros', String(tot('reservas')), '', '', `${tot('clientes')} clientes trazidos`)}
+      ${rpTile('Faturado com eles', eur(tot('faturado')), '', '', 'valor dos serviços')}
+      ${rpTile('Comissão a pagar', eur(tot('saldo')), tot('saldo') > 0 ? '<span class="rp-d warn">pendente</span>' : '<span class="rp-d ok">✓ em dia</span>', '', `${eur(tot('paga'))} já pagos`)}
+    </div>
+    ${ps.map(p => { const c = contas.get(p.id), bs = Parceiros.reservas(p);
+      return `<section class="card par-card"><div class="rp-cab"><h3>${esc(p.nome)} <small class="why">${esc((TIPOS_PARCEIRO.find(t2 => t2[0] === p.tipo) || [0, p.tipo])[1])}${p.contato ? ' · ' + esc(p.contato) : ''}</small></h3>
+        ${p.cupom ? `<span class="pill conta">cupom <b>${esc(p.cupom)}</b>${p.desconto ? ' · ' + p.desconto + '% para o cliente' : ''}</span>` : ''}</div>
+        <div class="par-nums"><span><small>Reservas</small><b>${c.reservas}</b></span><span><small>Clientes</small><b>${c.clientes}</b></span><span><small>Faturado</small><b>${eur(c.faturado)}</b></span>
+          <span><small>Comissão ${p.comissao}%</small><b>${eur(c.devida)}</b></span><span><small>Já pago</small><b>${eur(c.paga)}</b></span><span class="${c.saldo > 0 ? 'par-deve' : ''}"><small>A pagar</small><b>${eur(c.saldo)}</b></span></div>
+        ${bs.length ? `<details><summary class="why">as ${bs.length} reservas</summary>${bs.map(b => `<div class="deprow"><span class="mono">${crmData(b.date)}</span><a href="${opFicha(b)}">${esc(b.name)}</a><span>${esc(nomeDoServico(b))}</span><b class="mono">${eur(b.total)}</b></div>`).join('')}</details>` : '<p class="why">Nenhuma reserva ainda.</p>'}
+        <div class="btnrow">
+          ${c.saldo > 0 ? `<input type="number" min="0" step="0.01" class="par-val" id="pv-${esc(p.id)}" value="${c.saldo}"><button class="mini strong" data-parpaga="${esc(p.id)}">registrar comissão paga</button>` : ''}
+          <button class="mini" data-pared="${esc(p.id)}">editar</button><button class="mini ghost danger" data-parrm="${esc(p.id)}">remover</button></div>
+      </section>`; }).join('') || '<div class="emptybox"><p>Nenhum parceiro ainda. Cadastre influencers e agências para saber quanto cada um traz.</p></div>'}
+    <section class="card" id="parForm"><h3>${ed ? 'Editar ' + esc(ed.nome) : '+ Novo parceiro'}</h3>
+      <div class="frow"><label class="fld">Nome<input id="pfNome" value="${esc(ed ? ed.nome : '')}" placeholder="Carol pelo Mundo"></label>
+        <label class="fld">É<select id="pfTipo">${TIPOS_PARCEIRO.map(([v, l]) => `<option value="${v}" ${(ed ? ed.tipo : 'influencer') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="fld">Contato<input id="pfCont" value="${esc(ed ? ed.contato : '')}" placeholder="@instagram ou WhatsApp"></label></div>
+      <div class="frow"><label class="fld">Cupom<input id="pfCupom" value="${esc(ed ? ed.cupom : '')}" placeholder="CAROL10"></label>
+        <label class="fld sm">Desconto %<input type="number" min="0" max="100" id="pfDesc" value="${ed ? ed.desconto : 10}"></label>
+        <label class="fld sm">Comissão %<input type="number" min="0" max="100" id="pfCom" value="${ed ? ed.comissao : 10}"></label></div>
+      <label class="fld">Observação<input id="pfObs" value="${esc(ed ? ed.obs : '')}"></label>
+      <p class="why">O cupom vale na reserva pelo app. Quem usar entra no cadastro como "veio por influencer/agência", ligado a este parceiro. A comissão é sobre o valor dos serviços.</p>
+      <div class="btnrow"><button class="cta sm" id="pfSalva">${ed ? 'Salvar' : 'Cadastrar parceiro'}</button>${ed ? '<button class="mini" id="pfCanc">cancelar</button>' : ''}</div></section>
+    <section class="card"><h3>Outros cupons</h3>
+      ${avulsos.map(c => `<div class="deprow"><b class="mono">${esc(c.code)}</b><span>${c.pct}% · até ${c.until ? crmData(c.until) + '/' + c.until.slice(2, 4) : '—'} · usado ${(c.uses || []).length}×</span><button class="mini ghost danger" data-cuprm="${esc(c.code)}">apagar</button></div>`).join('') || '<p class="why">Nenhum.</p>'}
+      <div class="frow"><label class="fld">Código<input id="cpC" placeholder="VOLTA10"></label><label class="fld sm">%<input type="number" id="cpP" value="10"></label><label class="fld">Validade<input type="date" id="cpV"></label><button class="mini strong" id="cpAdd">+ cupom</button></div>
+    </section>`);
+  const re = () => admParcerias();
+  $('#pfSalva').onclick = () => {
+    const r = Parceiros.salva({ id: S.ed, nome: $('#pfNome').value, tipo: $('#pfTipo').value, contato: $('#pfCont').value, cupom: $('#pfCupom').value,
+      desconto: $('#pfDesc').value, comissao: $('#pfCom').value, obs: $('#pfObs').value });
+    if (r.erro) return toast(r.erro);
+    toast(S.ed ? 'Salvo' : `${r.nome} cadastrado${r.cupom ? ' · cupom ' + r.cupom : ''}`); S.ed = ''; re();
+  };
+  $('#pfCanc')?.addEventListener('click', () => { S.ed = ''; re(); });
+  $$('[data-pared]').forEach(b => b.onclick = () => { S.ed = b.dataset.pared; re(); setTimeout(() => $('#parForm').scrollIntoView({ block: 'center' }), 30); });
+  $$('[data-parrm]').forEach(b => b.onclick = () => { const p = Parceiros.get(b.dataset.parrm); if (p && confirm(`Remover ${p.nome}? O cupom ${p.cupom || ''} deixa de valer.`)) { Parceiros.remove(p.id); re(); } });
+  $$('[data-parpaga]').forEach(b => b.onclick = () => { const v = +$('#pv-' + b.dataset.parpaga).value; if (!(v > 0)) return toast('Valor da comissão paga'); Parceiros.paga(b.dataset.parpaga, v); toast('Comissão registrada'); re(); });
+  $$('[data-cuprm]').forEach(b => b.onclick = () => { if (confirm('Apagar o cupom ' + b.dataset.cuprm + '?')) { Coupons.remove(b.dataset.cuprm); re(); } });
+  $('#cpAdd').onclick = () => {
+    const code = $('#cpC').value.toUpperCase().replace(/\s+/g, ''), pct = +$('#cpP').value;
+    if (!code || !(pct > 0 && pct <= 100)) return toast('Código e desconto de 1 a 100%');
+    if (DB.coupons.some(c => c.code === code)) return toast('Esse cupom já existe');
+    Coupons.create({ code, pct, until: $('#cpV').value || '2099-12-31', oncePerPerson: true, uses: [] }); re();
+  };
 }

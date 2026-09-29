@@ -55,6 +55,8 @@ function turnosDoServico(b) {
 /* ---------- guias e motoristas ---------- */
 function _opSave() {
   localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  /* a linha que mudou sobe para o banco em ~1 s (nuvem-itens.js) */
+  if (typeof itAgendar === 'function') itAgendar();
 }
 function _opSaveBooking(b) {
   _opSave();
@@ -1185,6 +1187,10 @@ const veioPorNome = (v) => (VEIO_POR.find(x => x[0] === v) || [0, v || '—'])[1
 const ORIGEM_PARA_VEIO = { instagram: 'instagram', friend: 'indicacao', whatsapp: 'status', agency: 'agencia', site: 'google' };
 const _nomeN = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
 const _dig8 = (v) => String(v || '').replace(/\D/g, '').slice(-8);
+/* o numero do cadastro sai do CONTATO da pessoa: o mesmo cliente criado no
+   celular e no computador ao mesmo tempo vira a MESMA linha no banco */
+function _hashId(s) { let h = 5381; for (const ch of String(s)) h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0; return h.toString(36); }
+function idDoCliente(d) { const w = _dig8(d.whats), em = String(d.email || '').trim().toLowerCase(); return 'c' + _hashId(w.length >= 8 ? 'w:' + w : em ? 'e:' + em : 'n:' + _nomeN(d.nome) + (d.grupoDe ? '|' + d.grupoDe : '')); }
 const Cadastro = {
   all() { return DB.clientes || []; },
   get(id) { return (DB.clientes || []).find(c => c.id === id) || null; },
@@ -1204,7 +1210,7 @@ const Cadastro = {
     let c = Cadastro.acha(d);
     if (!c) {
       if (!String(d.nome || '').trim()) return null;
-      c = { id: uid(), criado: d.criado || new Date().toISOString() };
+      c = { id: Cadastro.get(idDoCliente(d)) ? uid() : idDoCliente(d), criado: d.criado || new Date().toISOString() };
       for (const k of campos) c[k] = String(d[k] || '').trim();
       DB.clientes.push(c);
     } else {
@@ -1262,6 +1268,17 @@ function cadastroDaReserva(b) {
     if (gc) g.clienteId = gc.id;
   }
   return c;
+}
+
+/* reserva que chegou da nuvem (o cliente reservou pelo site) ainda nao tem
+   cadastro neste aparelho: completa aqui, antes de desenhar o painel */
+/* a chave das anotacoes (Fichas) de um cadastro */
+function chaveFicha(c) { const b = DB.bookings.find(x => x.clienteId === c.id); return b ? chaveCliente(b) : String(c.email || c.whats || c.nome || '').toLowerCase(); }
+function cadastroEmDia() {
+  let n = 0;
+  for (const b of DB.bookings || []) if (!b.clienteId && b.name) { cadastroDaReserva(b); n++; }
+  if (n) _opSave();
+  return n;
 }
 
 /* ---------- PARCERIAS E CUPONS DE INFLUENCER ----------
@@ -1675,6 +1692,7 @@ if (typeof STR !== 'undefined') {
     admConsulta: { pt: 'CRM', en: 'CRM' },
     admTarefas:  { pt: 'Tarefas', en: 'Tasks' },
     admClients:  { pt: 'Clientes · CRM', en: 'Clients · CRM' },
+    admCoupons:  { pt: 'Cupons e parcerias', en: 'Coupons & partners' },
     admMoney:    { pt: 'Contabilidade', en: 'Accounting' },
   });
 }
