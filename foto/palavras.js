@@ -72,6 +72,10 @@
   /* frases da tela "Crie o seu ensaio" (29/09/2026) — ficam aqui e nao no
      i18n.js para o app do guia continuar sendo a fonte, sem saber disso. */
   const NOVAS = {
+    tagline:     { pt: 'Ensaios em português, no seu ritmo — e você volta com as fotos de Paris que queria.',
+                   en: 'Photo sessions in Portuguese, at your pace — and you go home with the Paris photos you wanted.' },
+    seeTours:    { pt: 'Ver ensaios e reservar', en: 'See sessions and book' },
+    seeToursSub: { pt: 'Datas livres e reserva na hora', en: 'Free dates, book on the spot' },
     crieLink:    { pt: 'Crie o seu ensaio', en: 'Design your session' },
     crieLinkSub: { pt: 'Você monta, eu faço o orçamento', en: 'You build it, I quote it' },
     crieTit:     { pt: 'Crie o seu ensaio', en: 'Design your session' },

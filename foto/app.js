@@ -335,7 +335,7 @@ function viewHub() {
   $('#admEntry').onclick = () => go('/adm/today');
   $$('[data-demo]').forEach(b => b.onclick = () => toast(t('xProtoBotao')));
   Coach.start([
-    { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.', fr: 'Votre client commence ici : toutes les visites avec les vraies dates.', it: 'Il vostro cliente parte da qui: tutti i tour con le date reali.', de: 'Ihr Gast startet hier: alle Touren mit echten Terminen.', es: 'Tu cliente empieza aquí: todos los tours con fechas reales.' } },
+    { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê todos os ensaios com as datas livres.', en: 'Your client starts here: every session with the free dates.', fr: 'Votre client commence ici : toutes les visites avec les vraies dates.', it: 'Il vostro cliente parte da qui: tutti i tour con le date reali.', de: 'Ihr Gast startet hier: alle Touren mit echten Terminen.', es: 'Tu cliente empieza aquí: todos los tours con fechas reales.' } },
     { sel: '#admEntry', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.', fr: 'Et voici VOTRE porte, ' + guiaNome() + ' — le panneau où vous gérez tout.', it: 'E questa è la VOSTRA porta, ' + guiaNome() + ' — il pannello dove controllate tutto.', de: 'Und das ist IHRE Tür, ' + guiaNome() + ' — das Panel, in dem Sie alles steuern.', es: 'Y esta es TU puerta, ' + guiaNome() + ' — el panel donde controlas todo.' } },
   ], 'tutorialClient');
 }
