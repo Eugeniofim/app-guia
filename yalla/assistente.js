@@ -350,6 +350,19 @@ const Mkt = {
 
 /* ---------- ajudantes ---------- */
 const nomeTour = (x) => x ? tl(x.name) : '?';
+/* v-data: a data LOCAL do aparelho (isoToday() usa UTC: em Roma e Copenhague, de
+   0h às 2h, o app achava que ainda era ontem). E a linha que o assistente lê:
+   no TOPO das instruções, com dia da semana, calculada a cada resposta. Turno
+   de outro dia vai carimbado, senão o histórico de ontem diz "hoje é 28". */
+const hojeLocalIso = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+function linhaHoje() { const d = new Date(); const DS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+  const iso = hojeLocalIso(); return `HOJE É ${DS[d.getDay()]}, ${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} (${iso}). Use esta data para "hoje", "amanhã", "sexta que vem" e prazos. Mensagens marcadas com [dito em DD/MM] são de OUTRO dia: o "hoje" delas não vale mais.`; }
+const diaSemanaEn = () => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()];
+/* o que vai pra API: sem o campo `dia` (a API não aceita) e com o carimbo no que é de outro dia */
+function mensagensParaEnvio(ms) { const hoje = hojeLocalIso();
+  return ms.map(m => { const { dia, ...r } = m; if (m.role !== 'user' || !dia || dia === hoje) return r;
+    const c = '[dito em ' + dia.slice(8, 10) + '/' + dia.slice(5, 7) + '] ';
+    r.content = typeof m.content === 'string' ? c + m.content : m.content.map(b => b.type === 'text' ? { ...b, text: c + b.text } : b); return r; }); }
 const hojeIso = () => isoToday();
 const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
 const nomeDia = (d) => new Date(2026, 0, 4 + d).toLocaleDateString(locale(), { weekday: 'short' }).replace('.', '');
@@ -951,7 +964,7 @@ function iaAgora() {
   const novas = bs.filter(b => (b.createdAt || '').slice(0, 10) >= addDays(hoje, -2));
   const linha = (b) => `${dataCurta(b.date)} ${b.time} · ${nomeTour(Tours.get(b.tourId))} · ${b.name} (${b.pax})`;
   return [
-    `Hoje é ${hoje}.`,
+    linhaHoje(),
     hojeSai.length ? `Saídas de hoje: ${hojeSai.map(linha).join(' | ')}` : 'Hoje não há saída.',
     semana.length ? `Próximos 7 dias: ${semana.length} reserva(s) — ${semana.slice(0, 5).map(linha).join(' | ')}` : 'Próximos 7 dias sem reserva.',
     devendo.length ? `A receber: ${devendo.map(b => `${b.code} ${b.name} ${eur(Bookings.due(b))}`).join(' | ')}` : 'Nada a receber nas próximas saídas.',
@@ -964,7 +977,9 @@ function iaSistema() {
   const k = Mkt.get().kit, mem = Mkt.get().memoria;
   const lingua = (LANGS.find(l => l[0] === LANG) || [0, 0, 'Português'])[2];
   return [
-    { type: 'text', cache_control: { type: 'ephemeral' }, text: `Você é o assistente de ${guiaNome()} (${guiaNegocio()}), guia de turismo baseado em ${guiaBase()}. Trabalha dentro do app de reservas: conhece os passeios, a agenda, as vagas e as reservas, e escreve como a equipe de marketing da casa.
+    { type: 'text', cache_control: { type: 'ephemeral' }, text: `${linhaHoje()}
+
+Você é o assistente de ${guiaNome()} (${guiaNegocio()}), guia de turismo baseado em ${guiaBase()}. Trabalha dentro do app de reservas: conhece os passeios, a agenda, as vagas e as reservas, e escreve como a equipe de marketing da casa.
 
 ## Como você é
 Inteligente, elegante e gentil, como uma pessoa de confiança que trabalha com ela há anos. Fala pouco e resolve: frase curta, sem jargão, sem "como posso ajudar?". Chama ela pelo nome de vez em quando, não em toda linha. Nada de emoji em excesso — no máximo um, quando couber.
@@ -1006,7 +1021,7 @@ Anúncio (Meta): objetivo, público, verba diária e duração com o porquê em 
 ## Formato
 Responda em ${lingua}, curto. Texto para copiar vem pronto, sem comentário em volta. Negrito com parcimônia; nada de tabelas.` },
     { type: 'text', text: `## SITUAÇÃO AGORA (atualizada a cada mensagem)\n${iaAgora()}` },
-    { type: 'text', text: `Hoje é ${hojeIso()}. Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é a demonstração pública do app: quem conversa é um guia conhecendo o produto, e os passeios e reservas são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
+    { type: 'text', text: `${linhaHoje()} Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é a demonstração pública do app: quem conversa é um guia conhecendo o produto, e os passeios e reservas são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
       (mem.length ? '\n\n## Memória (o que o guia ensinou)\n' + mem.map(x => `- [${x.id}] ${x.texto}`).join('\n') : '') },
   ];
 }
@@ -1026,10 +1041,10 @@ async function iaChamar(mensagens) {
   try {
     r = vivo
       ? await fetch(COFRE + '/api/claude', { method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ max_tokens: 1500, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagens }) })
+          body: JSON.stringify({ max_tokens: 1500, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagensParaEnvio(mensagens) }) })
       : await fetch('https://api.anthropic.com/v1/messages', { method: 'POST',
           headers: { 'content-type': 'application/json', 'x-api-key': iaChave(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-          body: JSON.stringify({ model: IA_MODELO, max_tokens: 4000, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagens }) });
+          body: JSON.stringify({ model: IA_MODELO, max_tokens: 4000, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagensParaEnvio(mensagens) }) });
   } catch (e) { throw new Error(iaTraduzErro(0)); }
   const corpo = await r.json().catch(() => null);
   if (vivo && r.status === 429 && corpo && corpo.error && corpo.error.type === 'limite') { marcaEsgotado('claude'); throw Object.assign(new Error(ia('vivoAcabou')), { acabou: true }); }
@@ -1061,7 +1076,7 @@ async function iaConversa(texto, fotos) {
   const refs = fotos.map(f => guardaFoto(f)).filter(Boolean).map(f => f.id);
   const nota = refs.length ? `\n\n[${refs.length > 1 ? 'fotos guardadas' : 'foto guardada'}; refs (para criativo ou capa de passeio): ${refs.join(', ')}]` : '';
   const pergunta = texto || (fotos.length > 1 ? 'O que dá para fazer com estas fotos?' : 'Escreva uma legenda para esta foto.');
-  hist.push({ role: 'user', content: fotos.length ? [...fotos.map(f => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.split(',')[1] } })), { type: 'text', text: pergunta + nota }] : pergunta });
+  hist.push({ role: 'user', dia: hojeLocalIso(), content: fotos.length ? [...fotos.map(f => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.split(',')[1] } })), { type: 'text', text: pergunta + nota }] : pergunta });
   iaBolha('user', pergunta, null, false, fotos);
   const pensando = iaBolha('pensa', ia('pensando'));
   try {
@@ -1858,7 +1873,7 @@ FACTS: only state what comes from the tools (tours, prices, schedules, seats) or
 STYLE: like a WhatsApp chat — up to 4 short sentences, no markdown, no lists. Tone: ${{ simp: 'friendly and warm, like someone from the team', formal: 'formal and polite, no slang', leve: 'light and fun, an emoji now and then', direto: 'straight to the point, short sentences' }[e.tom] || 'friendly'}.${e.tomExtra.trim() ? ' Also, from the guide: ' + e.tomExtra.trim() : ''}
 Only talk about tours, dates, prices and bookings. To book, name the tour and say booking is done in the guide's app.
 ${faq ? '\nTHE GUIDE\'S ANSWERS (use them, translated to the client\'s language):\n' + faq + '\n' : ''}${passa ? '\nHAND OVER: when the message is about ' + passa + ', do not solve it and do not promise anything (neither that it exists nor that it doesn\'t) — kindly say the guide will reply personally soon.\n' : ''}${e.nunca.trim() ? '\nNEVER (from the guide): ' + e.nunca.trim() + '\n' : ''}
-Today is ${hojeIso()}.`;
+Today is ${hojeIso()} (${diaSemanaEn()}).`;
 }
 async function ensChamar(msgs) {
   const modo = iaModo(), tools = IA_FERRAMENTAS.filter(t => t.name === 'ver_passeios' || t.name === 'ver_agenda');

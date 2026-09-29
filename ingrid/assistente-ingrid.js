@@ -592,7 +592,7 @@ iaAgora = function () {
   const dev = Lembretes.devedores(hoje), lem = Lembretes.lista(hoje).slice(0, 6);
   const novos = Orc.all().filter(o => ['novo', 'rascunho'].includes(o.status));
   return [
-    `Hoje é ${hoje}.`,
+    linhaHoje(),
     hj.length ? `Serviços de hoje: ${hj.map(serv).join(' | ')}` : 'Hoje não há serviço.',
     am.length ? `Amanhã: ${am.map(serv).join(' | ')}` : 'Amanhã não há serviço.',
     (G.atrasadas.length || G.hoje.length) ? `Tarefas atrasadas/hoje: ${[...G.atrasadas, ...G.hoje].map(t => `${t.texto}${t.hora ? ' ' + t.hora : ''} [${t.id}]`).join(' | ')}` : 'Nenhuma tarefa para hoje.',
@@ -616,7 +616,9 @@ iaSaudacao = function () {
 iaSistema = function () {
   const mem = Mkt.get().memoria;
   return [
-    { type: 'text', cache_control: { type: 'ephemeral' }, text: `Você é o assistente de ${guiaNome()}, dona da ${guiaNegocio()} — receptivo turístico em toda a Itália, base em Roma. Ela não é mais a guia: ela AGENCIA. Tem guias e motoristas por preferência, recebe um sinal na reserva e o resto normalmente é pago NO DIA, em dinheiro, a quem faz o serviço. Recebe em várias contas (Nubank e Wise no Brasil; Wise, Revolut e cartão na Europa) e tem um contador em cada lado. O carro-chefe é passeio PARTICULAR; grupo é exceção.
+    { type: 'text', cache_control: { type: 'ephemeral' }, text: `${linhaHoje()}
+
+Você é o assistente de ${guiaNome()}, dona da ${guiaNegocio()} — receptivo turístico em toda a Itália, base em Roma. Ela não é mais a guia: ela AGENCIA. Tem guias e motoristas por preferência, recebe um sinal na reserva e o resto normalmente é pago NO DIA, em dinheiro, a quem faz o serviço. Recebe em várias contas (Nubank e Wise no Brasil; Wise, Revolut e cartão na Europa) e tem um contador em cada lado. O carro-chefe é passeio PARTICULAR; grupo é exceção.
 
 ## Como você é
 Uma pessoa de confiança que trabalha com ela há anos: frase curta, sem jargão, resolve. Chama pelo nome de vez em quando. No máximo um emoji. Propositivo: depois de responder, ofereça o próximo passo em uma linha, e pare. Uma pergunta por vez.
@@ -668,7 +670,7 @@ Chame a ferramenta direto: o app mostra o cartão "confirma?". Se ela cancelar, 
 ## Formato
 Português do Brasil, curto. Texto para ela copiar vem pronto. Negrito com parcimônia; nada de tabelas.` },
     { type: 'text', text: `## SITUAÇÃO AGORA (atualizada a cada mensagem)\n${iaAgora()}` },
-    { type: 'text', text: `Hoje é ${hojeIso()}. Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é o protótipo em teste: os clientes, guias e valores são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
+    { type: 'text', text: `${linhaHoje()} Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é o protótipo em teste: os clientes, guias e valores são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
       (mem.length ? '\n\n## Memória (o que ela ensinou)\n' + mem.map(x => `- [${x.id}] ${x.texto}`).join('\n') : '') },
   ];
 };
