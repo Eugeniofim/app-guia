@@ -623,9 +623,17 @@ function opGarante() {
   if (!Array.isArray(DB.contas) || !DB.contas.length) DB.contas = contasPadrao();
   if (DB.settings && !DB.settings.termos) DB.settings.termos = { pt: '', en: '' };
   if (DB.settings && DB.settings.plantao === undefined) DB.settings.plantao = '';
-  if (DB.demo && !(typeof temNuvem === 'function' && temNuvem()) && (+DB.opSeed || 0) < OP_SEED) {
+  DB.tarefas = DB.tarefas || [];
+  DB.lembretesVistos = DB.lembretesVistos || {};
+  const demo = DB.demo && !(typeof temNuvem === 'function' && temNuvem());
+  if (demo && (+DB.opSeed || 0) < OP_SEED) {
     opSemeiaDemo();
     DB.opSeed = OP_SEED;
+  }
+  /* tarefas de exemplo so uma vez, e so na demonstracao */
+  if (demo && !DB.tarefasSeed && typeof opSemeiaTarefas === 'function') {
+    opSemeiaTarefas();
+    DB.tarefasSeed = 1;
   }
   _opSave();
 }
@@ -705,6 +713,322 @@ function opSemeiaDemo() {
     Orc.cria({ origem: 'whats', status: 'novo', cliente: { nome: c.nome, whats: c.whats }, conversa, resumo: c.resumo,
                pax: c.pax, datas: c.datas, itens: rascunhoDaConversa(c) });
   }
+}
+
+/* ---------- TAREFAS E ANOTACOES ----------
+   Tarefa: tem prazo (ou nao), pode estar ligada a um cliente, a um servico,
+   a um orcamento ou a uma guia. Anotacao: texto com data — e onde cai o
+   resumo que o robo do WhatsApp vai deixar para ela conferir de manha.
+   As duas aparecem na Agenda do app e viram evento na agenda do celular.
+
+   Os LEMBRETES nao sao guardados: o app calcula na hora o que precisa ser
+   feito (cliente que deve, orcamento sem resposta, voucher para mandar,
+   servico sem guia). Ela marca "feito" e o lembrete some. */
+const DIAS_SEMANA = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+/* "amanha 9h", "sexta", "12/10 14:30" — o prazo sai do proprio texto */
+function lerPrazo(txt, hoje) {
+  hoje = hoje || isoToday();
+  const low = String(txt || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  let data = '', hora = '';
+  if (/\bdepois de amanha\b/.test(low)) data = addDays(hoje, 2);
+  else if (/\bamanha\b/.test(low)) data = addDays(hoje, 1);
+  else if (/\bhoje\b/.test(low)) data = hoje;
+  else {
+    const d = low.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
+    if (d) data = _isoDe(d[1], d[2], d[3]);
+    else {
+      const w = DIAS_SEMANA.findIndex(n => new RegExp('\\b' + n + '(-feira)?\\b').test(low));
+      if (w >= 0) {
+        const hj = new Date(hoje + 'T12:00:00').getDay();
+        data = addDays(hoje, ((w - hj + 7) % 7) || 7);
+      }
+    }
+  }
+  const h = low.match(/\b(\d{1,2})(?::(\d{2})|h(\d{2})?)\b/);
+  if (h && +h[1] < 24) hora = String(+h[1]).padStart(2, '0') + ':' + String(h[2] || h[3] || '00').padStart(2, '0');
+  return { data, hora };
+}
+const Tarefas = {
+  all() { return DB.tarefas || []; },
+  get(id) { return (DB.tarefas || []).find(t => t.id === id) || null; },
+  cria(d) {
+    DB.tarefas = DB.tarefas || [];
+    const texto = String(d.texto || '').trim(); if (!texto) return null;
+    const t = {
+      id: uid(), tipo: d.tipo === 'nota' ? 'nota' : 'tarefa', texto, detalhe: String(d.detalhe || '').trim(),
+      prazo: d.prazo || '', hora: d.hora || '', feita: false, feitaEm: '', criada: new Date().toISOString(),
+      clienteKey: d.clienteKey || '', clienteNome: String(d.clienteNome || '').trim(), whats: String(d.whats || '').trim(),
+      bookingId: d.bookingId || '', orcId: d.orcId || '', pessoaId: d.pessoaId || '',
+      fixa: !!d.fixa, origem: d.origem || 'manual',
+      /* a tarefa inteligente: que tipo de passo e, quando se fecha sozinha,
+         a que esta ligada, e de qual tarefa ela nasceu */
+      etapa: d.etapa || (d.tipo === 'nota' ? '' : etapaDoTexto(texto)),
+      fechaQuando: d.fechaQuando || '', liga: d.liga || {}, chave: d.chave || '',
+      tentativa: +d.tentativa || 1, anterior: d.anterior || '', obsFim: '',
+    };
+    DB.tarefas.push(t); _opSave(); return t;
+  },
+  /* "aguardar" nao se duplica: se ja existe uma aberta com a mesma chave,
+     so empurra o prazo */
+  garante(d) {
+    const ja = d.chave && Tarefas.all().find(t => !t.feita && t.chave === d.chave);
+    if (ja) { if (d.prazo) ja.prazo = d.prazo; if (d.hora !== undefined) ja.hora = d.hora; _opSave(); return ja; }
+    return Tarefas.cria(d);
+  },
+  /* CONCLUIR — e aqui que a tarefa vira a proxima. resultado vem dos botoes
+     da tarefa de espera: 'respondeu', 'cutucar' (nao respondeu), ou vazio. */
+  conclui(id, resultado) {
+    const t = Tarefas.get(id); if (!t || t.feita) return null;
+    t.feita = true; t.feitaEm = new Date().toISOString();
+    t.obsFim = resultado === 'respondeu' ? 'respondeu' : resultado === 'cutucar' ? 'não respondeu' : '';
+    const prox = proximoPasso(t, resultado);
+    const nova = prox ? Tarefas.garante({ ...prox, anterior: t.id, clienteKey: prox.clienteKey ?? t.clienteKey,
+      clienteNome: prox.clienteNome ?? t.clienteNome, whats: prox.whats ?? t.whats, bookingId: prox.bookingId ?? t.bookingId,
+      orcId: prox.orcId ?? t.orcId, pessoaId: prox.pessoaId ?? t.pessoaId }) : null;
+    _opSave();
+    return nova;
+  },
+  adia(id, dias) {
+    const t = Tarefas.get(id); if (!t) return;
+    t.prazo = addDays(isoToday(), dias || 2); _opSave();
+  },
+  /* FECHAR SOZINHA: o cliente pagou, o orcamento foi decidido, a guia
+     respondeu. Roda antes de desenhar a tela. Devolve o que fechou. */
+  sincroniza(hoje) {
+    hoje = hoje || isoToday();
+    const fechadas = [];
+    for (const t of Tarefas.all()) {
+      if (t.feita || !t.fechaQuando) continue;
+      let motivo = '', resultado = 'respondeu';
+      if (t.fechaQuando === 'pago') {
+        const bs = t.bookingId ? [Bookings.get(t.bookingId)].filter(Boolean)
+          : DB.bookings.filter(b => t.clienteKey && chaveCliente(b) === t.clienteKey && b.status !== 'cancelled' && Op.restoPara(b) === 'ingrid');
+        if (bs.length && bs.every(b => b.status === 'cancelled' || Bookings.due(b) <= 0 || Op.restoPara(b) !== 'ingrid')) motivo = 'pagou';
+      } else if (t.fechaQuando === 'orc-decidido') {
+        const o = Orc.get(t.orcId);
+        if (o && o.status === 'fechado') motivo = 'o orçamento fechou';
+        else if (o && o.status === 'perdido') { motivo = 'o orçamento não fechou'; resultado = 'perdido'; }
+      } else if (t.fechaQuando === 'guia-respondeu' && t.liga && t.liga.data) {
+        const tu = t.liga.turno === 'dia' ? 'manha' : t.liga.turno;
+        const e = Disp.estado(t.pessoaId, t.liga.data, tu);
+        if (e.estado) { motivo = e.estado === 'livre' ? 'a guia respondeu: livre' : 'a guia respondeu: ocupada'; resultado = e.estado; }
+      }
+      if (!motivo) continue;
+      Tarefas.conclui(t.id, resultado);
+      t.obsFim = motivo + ' — concluída sozinha';
+      fechadas.push(t);
+    }
+    if (fechadas.length) _opSave();
+    return fechadas;
+  },
+  salva(id, d) {
+    const t = Tarefas.get(id); if (!t) return null;
+    for (const k of ['texto', 'detalhe', 'prazo', 'hora', 'clienteKey', 'clienteNome', 'fixa']) if (d[k] !== undefined) t[k] = typeof d[k] === 'string' ? d[k].trim() : d[k];
+    _opSave(); return t;
+  },
+  marca(id, feita) {
+    const t = Tarefas.get(id); if (!t) return;
+    t.feita = !!feita; t.feitaEm = feita ? new Date().toISOString() : '';
+    _opSave();
+  },
+  remove(id) { DB.tarefas = (DB.tarefas || []).filter(t => t.id !== id); _opSave(); },
+  /* as tarefas abertas, na ordem em que ela resolve o dia */
+  grupos(hoje) {
+    hoje = hoje || isoToday();
+    const abertas = Tarefas.all().filter(t => t.tipo === 'tarefa' && !t.feita)
+      .sort((a, b) => ((a.prazo || '9999') + (a.hora || '99')).localeCompare((b.prazo || '9999') + (b.hora || '99')));
+    const sem7 = addDays(hoje, 7);
+    return {
+      atrasadas: abertas.filter(t => t.prazo && t.prazo < hoje),
+      hoje: abertas.filter(t => t.prazo === hoje),
+      semana: abertas.filter(t => t.prazo > hoje && t.prazo <= sem7),
+      depois: abertas.filter(t => t.prazo > sem7),
+      semData: abertas.filter(t => !t.prazo),
+      feitas: Tarefas.all().filter(t => t.tipo === 'tarefa' && t.feita).sort((a, b) => (b.feitaEm || '').localeCompare(a.feitaEm || '')).slice(0, 30),
+    };
+  },
+  notas(busca) {
+    const n = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const q = n(busca).trim();
+    return Tarefas.all().filter(t => t.tipo === 'nota')
+      .filter(t => !q || [t.texto, t.detalhe, t.clienteNome].some(v => n(v).includes(q)))
+      .sort((a, b) => (b.fixa - a.fixa) || (b.criada || '').localeCompare(a.criada || ''));
+  },
+  doDia(data) { return Tarefas.all().filter(t => t.prazo === data).sort((a, b) => (a.hora || '99').localeCompare(b.hora || '99')); },
+  /* do mesmo cliente: pela chave da ficha ou pelo WhatsApp */
+  doCliente(k, whats) {
+    const w = String(whats || '').replace(/\D/g, '');
+    return Tarefas.all().filter(t => (k && t.clienteKey === k)
+      || (w.length >= 6 && String(t.whats || '').replace(/\D/g, '').endsWith(w.slice(-8))));
+  },
+};
+
+/* ---------- o fluxo das tarefas inteligentes ----------
+   mensagem  -> aguardar resposta (2 dias)
+   cobrar    -> aguardar pagamento (fecha sozinha quando o cliente paga)
+   orcamento -> aguardar resposta do orcamento (fecha sozinha quando fecha)
+   guia      -> aguardar a guia (fecha sozinha quando voce marca livre/ocupada)
+   aguardar  -> respondeu: o passo seguinte (fechar, escalar) | nao respondeu:
+                mandar um lembrete, que volta a aguardar (ate 3 tentativas) */
+const ETAPAS = {
+  mensagem:  { nome: 'mensagem', depois: 'aguardar resposta' },
+  cobrar:    { nome: 'cobrança', depois: 'aguardar o pagamento' },
+  orcamento: { nome: 'orçamento', depois: 'aguardar a resposta do orçamento' },
+  guia:      { nome: 'pedir disponibilidade', depois: 'aguardar a guia' },
+  aguardar:  { nome: 'aguardando', depois: '' },
+  fechar:    { nome: 'fechar', depois: '' },
+  escalar:   { nome: 'escalar', depois: 'aguardar a confirmação da guia' },
+};
+function etapaDoTexto(txt) {
+  const low = String(txt || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (/^(cobrar|pedir o pagamento|lembrar .* pagamento)/.test(low)) return 'cobrar';
+  if (/orcamento/.test(low) && /^(mandar|enviar|montar)/.test(low)) return 'orcamento';
+  if (/^(perguntar|confirmar) (a|o|com a|com o) (guia|motorista)/.test(low)) return 'guia';
+  if (/^(aguardar|esperar)/.test(low)) return 'aguardar';
+  if (/^(mandar|enviar|responder|perguntar|falar|ligar|escrever|chamar|confirmar|avisar|lembrar)/.test(low)) return 'mensagem';
+  return '';
+}
+function _alvo(t) {
+  const p = t.pessoaId && Equipe.get(t.pessoaId);
+  return (p && p.nome.split(' ')[0]) || (t.clienteNome && t.clienteNome.split(' ')[0]) || 'o cliente';
+}
+function proximoPasso(t, resultado) {
+  const hoje = isoToday(), alvo = _alvo(t);
+  if (t.etapa === 'mensagem')
+    return { etapa: 'aguardar', texto: `Aguardar resposta de ${alvo}`, detalhe: 'Depois de: ' + t.texto, prazo: addDays(hoje, 2), chave: 'resp:' + (t.clienteKey || t.whats || t.pessoaId || t.id), tentativa: t.tentativa };
+  if (t.etapa === 'cobrar')
+    return { etapa: 'aguardar', texto: `Aguardar o pagamento de ${alvo}`, prazo: addDays(hoje, 2), fechaQuando: 'pago', chave: 'pago:' + (t.bookingId || t.clienteKey), tentativa: t.tentativa };
+  if (t.etapa === 'orcamento')
+    return { etapa: 'aguardar', texto: `Aguardar a resposta de ${alvo} sobre o orçamento`, prazo: addDays(hoje, 2), fechaQuando: 'orc-decidido', chave: 'orc:' + t.orcId, tentativa: t.tentativa };
+  if (t.etapa === 'guia')
+    return { etapa: 'aguardar', texto: `Aguardar a resposta de ${alvo}`, prazo: hoje, fechaQuando: t.liga && t.liga.data ? 'guia-respondeu' : '', liga: t.liga, chave: 'guia:' + t.pessoaId + ':' + ((t.liga && t.liga.data) || ''), tentativa: t.tentativa };
+  if (t.etapa === 'escalar')
+    return { etapa: 'aguardar', texto: `Aguardar a confirmação de ${alvo}`, prazo: hoje, chave: 'conf:' + t.pessoaId + ':' + t.bookingId };
+  if (t.etapa !== 'aguardar') return null;
+  /* a espera acabou */
+  if (resultado === 'cutucar') {
+    const n = (+t.tentativa || 1) + 1;
+    if (n > 3) return { etapa: t.orcId ? 'fechar' : '', texto: t.orcId ? `${alvo} não respondeu 3 vezes: marcar o orçamento como "não fechou"?` : `${alvo} não respondeu 3 vezes — decidir o que fazer`, prazo: hoje, chave: 'desiste:' + t.id };
+    const cobranca = t.fechaQuando === 'pago';
+    return { etapa: cobranca ? 'cobrar' : t.fechaQuando === 'orc-decidido' ? 'orcamento' : t.fechaQuando === 'guia-respondeu' ? 'guia' : 'mensagem',
+             texto: cobranca ? `Lembrar ${alvo} do pagamento (${n}ª vez)` : `Mandar um lembrete para ${alvo} (${n}ª vez)`,
+             prazo: hoje, tentativa: n, liga: t.liga, chave: 'lembra:' + t.id };
+  }
+  if (resultado === 'perdido' || resultado === 'ocupada') {
+    if (resultado === 'ocupada' && t.liga && t.liga.bookingId && !(Bookings.get(t.liga.bookingId) || {}).prestadorId)
+      return { etapa: 'guia', texto: `${alvo} está ocupada: perguntar à próxima da lista`, prazo: hoje, liga: t.liga, pessoaId: '', chave: 'proxima:' + t.liga.bookingId };
+    return null;
+  }
+  if (t.orcId) { const o = Orc.get(t.orcId); if (o && o.status !== 'fechado' && o.status !== 'perdido') return { etapa: 'fechar', texto: `Fechar o orçamento de ${alvo}: registrar o sinal e criar as reservas`, prazo: hoje, chave: 'fechar:' + t.orcId }; }
+  if (t.pessoaId && t.liga && t.liga.bookingId) {
+    const b = Bookings.get(t.liga.bookingId);
+    if (b && !b.prestadorId && resultado !== 'ocupada') return { etapa: 'escalar', texto: `Escalar ${alvo} e mandar o serviço de ${b.name}`, prazo: hoje, bookingId: b.id, chave: 'escalar:' + b.id };
+  }
+  return null;
+}
+/* as esperas que as outras telas criam sozinhas */
+const Espera = {
+  orcamento(o) {
+    return Tarefas.garante({ etapa: 'aguardar', texto: `Aguardar a resposta de ${(o.cliente.nome || 'o cliente').split(' ')[0]} sobre o orçamento ${o.num}`,
+      prazo: addDays(isoToday(), 2), fechaQuando: 'orc-decidido', orcId: o.id, clienteNome: o.cliente.nome, whats: o.cliente.whats,
+      clienteKey: o.clienteKey || '', chave: 'orc:' + o.id, origem: 'app' });
+  },
+  guia(p, data, turno, b) {
+    return Tarefas.garante({ etapa: 'aguardar', texto: `Aguardar a resposta de ${p.nome.split(' ')[0]} (${data.slice(8, 10)}/${data.slice(5, 7)} ${turno === 'manha' ? 'manhã' : turno === 'dia' ? 'dia inteiro' : turno})`,
+      prazo: isoToday(), fechaQuando: 'guia-respondeu', pessoaId: p.id, liga: { data, turno, bookingId: b ? b.id : '' },
+      clienteNome: b ? b.name : '', chave: 'guia:' + p.id + ':' + data + ':' + turno, origem: 'app' });
+  },
+  pagamento(dev) {
+    return Tarefas.garante({ etapa: 'aguardar', texto: `Aguardar o pagamento de ${dev.nome.split(' ')[0]} (${dev.total} €)`,
+      prazo: addDays(isoToday(), 2), fechaQuando: 'pago', clienteKey: dev.chave, clienteNome: dev.nome, whats: dev.whats,
+      chave: 'pago:' + dev.chave, origem: 'app' });
+  },
+};
+
+/* o que o app sabe que precisa ser feito — calculado, nunca digitado */
+const Lembretes = {
+  visto(chave) { return !!((DB.lembretesVistos || {})[chave]); },
+  marca(chave) { DB.lembretesVistos = DB.lembretesVistos || {}; DB.lembretesVistos[chave] = isoToday(); _opSave(); },
+  /* CLIENTES QUE DEVEM: o que falta pagar a ELA (o resto no dia com a guia
+     nao entra — esse a guia recebe). Um por cliente, com o total. */
+  devedores(hoje) {
+    hoje = hoje || isoToday();
+    const map = new Map();
+    for (const b of DB.bookings) {
+      if (b.status === 'cancelled') continue;
+      const falta = Bookings.due(b); if (falta <= 0 || Op.restoPara(b) !== 'ingrid') continue;
+      const k = chaveCliente(b);
+      const r = map.get(k) || { chave: k, nome: b.name, whats: b.whats, total: 0, prazo: '', servicos: [] };
+      r.total += falta; r.servicos.push(b);
+      const pz = Bookings.dueDate(b); if (!r.prazo || pz < r.prazo) r.prazo = pz;
+      map.set(k, r);
+    }
+    return [...map.values()].map(r => ({ ...r, atrasado: r.prazo < hoje })).sort((a, b) => a.prazo.localeCompare(b.prazo));
+  },
+  lista(hoje) {
+    hoje = hoje || isoToday();
+    const out = [];
+    const add = (l) => { if (!Lembretes.visto(l.chave)) out.push(l); };
+    for (const o of DB.orcamentos || []) {
+      if (o.status === 'novo' || o.status === 'rascunho')
+        add({ chave: 'orc-montar:' + o.id, grupo: 'orcamentos', nivel: 'warn', data: String(o.criado).slice(0, 10), txt: `Montar e mandar o orçamento de ${o.cliente.nome || 'um cliente'}`, sub: o.resumo || o.num, href: '#/adm/consulta/' + o.id });
+      if (o.status === 'enviado' && o.validade && o.validade <= addDays(hoje, 1))
+        add({ chave: 'orc-validade:' + o.id + ':' + o.validade, grupo: 'orcamentos', nivel: o.validade < hoje ? 'bad' : 'warn', data: o.validade, txt: `Orçamento ${o.num} de ${o.cliente.nome} ${o.validade < hoje ? 'venceu' : 'vence'} em ${o.validade.slice(8, 10)}/${o.validade.slice(5, 7)} — perguntar se fecha`, href: '#/adm/consulta/' + o.id, whats: o.cliente.whats });
+    }
+    for (const p of DB.pedidos || []) {
+      if (!p.respondido && !(DB.orcamentos || []).some(o => o.pedidoId === p.id))
+        add({ chave: 'roteiro:' + p.id, grupo: 'orcamentos', nivel: 'warn', data: String(p.criado).slice(0, 10), txt: `Responder o pedido de roteiro de ${p.nome}`, href: '#/adm/consulta', whats: p.whats });
+    }
+    for (const b of DB.bookings) {
+      if (b.status === 'cancelled') continue;
+      if (b.date >= hoje && b.date <= addDays(hoje, 3) && !b.prestadorId)
+        add({ chave: 'escalar:' + b.id, grupo: 'servicos', nivel: b.date <= addDays(hoje, 1) ? 'bad' : 'warn', data: b.date, bookingId: b.id,
+              txt: `Escalar ${(Tours.get(b.tourId) || {}).priceMode === 'transfer' ? 'motorista' : 'guia'} para ${b.name} (${b.date.slice(8, 10)}/${b.date.slice(5, 7)} ${b.time})`, href: '#/adm/guias/servico:' + b.id });
+      if (b.date >= hoje && b.date <= addDays(hoje, 2) && !b.voucherEm)
+        add({ chave: 'voucher:' + b.id, grupo: 'servicos', nivel: 'n', data: b.date, bookingId: b.id,
+              txt: `Mandar o voucher para ${b.name} (${b.date.slice(8, 10)}/${b.date.slice(5, 7)})`, href: '#/adm/voucher/' + b.id });
+      if (+b.custo > 0 && !b.acertado && b.date < hoje && b.prestadorId) {
+        const a = acertos(b.date, b.date).find(x => x.b.id === b.id);
+        if (a && a.saldo) add({ chave: 'acerto:' + b.id, grupo: 'servicos', nivel: 'n', data: b.date, bookingId: b.id,
+          txt: a.saldo > 0 ? `Pagar ${a.saldo} € a ${(a.pessoa || {}).nome || 'quem fez'} (${b.name})` : `Receber ${-a.saldo} € de ${(a.pessoa || {}).nome || 'quem fez'} (${b.name})`, href: '#/adm/money' });
+      }
+    }
+    return out.sort((a, b) => ({ bad: 0, warn: 1, n: 2 }[a.nivel] - { bad: 0, warn: 1, n: 2 }[b.nivel]) || String(a.data).localeCompare(String(b.data)));
+  },
+};
+/* evento para a agenda do celular (Google Agenda, iPhone): com aviso 30 min antes */
+function icsTarefa(t) {
+  const esc = (v) => String(v || '').replace(/[\\,;]/g, (m) => '\\' + m).replace(/\n/g, '\\n');
+  const dia = (t.prazo || isoToday()).replace(/-/g, '');
+  const linhas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EmRoma//Tarefas//PT', 'BEGIN:VEVENT',
+    'UID:' + t.id + '@emroma-tarefas', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'];
+  if (t.hora) {
+    const [h, m] = t.hora.split(':').map(Number);
+    const fim = String(Math.min(23, h + 1)).padStart(2, '0') + String(m).padStart(2, '0');
+    linhas.push('DTSTART:' + dia + 'T' + t.hora.replace(':', '') + '00', 'DTEND:' + dia + 'T' + fim + '00');
+  } else {
+    linhas.push('DTSTART;VALUE=DATE:' + dia, 'DTEND;VALUE=DATE:' + addDays(t.prazo || isoToday(), 1).replace(/-/g, ''));
+  }
+  linhas.push('SUMMARY:' + esc(t.texto), 'DESCRIPTION:' + esc([t.detalhe, t.clienteNome && 'Cliente: ' + t.clienteNome].filter(Boolean).join('\n')),
+    'BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(t.texto), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR');
+  return linhas.join('\r\n');
+}
+function opSemeiaTarefas() {
+  const hoje = isoToday();
+  const jul = DB.bookings.find(b => b.name === 'Juliana Andrade');
+  const cam = DB.bookings.find(b => b.name === 'Camila Teixeira');
+  const ag = DB.bookings.find(b => /Viagens Sol/.test(b.name));
+  const cria = (d) => Tarefas.cria(d);
+  cria({ texto: 'Confirmar com o Luca o transfer da Juliana (voo AZ 673)', prazo: hoje, hora: '10:00', clienteKey: jul ? chaveCliente(jul) : '', clienteNome: 'Juliana Andrade', bookingId: jul ? jul.id : '', pessoaId: 'op-m1' });
+  cria({ texto: 'Comprar os ingressos do Coliseu com arena para a Camila (4 pessoas)', prazo: hoje, clienteKey: cam ? chaveCliente(cam) : '', clienteNome: 'Camila Teixeira', bookingId: cam ? cam.id : '' });
+  cria({ texto: 'Responder a Patrícia sobre o Natal em Roma', prazo: addDays(hoje, -1), clienteNome: 'Patrícia Menezes', clienteKey: 'patricia.menezes@email.com' });
+  cria({ texto: 'Pagar a guia do bate e volta de Pompeia (agência Viagens Sol)', prazo: addDays(hoje, 4), hora: '18:00', clienteNome: ag ? ag.name : '', clienteKey: ag ? chaveCliente(ag) : '', bookingId: ag ? ag.id : '' });
+  cria({ texto: 'Montar a tabela de preços de Florença com a Sofia', detalhe: 'Mesmo formato da de Roma: 1 a 20 pessoas.' });
+  const feita = cria({ texto: 'Renovar o seguro do carro do Paolo', prazo: addDays(hoje, -2) }); if (feita) Tarefas.marca(feita.id, true);
+  cria({ tipo: 'nota', texto: 'O Luca prefere receber a lista de transfers até as 18h do dia anterior.', fixa: true });
+  cria({ tipo: 'nota', texto: 'Ideia: pacote "Roma em 3 dias" para famílias com criança — Coliseu, Vaticano curto e gelato tour.' });
+  const o = (DB.orcamentos || []).find(x => x.origem === 'whats');
+  if (o) cria({ tipo: 'nota', origem: 'whats', texto: `Resumo do WhatsApp — ${o.cliente.nome}`, detalhe: o.resumo, orcId: o.id, clienteNome: o.cliente.nome, whats: o.cliente.whats });
 }
 
 /* ---------- PAINEL DE NUMEROS (a aba Relatorios) ----------
@@ -872,6 +1196,7 @@ if (typeof STR !== 'undefined') {
   Object.assign(STR, {
     admGuias:    { pt: 'Guias', en: 'Guides' },
     admConsulta: { pt: 'Sob consulta', en: 'Quotes' },
+    admTarefas:  { pt: 'Tarefas', en: 'Tasks' },
     admMoney:    { pt: 'Contabilidade', en: 'Accounting' },
   });
 }

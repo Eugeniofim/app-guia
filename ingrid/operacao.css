@@ -247,3 +247,51 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .rp-tip b{font-size:var(--fs-4);font-variant-numeric:tabular-nums}
 .rp-tip span{opacity:.85}
 @media print{.rp-tab{display:none}.rp-tip{display:none!important}}
+
+/* =========================================================
+   TAREFAS E ANOTACOES
+   ========================================================= */
+.tf-nova .frow{align-items:end}
+.tf-grupo h3,.tf-lembra h3{display:flex;align-items:center;gap:8px}
+.tf-n{font-family:var(--f-mono);font-size:var(--fs-2);color:var(--ink-3);font-weight:400}
+.tf-grupo.bad h3{color:var(--danger)}
+.tf-bad{color:var(--danger)}
+.tf-row{display:grid;grid-template-columns:30px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.tf-grupo h3 + .tf-row,.tf-hoje .rp-cab + .tf-row,.tf-row:first-child{border-top:0}
+.tf-ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--line-2);background:var(--surface);display:grid;place-items:center;font-size:14px;color:var(--ok);margin-top:1px;flex:none}
+.tf-ck:hover{border-color:var(--ok);background:var(--ok-wash)}
+.tf-ck:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tf-ck.on{border-color:var(--ok);background:var(--ok-wash);font-weight:700}
+.tf-row.espera .tf-ck{border-style:dashed}
+.tf-corpo{display:flex;flex-direction:column;gap:4px;min-width:0}
+.tf-txt{font-weight:var(--t-strong);line-height:1.35}
+.tf-txt a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.tf-row.feita .tf-txt{text-decoration:line-through;color:var(--ink-3);font-weight:400}
+.tf-meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:var(--fs-2);color:var(--ink-3)}
+.tf-meta a{color:var(--accent)}
+.tf-quando{font-weight:var(--t-strong);color:var(--ink-2)}
+.tf-quando.hoje{color:var(--accent)}
+.tf-quando.bad{color:var(--danger)}
+.tf-dep{color:var(--highlight-text)}
+.tf-det{color:var(--ink-2);white-space:pre-line}
+.tf-row .tacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tf-lembra .op-lbl{margin-top:10px}
+.tf-lem{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;padding:10px 12px;border-radius:var(--r);background:var(--surface-2);margin-bottom:6px;border-left:3px solid var(--line-2)}
+.tf-lem.bad{border-left-color:var(--danger)}
+.tf-lem.warn{border-left-color:var(--brand-assinatura)}
+.tf-lem .tf-corpo small{color:var(--ink-3)}
+.tf-lem .tacts{display:flex;gap:6px;flex-wrap:wrap}
+.tf-sozinha{border:1px solid var(--ok-wash)}
+.tf-hoje{border-left:4px solid var(--ok)}
+.nt-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.nt-card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.nt-card.fixa{background:var(--highlight-wash)}
+.nt-card.mini{box-shadow:none;background:var(--surface-2);padding:10px 12px;margin-top:8px}
+.nt-card p{margin:0;color:var(--ink-2);font-size:var(--fs-3);white-space:pre-line}
+.nt-top{display:flex;align-items:center;gap:8px}
+.nt-top small{margin-left:auto;color:var(--ink-3)}
+.nt-card .tacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}
+.ag-tf{position:absolute;right:4px;top:3px;font-size:10px;font-weight:700;color:var(--ok)}
+.agc{position:relative}
+.ag-tarefas{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.ag-tarefas .frow{align-items:end;margin-top:6px}

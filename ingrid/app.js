@@ -1395,6 +1395,7 @@ function renderBook() {
 const ADM_TABS = [
   ['today',    'admToday'],
   ['consulta', 'admConsulta'],
+  ['tarefas',  'admTarefas'],
   ['guias',    'admGuias'],
   ['agenda',   'admAgenda'],
   ['bookings', 'admBookings'],
@@ -1470,6 +1471,7 @@ function viewAdm(tab, arg) {
   if (tab === 'today')    admToday(arg);
   else if (tab === 'guias')    admGuias(arg);
   else if (tab === 'consulta') admConsulta(arg);
+  else if (tab === 'tarefas')  admTarefas(arg);
   else if (tab === 'voucher')  opDocVoucher(arg);
   else if (tab === 'orcdoc')   opDocOrc(arg);
   else if (tab === 'clients' && arg) admFicha(arg);
@@ -2663,6 +2665,7 @@ function admSettings() {
       configuracoes: DB.settings, reservas: DB.bookings,
       pedidos: DB.pedidos || [], equipe: DB.equipe || [], disponibilidade: DB.disp || [],
       contas: DB.contas || [], orcamentos: DB.orcamentos || [], fichas: DB.fichas || {},
+      tarefas: DB.tarefas || [],
     };
     baixaArquivo(JSON.stringify(pacote, null, 2), 'backup-' + hojeArq() + '.json', 'application/json');
     toast(t('bkpFeito'));
@@ -2833,8 +2836,9 @@ function admAgenda() {
       lista.push({ date: b.date, time: b.time, capacity: cap, tour: x, left, booked: cap - left, pastOnly: true });
     });
 
-  const sel = admAgenda._d && byDay[admAgenda._d] ? admAgenda._d
-            : (Object.keys(byDay).sort()[0] || isoToday());
+  /* o dia escolhido vale mesmo sem passeio: pode ter so tarefa */
+  const sel = admAgenda._d && admAgenda._d.slice(0, 7) === cur ? admAgenda._d
+            : cur === isoToday().slice(0, 7) ? isoToday() : (Object.keys(byDay).sort()[0] || isoToday());
   const WD = LANG === 'pt' ? ['seg','ter','qua','qui','sex','sáb','dom'] : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const MN = LANG === 'pt'
     ? ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
@@ -2848,8 +2852,9 @@ function admAgenda() {
     const isToday = iso === isoToday();
     const dots = list.slice(0, 4).map(x =>
       `<i class="${x.left === 0 ? 'full' : x.left <= 2 ? 'low' : ''}"></i>`).join('');
+    const nTf = Tarefas.doDia(iso).filter(t => t.tipo === 'tarefa' && !t.feita).length;
     cells += `<button class="agc ${list.length ? 'has' : ''} ${iso === sel ? 'on' : ''} ${isToday ? 'today' : ''}" data-d="${iso}">
-      <b>${d}</b>${list.length ? `<span class="agdots">${dots}</span>` : ''}</button>`;
+      <b>${d}</b>${list.length ? `<span class="agdots">${dots}</span>` : ''}${nTf ? `<span class="ag-tf" title="${nTf} tarefa(s)">✓${nTf > 1 ? nTf : ''}</span>` : ''}</button>`;
   }
 
   const selList = (byDay[sel] || []).sort((a, b) => a.time.localeCompare(b.time));
@@ -2880,8 +2885,20 @@ function admAgenda() {
               `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(b.name.split(' ')[0])} ×${b.pax}</span>`).join('')}</div>` : ''}
           </div>`;
         }).join('') : `<p class="empty">${t('agNoDep')}</p>`}
+        <div class="ag-tarefas"><span class="op-lbl">Tarefas do dia</span>
+          ${tfMiniHtml(Tarefas.doDia(sel).filter(tt => tt.tipo === 'tarefa'), isoToday(), 'Nenhuma tarefa neste dia.')}
+          <div class="frow"><label class="fld grow"><input id="agTf" placeholder="Nova tarefa para ${fmtDate(sel)}"></label><button class="mini strong" id="agTfAdd">+ tarefa</button></div>
+          <a class="mini" href="#/adm/today/${sel}">ver o dia completo (clientes, guias, pagamentos)</a>
+        </div>
       </section>
     </div>`);
+  tfLigaMini(() => admAgenda());
+  $('#agTfAdd').onclick = () => {
+    const v = $('#agTf').value.trim(); if (!v) return $('#agTf').focus();
+    const p = lerPrazo(v, sel);
+    Tarefas.cria({ texto: v, prazo: sel, hora: p.hora });
+    admAgenda._d = sel; admAgenda();
+  };
 
   const shift = (n) => {
     const d = new Date(Y, M - 1 + n, 1);

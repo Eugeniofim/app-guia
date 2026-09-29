@@ -181,6 +181,9 @@ function admHoje(arg) {
   const lista = Op.doDia(dia);
   const late = Bookings.all().filter(b => b.status === 'confirmed' && Bookings.due(b) > 0 && Op.restoPara(b) === 'ingrid' && Bookings.dueDate(b) < hoje);
   const semPres = Op.semPrestador(3);
+  const sozinhas = Tarefas.sincroniza(hoje);
+  const tfHoje = Tarefas.grupos(hoje);
+  const tfDia = dia === hoje ? [...tfHoje.atrasadas, ...tfHoje.hoje] : Tarefas.doDia(dia).filter(t => t.tipo === 'tarefa' && !t.feita);
   const novos = Orc.all().filter(o => o.status === 'novo').length
     + Roteiros.all().filter(p => !p.respondido && !(DB.orcamentos || []).some(o => o.pedidoId === p.id)).length;
   const noDia = lista.reduce((s, b) => { const n = Op.noDia(b); return s + (n.para === 'prestador' ? n.valor : 0); }, 0);
@@ -203,6 +206,10 @@ function admHoje(arg) {
       ${semPres.length ? `<a class="alert warn" href="#/adm/guias">👤 ${semPres.length} ${semPres.length > 1 ? 'serviços' : 'serviço'} sem guia/motorista nos próximos 3 dias →</a>` : ''}
       ${late.length ? `<a class="alert bad" href="#/adm/bookings">⚠ ${late.length} ${late.length > 1 ? 'pagamentos atrasados' : 'pagamento atrasado'} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} →</a>` : ''}
     </div>` : ''}
+    ${tfDia.length ? `<section class="card tf-hoje"><div class="rp-cab"><h3>✅ Tarefas ${dia === hoje ? 'de hoje' : 'do dia'}${dia === hoje && tfHoje.atrasadas.length ? ` · <span class="tf-bad">${tfHoje.atrasadas.length} atrasada${tfHoje.atrasadas.length > 1 ? 's' : ''}</span>` : ''}</h3>
+      <a class="mini" href="#/adm/tarefas">todas as tarefas</a></div>
+      ${sozinhas.map(t => `<p class="why">✨ ${esc(t.texto)} — ${esc(t.obsFim)}</p>`).join('')}
+      ${tfMiniHtml(tfDia, hoje, '')}</section>` : ''}
     <p class="op-resumo"><b>${fmtDate(dia)}</b> · ${lista.length} ${lista.length === 1 ? 'serviço' : 'serviços'} · ${pax} pessoas${noDia ? ` · <b>${eur(noDia)}</b> pagos no dia a guias e motoristas` : ''}</p>
     ${lista.length ? lista.map(b => opCardServico(b)).join('')
       : `<div class="emptybox"><p>Nenhum serviço neste dia.</p><a class="mini" href="#/adm/consulta">Ver pedidos sob consulta</a></div>`}
@@ -222,6 +229,7 @@ function admHoje(arg) {
     });
   };
   opLigaCards(() => admHoje(dia));
+  tfLigaMini(() => admHoje(dia));
   if (admHoje._foco) {
     const el = document.getElementById('svc-' + admHoje._foco);
     admHoje._foco = null;
@@ -271,7 +279,7 @@ function admGuias(arg) {
       <div class="gl-nome"><b>${esc(p.nome)}</b><small>${esc((p.cidades || []).join(', '))}${p.idiomas ? ' · ' + esc(p.idiomas) : ''}</small></div>
       ${pill}
       <div class="tacts">
-        ${p.whats ? `<a class="mini cta-ish" target="_blank" rel="noopener" href="${waLink(msgPara(p), opNum(p.whats))}">💬 Perguntar</a>` : ''}
+        ${p.whats ? `<a class="mini cta-ish" target="_blank" rel="noopener" data-pergunta="${esc(p.id)}" href="${waLink(msgPara(p), opNum(p.whats))}">💬 Perguntar</a>` : ''}
         ${it.servico ? '' : `<button class="mini" data-mk="${esc(p.id)}|livre">Livre</button>
         <button class="mini" data-mk="${esc(p.id)}|ocupada">Ocupada</button>
         ${it.estado ? `<button class="mini ghost" data-mk="${esc(p.id)}|">Limpar</button>` : ''}`}
@@ -380,6 +388,12 @@ function admGuias(arg) {
     Disp.marca(id, S.data, S.turno, estado, estado === 'livre' ? (prompt('Até que horas? (opcional)') || '') : estado === 'ocupada' ? '' : '');
     re();
   });
+  /* perguntou: nasce "aguardar a resposta da guia", que fecha quando ela marcar livre/ocupada */
+  $$('[data-pergunta]').forEach(a => a.addEventListener('click', () => {
+    const p = Equipe.get(a.dataset.pergunta); if (!p) return;
+    Espera.guia(p, S.data, S.turno, serv);
+    setTimeout(() => toast(`Aguardando ${opPrimeiro(p.nome)} · a tarefa fecha quando você marcar livre ou ocupada`), 300);
+  }));
   $$('[data-esc]').forEach(b => b.onclick = () => {
     Op.escala(S.servico, b.dataset.esc);
     const p = Equipe.get(b.dataset.esc);
@@ -494,6 +508,12 @@ function admFicha(chave) {
         ${grupo.size ? `<section class="card"><h3>Quem vem junto</h3>
           ${[...grupo].map(([n, nasc]) => `<div class="deprow"><a href="#/adm/clients/${encodeURIComponent('g:' + n.toLowerCase())}">${esc(n)}</a>${nasc ? `<small class="mono">${esc(nasc)}</small>` : ''}</div>`).join('')}
         </section>` : ''}
+        <section class="card"><h3>Tarefas e anotações</h3>
+          ${tfMiniHtml(Tarefas.doCliente(k, base.whats).filter(t => !t.feita || t.tipo === 'nota').filter(t => t.tipo === 'tarefa'), isoToday(), 'Nenhuma tarefa aberta.')}
+          ${Tarefas.doCliente(k, base.whats).filter(t => t.tipo === 'nota').map(n => `<div class="nt-card mini"><b>${esc(n.texto)}</b>${n.detalhe ? `<p>${esc(n.detalhe)}</p>` : ''}<small class="why">${new Date(n.criada).toLocaleDateString('pt-BR')}</small></div>`).join('')}
+          <div class="frow" style="margin-top:8px"><label class="fld grow">Nova tarefa para ${esc(opPrimeiro(base.name))}<input id="fcTf" placeholder="Ex.: mandar o voucher sexta 10h"></label>
+            <button class="mini strong" id="fcTfAdd">+ tarefa</button><button class="mini" id="fcNtAdd">+ anotação</button></div>
+        </section>
         <section class="card"><h3>Pedidos e orçamentos</h3>
           ${orcamentos.map(o => `<div class="deprow"><a href="#/adm/consulta/${esc(o.id)}">${esc(o.num)}</a><span>${o.itens.length} itens · ${eur(Orc.total(o))}</span>${opOrcPill(o)}</div>`).join('')}
           ${pedidos.map(p => `<div class="deprow"><span>🗺️ Monte seu roteiro · ${p.ini ? opCurta(p.ini) : ''}</span><span class="pill ${p.respondido ? 'ok' : 'warn'}">${p.respondido ? 'respondido' : 'novo'}</span></div>`).join('')}
@@ -508,6 +528,16 @@ function admFicha(chave) {
     go('/adm/consulta/' + o.id);
   };
   opLigaCards(() => admFicha(chave));
+  tfLigaMini(() => admFicha(chave));
+  const novaDaFicha = (tipo) => {
+    const v = $('#fcTf').value.trim(); if (!v) { $('#fcTf').focus(); return toast('Escreva a tarefa.'); }
+    const p = lerPrazo(v);
+    const t0 = Tarefas.cria({ tipo, texto: v, prazo: tipo === 'nota' ? '' : p.data, hora: tipo === 'nota' ? '' : p.hora, clienteKey: k, clienteNome: base.name, whats: base.whats });
+    toast(tipo === 'nota' ? 'Anotação salva' : 'Tarefa criada' + (t0.prazo ? ' para ' + tfPrazoTxt(t0, isoToday()) : ''));
+    admFicha(chave);
+  };
+  $('#fcTfAdd').onclick = () => novaDaFicha('tarefa');
+  $('#fcNtAdd').onclick = () => novaDaFicha('nota');
 }
 
 /* =====================================================
@@ -766,7 +796,8 @@ function admOrcEditor(id) {
   $('#orSalva').onclick = () => { lerTela(); toast('Orçamento salvo'); re(); };
   $('#orCopia').onclick = () => { lerTela(); opCopia(opMsgOrc(Orc.get(id))); };
   const wa = $('#orWa');
-  if (wa) wa.onclick = () => { lerTela(); wa.href = waLink(opMsgOrc(Orc.get(id)), opNum(o.cliente.whats)); if (o.status !== 'fechado') { o.status = 'enviado'; Orc.salva(o); setTimeout(re, 300); } };
+  /* mandou o orcamento: o app ja fica aguardando a resposta (fecha sozinha quando fechar) */
+  if (wa) wa.onclick = () => { lerTela(); wa.href = waLink(opMsgOrc(Orc.get(id)), opNum(o.cliente.whats)); if (o.status !== 'fechado') { o.status = 'enviado'; Orc.salva(o); Espera.orcamento(o); setTimeout(() => { toast('Orçamento enviado · tarefa "aguardar resposta" criada'); re(); }, 300); } };
   $('#orApaga').onclick = () => { if (confirm('Apagar este orçamento?')) { Orc.remove(id); go('/adm/consulta'); } };
   $('#orAdd').onclick = () => {
     const tid = $('#orAddT').value; if (!tid) return toast('Escolha um serviço.');
@@ -859,7 +890,10 @@ function opDocVoucher(id) {
       ${DB.settings.plantao ? `<p><b>Plantão (emergências):</b> ${esc(DB.settings.plantao)}</p>` : '<p class="why nao-imprime">Dica: cadastre o número de plantão em Ajustes para ele sair no voucher.</p>'}
       <p><b>WhatsApp:</b> ${esc(DB.settings.whats || '')}</p>
     </div>`;
-  opDoc('Voucher', corpo, b.whats ? `<a class="mini cta-ish" target="_blank" rel="noopener" href="${waLink(opVoucherTexto(b), opNum(b.whats))}">💬 mandar ao cliente</a>` : '');
+  opDoc('Voucher', corpo, b.whats ? `<a class="mini cta-ish" id="docVoucherWa" target="_blank" rel="noopener" href="${waLink(opVoucherTexto(b), opNum(b.whats))}">💬 mandar ao cliente</a>` : '');
+  /* mandou: o lembrete "mandar o voucher" some sozinho */
+  const vw = $('#docVoucherWa');
+  if (vw) vw.addEventListener('click', () => { b.voucherEm = isoToday(); _opSaveBooking(b); });
 }
 function opDocOrc(id) {
   const o = Orc.get(id);
@@ -1309,4 +1343,252 @@ function admRelatorios() {
     admRelatorios._ro = true;
     addEventListener('resize', () => { clearTimeout(admRelatorios._t); admRelatorios._t = setTimeout(() => { if (location.hash.startsWith('#/adm/reports')) admRelatorios(); }, 200); });
   }
+}
+
+/* =====================================================
+   TAREFAS E ANOTACOES — com lembretes e agenda ligada
+
+   A tarefa e INTELIGENTE: ao marcar "mandei a mensagem", o app ja cria
+   "aguardar resposta" com prazo; "nao respondeu" vira um lembrete; a espera
+   de pagamento, de orcamento e da guia se fecha sozinha quando acontece.
+   Os lembretes ("o app lembra") sao calculados: clientes que devem,
+   orcamentos para montar ou vencendo, voucher para mandar, guia para escalar.
+===================================================== */
+const ETAPA_ICO = { mensagem: '✉', cobrar: '💶', orcamento: '🧾', guia: '👤', aguardar: '⏳', fechar: '🤝', escalar: '👤' };
+function tfPrazoTxt(t, hoje) {
+  if (!t.prazo) return '';
+  const q = t.prazo === hoje ? 'hoje' : t.prazo === addDays(hoje, 1) ? 'amanhã' : t.prazo === addDays(hoje, -1) ? 'ontem' : fmtDate(t.prazo);
+  return q + (t.hora ? ' · ' + t.hora : '');
+}
+function tfClienteHref(t) {
+  if (t.clienteKey) return '#/adm/clients/' + encodeURIComponent(t.clienteKey);
+  return '';
+}
+function tfBaixaIcs(t) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([icsTarefa(t)], { type: 'text/calendar;charset=utf-8' }));
+  a.download = 'tarefa-' + (t.prazo || 'sem-data') + '.ics'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  toast('Abra o arquivo para pôr na agenda do celular (aviso 30 min antes).');
+}
+/* uma linha de tarefa: o circulo conclui; na espera, os botoes dizem o que houve */
+function tfLinha(t, hoje) {
+  const atras = t.prazo && t.prazo < hoje && !t.feita;
+  const et = ETAPAS[t.etapa];
+  const pes = t.pessoaId ? Equipe.get(t.pessoaId) : null;
+  const wa = (t.whats || (pes && pes.whats)) ? waLink('', opNum(t.whats || pes.whats)) : '';
+  const cli = tfClienteHref(t);
+  const abrir = t.etapa === 'fechar' && t.orcId ? `<a class="mini strong" href="#/adm/consulta/${esc(t.orcId)}">abrir o orçamento</a>`
+    : (t.etapa === 'escalar' || t.etapa === 'guia') && (t.bookingId || (t.liga && t.liga.bookingId)) ? `<a class="mini strong" href="#/adm/guias/servico:${esc(t.bookingId || t.liga.bookingId)}">abrir Guias</a>`
+    : t.orcId ? `<a class="mini" href="#/adm/consulta/${esc(t.orcId)}">orçamento</a>` : '';
+  if (t.feita) return `<div class="tf-row feita">
+      <button class="tf-ck on" data-desfaz="${esc(t.id)}" aria-label="desfazer">✓</button>
+      <div class="tf-corpo"><span class="tf-txt">${esc(t.texto)}</span>
+        <small>${t.obsFim ? esc(t.obsFim) + ' · ' : ''}feita ${t.feitaEm ? new Date(t.feitaEm).toLocaleDateString('pt-BR') : ''}</small></div></div>`;
+  return `<div class="tf-row ${atras ? 'atras' : ''} ${t.etapa === 'aguardar' ? 'espera' : ''}" id="tf-${esc(t.id)}">
+    <button class="tf-ck" data-conclui="${esc(t.id)}" aria-label="concluir: ${esc(t.texto)}" title="${t.etapa === 'aguardar' ? 'Concluir a espera' : 'Feito'}"></button>
+    <div class="tf-corpo">
+      <span class="tf-txt">${t.etapa && ETAPA_ICO[t.etapa] ? ETAPA_ICO[t.etapa] + ' ' : ''}${esc(t.texto)}</span>
+      <span class="tf-meta">
+        ${t.prazo ? `<span class="tf-quando ${atras ? 'bad' : t.prazo === hoje ? 'hoje' : ''}">${atras ? '⚠ ' : ''}${esc(tfPrazoTxt(t, hoje))}</span>` : ''}
+        ${cli ? `<a href="${cli}">${esc(t.clienteNome || 'cliente')}</a>` : t.clienteNome ? `<span>${esc(t.clienteNome)}</span>` : ''}
+        ${pes ? `<span>👤 ${esc(pes.nome)}</span>` : ''}
+        ${t.tentativa > 1 ? `<span>${t.tentativa}ª tentativa</span>` : ''}
+        ${et && et.depois ? `<span class="tf-dep">depois: ${esc(et.depois)}</span>` : ''}
+        ${t.fechaQuando ? `<span class="tf-dep">✨ fecha sozinha quando ${t.fechaQuando === 'pago' ? 'o cliente pagar' : t.fechaQuando === 'orc-decidido' ? 'o orçamento fechar' : 'a guia responder'}</span>` : ''}
+      </span>
+      ${t.detalhe ? `<small class="tf-det">${esc(t.detalhe)}</small>` : ''}
+      <div class="tacts">
+        ${t.etapa === 'aguardar' ? `<button class="mini strong" data-res="${esc(t.id)}|respondeu">✓ ${t.fechaQuando === 'pago' ? 'pagou' : 'respondeu'}</button>
+          <button class="mini" data-res="${esc(t.id)}|cutucar">não ${t.fechaQuando === 'pago' ? 'pagou' : 'respondeu'}: lembrar</button>
+          <button class="mini ghost" data-adia="${esc(t.id)}">+2 dias</button>` : ''}
+        ${abrir}
+        ${wa ? `<a class="mini" target="_blank" rel="noopener" href="${wa}">💬 WhatsApp</a>` : ''}
+        <button class="mini ghost" data-ics="${esc(t.id)}" title="pôr na agenda do celular">📅 agenda</button>
+        <button class="mini ghost" data-tfed="${esc(t.id)}">editar</button>
+        <button class="mini ghost danger" data-tfrm="${esc(t.id)}" aria-label="apagar">✕</button>
+      </div>
+      <div class="svc-form" id="tfe-${esc(t.id)}" hidden>
+        <label class="fld">Tarefa<input id="tfeT-${esc(t.id)}" value="${esc(t.texto)}"></label>
+        <div class="frow"><label class="fld">Dia<input type="date" id="tfeD-${esc(t.id)}" value="${esc(t.prazo)}"></label>
+          <label class="fld sm">Hora<input id="tfeH-${esc(t.id)}" value="${esc(t.hora)}" placeholder="09:00"></label></div>
+        <label class="fld">Detalhe<textarea id="tfeX-${esc(t.id)}" rows="2">${esc(t.detalhe)}</textarea></label>
+        <button class="cta sm" data-tfsalva="${esc(t.id)}">Salvar</button>
+      </div>
+    </div></div>`;
+}
+/* o que o app lembra: clientes que devem e o resto, calculado na hora */
+function tfLembretesHtml(hoje) {
+  const dev = Lembretes.devedores(hoje);
+  const lem = Lembretes.lista(hoje);
+  const GI = { orcamentos: '🧾', servicos: '🚐' };
+  if (!dev.length && !lem.length) return '';
+  return `<section class="card tf-lembra">
+    <h3>O app lembra</h3>
+    ${dev.length ? `<span class="op-lbl">Clientes que devem · ${eur(dev.reduce((s, d) => s + d.total, 0))}</span>
+      ${dev.map(d => `<div class="tf-lem ${d.atrasado ? 'bad' : ''}">
+        <div class="tf-corpo"><span class="tf-txt"><a href="#/adm/clients/${encodeURIComponent(d.chave)}">${esc(d.nome)}</a> deve <b>${eur(d.total)}</b></span>
+          <small>${d.atrasado ? '⚠ atrasado desde ' : 'até '}${fmtDate(d.prazo)} · ${d.servicos.map(b => esc(opNomeServ(b))).join(', ')}</small></div>
+        <div class="tacts">${d.whats ? `<a class="mini strong" target="_blank" rel="noopener" data-cobra="${esc(d.chave)}"
+            href="${waLink(t('waCharge', { name: opPrimeiro(d.nome), v: eur(d.total), tour: opNomeServ(d.servicos[0]), when: fmtDate(d.servicos[0].date) }), opNum(d.whats))}">💬 cobrar</a>` : ''}
+          <a class="mini" href="#/adm/clients/${encodeURIComponent(d.chave)}">registrar pagamento</a></div>
+      </div>`).join('')}` : ''}
+    ${lem.length ? `<span class="op-lbl">Para fazer</span>
+      ${lem.map(l => `<div class="tf-lem ${l.nivel}">
+        <div class="tf-corpo"><span class="tf-txt">${GI[l.grupo] || '•'} ${esc(l.txt)}</span>${l.sub ? `<small>${esc(l.sub)}</small>` : ''}</div>
+        <div class="tacts"><a class="mini strong" href="${esc(l.href)}">abrir</a>
+          <button class="mini ghost" data-visto="${esc(l.chave)}">✓ feito</button></div>
+      </div>`).join('')}` : ''}
+  </section>`;
+}
+function admTarefas(arg) {
+  const S = admTarefas._s = admTarefas._s || { v: 'tarefas', busca: '' };
+  if (arg === 'notas') S.v = 'notas';
+  const hoje = isoToday();
+  const sozinhas = Tarefas.sincroniza(hoje);
+  const G = Tarefas.grupos(hoje);
+  const abertas = G.atrasadas.length + G.hoje.length + G.semana.length + G.depois.length + G.semData.length;
+  const notas = Tarefas.notas(S.busca);
+  const clientes = Clients.all().filter(c => !c.acompanhante);
+  const grupo = (tit, lista, cls) => lista.length ? `<section class="card tf-grupo ${cls || ''}"><h3>${tit} <span class="tf-n">${lista.length}</span></h3>${lista.map(t => tfLinha(t, hoje)).join('')}</section>` : '';
+  const recentes = Tarefas.all().filter(t => t.feita && /sozinha/.test(t.obsFim || '') && t.feitaEm && t.feitaEm.slice(0, 10) >= addDays(hoje, -1));
+
+  admShell('tarefas', `
+    <div class="pagehead"><h1 class="pageh">Tarefas e anotações</h1>
+      <div class="chips">
+        <button class="chip ${S.v === 'tarefas' ? 'on' : ''}" data-tv="tarefas">Tarefas · ${abertas}</button>
+        <button class="chip ${S.v === 'notas' ? 'on' : ''}" data-tv="notas">Anotações · ${Tarefas.notas('').length}</button>
+        <a class="mini" href="#/adm/agenda">ver na agenda</a>
+      </div></div>
+    <datalist id="tfClis">${clientes.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
+
+    ${S.v === 'tarefas' ? `
+    <section class="card tf-nova">
+      <label class="fld">O que precisa fazer?<input id="tfTexto" autocomplete="off" placeholder="Ex.: mandar o roteiro para a Patrícia amanhã 10h"></label>
+      <div class="frow">
+        <label class="fld">Dia<input type="date" id="tfData"></label>
+        <label class="fld sm">Hora<input id="tfHora" placeholder="09:00"></label>
+        <label class="fld grow">Cliente (opcional)<input id="tfCli" list="tfClis" autocomplete="off"></label>
+        <button class="cta sm" id="tfAdd">Adicionar</button>
+      </div>
+      <p class="why" id="tfPrev">O app entende "hoje", "amanhã", "sexta", "12/10" e "9h" escritos no texto. Tarefa de mandar mensagem, cobrar ou orçamento já vem com o passo seguinte.</p>
+    </section>
+    ${sozinhas.length || recentes.length ? `<section class="card tf-sozinha"><h3>✨ Concluídas sozinhas</h3>
+      ${[...new Map([...sozinhas, ...recentes].map(t => [t.id, t])).values()].map(t => `<div class="tf-row feita"><span class="tf-ck on">✓</span><div class="tf-corpo"><span class="tf-txt">${esc(t.texto)}</span><small>${esc(t.obsFim)}</small></div></div>`).join('')}
+    </section>` : ''}
+    ${tfLembretesHtml(hoje)}
+    ${grupo('Atrasadas', G.atrasadas, 'bad')}
+    ${grupo('Hoje', G.hoje, 'hoje')}
+    ${grupo('Próximos 7 dias', G.semana)}
+    ${grupo('Mais para frente', G.depois)}
+    ${grupo('Sem data', G.semData)}
+    ${!abertas ? '<div class="emptybox"><p>Nenhuma tarefa aberta. 🎉</p></div>' : ''}
+    ${G.feitas.length ? `<details class="card tf-grupo"><summary><b>Feitas</b> <span class="tf-n">${G.feitas.length}</span></summary>${G.feitas.map(t => tfLinha(t, hoje)).join('')}</details>` : ''}
+    ` : `
+    <section class="card tf-nova">
+      <label class="fld">Nova anotação<textarea id="ntTexto" rows="3" placeholder="O que você quer lembrar? Fornecedor, ideia, detalhe de um cliente..."></textarea></label>
+      <div class="frow">
+        <label class="fld grow">Cliente (opcional)<input id="ntCli" list="tfClis" autocomplete="off"></label>
+        <label class="optin"><input type="checkbox" id="ntFixa"><span><b>Fixar no topo</b></span></label>
+        <button class="cta sm" id="ntAdd">Salvar</button>
+      </div>
+      <p class="why">Quando o WhatsApp estiver ligado, o resumo de cada conversa nova cai aqui, para você conferir de manhã.</p>
+    </section>
+    <div class="op-busca"><input id="ntBusca" type="search" placeholder="🔎 Procurar nas anotações" value="${esc(S.busca)}"></div>
+    <div class="nt-grade">${notas.map(n => `<article class="nt-card ${n.fixa ? 'fixa' : ''}">
+        <div class="nt-top">${n.fixa ? '<span title="fixada">📌</span>' : ''}${n.origem === 'whats' ? '<span class="pill warn">💬 resumo do WhatsApp</span>' : ''}
+          <small>${new Date(n.criada).toLocaleDateString('pt-BR')}</small></div>
+        <b>${esc(n.texto)}</b>
+        ${n.detalhe ? `<p>${esc(n.detalhe).replace(/\n/g, '<br>')}</p>` : ''}
+        ${n.clienteNome ? (n.clienteKey ? `<a href="#/adm/clients/${encodeURIComponent(n.clienteKey)}">${esc(n.clienteNome)}</a>` : `<span class="why">${esc(n.clienteNome)}</span>`) : ''}
+        <div class="tacts">
+          ${n.orcId ? `<a class="mini strong" href="#/adm/consulta/${esc(n.orcId)}">abrir o orçamento</a>` : ''}
+          <button class="mini ghost" data-fixa="${esc(n.id)}">${n.fixa ? 'soltar' : 'fixar'}</button>
+          <button class="mini ghost" data-virar="${esc(n.id)}">virar tarefa</button>
+          <button class="mini ghost danger" data-tfrm="${esc(n.id)}" aria-label="apagar">✕</button>
+        </div>
+      </article>`).join('') || '<p class="empty">Nenhuma anotação.</p>'}</div>`}`);
+
+  const re = () => admTarefas();
+  $$('[data-tv]').forEach(b => b.onclick = () => { S.v = b.dataset.tv; re(); });
+  const cliDe = (nome) => { const c = clientes.find(x => x.name.toLowerCase() === String(nome || '').trim().toLowerCase()); return { clienteKey: c ? c.key : '', clienteNome: String(nome || '').trim(), whats: c ? c.whats : '' }; };
+  const tx = $('#tfTexto');
+  if (tx) {
+    const prev = () => {
+      const p = lerPrazo(tx.value, hoje), et = ETAPAS[etapaDoTexto(tx.value)];
+      const d = $('#tfData').value || p.data, h = $('#tfHora').value || p.hora;
+      $('#tfPrev').textContent = tx.value.trim()
+        ? [d ? '📅 ' + fmtDate(d) + (h ? ' · ' + h : '') : 'sem data', et && et.depois ? 'depois de feita: ' + et.depois : ''].filter(Boolean).join(' · ')
+        : 'O app entende "hoje", "amanhã", "sexta", "12/10" e "9h" escritos no texto. Tarefa de mandar mensagem, cobrar ou orçamento já vem com o passo seguinte.';
+    };
+    tx.oninput = prev; $('#tfData').onchange = prev;
+    const adiciona = () => {
+      if (!tx.value.trim()) { tx.focus(); return toast('Escreva a tarefa.'); }
+      const p = lerPrazo(tx.value, hoje);
+      const t2 = Tarefas.cria({ texto: tx.value, prazo: $('#tfData').value || p.data, hora: $('#tfHora').value.trim() || p.hora, ...cliDe($('#tfCli').value) });
+      toast('Tarefa criada' + (t2.prazo ? ' para ' + tfPrazoTxt(t2, hoje) : ''));
+      re(); setTimeout(() => $('#tfTexto') && $('#tfTexto').focus(), 30);
+    };
+    $('#tfAdd').onclick = adiciona;
+    tx.onkeydown = (e) => { if (e.key === 'Enter') adiciona(); };
+  }
+  $$('[data-conclui]').forEach(b => b.onclick = () => {
+    const t0 = Tarefas.get(b.dataset.conclui);
+    const nova = Tarefas.conclui(t0.id, t0.etapa === 'aguardar' ? 'respondeu' : '');
+    toast(nova ? `Feito ✓ · próximo passo: ${nova.texto}${nova.prazo ? ' (' + tfPrazoTxt(nova, hoje) + ')' : ''}` : 'Feito ✓');
+    re();
+  });
+  $$('[data-res]').forEach(b => b.onclick = () => {
+    const [id, r] = b.dataset.res.split('|');
+    const nova = Tarefas.conclui(id, r);
+    toast(nova ? `Próximo passo: ${nova.texto}` : 'Feito ✓');
+    re();
+  });
+  $$('[data-adia]').forEach(b => b.onclick = () => { Tarefas.adia(b.dataset.adia, 2); toast('Espera adiada 2 dias'); re(); });
+  $$('[data-desfaz]').forEach(b => b.onclick = () => { Tarefas.marca(b.dataset.desfaz, false); re(); });
+  $$('[data-ics]').forEach(b => b.onclick = () => tfBaixaIcs(Tarefas.get(b.dataset.ics)));
+  $$('[data-tfed]').forEach(b => b.onclick = () => { const el = document.getElementById('tfe-' + b.dataset.tfed); if (el) el.hidden = !el.hidden; });
+  $$('[data-tfsalva]').forEach(b => b.onclick = () => {
+    const id = b.dataset.tfsalva;
+    Tarefas.salva(id, { texto: $('#tfeT-' + id).value, prazo: $('#tfeD-' + id).value, hora: $('#tfeH-' + id).value, detalhe: $('#tfeX-' + id).value });
+    toast('Salvo'); re();
+  });
+  $$('[data-tfrm]').forEach(b => b.onclick = () => { if (confirm('Apagar?')) { Tarefas.remove(b.dataset.tfrm); re(); } });
+  $$('[data-visto]').forEach(b => b.onclick = () => { Lembretes.marca(b.dataset.visto); re(); });
+  /* cobrou pelo WhatsApp: nasce "aguardar o pagamento", que fecha sozinha quando ele pagar */
+  $$('[data-cobra]').forEach(a => a.addEventListener('click', () => {
+    const d = Lembretes.devedores(hoje).find(x => x.chave === a.dataset.cobra);
+    if (d) { Espera.pagamento(d); setTimeout(() => { toast('Cobrança enviada · o app fica aguardando o pagamento'); re(); }, 400); }
+  }));
+  const nt = $('#ntTexto');
+  if (nt) {
+    $('#ntAdd').onclick = () => {
+      if (!nt.value.trim()) { nt.focus(); return toast('Escreva a anotação.'); }
+      const linhas = nt.value.trim().split('\n');
+      Tarefas.cria({ tipo: 'nota', texto: linhas[0], detalhe: linhas.slice(1).join('\n'), fixa: $('#ntFixa').checked, ...cliDe($('#ntCli').value) });
+      toast('Anotação salva'); re();
+    };
+    $('#ntBusca').oninput = (e) => { S.busca = e.target.value; clearTimeout(admTarefas._b); admTarefas._b = setTimeout(() => { re(); const i = $('#ntBusca'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 250); };
+    $$('[data-fixa]').forEach(b => b.onclick = () => { const n = Tarefas.get(b.dataset.fixa); Tarefas.salva(n.id, { fixa: !n.fixa }); re(); });
+    $$('[data-virar]').forEach(b => b.onclick = () => {
+      const n = Tarefas.get(b.dataset.virar);
+      const p = lerPrazo(n.texto + ' ' + n.detalhe, hoje);
+      Tarefas.cria({ texto: n.texto, detalhe: n.detalhe, prazo: p.data, hora: p.hora, clienteKey: n.clienteKey, clienteNome: n.clienteNome, whats: n.whats, orcId: n.orcId });
+      S.v = 'tarefas'; toast('Virou tarefa'); re();
+    });
+  }
+}
+/* bloco pequeno para o Hoje e para a ficha: as tarefas abertas de um recorte */
+function tfMiniHtml(lista, hoje, vazio) {
+  return lista.length ? lista.map(t => tfLinha(t, hoje)).join('') : `<p class="why">${vazio}</p>`;
+}
+function tfLigaMini(redesenha) {
+  $$('[data-conclui]').forEach(b => b.onclick = () => { const t0 = Tarefas.get(b.dataset.conclui); const nova = Tarefas.conclui(t0.id, t0.etapa === 'aguardar' ? 'respondeu' : ''); toast(nova ? `Feito ✓ · próximo passo: ${nova.texto}` : 'Feito ✓'); redesenha(); });
+  $$('[data-res]').forEach(b => b.onclick = () => { const [id, r] = b.dataset.res.split('|'); const nova = Tarefas.conclui(id, r); toast(nova ? `Próximo passo: ${nova.texto}` : 'Feito ✓'); redesenha(); });
+  $$('[data-adia]').forEach(b => b.onclick = () => { Tarefas.adia(b.dataset.adia, 2); redesenha(); });
+  $$('[data-desfaz]').forEach(b => b.onclick = () => { Tarefas.marca(b.dataset.desfaz, false); redesenha(); });
+  $$('[data-ics]').forEach(b => b.onclick = () => tfBaixaIcs(Tarefas.get(b.dataset.ics)));
+  $$('[data-tfed]').forEach(b => b.onclick = () => { const el = document.getElementById('tfe-' + b.dataset.tfed); if (el) el.hidden = !el.hidden; });
+  $$('[data-tfsalva]').forEach(b => b.onclick = () => { const id = b.dataset.tfsalva; Tarefas.salva(id, { texto: $('#tfeT-' + id).value, prazo: $('#tfeD-' + id).value, hora: $('#tfeH-' + id).value, detalhe: $('#tfeX-' + id).value }); redesenha(); });
+  $$('[data-tfrm]').forEach(b => b.onclick = () => { if (confirm('Apagar?')) { Tarefas.remove(b.dataset.tfrm); redesenha(); } });
 }
