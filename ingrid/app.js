@@ -1463,13 +1463,10 @@ function noAuthBanner() {
      quem esta olhando, e nao existe conta para criar. O aviso vermelho de
      "qualquer um entra no seu painel" assustaria o prospect a toa, e o botao
      levaria a uma tela de login sem banco atras. */
-  if (typeof temNuvem === 'function' && !temNuvem()) {
-    return `<div class="alert nolog demo">
-      <b>👋 ${t('demoTit')}</b>
-      <p>${t('demoTxt')}</p>
-      <p><b>${t('demoTxt2')}</b></p>
-    </div>`;
-  }
+  /* 29/09: e o app de verdade, para a entrega — sem a faixa de demonstracao
+     no painel. (Sem banco ainda, cada aparelho guarda o seu: isso aparece no
+     botao 📁 Google Drive, em "Nuvem".) */
+  if (typeof temNuvem === 'function' && !temNuvem()) return '';
   if (typeof isLoggedIn === 'function' && isLoggedIn()) return '';
   return `<div class="alert bad nolog">
     <b>⚠ ${t('nlTitle')}</b>

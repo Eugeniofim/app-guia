@@ -107,7 +107,13 @@ const ING_FERRAMENTAS = [
   { name: 'ver_contas', description: 'As contas onde ela recebe (id, nome, Brasil ou Europa).', input_schema: obj() },
   { name: 'ver_backup', description: 'Quando foi o último backup, onde (pasta do computador/Google Drive ou baixado) e se o de hoje já foi feito.', input_schema: obj() },
   { name: 'ver_clientes', description: 'Clientes cadastrados: veio por, indicado por, passeios, quanto pagou, quanto deve, próximo serviço. Filtro opcional.', input_schema: obj({ filtro: { type: 'string', enum: ['todos', 'compraram', 'vieram_junto', 'com_servico', 'devem', 'voltaram', 'aniversario_mes'] }, veio_por: S_() }) },
-  { name: 'ver_crm', description: 'O CRM dela (a planilha): pedidos por etapa (aberto/enviado, confirmado, avaliar, finalizado, perdido) com cliente, serviço, cliente paga, Ingrid paga, total, sinal, repescagens.', input_schema: obj({ etapa: { type: 'string', enum: ['aberto', 'confirmado', 'avaliar', 'finalizado', 'perdido', 'todos'] } }) },
+  { name: 'ver_crm', description: 'A PLANILHA dela (aba Planilha / CRM), com TODAS as colunas: data do pagamento, veio por, agência/indicação/influencer, WhatsApp, nome, data serviço, hora, PAX, serviço, obs, cliente paga, Ingrid paga, cidade, parceiro, total, sinal, forma de pagamento, em real, comissões, status, motivo da perda, repescagens e resultados, nome do arquivo e links. Filtre por etapa, cliente ou mês.', input_schema: obj({ etapa: { type: 'string', enum: ['aberto', 'confirmado', 'avaliar', 'finalizado', 'perdido', 'todos'] }, cliente: S_('nome, WhatsApp ou agência'), mes: S_('AAAA-MM do serviço') }) },
+  { name: 'ver_painel', description: 'O painel do CRM: em aberto, confirmados, falta receber, taxa de fechamento, motivo que mais perde, comissões a pagar e a lista "precisa de você" (repescar, mandar orçamento, cobrar sinal, pedir avaliação).', input_schema: obj({ mes: S_('AAAA-MM (opcional)') }) },
+  { name: 'ver_transfers', description: 'Aba Transfer: os transfers de hoje em diante, se já foram pedidos na New Star (e o número deles) e os dados prontos para colar na plataforma.', input_schema: obj({ so_falta: { type: 'boolean' } }) },
+  { name: 'ver_arquivos', description: 'Arquivos guardados (comprovantes e documentos), por cliente ou todos, e onde estão no Google Drive.', input_schema: obj({ cliente: S_() }) },
+  { name: 'ver_avaliacoes', description: 'As avaliações que estão no site (menu ⭐ Avaliações), a média e os links do Google.', input_schema: obj() },
+  { name: 'procurar', description: 'Procura uma palavra em TUDO do app: clientes, planilha/reservas, orçamentos, tarefas e anotações, guias e motoristas, parceiros, transfers, arquivos e avaliações. Use quando não souber em que aba está.', input_schema: obj({ texto: S_() }, ['texto']) },
+  { name: 'ver_tudo', description: 'Visão geral do app inteiro de uma vez: quantos clientes, reservas, orçamentos, tarefas, guias, parceiros, transfers, arquivos, avaliações; dinheiro do mês; o que está pendente em cada aba.', input_schema: obj() },
   { name: 'ver_parceiros', description: 'Influencers, agências e parceiros com cupom: reservas trazidas, faturado, comissão devida, paga e a pagar.', input_schema: obj() },
   { name: 'abrir_aba', description: 'Leva ela até uma tela do app (e, se quiser, a um item).', input_schema: obj({ aba: { type: 'string', enum: ING_ABAS }, item: S_('id do orçamento, código da reserva ou chave do cliente (opcional)') }, ['aba']) },
   /* gravar */
@@ -224,10 +230,69 @@ const ING_LER = {
     return out.length ? { total: l.length, clientes: out } : 'nenhum cliente';
   },
   ver_crm(i) {
-    const e = i.etapa || 'aberto';
-    const l = crmLinhas().filter(r => e === 'todos' || r.etapa === e).slice(0, 80);
-    return l.length ? l.map(r => ({ etapa: r.etapa, cliente: r.nome, whats: r.whats, veio: r.veio, servico: r.servico, dia: r.dataServ, pax: r.pax, cliente_paga: r.clientePaga, ingrid_paga: r.ingridPaga,
-      total_pedido: r.totalPedido, sinal: r.sinal, parceiro: r.parceiro || undefined, repescagens: (r.repescagens || []).map(x => `${x.n}ª ${x.data} ${x.resultado}`), numero: r.o ? r.o.num : undefined, codigo: r.b ? r.b.code : undefined, motivo_perda: r.motivo || undefined })) : 'nada nesta etapa';
+    const e = i.etapa || 'todos', q = ingN(i.cliente), dig = String(i.cliente || '').replace(/\D/g, '');
+    const todas = crmLinhas().filter(r => e === 'todos' || r.etapa === e)
+      .filter(r => !q || [r.nome, r.indicou, r.veio, r.parceiro].some(v => ingN(v).includes(q)) || (dig.length >= 4 && String(r.whats || '').replace(/\D/g, '').includes(dig)))
+      .filter(r => !i.mes || String(r.dataServ || '').slice(0, 7) === i.mes);
+    const l = todas.slice(0, 150);
+    const sem = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== '' && v !== 0 && v != null && !(Array.isArray(v) && !v.length)));
+    return l.length ? { linhas: l.map(r => sem({ data_pagamento: r.dataPago ? r.dataPedido : '', data_pedido: r.dataPago ? '' : r.dataPedido, veio_por: r.veio, agencia_indicacao_influencer: r.indicou, whats: r.whats, nome: r.nomePlan || r.nome,
+      data_servico: r.dataServ, hora: r.hora, pax: r.pax, servico: r.servico, obs: r.obs, cliente_paga: r.clientePaga, ingrid_paga: r.ingridPaga, cidade: r.cidade, parceiro: r.parceiro,
+      total_pedido: r.totalPedido, sinal: r.sinal, forma_pagamento: r.forma, em_real: r.emReal, comissao_vendor: r.comVendor, comissao_indicacao: r.comIndic, status: crmStatusTxt(r), motivo_perda: r.motivo,
+      repescagens: (r.repescagens || []).map(x => `${x.n}ª ${x.data || '?'} → ${x.resultado}`), nome_do_arquivo: r.arquivo, links: (r.links || []).map(x => x.nome + ': ' + x.url),
+      numero: r.o ? r.o.num : '', codigo: r.b ? r.b.code : '' })), ...(todas.length > l.length ? { aviso: `mostrando 150 de ${todas.length} — filtre por cliente ou mês` } : {}) } : 'nada com esse filtro';
+  },
+  ver_painel(i) {
+    const P = crmPainel(crmLinhas().filter(r => !i.mes || String(r.dataServ || '').slice(0, 7) === i.mes));
+    return { em_aberto: P.abertos, confirmados_a_fazer: P.confirmados, fechamento: { ...P.fecha, taxa: P.fecha.taxa == null ? null : Math.round(P.fecha.taxa * 100) + '%', motivo: P.fecha.motivo ? P.fecha.motivo[0] : null },
+      comissoes_a_pagar: P.comissoes, precisa_de_voce: P.agora.map(a => ({ o_que: a.tipo, cliente: a.nome, detalhe: a.txt, numero: a.o ? a.o.num : undefined, codigo: a.r && a.r.b ? a.r.b.code : undefined })) };
+  },
+  ver_transfers(i) {
+    const cfg = nccConfig(), l = transfersDe(hojeIso()).filter(b => !i.so_falta || !b.ncc);
+    return l.length ? { plataforma: cfg.nome, link: cfg.url, transfers: l.map(b => ({ codigo: b.code, dia: b.date, hora: b.time, cliente: b.name, pax: b.pax, voo: b.voo || undefined, de: b.origem || undefined, para: b.destino || undefined,
+      pedido_na_plataforma: b.ncc ? (b.ncc.codigo || 'sim') : 'falta pedir', dados_para_colar: nccTexto(b) })) } : 'nenhum transfer';
+  },
+  ver_arquivos(i) {
+    let l = typeof Arquivos !== 'undefined' ? Arquivos.lista() : [];
+    if (i.cliente) { const r = ingAchaCliente(i.cliente); if (!r.c) return r; l = l.filter(a => a.clienteId === r.c.id); }
+    return l.length ? l.slice(0, 80).map(a => ({ arquivo: a.nome, tipo: a.tipo, cliente: a.clienteNome, dia: a.criado.slice(0, 10), o_que_e: a.descricao || undefined, google_drive: a.drive || 'ainda na fila (sobe quando a pasta estiver ligada)' })) : 'nenhum arquivo guardado';
+  },
+  ver_avaliacoes() {
+    const l = Avaliacoes.all();
+    return { media: Avaliacoes.media(), quantas: l.length, link_para_avaliar: DB.settings.linkAvaliacao || 'não configurado (Ajustes › Avaliações do site)', avaliacoes: l.map(a => ({ nome: a.nome, cidade: a.cidade, estrelas: a.nota, passeio: a.passeio, dia: a.data, texto: a.texto })) };
+  },
+  procurar(i) {
+    const q = ingN(i.texto), dig = String(i.texto || '').replace(/\D/g, ''); if (!q) return E_('procurar o quê?');
+    const tem = (...vs) => vs.some(v => ingN(v).includes(q)) || (dig.length >= 4 && vs.some(v => String(v || '').replace(/\D/g, '').includes(dig)));
+    const out = {
+      clientes: Cadastro.all().filter(c => tem(c.nome, c.whats, c.email, c.indicadoNome, c.pais)).slice(0, 10).map(c => ({ nome: c.nome, whats: c.whats, veio_por: veioPorNome(c.veioPor) })),
+      planilha_e_reservas: crmLinhas().filter(r => tem(r.nome, r.whats, r.servico, r.obs, r.cidade, r.indicou, r.parceiro, r.arquivo, r.b && r.b.code, r.o && r.o.num)).slice(0, 15).map(r => ({ nome: r.nome, servico: r.servico, dia: r.dataServ, status: crmStatusTxt(r), codigo: r.b ? r.b.code : undefined, numero: r.o ? r.o.num : undefined })),
+      tarefas_e_anotacoes: Tarefas.all().filter(t => tem(t.texto, t.detalhe, t.nota, t.clienteNome)).slice(0, 10).map(t => ({ tarefa_id: t.id, texto: t.texto, dia: t.prazo || undefined, feita: !!t.feita })),
+      guias_e_motoristas: Equipe.all().filter(p => tem(p.nome, p.whats, p.obs, (p.cidades || []).join(' '))).map(p => ({ nome: p.nome, tipo: p.tipo, whats: p.whats })),
+      parceiros: Parceiros.all().filter(p => tem(p.nome, p.cupom)).map(p => ({ nome: p.nome, tipo: p.tipo, cupom: p.cupom })),
+      arquivos: (typeof Arquivos !== 'undefined' ? Arquivos.lista() : []).filter(a => tem(a.nome, a.clienteNome, a.descricao)).slice(0, 10).map(a => ({ arquivo: a.nome, cliente: a.clienteNome, google_drive: a.drive || 'na fila' })),
+      avaliacoes: Avaliacoes.all().filter(a => tem(a.nome, a.texto, a.passeio)).map(a => ({ nome: a.nome, estrelas: a.nota })),
+      passeios: Tours.all().filter(x => tem(x.name.pt, x.id)).map(x => ({ passeio: x.name.pt, id: x.id, situacao: x.status })),
+    };
+    for (const k of Object.keys(out)) if (!out[k].length) delete out[k];
+    return Object.keys(out).length ? out : `não achei "${i.texto}" em nenhuma aba`;
+  },
+  ver_tudo() {
+    const hoje = hojeIso(), mes = hoje.slice(0, 7), bs = DB.bookings.filter(b => b.status !== 'cancelled');
+    const P = crmPainel(crmLinhas()), G = Tarefas.grupos(hoje), tr = transfersDe(hoje);
+    const pagosMes = bs.reduce((s, b) => s + (b.payments || []).filter(p => String(p.date || '').slice(0, 7) === mes && p.conta !== CONTA_PRESTADOR).reduce((s2, p) => s2 + p.amount, 0), 0);
+    return {
+      hoje, clientes: Cadastro.all().length, reservas_por_vir: bs.filter(b => b.date >= hoje).length, reservas_passadas: bs.filter(b => b.date < hoje).length,
+      planilha: { linhas: crmLinhas().length, em_aberto: P.abertos, confirmados: P.confirmados, fechamento: P.fecha.taxa == null ? null : Math.round(P.fecha.taxa * 100) + '%', precisa_de_voce: P.agora.length },
+      orcamentos: { total: Orc.all().length, por_mandar: Orc.all().filter(o => ['novo', 'rascunho'].includes(o.status)).length, enviados: Orc.all().filter(o => o.status === 'enviado').length },
+      tarefas: { atrasadas: G.atrasadas.length, hoje: G.hoje.length, proximas: (G.proximas || []).length, anotacoes: Tarefas.notas ? Tarefas.notas().length : undefined },
+      dinheiro_do_mes: { recebido_por_ela: pagosMes, devem_a_ela: Lembretes.devedores(hoje).reduce((s, d) => s + d.total, 0), comissoes_a_pagar: P.comissoes.valor },
+      guias: Equipe.all('guia').length, motoristas: Equipe.all('motorista').length, parceiros: Parceiros.all().length,
+      transfers: { por_vir: tr.length, falta_pedir_na_plataforma: tr.filter(b => !b.ncc).length },
+      arquivos: typeof Arquivos !== 'undefined' ? { guardados: Arquivos.lista().length, na_fila_do_drive: Arquivos.pendentes().length } : undefined,
+      avaliacoes: { no_site: Avaliacoes.all().length, media: Avaliacoes.media() },
+      passeios_no_site: Tours.live().length, backup: Backup.ultimo().em || 'nunca',
+    };
   },
   ver_parceiros() { const l = Parceiros.all().map(p => ({ nome: p.nome, tipo: p.tipo, cupom: p.cupom, desconto: p.desconto, comissao_pct: p.comissao, ...Parceiros.conta(p) })); return l.length ? l : 'nenhum parceiro'; },
   ver_contas() { return Contas.all().map(c => ({ conta: c.id, nome: c.nome, lado: c.pais })).concat([{ conta: CONTA_PRESTADOR, nome: 'pago na mão da guia/motorista', lado: 'fora do caixa dela' }]); },
@@ -563,7 +628,11 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 ## VOCÊ ALCANÇA TODAS AS ABAS
 - Hoje (serviços do dia, emergência): ver_hoje, buscar, detalhes_servico, escalar, registrar_pagamento
 - Sob consulta (orçamentos): ver_orcamentos, ler_conversa (conversa colada → rascunho), criar_orcamento, mudar_orcamento, fechar_orcamento
-- Planilha (o CRM dela, linha por serviço, igual ao Google Planilhas): ver_crm para ler; para mudar use as mesmas ferramentas (mudar_orcamento, fechar_orcamento, registrar_pagamento, marcar_perdido) ou abrir_aba planilha
+- Planilha (o CRM dela, linha por serviço, igual ao Google Planilhas): ver_crm lê TODAS as colunas (filtre por cliente/mês); ver_painel dá os números e o "precisa de você"; para mudar use mudar_orcamento, fechar_orcamento, registrar_pagamento, marcar_perdido ou abrir_aba planilha
+- Transfer (New Star): ver_transfers (inclui os dados prontos para colar na plataforma)
+- ⭐ Avaliações do site: ver_avaliacoes
+- Arquivos: ver_arquivos
+- NÃO SABE ONDE ESTÁ? procurar (acha em todas as abas). Pergunta geral sobre o negócio ("como estamos?", "o que tem pendente?") → ver_tudo. Você lê TUDO do app: nunca diga que não tem acesso a uma aba.
 - Tarefas e anotações: ver_tarefas (inclui lembretes do app e clientes que devem), anotar_tarefa, concluir_tarefa, ver_anotacoes, anotar
 - Guias e motoristas: ver_guias, quem_esta_livre, marcar_disponibilidade, cadastrar_guia, mudar_guia (inclui preferência), remover_guia, escalar
 - Agenda: ver_agenda, ver_hoje com a data; tarefas com dia aparecem na Agenda sozinhas

@@ -561,3 +561,5 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .av-pe{color:var(--ink-3);font-size:var(--fs-2)}
 .av-bts{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0 40px}
 .lk-mini{color:var(--accent);font-weight:var(--t-strong)}
+.crm-salvo{margin-left:auto;font-size:var(--fs-2);font-weight:var(--t-strong);color:var(--ink-3);padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-2)}
+.crm-salvo.ok{color:var(--ok);background:var(--ok-wash)}

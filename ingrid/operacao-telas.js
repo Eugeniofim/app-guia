@@ -1052,7 +1052,7 @@ function admConsulta(arg, modo) {
   const colChips = `<div class="crm-cols"><span class="why">Colunas:</span>${CRM_GRUPOS.map(([g, nome]) => `<button class="chip ${S.cols.includes(g) ? '' : 'on'}" data-col="${g}" aria-pressed="${!S.cols.includes(g)}">${S.cols.includes(g) ? '' : '✓ '}${nome}</button>`).join('')}</div>`;
   admConsulta._linhas = linhas;
   const semPlanilha = !DB.bookings.some(b => b.origin === 'planilha') && !Orc.all().some(o => o.chavePlanilha);
-  const planilha = (P ? `<div class="crm-plan-barra"><button class="cta sm" id="crmLinha">＋ nova linha</button><span class="why">Toque numa célula para escrever · <b>Enter</b> grava · <b>Tab</b> vai para a próxima · Status <b>CONFIRMADO</b> vira reserva</span></div>` : '')
+  const planilha = (P ? `<div class="crm-plan-barra"><button class="cta sm" id="crmLinha">＋ nova linha</button><span class="why">Toque numa célula e escreva · <b>Enter</b> ou <b>Tab</b> vai para a próxima · Status <b>CONFIRMADO</b> vira reserva</span><span class="crm-salvo ${admConsulta._salvoEm ? 'ok' : ''}" role="status">${admConsulta._salvoEm ? '✓ Salvo às ' + admConsulta._salvoEm : '💾 Salva sozinha — não precisa de botão'}</span></div>` : '')
     + colChips + crmPlanilha(linhas, S.cols, P)
     + (P ? `<datalist id="crmServL">${Tours.all().filter(x => x.status !== 'draft').map(x => `<option value="${esc(x.name.pt)}">`).join('')}</datalist><datalist id="crmQuemL">${Parceiros.all().map(x => `<option value="${esc(x.nome)}">`).join('')}</datalist>` : '');
 
@@ -1197,6 +1197,7 @@ function crmCelula(td, redesenha) {
       const res = crmEdita({ tipo: r.tipo, id: r.id, itemId: r.itemId }, campo, v);
       if (res.erro) { toast(res.erro); redesenha(row, campo, null); return; }
       if (res.reservas != null) toast(`✓ Confirmado: ${res.reservas} ${res.reservas === 1 ? 'reserva criada' : 'reservas criadas'} na agenda`);
+      admConsulta._salvoEm = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
     redesenha(row, campo, dir);
   };
