@@ -279,6 +279,7 @@ function route() {
   Coach.hide();
   const h = location.hash.slice(2) || '';
   const p = h.split('/');
+  if (p[0] !== 'adm' && typeof visualAplica === 'function') visualAplica(false);
   document.documentElement.lang = LANG === 'pt' ? 'pt-BR' : 'en';
   if (p[0] === 'novasenha') viewNewPass();
   else if (p[0] === 'login') viewLogin();
@@ -1407,6 +1408,7 @@ const ADM_TABS = [
   ['consulta', 'admConsulta'],
   ['tarefas',  'admTarefas'],
   ['guias',    'admGuias'],
+  ['transfer', 'admTransfer'],
   ['agenda',   'admAgenda'],
   ['bookings', 'admBookings'],
   ['clients',  'admClients'],
@@ -1458,6 +1460,7 @@ function admShell(tab, inner) {
      (nuvem-itens.js) liga na primeira tela do painel com ela logada */
   if (typeof cadastroEmDia === 'function') cadastroEmDia();
   if (typeof itLigar === 'function') itLigar(() => { if (isBusyEditing()) pendingSync = true; else route(); });
+  if (typeof visualAplica === 'function') visualAplica(true);
   app.innerHTML = `
   <div class="adm">
     <aside class="rail">
@@ -1485,6 +1488,7 @@ function viewAdm(tab, arg) {
   if (tab === 'today')    admToday(arg);
   else if (tab === 'guias')    admGuias(arg);
   else if (tab === 'planilha') admConsulta(undefined, 'planilha');
+  else if (tab === 'transfer') admTransfer();
   else if (tab === 'consulta') admConsulta(arg);
   else if (tab === 'tarefas')  admTarefas(arg);
   else if (tab === 'voucher')  opDocVoucher(arg);
@@ -2471,6 +2475,7 @@ function cartaoEmail(qual) {
 function admSettings() {
   admShell('settings', `
     <h1 class="pageh">${t('admSettings')}</h1>
+    ${typeof visualHtml === 'function' ? visualHtml() : ''}
     <section class="card">
       <h3>${t('language')}</h3>
       ${langBar()}

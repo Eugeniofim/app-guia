@@ -1571,6 +1571,30 @@ function importarPlanilha(txt, simular) {
   return { ok: true, criadas, orcamentos: orcCriados, repetidas: res.length - criadas, pulou };
 }
 
+/* ---------- TRANSFER — a plataforma da New Star Limousine (NCCGest) ----------
+   Pedido de 29/09: os transfers de Roma ela pede na area de cliente da New
+   Star (newstarlimousine.nccgest.com). Enquanto nao temos o contato tecnico
+   deles para mandar sozinho, o app deixa o pedido pronto para colar (em
+   italiano, como eles leem) e guarda o numero da reserva deles. */
+const NCC_PADRAO = { nome: 'New Star Limousine', url: 'https://newstarlimousine.nccgest.com/clienti/index.php' };
+function nccConfig() { return Object.assign({}, NCC_PADRAO, (DB.settings && DB.settings.ncc) || {}); }
+function ehTransfer(b) { const x = Tours.get(b.tourId); return !!(x && (x.type === 'transfer' || x.region === 'transfer')) || RE_TRANSFER.test(nomeDoServico(b)); }
+function transfersDe(de, ate) {
+  return DB.bookings.filter(b => b.status !== 'cancelled' && b.date >= de && (!ate || b.date <= ate) && ehTransfer(b))
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+}
+function nccTexto(b) {
+  const d = b.date ? b.date.slice(8, 10) + '/' + b.date.slice(5, 7) + '/' + b.date.slice(0, 4) : '';
+  return [`Data: ${d}  ·  Ora: ${b.time || '?'}`, `Servizio: ${nomeDoServico(b)}`, `Cliente: ${b.name}${b.whats ? '  ·  Tel. ' + b.whats : ''}`,
+    `Passeggeri: ${b.pax || 1}`, b.voo ? `Volo/treno: ${b.voo}` : '', b.origem ? `Da: ${b.origem}` : '', b.destino ? `A: ${b.destino}` : '',
+    b.obsOp ? `Note: ${b.obsOp}` : '', `Rif. EmRoma: ${b.code || b.id}`].filter(Boolean).join('\n');
+}
+function nccMarca(id, codigo) {
+  const b = Bookings.get(id); if (!b) return null;
+  b.ncc = codigo === null ? null : { codigo: String(codigo || '').trim(), em: isoToday() };
+  _opSaveBooking(b); return b;
+}
+
 /* ---------- PONTOS DE ENCONTRO ----------
    O modelo de voucher dela lista varios pontos; para cada cliente ela
    escolhia a mao o do passeio dele. Aqui: uma lista unica de pontos (feita
@@ -2024,6 +2048,7 @@ if (typeof STR !== 'undefined') {
     admGuias:    { pt: 'Guias', en: 'Guides' },
     admConsulta: { pt: 'Orçamentos', en: 'Quotes' },
   admPlanilha: { pt: 'Planilha', en: 'Sheet' },
+  admTransfer: { pt: 'Transfer', en: 'Transfers' },
     admTarefas:  { pt: 'Tarefas', en: 'Tasks' },
     admClients:  { pt: 'Clientes', en: 'Clients' },
     admCoupons:  { pt: 'Cupons e parcerias', en: 'Coupons & partners' },

@@ -87,7 +87,7 @@ function ingServ(b) {
     paga_no_dia: nd.valor ? `${nd.valor} € ${nd.para === 'prestador' ? 'para quem faz o serviço' : 'para a Ingrid'}` : 'nada',
     obs: b.obsOp || '', situacao: b.status === 'cancelled' ? 'cancelada' : 'confirmada' };
 }
-const ING_ABAS = ['today', 'planilha', 'consulta', 'tarefas', 'guias', 'agenda', 'bookings', 'clients', 'money', 'tours', 'reports', 'coupons', 'look', 'settings'];
+const ING_ABAS = ['today', 'planilha', 'consulta', 'tarefas', 'guias', 'transfer', 'agenda', 'bookings', 'clients', 'money', 'tours', 'reports', 'coupons', 'look', 'settings'];
 const ING_TURNOS = ['manha', 'tarde', 'noite', 'dia'];
 
 /* ---------- 2. as ferramentas das abas dela ---------- */
@@ -681,9 +681,15 @@ function ingFalar(t) {
   const u = new SpeechSynthesisUtterance(txt), v = ingMelhorVoz();
   if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'pt-BR';
   u.rate = Math.min(1.4, Math.max(0.7, +ingVozCfg().vel || 1)); u.pitch = 1;
+  u.onstart = () => ingOrbe('fala', true); u.onend = u.onerror = () => ingOrbe('fala', false);
   try { ING_SINTESE.speak(u); } catch (e) {}
 }
-const ingPararFala = () => { try { ING_SINTESE && ING_SINTESE.cancel(); } catch (e) {} };
+const ingPararFala = () => { try { ING_SINTESE && ING_SINTESE.cancel(); } catch (e) {} ingOrbe('fala', false); };
+/* O ORBE (igual ao do TI ARTES): respira parado, acende quando ela fala
+   (ouve), quando o assistente pensa e quando ele le em voz alta */
+function ingOrbe(estado, liga) { const g = iaEl && iaEl.g; if (g) g.classList.toggle('ing-' + estado, !!liga); }
+const _ingTravado = iaTravado;
+iaTravado = function (sim) { ingOrbe('pensa', sim); return _ingTravado(sim); };
 
 /* a resposta que chega depois de ela perguntar e lida em voz alta —
    o historico redesenhado ao abrir a gaveta, nao */
@@ -736,6 +742,8 @@ iaRodaCenario = async function (c) {
 function ingOuvPinta() {
   const g = iaEl && iaEl.g; if (!g) return;
   const mic = g.querySelector('#iaMic'), faixa = g.querySelector('#iaOuv');
+  ingOrbe('ouve', !!ingOuvindo);
+  if (mic) { const mt = mic.querySelector('.mic-t'); if (mt) mt.textContent = ingOuvindo ? 'Mandar' : 'Falar'; }
   if (mic) { mic.classList.toggle('gravando', !!ingOuvindo); mic.setAttribute('aria-label', ingOuvindo ? 'Mandar agora' : 'Falar'); mic.title = ingOuvindo ? 'Ouvindo — toque para mandar agora' : 'Falar — toque, fale, e vai sozinho quando você parar'; }
   if (faixa) faixa.hidden = !ingOuvindo;
 }
@@ -801,13 +809,15 @@ iaDesenha = function () {
       iaMostraAnexo();
     };
   }
+  const msgs0 = g && g.querySelector('#iaMsgs');
+  if (msgs0 && !g.querySelector('.ingPalco')) msgs0.insertAdjacentHTML('beforebegin', `<div class="ingPalco" aria-hidden="true"><i class="ingOrbe"><i></i></i><span class="ingPalcoT">${ingTemMic() ? 'Toque em <b>Falar</b> e diga o que precisa' : 'Escreva o que precisa'}</span></div>`);
   if (f && !f.querySelector('#iaMic')) {
-    f.insertAdjacentHTML('beforebegin', `<div id="iaOuv" class="iaOuv" hidden><span class="iaOuvPonto" aria-hidden="true"></span><b id="iaOuvRel">0:00</b>
+    f.insertAdjacentHTML('beforebegin', `<div id="iaOuv" class="iaOuv" hidden><span class="ingBarras" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><b id="iaOuvRel">0:00</b>
       <span id="iaOuvTxt">Estou ouvindo — fale normal. Quando parar, eu mando.</span>
       <button type="button" id="iaOuvManda">enviar</button><button type="button" id="iaOuvDesc">descartar</button></div>`);
     const ta = f.querySelector('#iaTxt');
     ta.insertAdjacentHTML('beforebegin', `<button type="button" id="iaMic" aria-label="Falar" title="Falar — toque, fale, e vai sozinho quando você parar" ${ingTemMic() ? '' : 'hidden'}>
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>`);
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span class="mic-t">Falar</span></button>`);
     ta.placeholder = ingTemMic() ? 'Fale ou escreva do jeito que você fala…' : ta.placeholder;
     f.querySelector('#iaMic').onclick = ingOuvir;
     g.querySelector('#iaOuvManda').onclick = ingOuvManda;
@@ -829,17 +839,65 @@ iaFecha = function () { ingPararFala(); if (ingOuvindo) ingOuvDescarta(); return
 (function () {
   const st = document.createElement('style');
   st.textContent = `
-#iaMic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--accent-wash);color:var(--accent);border:0;cursor:pointer;touch-action:manipulation}
-#iaMic:hover{background:var(--accent-line)}
-#iaMic.gravando{background:var(--danger);color:#fff;animation:iaMicPulsa 1.1s ease-in-out infinite}
-@keyframes iaMicPulsa{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--danger) 45%,transparent)}50%{box-shadow:0 0 0 9px transparent}}
+/* ===== o visual do chat do TI ARTES, com as cores do painel (acompanha o tema e a cor) ===== */
+#iaGaveta{background:var(--paper)}
+#iaGaveta header{border-bottom:0;padding:14px 10px 6px 18px}
+#iaGaveta .iaAv{border-radius:11px;background:linear-gradient(140deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#000));color:var(--accent-ink);box-shadow:0 6px 18px -8px var(--accent)}
+.ingPalco{display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 16px 12px;flex-shrink:0}
+.ingPalcoT{font-size:12.5px;color:var(--ink-3)}
+.ingOrbe{position:relative;width:74px;height:74px;border-radius:50%;display:block;
+  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--accent) 35%,#fff) 0%,var(--accent) 45%,color-mix(in srgb,var(--accent) 60%,#000) 100%);
+  box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 12%,transparent),0 14px 38px -12px var(--accent);animation:ingRespira 4.2s ease-in-out infinite}
+.ingOrbe i{position:absolute;inset:14%;border-radius:50%;background:radial-gradient(circle at 60% 65%,color-mix(in srgb,var(--highlight) 55%,transparent),transparent 62%);opacity:.55;animation:ingGira 9s linear infinite}
+@keyframes ingRespira{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+@keyframes ingGira{to{transform:rotate(360deg)}}
+@keyframes ingPulso{0%,100%{box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 16%,transparent),0 14px 38px -12px var(--accent)}50%{box-shadow:0 0 0 16px color-mix(in srgb,var(--accent) 6%,transparent),0 18px 46px -10px var(--accent)}}
+#iaGaveta.ing-fala .ingOrbe,#iaGaveta.ing-pensa .ingOrbe{animation:ingRespira 1.3s ease-in-out infinite,ingPulso 1.3s ease-in-out infinite}
+#iaGaveta.ing-fala .ingOrbe i,#iaGaveta.ing-pensa .ingOrbe i{animation-duration:2.4s;opacity:.9}
+#iaGaveta.ing-ouve .ingOrbe{background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--danger) 30%,#fff) 0%,var(--danger) 50%,color-mix(in srgb,var(--danger) 60%,#000) 100%);animation:ingRespira .9s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.ingOrbe,.ingOrbe i,#iaGaveta .ingOrbe{animation:none!important}}
+#iaMsgs{background:var(--paper);gap:14px;padding:6px 16px 16px}
+.iaB{font-size:14.5px;line-height:1.6;box-shadow:none}
+.iaB.assistant{margin-left:38px;border-radius:18px;border-top-left-radius:6px;border:1px solid var(--line);
+  background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 5%,var(--surface)),var(--surface));max-width:calc(100% - 38px)}
+.iaB.assistant::before{content:'✦';position:absolute;left:-38px;top:0;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-size:13px;
+  background:linear-gradient(140deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#000));color:var(--accent-ink);box-shadow:0 5px 16px -6px var(--accent)}
+.iaB.assistant + .iaB.assistant::before{visibility:hidden}
+.iaB.user{border-radius:16px;border-top-right-radius:5px;color:var(--ink);border:1px solid var(--accent-line);
+  background:linear-gradient(140deg,color-mix(in srgb,var(--accent) 20%,var(--surface)),color-mix(in srgb,var(--accent) 9%,var(--surface)))}
+.iaB.pensa{margin-left:38px}
+.iaCard{border-radius:18px;border-color:var(--highlight)}
+.iaSug button{border-radius:14px;background:var(--surface)}
+#iaForm{margin:6px 12px 8px;padding:9px;border:1px solid var(--line);border-radius:20px;gap:8px;align-items:flex-end;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 5%,var(--surface)),var(--surface));transition:border-color .25s,box-shadow .25s}
+#iaForm:focus-within{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent)}
+#iaTxt{border:0;background:none;border-radius:12px;padding:10px 6px;min-height:42px}
+#iaTxt:focus{outline:none}
+#iaClip{width:40px;height:40px;border:0;background:var(--surface-2)}
+#iaEnviar{width:42px;height:42px;border-radius:13px}
+/* O MICROFONE E O BOTAO PRINCIPAL: grande e com nome ("Falar"), como no TI ARTES */
+#iaMic{flex:none;display:inline-flex;align-items:center;gap:7px;height:42px;padding:0 16px;border-radius:13px;border:0;cursor:pointer;touch-action:manipulation;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 70%,#fff),var(--accent));color:var(--accent-ink);font:700 14px var(--f-ui);
+  box-shadow:0 8px 22px -10px var(--accent)}
+#iaMic:hover{filter:brightness(1.06)}
+#iaMic .mic-t{display:inline}
+#iaMic.gravando{background:linear-gradient(135deg,color-mix(in srgb,var(--danger) 70%,#fff),var(--danger));color:#fff;animation:iaMicPulsa 1.1s ease-in-out infinite}
+@keyframes iaMicPulsa{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--danger) 45%,transparent)}50%{box-shadow:0 0 0 10px transparent}}
 @media(prefers-reduced-motion:reduce){#iaMic.gravando{animation:none}}
-.iaOuv{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 12px 6px;padding:8px 12px;border-radius:12px;background:var(--danger-wash);color:var(--ink);font-size:13px}
+@media(max-width:400px){#iaMic{padding:0 12px}}
+/* "ouvindo": barrinhas de som */
+.iaOuv{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 12px 6px;padding:9px 13px;border-radius:14px;background:var(--danger-wash);border:1px solid color-mix(in srgb,var(--danger) 30%,transparent);color:var(--ink);font-size:13px;font-weight:600}
 .iaOuv[hidden]{display:none}
-.iaOuvPonto{width:9px;height:9px;border-radius:50%;background:var(--danger);animation:iaMicPulsa 1.1s infinite}
+.ingBarras{display:flex;gap:2.5px;align-items:flex-end;height:16px;flex-shrink:0}
+.ingBarras i{width:3px;height:100%;background:var(--danger);border-radius:2px;animation:ingOnda .9s ease-in-out infinite;transform-origin:bottom}
+.ingBarras i:nth-child(2){animation-delay:.12s}.ingBarras i:nth-child(3){animation-delay:.24s}.ingBarras i:nth-child(4){animation-delay:.36s}.ingBarras i:nth-child(5){animation-delay:.48s}
+@keyframes ingOnda{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@media(prefers-reduced-motion:reduce){.ingBarras i{animation:none}}
 .iaOuv b{font-variant-numeric:tabular-nums}
-.iaOuv #iaOuvTxt{flex:1;min-width:120px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iaOuv #iaOuvTxt{flex:1;min-width:120px;color:var(--ink-2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .iaOuv button{border:0;border-radius:999px;padding:5px 11px;font-weight:600;font-size:12.5px;cursor:pointer;background:var(--surface);color:var(--ink)}
-.iaOuv #iaOuvManda{background:var(--accent);color:var(--accent-ink)}`;
+.iaOuv #iaOuvManda{background:var(--accent);color:var(--accent-ink)}
+#iaPe{background:var(--paper);border-top:0}
+#iaFab{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 75%,#fff),var(--accent));color:var(--accent-ink);box-shadow:0 10px 28px -10px var(--accent)}`;
   document.head.appendChild(st);
 })();

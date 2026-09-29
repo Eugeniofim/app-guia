@@ -494,3 +494,54 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .crm-traga h3{margin:0 0 4px}
 .crm-painel-p{margin-bottom:12px}
 .crm-painel-p .crm-tile b{font-size:var(--fs-6)}
+
+/* ---- VISUAL DO PAINEL: as cores (so o acento muda; contraste medido no marfim / no escuro) ---- */
+:root[data-skin="mar"]{--accent:#1F5A7A;--accent-ink:#FFFFFF;--accent-wash:#E1EDF3;--accent-line:#BCD4E1}
+:root[data-skin="oliva"]{--accent:#4A6629;--accent-ink:#FFFFFF;--accent-wash:#E9EEDF;--accent-line:#CCD8B8}
+:root[data-skin="terracota"]{--accent:#9A4220;--accent-ink:#FFFFFF;--accent-wash:#F5E5DC;--accent-line:#E6C3B2}
+:root[data-skin="lavanda"]{--accent:#5C4A96;--accent-ink:#FFFFFF;--accent-wash:#ECE8F6;--accent-line:#D2CAEA}
+:root[data-skin="mar"][data-theme="dark"]{--accent:#7FC0E0;--accent-ink:#0B2230;--accent-wash:#12242E;--accent-line:#24485A}
+:root[data-skin="oliva"][data-theme="dark"]{--accent:#A9C97E;--accent-ink:#172108;--accent-wash:#1C2414;--accent-line:#34442A}
+:root[data-skin="terracota"][data-theme="dark"]{--accent:#F0A07A;--accent-ink:#2E1206;--accent-wash:#2E1A12;--accent-line:#573122}
+:root[data-skin="lavanda"][data-theme="dark"]{--accent:#B6A6EE;--accent-ink:#1B1336;--accent-wash:#221C38;--accent-line:#3E3566}
+@media (prefers-color-scheme: dark){
+  :root[data-skin="mar"]:not([data-theme="light"]){--accent:#7FC0E0;--accent-ink:#0B2230;--accent-wash:#12242E;--accent-line:#24485A}
+  :root[data-skin="oliva"]:not([data-theme="light"]){--accent:#A9C97E;--accent-ink:#172108;--accent-wash:#1C2414;--accent-line:#34442A}
+  :root[data-skin="terracota"]:not([data-theme="light"]){--accent:#F0A07A;--accent-ink:#2E1206;--accent-wash:#2E1A12;--accent-line:#573122}
+  :root[data-skin="lavanda"]:not([data-theme="light"]){--accent:#B6A6EE;--accent-ink:#1B1336;--accent-wash:#221C38;--accent-line:#3E3566}
+}
+/* a faixa do cabecalho da planilha acompanha a cor escolhida */
+:root[data-painel] .crm-plan thead .crm-grp th{background:var(--accent);color:var(--accent-ink)}
+/* ---- LETRA MAIOR E MAIS ESPACO (padrao do painel) ---- */
+:root[data-conforto="1"]{--fs-1:11px;--fs-2:12.5px;--fs-3:14px;--fs-4:16px;--fs-5:19px;--fs-6:23px}
+:root[data-conforto="1"] .adm .card{padding:22px 24px;margin-bottom:18px}
+:root[data-conforto="1"] .adm .stage{line-height:1.55}
+:root[data-conforto="1"] .adm .nb{padding-top:11px;padding-bottom:11px}
+:root[data-conforto="1"] .crm-plan th,:root[data-conforto="1"] .crm-plan td{padding:9px 12px}
+:root[data-conforto="1"] .crm-tiles{gap:14px}
+:root[data-conforto="1"] .crm-tile{padding:16px 18px}
+/* ---- o cartao ---- */
+.vis-temas,.vis-cores{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 14px}
+.vis-tema{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:10px;border-radius:var(--r-lg);border:2px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;cursor:pointer;min-width:140px}
+.vis-tema.on,.vis-cor.on{border-color:var(--accent)}
+.vis-prev{display:grid;grid-template-columns:1fr 2fr;grid-template-rows:1fr 1fr;gap:4px;width:120px;height:62px;padding:6px;border-radius:var(--r);box-sizing:border-box}
+.vis-prev i{border-radius:4px}
+.vis-prev i:first-child{grid-row:1/3}
+.vis-t-claro .vis-prev{background:#FBF8F3}.vis-t-claro .vis-prev i{background:#E8E0D3}.vis-t-claro .vis-prev i:first-child{background:#F2EDE4}
+.vis-t-escuro .vis-prev{background:#150F12}.vis-t-escuro .vis-prev i{background:#33262D}.vis-t-escuro .vis-prev i:first-child{background:#1E161A}
+.vis-t-auto .vis-prev{background:linear-gradient(135deg,#FBF8F3 50%,#150F12 50%)}.vis-t-auto .vis-prev i{background:rgba(128,110,118,.35)}
+.vis-cor{display:inline-flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:var(--r-pill);border:2px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;font-weight:var(--t-strong);cursor:pointer}
+.vis-bola{width:22px;height:22px;border-radius:50%;display:inline-block}
+.vis-c-vinho{background:#5B3145}.vis-c-mar{background:#1F5A7A}.vis-c-oliva{background:#4A6629}.vis-c-terracota{background:#9A4220}.vis-c-lavanda{background:#5C4A96}
+.vis-conf{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.vis-conf input{width:20px;height:20px;margin-top:2px;accent-color:var(--accent)}
+.vis-conf small{display:block;color:var(--ink-3)}
+/* ---- aba Transfer ---- */
+.tr-card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:14px 16px;margin-bottom:10px}
+.tr-card.ok{border-left-color:var(--ok)}
+.tr-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.tr-rota{margin:8px 0 10px;color:var(--ink-2);font-size:var(--fs-3)}
+.tr-card .tacts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tr-ok{display:inline-flex;gap:6px;align-items:center}
+.tr-ok input{padding:7px 10px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--surface-2);font:inherit;color:var(--ink);width:170px}
+.tr-como .bkp-passos{margin:6px 0}

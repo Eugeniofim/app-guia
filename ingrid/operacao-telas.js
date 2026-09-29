@@ -256,6 +256,7 @@ function admHoje(arg) {
     </div>
     ${dia === hoje && (late.length || semPres.length || novos) ? `<div class="op-pend">
       ${novos ? `<a class="alert warn" href="#/adm/consulta">🧾 ${novos} ${novos > 1 ? 'pedidos esperando orçamento' : 'pedido esperando orçamento'} →</a>` : ''}
+      ${(() => { const n = transfersDe(isoToday(), addDays(isoToday(), 7)).filter(b => !b.ncc).length; return n ? `<a class="alert warn" href="#/adm/transfer">🚐 ${n} ${n > 1 ? 'transfers' : 'transfer'} dos próximos 7 dias ainda não ${n > 1 ? 'pedidos' : 'pedido'} na ${esc(nccConfig().nome)} →</a>` : ''; })()}
       ${semPres.length ? `<a class="alert warn" href="#/adm/guias">👤 ${semPres.length} ${semPres.length > 1 ? 'serviços' : 'serviço'} sem guia/motorista nos próximos 3 dias →</a>` : ''}
       ${late.length ? `<a class="alert bad" href="#/adm/bookings">⚠ ${late.length} ${late.length > 1 ? 'pagamentos atrasados' : 'pagamento atrasado'} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} →</a>` : ''}
     </div>` : ''}
@@ -1493,6 +1494,7 @@ function opAjustesHtml() {
 }
 function opAjustesLiga() {
   bkpAjustesLiga();
+  visualLiga();
   $('#ptSalva').onclick = () => {
     const r = Pontos.salva({ id: $('#ptId').value, nome: $('#ptNome').value, endereco: $('#ptEnd').value, mapa: $('#ptMapa').value, instrucoes: $('#ptIns').value });
     if (r.erro) return toast(r.erro);
@@ -2677,3 +2679,93 @@ const ATALHO = {
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-at]'); if (!b || !ATALHO[b.dataset.at]) return; e.preventDefault(); ATALHO[b.dataset.at](); });
 /* a bolinha do botao do Drive: verde ligado, amarela pede toque */
 setTimeout(() => { if (typeof bkpPasta === 'function' && window.indexedDB) drvLiberada(false).catch(() => {}); }, 800);
+
+/* =====================================================
+   VISUAL DO PAINEL (Ajustes) — pedido de 29/09: "ta meio denso e escuro
+   demais". Claro por padrao, 5 cores e "letra maior e mais espaco". So o
+   painel, so neste aparelho: o site dos clientes segue a marca.
+===================================================== */
+const VIS_KEY = 'emroma_visual';
+const VIS_CORES = [['vinho', 'Vinho'], ['mar', 'Mar'], ['oliva', 'Oliva'], ['terracota', 'Terracota'], ['lavanda', 'Lavanda']];
+function visualPref() {
+  const pad = { tema: 'claro', cor: 'vinho', conforto: true };
+  try { return Object.assign(pad, JSON.parse(localStorage.getItem(VIS_KEY) || '{}')); } catch (e) { return pad; }
+}
+function visualSalva(mudou) { const v = Object.assign(visualPref(), mudou); try { localStorage.setItem(VIS_KEY, JSON.stringify(v)); } catch (e) {} visualAplica(true); return v; }
+function visualAplica(noPainel) {
+  const r = document.documentElement, v = visualPref();
+  const doSite = () => { const t = typeof temaAtual === 'function' ? temaAtual() : 'auto'; if (t === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t); };
+  if (noPainel) {
+    r.setAttribute('data-painel', '1');
+    if (v.tema === 'auto') doSite(); else r.setAttribute('data-theme', v.tema === 'escuro' ? 'dark' : 'light');
+    r.setAttribute('data-skin', v.cor); r.setAttribute('data-conforto', v.conforto ? '1' : '0');
+  } else if (r.hasAttribute('data-painel')) {
+    ['data-painel', 'data-skin', 'data-conforto'].forEach(a => r.removeAttribute(a)); doSite();
+  }
+}
+function visualHtml() {
+  const v = visualPref();
+  return `<section class="card vis-cartao" id="visCartao">
+    <h3>🎨 Visual do painel</h3>
+    <p class="why">Muda só o painel, neste aparelho. O site que os clientes veem continua com as cores da marca.</p>
+    <span class="op-lbl">Claro ou escuro</span>
+    <div class="vis-temas">${[['claro', '☀️', 'Claro'], ['escuro', '🌙', 'Escuro'], ['auto', '💻', 'Igual ao computador']].map(([k, i, n]) => `<button class="vis-tema vis-t-${k} ${v.tema === k ? 'on' : ''}" data-vistema="${k}" aria-pressed="${v.tema === k}"><span class="vis-prev" aria-hidden="true"><i></i><i></i><i></i></span><b>${i} ${n}</b></button>`).join('')}</div>
+    <span class="op-lbl">Cor</span>
+    <div class="vis-cores">${VIS_CORES.map(([k, n]) => `<button class="vis-cor ${v.cor === k ? 'on' : ''}" data-viscor="${k}" aria-pressed="${v.cor === k}"><i class="vis-bola vis-c-${k}" aria-hidden="true"></i>${n}</button>`).join('')}</div>
+    <label class="vis-conf"><input type="checkbox" id="visConf" ${v.conforto ? 'checked' : ''}> <span><b>Letra maior e mais espaço</b><small>mais fácil de ler, menos apertado</small></span></label>
+  </section>`;
+}
+function visualLiga() {
+  const c = document.getElementById('visCartao'); if (!c) return;
+  const re = () => { c.outerHTML = visualHtml(); visualLiga(); };
+  c.querySelectorAll('[data-vistema]').forEach(b => b.onclick = () => { visualSalva({ tema: b.dataset.vistema }); re(); });
+  c.querySelectorAll('[data-viscor]').forEach(b => b.onclick = () => { visualSalva({ cor: b.dataset.viscor }); re(); });
+  c.querySelector('#visConf').onchange = (e) => { visualSalva({ conforto: e.target.checked }); re(); };
+}
+
+/* =====================================================
+   ABA TRANSFER — os transfers de Roma pedidos na New Star (NCCGest)
+===================================================== */
+function admTransfer() {
+  const S = admTransfer._s = admTransfer._s || { ver: 'falta' };
+  const hoje = isoToday(), cfg = nccConfig();
+  const todos = transfersDe(hoje), falta = todos.filter(b => !b.ncc), feitos = todos.filter(b => b.ncc);
+  const lista = S.ver === 'falta' ? falta : S.ver === 'feitos' ? feitos : todos;
+  const card = (b) => `<article class="tr-card ${b.ncc ? 'ok' : ''}">
+      <div class="tr-top"><b class="mono">${crmData(b.date)} · ${esc(b.time || '?')}</b><b>${esc(b.name)}</b><span class="why">${b.pax || 1} pax</span>
+        ${b.ncc ? `<span class="pill ok">✓ pedido na ${esc(cfg.nome)}${b.ncc.codigo ? ' · nº ' + esc(b.ncc.codigo) : ''}</span>` : '<span class="pill warn">falta pedir</span>'}</div>
+      <div class="tr-rota">${esc(nomeDoServico(b))}${b.voo ? ` · ✈ ${esc(b.voo)}` : ''}${b.origem || b.destino ? `<br>📍 ${esc(b.origem || '?')} → ${esc(b.destino || '?')}` : ''}${b.obsOp ? `<br><small>${esc(b.obsOp)}</small>` : ''}</div>
+      <div class="tacts">
+        <button class="mini strong" data-trcopia="${esc(b.id)}">📋 Copiar os dados</button>
+        <a class="mini" href="${esc(cfg.url)}" target="_blank" rel="noopener">Abrir a ${esc(cfg.nome)} ↗</a>
+        ${b.ncc ? `<button class="mini ghost" data-trdesfaz="${esc(b.id)}">desmarcar</button>` : `<span class="tr-ok"><input data-trnum="${esc(b.id)}" placeholder="nº da reserva deles" aria-label="número da reserva na ${esc(cfg.nome)}"><button class="mini" data-trok="${esc(b.id)}">✓ Pedido feito</button></span>`}
+        ${b.clienteId ? `<a class="mini ghost" href="#/adm/clients/${encodeURIComponent('c:' + b.clienteId)}">ficha</a>` : ''}
+      </div></article>`;
+  admShell('transfer', `
+    <div class="pagehead"><h1 class="pageh">🚐 Transfer</h1>
+      <div class="chips"><a class="cta sm" href="${esc(cfg.url)}" target="_blank" rel="noopener">Abrir a ${esc(cfg.nome)} ↗</a></div></div>
+    <section class="card tr-como"><h3>Como pedir o transfer na ${esc(cfg.nome)}</h3>
+      <ol class="bkp-passos"><li>Toque em <b>📋 Copiar os dados</b> — sai pronto, em italiano, do jeito que eles leem.</li>
+        <li>Toque em <b>Abrir a ${esc(cfg.nome)}</b>, entre com o seu login de cliente e cole no pedido.</li>
+        <li>Volte aqui, escreva o <b>nº da reserva deles</b> e toque em <b>✓ Pedido feito</b>.</li></ol>
+      <p class="why">Com o contato técnico da ${esc(cfg.nome)}, o app passa a mandar o pedido sozinho.</p></section>
+    <div class="crm-etapas" role="tablist">${[['falta', 'Falta pedir', falta.length], ['feitos', 'Já pedidos', feitos.length], ['todos', 'Todos', todos.length]].map(([k, n, c]) =>
+      `<button class="crm-etapa ${S.ver === k ? 'on' : ''}" data-trver="${k}" role="tab" aria-selected="${S.ver === k}">${n} <b>${c}</b></button>`).join('')}</div>
+    ${lista.length ? lista.map(card).join('') : `<p class="empty">${S.ver === 'falta' ? 'Nenhum transfer esperando pedido. 🎉' : 'Nenhum transfer aqui.'}</p>`}
+    <details class="card"><summary><b>Trocar a plataforma</b> <small class="why">nome e link da área de cliente</small></summary>
+      <div class="frow"><label class="fld">Nome<input id="trNome" value="${esc(cfg.nome)}"></label><label class="fld">Link da área de cliente<input id="trUrl" value="${esc(cfg.url)}" inputmode="url"></label></div>
+      <button class="mini strong" id="trSalva">Salvar</button></details>`);
+  const re = () => admTransfer();
+  $$('[data-trver]').forEach(b => b.onclick = () => { S.ver = b.dataset.trver; re(); });
+  $$('[data-trcopia]').forEach(b => b.onclick = async () => {
+    const t = nccTexto(Bookings.get(b.dataset.trcopia));
+    try { await navigator.clipboard.writeText(t); toast('📋 Copiado — agora cole na ' + cfg.nome); }
+    catch (e) { opJanela('📋 Dados do transfer', `<p class="why">Selecione e copie:</p><textarea rows="9" readonly style="width:100%">${esc(t)}</textarea>`); }
+  });
+  $$('[data-trok]').forEach(b => b.onclick = () => { const inp = document.querySelector(`[data-trnum="${b.dataset.trok}"]`); nccMarca(b.dataset.trok, inp ? inp.value : ''); toast('✓ Marcado como pedido na ' + cfg.nome); re(); });
+  $$('[data-trdesfaz]').forEach(b => b.onclick = () => { nccMarca(b.dataset.trdesfaz, null); re(); });
+  $('#trSalva').onclick = () => {
+    const url = $('#trUrl').value.trim(); if (url && !/^https?:\/\//i.test(url)) return toast('O link precisa começar com http');
+    DB.settings.ncc = { nome: $('#trNome').value.trim() || NCC_PADRAO.nome, url: url || NCC_PADRAO.url }; save(); toast('Salvo'); re();
+  };
+}
