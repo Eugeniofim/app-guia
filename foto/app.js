@@ -2665,16 +2665,15 @@ const ENS_OCASIAO = [
   ['amigas',    'Grupo de amigas',          'Group of friends'],
   ['prewedding','Pré-wedding',              'Pre-wedding'],
 ];
-const ENS_ONDE = [
-  ['torre',     'Torre Eiffel e Trocadéro', 'Eiffel Tower & Trocadéro'],
-  ['montmartre','Montmartre',               'Montmartre'],
-  ['louvre',    'Louvre e Tulherias',       'Louvre & Tuileries'],
-  ['sena',      'Sena e as pontes',         'The Seine & the bridges'],
-  ['luxemburgo','Jardim do Luxemburgo',     'Luxembourg Gardens'],
-  ['bairro',    'Ruas de bairro, sem multidão', 'Quiet neighbourhood streets'],
-  ['notredame', 'Notre-Dame e a Île',       'Notre-Dame & the island'],
-  ['naosei',    'Não sei, me ajuda a escolher', 'Not sure, help me choose'],
-];
+/* OS LUGARES: vêm da cidade DELE, não de uma lista fixa.
+   Ficam em DB.settings.locaisEnsaio (nascem do config.js e ele edita no
+   painel). Sem lista, a tela pergunta o lugar por escrito em vez de
+   inventar cartão-postal de outra cidade. */
+function locaisDoEnsaio() {
+  const l = (typeof DB !== 'undefined' && DB.settings && DB.settings.locaisEnsaio) || [];
+  const lista = l.filter(x => Array.isArray(x) && x.length >= 2).map(x => [x[0], x[1], x[2] || x[1]]);
+  return lista.length ? lista.concat([['naosei', 'Não sei, me ajuda a escolher', 'Not sure, help me choose']]) : [];
+}
 const ENS_QUANDO = [
   ['nascer',    'Nascer do sol, sem gente', 'Sunrise, no crowds'],
   ['manha',     'De manhã',                 'Morning'],
@@ -2693,6 +2692,7 @@ const ENS_PRECISA = [
 function viewCrieEnsaio() {
   const P = viewCrieEnsaio._p = viewCrieEnsaio._p
     || { nome: '', data: '', pessoas: 2, ocasiao: [], onde: [], quando: [], precisa: [], obs: '' };
+  const ONDE = locaisDoEnsaio();
   const chip = (grupo, lista) => lista.map(([cod, pt, en]) =>
     `<button class="pchip ${P[grupo].includes(cod) ? 'on' : ''}" data-g="${grupo}" data-v="${cod}">${LANG === 'en' ? en : pt}</button>`).join('');
 
@@ -2720,11 +2720,12 @@ function viewCrieEnsaio() {
       <div class="pchips">${chip('ocasiao', ENS_OCASIAO)}</div>
     </section>
 
+    ${ONDE.length ? `
     <section class="card pbloco">
       <span class="seclabel">${t('crieOnde')}</span>
       <p class="why">${t('crieOndeWhy')}</p>
-      <div class="pchips">${chip('onde', ENS_ONDE)}</div>
-    </section>
+      <div class="pchips">${chip('onde', ONDE)}</div>
+    </section>` : ''}
 
     <section class="card pbloco">
       <span class="seclabel">${t('crieQuando')}</span>
@@ -2764,7 +2765,7 @@ function viewCrieEnsaio() {
     if (P.data) L.push('🗓 ' + fmtDate(P.data));
     L.push('👥 ' + t('crieMsgPessoas', { n: P.pessoas }));
     if (P.ocasiao.length) L.push('📸 ' + nome(P.ocasiao, ENS_OCASIAO));
-    if (P.onde.length) L.push('📍 ' + nome(P.onde, ENS_ONDE));
+    if (P.onde.length) L.push('📍 ' + nome(P.onde, ONDE));
     if (P.quando.length) L.push('🌅 ' + nome(P.quando, ENS_QUANDO));
     if (P.precisa.length) L.push('✅ ' + nome(P.precisa, ENS_PRECISA));
     if (P.obs) L.push('📝 ' + P.obs);

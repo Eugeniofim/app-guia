@@ -60,6 +60,11 @@ function _blank() {
            whats: GUIA_CFG.whats || '', insta: GUIA_CFG.insta || '', placeholderContact: false,
            /* o cliente ve antes de reservar */
            photo: '', badge: GUIA_CFG.badge || '',
+           /* OS LUGARES DO ENSAIO (29/09/2026) — os cartoes-postais da cidade
+              DELE. Cada app de fotografo tem os seus; a tela "Crie o seu
+              ensaio" le daqui, e nao de uma lista fixa de Paris. Formato:
+              [codigo, nome em portugues, nome em ingles] */
+           locaisEnsaio: GUIA_CFG.locaisEnsaio || [],
            base: GUIA_CFG.cidade || '',
            /* como o cliente paga. Vazio ate ela preencher no ADM — e enquanto
               estiver vazio a tela diz a verdade: ela passa os dados no WhatsApp. */

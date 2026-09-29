@@ -40,5 +40,18 @@ var APP_CONFIG = {
     prefixo: 'EA',                 /* prefixo do codigo de reserva: EA-4821 */
     /* regioes dos passeios: [codigo, nome em PT, nome em EN] */
     regioes: [['paris', 'Paris', 'Paris'], ['arredores', 'Arredores', 'Around Paris']],
+    /* OS LUGARES DO ENSAIO na cidade DELE — é o que aparece em "Crie o seu
+       ensaio". Num app de outra cidade, troca-se esta lista pelos cartões-
+       postais de lá (Coliseu e Trastevere em Roma, Tower Bridge e Notting
+       Hill em Londres, Burj Khalifa e o deserto em Dubai). */
+    locaisEnsaio: [
+      ['torre',      'Torre Eiffel e Trocadéro',      'Eiffel Tower & Trocadéro'],
+      ['montmartre', 'Montmartre',                    'Montmartre'],
+      ['louvre',     'Louvre e Tulherias',            'Louvre & Tuileries'],
+      ['sena',       'Sena e as pontes',              'The Seine & the bridges'],
+      ['luxemburgo', 'Jardim do Luxemburgo',          'Luxembourg Gardens'],
+      ['bairro',     'Ruas de bairro, sem multidão',  'Quiet neighbourhood streets'],
+      ['notredame',  'Notre-Dame e a Île',            'Notre-Dame & the island'],
+    ],
   },
 };
