@@ -301,3 +301,71 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .bkp-estado{font-size:var(--fs-3);color:var(--ink-2);margin:6px 0 10px}
 .bkp-aviso{flex-wrap:wrap}
 .bkp-volta{flex-wrap:wrap;justify-content:space-between}
+
+/* =========================================================
+   CRM — as abas e as colunas da planilha dela
+   ========================================================= */
+.crm-etapas{display:flex;gap:4px;overflow-x:auto;margin-bottom:12px;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch}
+.crm-etapa{padding:10px 14px;font-weight:var(--t-strong);font-size:var(--fs-3);color:var(--ink-2);border-bottom:3px solid transparent;white-space:nowrap}
+.crm-etapa b{font-family:var(--f-mono);font-size:var(--fs-2);background:var(--surface-2);padding:1px 7px;border-radius:var(--r-pill);margin-left:4px}
+.crm-etapa.on{color:var(--accent);border-bottom-color:var(--accent)}
+.crm-filtros{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.crm-filtros input,.crm-filtros select{padding:9px 12px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--surface);font:inherit;color:var(--ink)}
+.crm-filtros input{flex:1;min-width:200px}
+.crm-card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:14px 16px;margin-bottom:10px}
+.crm-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.crm-nome{font-family:var(--f-display);font-size:var(--fs-5)}
+.crm-veio{font-size:var(--fs-2);color:var(--ink-3);background:var(--surface-2);padding:2px 9px;border-radius:var(--r-pill)}
+.crm-linhas{list-style:none;margin:10px 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.crm-linhas li{display:grid;grid-template-columns:86px 1fr auto;gap:10px;align-items:baseline;font-size:var(--fs-3)}
+.crm-linhas small{color:var(--ink-3)}
+.crm-pe{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px;font-size:var(--fs-3)}
+.crm-pe .tacts{display:flex;flex-wrap:wrap;gap:6px}
+.crm-rp{color:var(--highlight-text)}
+.crm-plan-wrap{overflow:auto;max-height:70vh;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
+.crm-plan{min-width:1900px;font-size:var(--fs-2)}
+.crm-plan th{position:sticky;top:0;background:var(--brand-primaria);color:#fff;z-index:1;white-space:nowrap}
+.crm-plan td{vertical-align:top}
+.crm-plan tbody tr{cursor:pointer}
+.crm-plan tbody tr:hover{background:var(--accent-wash)}
+.crm-serv{min-width:260px;font-weight:600}
+.crm-motivo{padding:6px 8px;border-radius:var(--r-sm)}
+.orc-links{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.orc-links .frow{align-items:end}
+@media(max-width:600px){.crm-linhas li{grid-template-columns:62px 1fr auto}}
+
+/* ficha e clientes */
+.cli-seg{display:inline-flex;gap:4px;padding:4px;border-radius:var(--r-pill);background:var(--surface-2);margin-bottom:14px}
+.cli-seg-b{padding:8px 16px;border-radius:var(--r-pill);font-weight:var(--t-strong);font-size:var(--fs-3);color:var(--ink-2);text-decoration:none}
+.cli-seg-b.on{background:var(--surface);color:var(--accent);box-shadow:var(--sh-1)}
+.fc-top .tacts{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.fc-dados{color:var(--ink-3);font-size:var(--fs-3);margin:6px 0 0}
+.fc-viagem{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:8px 0}
+.fc-viagem span{background:var(--surface-2);border-radius:var(--r);padding:8px 10px;min-width:0}
+.fc-viagem small{display:block;color:var(--ink-3);font-size:var(--fs-1);text-transform:uppercase;letter-spacing:.08em}
+.fc-viagem b{display:block;font-size:var(--fs-3);overflow-wrap:anywhere}
+@media(max-width:700px){.fc-viagem{grid-template-columns:1fr 1fr}}
+.fc-tab-wrap{overflow-x:auto}
+.fc-tab{min-width:760px}
+.fc-tab td{vertical-align:top}
+.fc-serv.cancel{opacity:.5}
+.fc-quem,.fc-links{margin-top:6px;font-size:var(--fs-2);display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.fc-sem{color:var(--danger);font-weight:600}
+.fc-det td{background:var(--surface-2)}
+.fc-hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.fc-hist li{display:grid;grid-template-columns:74px 1fr auto;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:var(--fs-3)}
+.fc-hist li:last-child{border-bottom:0}
+.cl-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cl-orig{background:none;border:0;padding:0;text-align:left;cursor:pointer;width:100%}
+.cl-lista{padding:6px 10px}
+.cl-row{display:grid;grid-template-columns:minmax(180px,2fr) minmax(150px,1.5fr) minmax(90px,.8fr) auto;gap:12px;align-items:center;padding:12px 8px;border-bottom:1px solid var(--line);color:inherit;text-decoration:none;border-radius:var(--r-sm)}
+.cl-row:hover{background:var(--accent-wash)}
+.cl-row:last-child{border-bottom:0}
+.cl-row small{display:block;color:var(--ink-3);font-size:var(--fs-2)}
+.cl-row b{font-size:var(--fs-3)}
+@media(max-width:700px){.cl-row{grid-template-columns:1fr auto}.cl-prox{grid-column:1}.cl-num{text-align:right}}
+.op-part,.op-links{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.op-part .grow{grid-template-columns:1fr 130px}
+.op-links .frow{align-items:end}
+.tf-ing{margin:0}
+.grupo.veio select{width:100%;padding:11px 12px;border:1px solid var(--line-2);border-radius:11px;background:var(--surface);font:inherit;margin-top:6px}

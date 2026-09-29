@@ -1584,7 +1584,7 @@ const Bookings = {
   get(id) { return DB.bookings.find(b => b.id === id); },
   byCode(code) { return DB.bookings.find(b => b.code === code); },
 
-  create({ tourId, date, time, name, email, whats, insta, pax, coupon, policy, origin, consent, opcao, group, adultos, criancas, idades }) {
+  create({ tourId, date, time, name, email, whats, insta, pax, coupon, policy, origin, consent, opcao, group, adultos, criancas, idades, veioPor, indicadoPor, nasc, compradorVai }) {
     const tour = Tours.get(tourId);
     /* Tem que ser o MESMO calculo que a tela mostrou. tour.price * pax ignora
        o preco escalonado (195 para as 3 primeiras, 225 depois) e gravava a
@@ -1626,7 +1626,13 @@ const Bookings = {
       group: Array.isArray(group) ? group.filter(g => g && g.nome).map(g => ({
         nome: String(g.nome).trim(),
         nasc: String(g.nasc || '').trim(),
+        whats: String(g.whats || '').trim(),
       })) : [],
+      /* como conheceu (a coluna "veio por" da planilha dela) */
+      veioPor: veioPor || '', indicadoPor: String(indicadoPor || '').trim(),
+      /* quem compra pode nao ir (reservou para a mae): entao a data de
+         nascimento dele so vale para o ingresso se ele for */
+      nasc: String(nasc || '').trim(), compradorVai: compradorVai !== false,
       consent: consent ? { ok: true, at: new Date().toISOString(), src: 'checkout' } : { ok: false },
       payments: [], status: 'confirmed',
       createdAt: new Date().toISOString(), origin: origin || 'site',
@@ -1639,6 +1645,8 @@ const Bookings = {
        entrou. A reserva nasce sem pagamento nenhum — quem registra e o guia,
        quando o dinheiro cai de verdade. E aqui que o Stripe entra um dia. */
     DB.bookings.push(b);
+    /* o cadastro de quem reservou e de cada um do grupo (operacao.js) */
+    if (typeof cadastroDaReserva === 'function') cadastroDaReserva(b);
     if (couponCode) Coupons.consume(couponCode, email);
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
     if (typeof cloudPushBooking === 'function') cloudPushBooking(b);
@@ -1664,7 +1672,7 @@ const Bookings = {
     return b;
   },
 
-  criarManual({ tourId, date, time, name, whats, email, pax, total, recebido, metodo }) {
+  criarManual({ tourId, date, time, name, whats, email, pax, total, recebido, metodo, veioPor, indicadoPor }) {
     const b = {
       id: uid(), code: bookCode(), tourId, date, time,
       name, email: email || '', whats: whats || '', insta: '',
@@ -1673,6 +1681,7 @@ const Bookings = {
       consent: { ok: false },
       payments: [], status: 'confirmed',
       createdAt: new Date().toISOString(), origin: 'manual',
+      veioPor: veioPor || '', indicadoPor: String(indicadoPor || '').trim(),
     };
     const val = Math.max(0, Math.min(+recebido || 0, b.total));
     if (val > 0) {
@@ -1680,6 +1689,7 @@ const Bookings = {
                         kind: val >= b.total ? 'full' : 'deposit' });
     }
     DB.bookings.push(b);
+    if (typeof cadastroDaReserva === 'function') cadastroDaReserva(b);
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
     if (typeof cloudPushBooking === 'function') cloudPushBooking(b);
     return b;

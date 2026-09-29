@@ -1313,7 +1313,7 @@ function renderBook() {
       <label class="fld">${t('email')}<input id="fE" type="email" autocomplete="email"></label>
       <label class="fld">${t('whatsLbl')}<input id="fW" placeholder="+33 6 …"><small class="why">${t('whyWhats')}</small></label>
       <label class="fld">${t('instaLbl')}<input id="fI" placeholder="@"></label>
-      ${grupoHtml(S.pax - 1)}
+      ${participantesHtml(x, S)}
       <label class="optin"><input type="checkbox" id="fOptin">
         <span><b>${t('consentLbl')}</b><small>${t('consentWhy')}</small></span></label>
       ${x.priceMode === 'transfer' && pr.sinal ? `
@@ -1335,23 +1335,24 @@ function renderBook() {
       $$('.popt', book).forEach(z => z.classList.toggle('on', z === b));
       $('#payBtn').textContent = S.policy === 'split' ? t('payNowBtn', { v: eur(half) }) : t('payBtn', { v: eur(total) });
     });
-    $('#grpAdd').onclick = () => {
-      /* insertAdjacentHTML em vez de redesenhar: quem ja digitou dois nomes
-         nao pode perde-los por ter clicado em "acrescentar pessoa". */
-      $('#grpRows').insertAdjacentHTML('beforeend', grupoLinha());
-    };
+    /* quem vai: uma linha por pessoa; "eu tambem vou" tira ou poe uma linha
+       sem redesenhar (quem ja digitou nao perde nada) */
+    ligaParticipantes(book, S);
     $('#back2').onclick = () => { S.step = 2; renderBook(); };
     $('#payBtn').onclick = () => {
       const name = $('#fN').value.trim(), email = $('#fE').value.trim(), whats = $('#fW').value.trim();
       if (!name || !email || !whats) return toast(LANG === 'pt' ? 'Preencha nome, e-mail e WhatsApp.' : 'Fill in name, email and WhatsApp.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { $('#fE').focus(); return toast(t('badEmail')); }
+      const part = lerParticipantes(x);
+      if (part.erro) return toast(part.erro);
       if (Cal.seatsLeft(x.id, S.date, S.time, S.cap || x.max) < S.pax) { S.step = 1; S.time = null; renderBook(); return toast(t('lastSpotGone')); }
       const btn = $('#payBtn'); btn.disabled = true; btn.textContent = t('confirming');
       setTimeout(() => {
         S.booking = Bookings.create({
           tourId: x.id, date: S.date, time: S.time, name, email, whats,
           insta: $('#fI').value.trim(), pax: S.pax, coupon: S.coupon,
-          consent: $('#fOptin').checked, opcao: S.opcao, group: lerGrupo(),
+          consent: $('#fOptin').checked, opcao: S.opcao, group: part.grupo,
+          nasc: part.nasc, compradorVai: part.vai, veioPor: part.veioPor, indicadoPor: part.indicadoPor,
           adultos: S.adultos, criancas: S.criancas, idades: S.idades.slice(0, S.criancas),
           policy: (x.priceMode === 'transfer' && pr.sinal) ? 'sinal' : splitAllowed ? S.policy : 'full', origin: 'site',
         });
@@ -1394,7 +1395,6 @@ function renderBook() {
    chegou pedindo orcamento, quem faz, e so depois o resto. */
 const ADM_TABS = [
   ['today',    'admToday'],
-  ['consulta', 'admConsulta'],
   ['tarefas',  'admTarefas'],
   ['guias',    'admGuias'],
   ['agenda',   'admAgenda'],
@@ -2921,53 +2921,9 @@ const ICO = {
   insta: '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1.9" y="1.9" width="12.2" height="12.2" rx="3.6"/><circle cx="8" cy="8" r="2.9"/><circle cx="11.6" cy="4.4" r=".95" fill="currentColor" stroke="none"/></svg>',
 };
 
-function admClients() {
-  const all = Clients.all();
-  const onlyOptIn = admClients._f === 'optin';
-  const list = onlyOptIn ? all.filter(c => c.consent) : all;
-  const canMail = all.filter(c => c.consent).length;
-  const total = all.reduce((s, c) => s + c.spent, 0);
-  const cols = t('clCols');
-  admShell('clients', `
-    <div class="pagehead"><h1 class="pageh">${t('clTitle')}</h1>
-      <div class="chips">
-        <span class="chip on">${t('clTotal', { n: all.length, v: eur(total) })}</span>
-        <button class="chip ${onlyOptIn ? '' : 'on'}" id="clAll">${t('clAll')}</button>
-        <button class="chip ${onlyOptIn ? 'on' : ''}" id="clOpt">${t('clOnlyOptIn', { n: canMail })} · ${canMail}</button>
-        <button class="mini" id="clCsv">${t('clDlCsv')}</button>
-      </div></div>
-    <section class="card">
-      ${list.length ? `<table class="tbl"><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-      <tbody>${list.map(c => `<tr>
-        <td><a class="clink" href="#/adm/clients/${encodeURIComponent(c.key)}"><b>${esc(c.name)}</b></a>${c.acompanhante
-              ? `<br><small class="veiocom">${t('grpCameWith', { n: esc(c.veioCom || '') })}${c.nasc ? ' · ' + esc(c.nasc) : ''}</small>`
-              : `<br><small class="mono">${esc(c.email || '')}</small>`}</td>
-        <td>${c.tours > 1 ? `<span class="pill ok">${t('clRepeat', { n: c.tours })}</span>`
-                          : `<span class="pill">${t('clNew')}</span>`}
-          <br><span class="pill ${c.consent ? 'ok' : ''}" title="${c.consentAt ? c.consentAt.slice(0,10) : ''}">${c.consent ? '✓ ' + t('consentYes') : t('consentNo')}</span></td>
-        <td class="mono right">${eur(c.spent)}</td>
-        <td class="mono">${c.last ? fmtDate(c.last) : '—'}</td>
-        <td class="tacts">
-          ${c.whats ? `<a class="ico-btn wa" target="_blank" rel="noopener"
-            href="${waLink(t('waHi', { name: c.name.split(' ')[0], tour: '', when: '' }), c.whats.replace(/\D/g, ''))}"
-            aria-label="WhatsApp — ${esc(c.name)}" title="WhatsApp">${ICO.whats}<span>WhatsApp</span></a>` : ''}
-          ${c.email ? `<a class="ico-btn ml" href="mailto:${esc(c.email)}" aria-label="E-mail — ${esc(c.name)}" title="${esc(c.email)}">${ICO.mail}<span>E-mail</span></a>` : ''}
-          ${c.insta ? `<a class="ico-btn ig" target="_blank" rel="noopener" href="https://instagram.com/${esc(c.insta.replace(/^@/, ''))}" aria-label="Instagram — ${esc(c.name)}" title="@${esc(c.insta.replace(/^@/, ''))}">${ICO.insta}<span>Instagram</span></a>` : ''}
-        </td></tr>`).join('')}</tbody></table>`
-      : `<p class="empty">${t('clEmpty')}</p>`}
-    </section>`);
-  $('#clAll').onclick = () => { admClients._f = 'all'; admClients(); };
-  $('#clOpt').onclick = () => { admClients._f = 'optin'; admClients(); };
-  $('#clCsv').onclick = () => {
-    const csv = [cols.concat([t('grpBirth'), t('grpTitle')]).join(';')].concat(list.map(c =>
-      [c.name, c.email, c.whats, c.insta || '', c.tours, c.spent, c.last,
-       c.consent ? 'sim ' + (c.consentAt || '').slice(0, 10) : 'nao',
-       c.nasc || '', c.veioCom || ''].join(';'))).join('\n');
-    const a2 = document.createElement('a');
-    a2.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
-    a2.download = 'clientes.csv'; a2.click();
-  };
-}
+/* Clientes: o dashboard e a ficha estao em operacao-telas.js (cadastro
+   guardado, veio por, indicacao, quem viaja junto). */
+function admClients() { admClientes(); }
 
 
 /* =====================================================

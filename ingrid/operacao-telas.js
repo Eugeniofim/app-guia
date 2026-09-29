@@ -18,10 +18,10 @@
 
 const L = (pt, en) => (LANG === 'en' ? en : pt);
 const OP_ICO = { transfer: '🚐', walk: '🏛️', day: '🚗', papal: '⛪', conexao: '🚢', trem: '🚆' };
-function opNomeServ(b) { const x = Tours.get(b.tourId); return x ? (x.name[LANG] || x.name.pt) : '?'; }
+function opNomeServ(b) { if (b.servicoTxt) return b.servicoTxt; const x = Tours.get(b.tourId); return x ? (x.name[LANG] || x.name.pt) : '?'; }
 function opNum(n) { return String(n || '').replace(/\D/g, ''); }
 function opCurta(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : ''; }
-function opFicha(b) { return '#/adm/clients/' + encodeURIComponent(chaveCliente(b)); }
+function opFicha(b) { return '#/adm/clients/' + encodeURIComponent(b.clienteId ? 'c:' + b.clienteId : chaveCliente(b)); }
 function opPapel(b) {
   const x = Tours.get(b.tourId);
   return x && (x.priceMode === 'transfer' || x.type === 'transfer') ? 'motorista' : 'guia';
@@ -90,7 +90,10 @@ function opCardServico(b, o) {
     ? `<span>👤 ${papel === 'motorista' ? 'Motorista' : 'Guia'}: <b>${esc(pres.nome)}</b>
         ${pres.whats ? `<a class="mini wa-mini" target="_blank" rel="noopener" href="${waLink(opMsgPrestador(b), opNum(pres.whats))}">💬 mandar o serviço</a>` : ''}</span>`
     : (b.status !== 'cancelled' ? `<span class="svc-alerta">⚠ Sem ${papel} — <a href="#/adm/guias/servico:${esc(b.id)}">achar ${papel === 'motorista' ? 'motorista' : 'guia'}</a></span>` : '');
-  const grupo = (b.group || []).length ? `<span>👥 com ${b.group.map(g => esc(opPrimeiro(g.nome))).join(', ')}</span>` : '';
+  const part = participantesDe(b);
+  const grupo = `<span>👥 ${part.map(p => esc(opPrimeiro(p.nome)) + (idadeDe(p.nasc, b.date) != null && idadeDe(p.nasc, b.date) < 18 ? ` <small>(${idadeDe(p.nasc, b.date)})</small>` : '')).join(', ') || 'ninguém cadastrado'}${part.length < b.pax ? ` <span class="pill warn">faltam ${b.pax - part.length} nome(s)</span>` : ''}</span>`
+    + (Op.precisaIngresso(b) ? (b.ingressosOk ? ' <span class="pill ok">🎟 ingressos comprados</span>' : ' <span class="pill warn">🎟 comprar ingressos</span>') : '')
+    + ((b.links || []).length ? `<span>${b.links.map(l => `<a class="mini" target="_blank" rel="noopener" href="${esc(l.url)}">🔗 ${esc(l.nome)}</a>`).join(' ')}</span>` : '');
   const trajeto = (b.origem || b.destino) ? `<span>📍 ${esc(b.origem || '?')}${b.destino ? ' → ' + esc(b.destino) : ''}</span>` : '';
   const cliWa = b.whats ? `<a class="mini" target="_blank" rel="noopener" href="${waLink(t('waHi', { name: opPrimeiro(b.name), tour: opNomeServ(b), when: fmtDate(b.date) + ' ' + b.time }), opNum(b.whats))}">WhatsApp</a>` : '';
 
@@ -98,7 +101,7 @@ function opCardServico(b, o) {
     <div class="svc-hora"><b>${esc(b.time)}</b>${o.comData ? `<small>${opCurta(b.date)}</small>` : `<small>${turnoNome(turnoDaHora(b.time))}</small>`}</div>
     <div class="svc-corpo">
       <div class="svc-top">${ico} <b>${esc(opNomeServ(b))}</b> <small>· ${b.pax} ${b.pax > 1 ? 'pessoas' : 'pessoa'}${b.veiculo ? ' · ' + esc(b.veiculo) : ''} · <span class="mono">${esc(b.code)}</span></small></div>
-      <div class="svc-cli"><a href="${opFicha(b)}">${esc(b.name)}</a> ${cliWa}</div>
+      <div class="svc-cli"><a href="${opFicha(b)}">${esc(b.name)}</a> ${cliWa}${b.compradorVai === false ? ' <small class="why">(comprou, não vai)</small>' : ''}</div>
       <div class="svc-linhas">
         ${b.voo ? `<span>✈ ${esc(b.voo)}</span>` : ''}${trajeto}${grupo}
         ${presLinha}
@@ -126,6 +129,10 @@ function opFormPagamento(b) {
       <label class="fld">Onde caiu<select id="pgc-${esc(b.id)}">${opContaOpts(Op.restoPara(b) === 'prestador' && Bookings.paid(b) > 0 ? CONTA_PRESTADOR : 'nubank')}</select></label>
       <label class="fld">Data<input type="date" id="pgd-${esc(b.id)}" value="${isoToday()}"></label>
     </div>
+    <div class="frow">
+      <label class="fld">Comprovante (link do arquivo)<input id="pgk-${esc(b.id)}" placeholder="https://drive.google.com/…"></label>
+      <label class="fld sm">Em R$ (se foi Pix)<input type="number" min="0" step="0.01" id="pgr-${esc(b.id)}" placeholder="0"></label>
+    </div>
     <p class="why">Falta ${eur(due)}. A conta decide se vai para o contador do Brasil ou da Europa. "Pago direto ao guia/motorista" não entra no seu caixa.</p>
     <button class="cta sm" data-pgok="${esc(b.id)}">Registrar</button>
   </div>`;
@@ -149,17 +156,61 @@ function opFormDetalhes(b) {
     </div>
     <label class="fld">Observação da operação<textarea id="dtn-${esc(b.id)}" rows="2">${esc(b.obsOp || '')}</textarea></label>
     <button class="cta sm" data-dtok="${esc(b.id)}">Salvar</button>
+    ${opPartHtml(b)}
+    ${opLinksHtml(b)}
   </div>`;
 }
+/* QUEM VAI (os ingressos sao nominais): nome e nascimento de cada um */
+function opPartHtml(b) {
+  const part = participantesDe(b), idades = part.map(p => idadeDe(p.nasc, b.date));
+  const adultos = idades.filter(a => a == null || a >= 18).length, menores = idades.filter(a => a != null && a < 18);
+  return `<div class="op-part"><span class="op-lbl">Quem vai · ${part.length} de ${b.pax}${menores.length ? ` · ${adultos} adulto(s) e ${menores.length} menor(es): ${menores.join(', ')} anos no dia` : ''}</span>
+    <label class="optin"><input type="checkbox" id="ptVai-${esc(b.id)}" ${b.compradorVai !== false ? 'checked' : ''}><span><b>${esc(b.name)} (quem comprou) também vai</b></span></label>
+    <div id="ptRows-${esc(b.id)}">
+      <div class="grow pt-comprador" ${b.compradorVai !== false ? '' : 'hidden'}><input value="${esc(b.name)}" disabled><input class="gnasc" id="ptNasc-${esc(b.id)}" value="${esc(b.nasc || '')}" placeholder="dd/mm/aaaa"></div>
+      ${(b.group || []).map(g => `<div class="grow"><input class="gnome" value="${esc(g.nome)}" placeholder="Nome e sobrenome"><input class="gnasc" value="${esc(g.nasc || '')}" placeholder="dd/mm/aaaa"></div>`).join('')}
+    </div>
+    <div class="btnrow"><button class="mini" data-ptadd="${esc(b.id)}">+ pessoa</button><button class="mini strong" data-ptok="${esc(b.id)}">Salvar quem vai</button>
+      ${Op.precisaIngresso(b) ? `<label class="optin tf-ing"><input type="checkbox" data-ingok="${esc(b.id)}" ${b.ingressosOk ? 'checked' : ''}><span><b>🎟 Ingressos comprados</b></span></label>` : ''}</div></div>`;
+}
+/* os links do servico: PDF do ingresso, QR code, voucher do parceiro */
+function opLinksHtml(b) {
+  return `<div class="op-links"><span class="op-lbl">Ingressos, QR codes e links</span>
+    ${(b.links || []).map(l => `<div class="deprow"><a target="_blank" rel="noopener" href="${esc(l.url)}">🔗 ${esc(l.nome)}</a><button class="mini ghost danger" data-lkrm="${esc(b.id)}|${esc(l.id)}" aria-label="tirar">✕</button></div>`).join('') || '<p class="why">Nenhum link ainda. Guarde o PDF no Drive e cole o link aqui.</p>'}
+    <div class="frow"><label class="fld grow"><input id="lkN-${esc(b.id)}" placeholder="nome (ex.: Ingresso Vaticano PDF)"></label><label class="fld grow"><input id="lkU-${esc(b.id)}" placeholder="https://drive.google.com/…"></label><button class="mini strong" data-lkadd="${esc(b.id)}">+ link</button></div></div>`;
+}
 function opLigaCards(redesenha) {
+  $$('[data-ptadd]').forEach(bt => bt.onclick = () => { const box = document.getElementById('ptRows-' + bt.dataset.ptadd); box.insertAdjacentHTML('beforeend', grupoLinha()); mascaraNasc(box.lastElementChild.querySelector('.gnasc')); });
+  $$('[id^="ptRows-"] .gnasc').forEach(el => { if (!el.dataset.m) { el.dataset.m = 1; mascaraNasc(el); } });
+  $$('[id^="ptVai-"]').forEach(ck => ck.onchange = () => { const r = document.querySelector('#ptRows-' + ck.id.slice(6) + ' .pt-comprador'); if (r) r.hidden = !ck.checked; });
+  $$('[data-ptok]').forEach(bt => bt.onclick = () => {
+    const id = bt.dataset.ptok, b = Bookings.get(id), box = document.getElementById('ptRows-' + id);
+    const grupo = [...box.querySelectorAll('.grow:not(.pt-comprador)')].map(r => ({ nome: r.querySelector('.gnome').value.trim(), nasc: r.querySelector('.gnasc').value.trim() })).filter(g => g.nome);
+    const ruim = grupo.find(g => g.nasc && !nascOk(g.nasc)); if (ruim) return toast(`Nascimento de ${ruim.nome}: dd/mm/aaaa`);
+    const nasc = ($('#ptNasc-' + id) || {}).value || '';
+    if (nasc && !nascOk(nasc)) return toast('Nascimento de quem comprou: dd/mm/aaaa');
+    const antes = b.group || [];
+    b.group = grupo.map(g => ({ ...g, clienteId: (antes.find(a => _nomeN(a.nome) === _nomeN(g.nome)) || {}).clienteId || '' }));
+    b.compradorVai = document.getElementById('ptVai-' + id).checked; b.nasc = nasc;
+    cadastroDaReserva(b); _opSaveBooking(b);
+    toast(`Salvo: ${participantesDe(b).length} de ${b.pax} pessoa(s)`); redesenha();
+  });
+  $$('[data-ingok]').forEach(ck => ck.onchange = () => { Op.ingressosOk(ck.dataset.ingok, ck.checked); toast(ck.checked ? '🎟 Ingressos comprados' : 'Ingressos: a comprar'); redesenha(); });
+  $$('[data-lkadd]').forEach(bt => bt.onclick = () => { const id = bt.dataset.lkadd; const r = Op.linkAdd(id, $('#lkN-' + id).value, $('#lkU-' + id).value); if (r && r.erro) return toast(r.erro); toast('Link guardado'); redesenha(); });
+  $$('[data-lkrm]').forEach(bt => bt.onclick = () => { const [id, lid] = bt.dataset.lkrm.split('|'); Op.linkRemove(id, lid); redesenha(); });
   $$('[data-abre]').forEach(btn => btn.onclick = () => {
     const el = document.getElementById(btn.dataset.abre);
     if (el) { el.hidden = !el.hidden; if (!el.hidden) { const i = el.querySelector('input,select'); if (i) i.focus(); } }
   });
   $$('[data-pgok]').forEach(btn => btn.onclick = () => {
     const id = btn.dataset.pgok;
+    const kurl = ($('#pgk-' + id) || {}).value || '';
+    if (kurl && !/^https?:\/\//i.test(kurl.trim())) return toast('O comprovante precisa ser um link (https://…).');
     const p = registraPagamento(id, { valor: +$('#pgv-' + id).value, conta: $('#pgc-' + id).value, data: $('#pgd-' + id).value });
     if (!p) return toast('Valor inválido (maior que zero e até o que falta).');
+    if (kurl.trim()) p.comprovante = kurl.trim();
+    if (+(($('#pgr-' + id) || {}).value) > 0) p.reais = +$('#pgr-' + id).value;
+    _opSaveBooking(Bookings.get(id));
     toast(`${eur(p.amount)} registrado · ${Contas.nome(p.conta)}`);
     redesenha();
   });
@@ -240,7 +291,7 @@ function admHoje(arg) {
   Coach.start([
     { sel: '#hjBusca',     audio: 'adm-5', txt: { pt: 'Emergência: digite um pedaço do nome, o voo ou o telefone e o serviço aparece na hora.', en: 'Emergency: type part of the name, the flight or the phone and the service shows up at once.' } },
     { sel: '#nb-guias',    audio: 'adm-6', txt: { pt: 'Suas guias e motoristas: quem está livre, por preferência, e o WhatsApp pronto para perguntar.', en: 'Your guides and drivers: who is free, by preference, with the WhatsApp message ready.' } },
-    { sel: '#nb-consulta', audio: 'adm-7', txt: { pt: 'Pedidos sob consulta: o app deixa o orçamento pronto, você confere e manda.', en: 'Quote requests: the app drafts the quote, you check and send it.' } },
+    { sel: '#nb-clients', audio: 'adm-7', txt: { pt: 'Pedidos sob consulta: o app deixa o orçamento pronto, você confere e manda.', en: 'Quote requests: the app drafts the quote, you check and send it.' } },
     { sel: '#nb-money',    audio: 'adm-8', txt: { pt: 'Contabilidade: cada conta no seu lado — Brasil para um contador, Europa para o outro.', en: 'Accounting: each account on its side — Brazil for one accountant, Europe for the other.' } },
   ], 'tutorialAdm');
 }
@@ -440,106 +491,268 @@ function admGuias(arg) {
 /* =====================================================
    FICHA DO CLIENTE
 ===================================================== */
-function admFicha(chave) {
-  const k = decodeURIComponent(chave || '');
-  const c = Clients.all().find(x => x.key === k);
-  let reservas;
-  if (k.startsWith('g:')) {
-    const nome = k.slice(2);
-    reservas = DB.bookings.filter(b => (b.group || []).some(g => String(g.nome || '').trim().toLowerCase() === nome));
-  } else reservas = Fichas.reservas(k);
-  reservas = reservas.sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
-  const base = c || (reservas[0] ? { name: reservas[0].name, email: reservas[0].email, whats: reservas[0].whats, insta: reservas[0].insta } : null);
-  if (!base) { admShell('clients', '<h1 class="pageh">Cliente não encontrado</h1><a class="mini" href="#/adm/clients">← clientes</a>'); return; }
-  const f = Fichas.get(k);
-  const { pedidos, orcamentos } = Fichas.doCliente(k, base.whats, base.email);
-  const ativas = reservas.filter(b => b.status !== 'cancelled');
-  const total = ativas.reduce((s, b) => s + (+b.total || 0), 0);
-  const pago = ativas.reduce((s, b) => s + Bookings.paid(b), 0);
-  const pend = ativas.reduce((s, b) => s + Bookings.due(b), 0);
-  const hoje = isoToday();
-  const futuras = ativas.filter(b => b.date >= hoje).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-  const passadas = reservas.filter(b => !(b.status !== 'cancelled' && b.date >= hoje));
-  const grupo = new Map();
-  for (const b of reservas) for (const g of b.group || []) if (g.nome) grupo.set(g.nome, g.nasc || '');
-  const pgs = reservas.flatMap(b => (b.payments || []).map(p => ({ ...p, b }))).sort((a, b) => b.date.localeCompare(a.date));
-  const tags = String(f.tags || '').split(',').map(s => s.trim()).filter(Boolean);
+/* O topo da aba Clientes: as duas partes dela */
+function cliTopo(qual) {
+  return `<div class="cli-seg" role="tablist">
+    <a class="cli-seg-b ${qual === 'clientes' ? 'on' : ''}" href="#/adm/clients" role="tab">👤 Clientes</a>
+    <a class="cli-seg-b ${qual === 'crm' ? 'on' : ''}" href="#/adm/consulta" role="tab">📋 CRM · pedidos</a></div>`;
+}
+/* acha o cadastro pela rota: "c:<id>", a chave antiga (e-mail/WhatsApp/nome) ou "g:<nome>" */
+function cadastroDaRota(arg) {
+  const k = decodeURIComponent(arg || '');
+  if (k.startsWith('c:')) return Cadastro.get(k.slice(2));
+  if (k.startsWith('g:')) return Cadastro.acha({ nome: k.slice(2) }) || Cadastro.all().find(c => _nomeN(c.nome) === _nomeN(k.slice(2))) || null;
+  const b = DB.bookings.find(x => chaveCliente(x) === k);
+  if (b && b.clienteId) return Cadastro.get(b.clienteId);
+  return Cadastro.acha({ nome: k, email: k, whats: k });
+}
+const fichaHref = (c) => '#/adm/clients/' + encodeURIComponent('c:' + c.id);
 
-  admShell('clients', `
-    <a class="linkbtn" href="#/adm/clients">← clientes</a>
-    <section class="card ficha-top">
-      <div class="ficha-id">
-        <h1 class="pageh" style="margin:0">${esc(base.name)}</h1>
-        <div class="chips" style="margin:6px 0 0">${tags.map(tg => `<span class="pill conta">${esc(tg)}</span>`).join('')}
-          ${c && c.acompanhante ? `<span class="pill">${t('grpCameWith', { n: esc(c.veioCom || '') })}</span>` : ''}
-          ${c && c.tours > 1 ? `<span class="pill ok">${t('clRepeat', { n: c.tours })}</span>` : ''}</div>
+/* =====================================================
+   FICHA DO CLIENTE — a planilha "2026_10_26 Camyla Foresti", no app
+===================================================== */
+function admFicha(arg) {
+  const c = cadastroDaRota(arg);
+  if (!c) { admShell('clients', cliTopo('clientes') + '<h1 class="pageh">Cliente não encontrado</h1><a class="mini" href="#/adm/clients">← clientes</a>'); return; }
+  const hoje = isoToday(), R = Cadastro.resumo(c, hoje);
+  const k = DB.bookings.find(b => b.clienteId === c.id) ? chaveCliente(DB.bookings.find(b => b.clienteId === c.id)) : String(c.email || c.whats || c.nome).toLowerCase();
+  const f = Fichas.get(k);
+  const bs = Cadastro.reservas(c);
+  const ativas = bs.filter(b => b.status !== 'cancelled');
+  const prox = ativas.filter(b => b.date >= hoje).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const passadas = bs.filter(b => !(b.status !== 'cancelled' && b.date >= hoje));
+  const quemComprou = c.grupoDe ? Cadastro.get(c.grupoDe) : null;
+  const indicou = Cadastro.indicou(c), trouxe = Cadastro.trouxe(c);
+  const ind = c.indicadoPor ? Cadastro.get(c.indicadoPor) : null, par = c.parceiroId ? Parceiros.get(c.parceiroId) : null;
+  const idade = idadeDe(c.nasc);
+  const { pedidos, orcamentos } = Fichas.doCliente(k, c.whats, c.email);
+  const tfs = Tarefas.doCliente(k, c.whats).concat(Tarefas.all().filter(t => t.clienteKey === 'c:' + c.id));
+  const v = c.viagem || {};
+  /* quem viaja com ela: todo mundo que ja esteve num passeio com ela */
+  const junto = new Map();
+  for (const b of ativas) for (const p of participantesDe(b)) if (p.clienteId !== c.id && _nomeN(p.nome) !== _nomeN(c.nome)) {
+    const kk = p.clienteId || _nomeN(p.nome); const x = junto.get(kk) || { ...p, vezes: 0 }; x.vezes++; junto.set(kk, x);
+  }
+  /* a tabela dos servicos, como a planilha dela */
+  const linhaServ = (b) => {
+    const nd = Op.noDia(b), pres = b.prestadorId ? Equipe.get(b.prestadorId) : null, pago = Bookings.paid(b);
+    const part = participantesDe(b);
+    return `<tr class="fc-serv ${b.status === 'cancelled' ? 'cancel' : ''}">
+      <td class="mono">${fmtDate(b.date)}</td><td class="mono">${esc(b.time)}</td>
+      <td><b>${esc(nomeDoServico(b))}</b>${b.voo ? `<br><small>✈ ${esc(b.voo)}</small>` : ''}${b.origem || b.destino ? `<br><small>📍 ${esc([b.origem, b.destino].filter(Boolean).join(' → '))}</small>` : ''}
+        <div class="fc-quem">👥 ${part.length ? part.map(p => `${p.clienteId ? `<a href="${fichaHref({ id: p.clienteId })}">` : '<span>'}${esc(opPrimeiro(p.nome))}${idadeDe(p.nasc) != null ? ` <small>(${idadeDe(p.nasc)})</small>` : ''}${p.clienteId ? '</a>' : '</span>'}`).join(', ') : '<span class="why">ninguém cadastrado</span>'}
+          ${part.length < b.pax ? `<span class="pill warn">faltam ${b.pax - part.length} nome(s)</span>` : ''}</div>
+        <div class="fc-links">${Op.precisaIngresso(b) ? (b.ingressosOk ? '<span class="pill ok">🎟 ingressos comprados</span>' : '<span class="pill warn">🎟 comprar ingressos</span>') : ''}
+          ${(b.links || []).map(l => `<a class="mini" target="_blank" rel="noopener" href="${esc(l.url)}">🔗 ${esc(l.nome)}</a>`).join('')}</div></td>
+      <td class="mono right">${eur(b.total)}</td><td class="mono right">${eur(pago)}</td>
+      <td class="mono right">${nd.valor ? eur(nd.valor) + (nd.para === 'prestador' ? '<br><small>no dia</small>' : '<br><small>a você</small>') : '✓'}</td>
+      <td>${pres ? esc(opPrimeiro(pres.nome)) : `<a href="#/adm/guias/servico:${esc(b.id)}" class="fc-sem">escalar</a>`}</td>
+      <td><button class="mini" data-abre="fc-${esc(b.id)}" aria-label="abrir o serviço">abrir</button></td></tr>
+      <tr class="fc-det" id="fc-${esc(b.id)}" hidden><td colspan="8">${opCardServico(b, { comData: true })}</td></tr>`;
+  };
+  const somaTot = prox.reduce((s2, b) => s2 + (+b.total || 0), 0), somaPago = prox.reduce((s2, b) => s2 + Bookings.paid(b), 0), somaDia = prox.reduce((s2, b) => s2 + Op.noDia(b).valor, 0);
+  /* o historico: tudo em ordem, do mais novo para o mais antigo */
+  const hist = [];
+  for (const b of bs) hist.push({ d: b.date, ico: b.status === 'cancelled' ? '✕' : '🏛️', txt: `${nomeDoServico(b)} · ${b.pax}p${b.clienteId !== c.id ? ' (veio junto)' : ''}${b.status === 'cancelled' ? ' · cancelado' : ''}`, v: b.clienteId === c.id ? eur(b.total) : '' });
+  for (const b of bs.filter(x => x.clienteId === c.id)) for (const p of b.payments || []) hist.push({ d: p.date, ico: '💶', txt: `pagou ${eur(p.amount)} · ${Contas.nome(p.conta) || formaPg(p.method)}${p.comprovante ? ' · comprovante' : ''}`, href: p.comprovante || '' });
+  for (const o of orcamentos) hist.push({ d: String(o.criado).slice(0, 10), ico: '🧾', txt: `orçamento ${o.num} · ${o.status}`, v: eur(Orc.total(o)), link: '#/adm/consulta/' + o.id });
+  for (const t of tfs) hist.push({ d: String(t.feitaEm || t.criada).slice(0, 10), ico: t.tipo === 'nota' ? '📝' : t.feita ? '✅' : '⏳', txt: t.texto });
+  hist.sort((a, b) => String(b.d).localeCompare(String(a.d)));
+
+  admShell('clients', `${cliTopo('clientes')}
+    <a class="linkbtn" href="#/adm/clients">← todos os clientes</a>
+    <section class="card fc-top">
+      <div class="fc-id">
+        <h1 class="pageh" style="margin:0">${esc(c.nome)}</h1>
+        <div class="chips" style="margin:8px 0 0">
+          ${c.veioPor ? `<span class="pill conta">veio por: ${esc(veioPorNome(c.veioPor))}${ind ? ` — <a href="${fichaHref(ind)}">${esc(ind.nome)}</a>` : c.indicadoNome ? ' — ' + esc(c.indicadoNome) : ''}</span>` : '<span class="pill warn">veio por: ?</span>'}
+          ${par ? `<span class="pill conta">🤝 ${esc(par.nome)}${par.cupom ? ' · ' + esc(par.cupom) : ''}</span>` : ''}
+          ${quemComprou ? `<span class="pill">veio junto de <a href="${fichaHref(quemComprou)}">${esc(quemComprou.nome)}</a></span>` : ''}
+          ${R.reservas > 1 ? `<span class="pill ok">${R.reservas} passeios</span>` : ''}
+          ${String(f.tags || '').split(',').map(x => x.trim()).filter(Boolean).map(x => `<span class="pill conta">${esc(x)}</span>`).join('')}
+        </div>
+        <p class="fc-dados">${[idade != null ? `${idade} anos (${esc(c.nasc)})` : '', c.pais, c.idioma, c.criado ? 'cliente desde ' + new Date(c.criado).toLocaleDateString('pt-BR') : ''].filter(Boolean).join(' · ')}</p>
       </div>
       <div class="tacts">
-        ${base.whats ? `<a class="mini cta-ish" target="_blank" rel="noopener" href="${waLink(t('waHi', { name: opPrimeiro(base.name), tour: '', when: '' }), opNum(base.whats))}">WhatsApp ${esc(base.whats)}</a>` : ''}
-        ${base.email ? `<a class="mini" href="mailto:${esc(base.email)}">${esc(base.email)}</a>` : ''}
-        ${base.insta ? `<a class="mini" target="_blank" rel="noopener" href="https://instagram.com/${esc(String(base.insta).replace(/^@/, ''))}">@${esc(String(base.insta).replace(/^@/, ''))}</a>` : ''}
+        ${c.whats ? `<a class="mini cta-ish" target="_blank" rel="noopener" href="${waLink('', opNum(c.whats))}">WhatsApp ${esc(c.whats)}</a>` : quemComprou && quemComprou.whats ? `<a class="mini" target="_blank" rel="noopener" href="${waLink('', opNum(quemComprou.whats))}">falar com ${esc(opPrimeiro(quemComprou.nome))} (quem comprou)</a>` : ''}
+        ${c.email ? `<a class="mini" href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''}
+        ${c.insta ? `<a class="mini" target="_blank" rel="noopener" href="https://instagram.com/${esc(String(c.insta).replace(/^@/, ''))}">@${esc(String(c.insta).replace(/^@/, ''))}</a>` : ''}
+        ${!quemComprou ? `<a class="mini strong" href="#/adm/consulta" id="fcOrc">+ orçamento</a>` : ''}
       </div>
       <div class="kpis">
-        <div class="kpi"><small>Serviços</small><b>${ativas.length}</b></div>
-        <div class="kpi"><small>Total</small><b>${eur(total)}</b></div>
-        <div class="kpi"><small>Já pagou</small><b>${eur(pago)}</b></div>
-        <div class="kpi"><small>Falta</small><b>${eur(pend)}</b></div>
+        <div class="kpi"><small>Passeios</small><b>${R.reservas}</b></div>
+        <div class="kpi"><small>Já pagou</small><b>${eur(R.gasto)}</b></div>
+        <div class="kpi ${R.deve ? 'warn' : ''}"><small>Deve a você</small><b>${eur(R.deve)}</b></div>
+        <div class="kpi"><small>Indicou</small><b>${R.indicou}</b></div>
+        <div class="kpi"><small>Trouxe junto</small><b>${R.trouxe}</b></div>
       </div>
     </section>
+
+    <section class="card">
+      <div class="rp-cab"><h3>A viagem</h3><button class="mini" data-abre="fcViagem">editar</button></div>
+      <div class="fc-viagem"><span><small>Hotel</small><b>${esc(v.hotel || '—')}</b></span><span><small>Chegada</small><b>${esc(v.chegada || '—')}</b></span>
+        <span><small>Partida</small><b>${esc(v.partida || '—')}</b></span><span><small>Bagagem</small><b>${esc(v.bagagem || '—')}</b></span></div>
+      <div class="svc-form" id="fcViagem" hidden><div class="frow">
+        <label class="fld">Hotel<input id="fvHotel" value="${esc(v.hotel || '')}"></label><label class="fld">Chegada (voo, dia)<input id="fvCheg" value="${esc(v.chegada || '')}"></label></div>
+        <div class="frow"><label class="fld">Partida<input id="fvPart" value="${esc(v.partida || '')}"></label><label class="fld">Bagagem<input id="fvBag" value="${esc(v.bagagem || '')}" placeholder="2x23kg + 2x10kg"></label></div>
+        <button class="cta sm" id="fvSalva">Salvar</button></div>
+
+      <h3 style="margin-top:16px">Serviços ${prox.length ? '· próximos' : ''}</h3>
+      ${prox.length ? `<div class="fc-tab-wrap"><table class="tbl fc-tab"><thead><tr><th>Data</th><th>Hora</th><th>Serviço · quem vai · ingressos e links</th><th class="right">Total</th><th class="right">Sinal/pago</th><th class="right">Pagar no dia</th><th>Guia</th><th></th></tr></thead>
+        <tbody>${prox.map(linhaServ).join('')}</tbody>
+        <tfoot><tr><td colspan="3"><b>Total da viagem</b></td><td class="mono right"><b>${eur(somaTot)}</b></td><td class="mono right"><b>${eur(somaPago)}</b></td><td class="mono right"><b>${eur(somaDia)}</b></td><td colspan="2"></td></tr></tfoot></table></div>` : '<p class="why">Nenhum serviço marcado.</p>'}
+      ${passadas.length ? `<details><summary class="why">Passeios anteriores · ${passadas.length}</summary><div class="fc-tab-wrap"><table class="tbl fc-tab"><tbody>${passadas.map(linhaServ).join('')}</tbody></table></div></details>` : ''}
+    </section>
+
     <div class="two-col">
       <div>
-        <section class="card"><h3>Próximos serviços</h3>
-          ${futuras.length ? futuras.map(b => opCardServico(b, { comData: true })).join('') : '<p class="why">Nenhum serviço marcado.</p>'}
+        <section class="card"><h3>Histórico</h3>
+          <ul class="fc-hist">${hist.slice(0, 40).map(h => `<li><span class="mono">${h.d ? crmData(h.d) + '/' + h.d.slice(2, 4) : ''}</span><span>${h.ico} ${h.link ? `<a href="${h.link}">${esc(h.txt)}</a>` : h.href ? `<a target="_blank" rel="noopener" href="${esc(h.href)}">${esc(h.txt)}</a>` : esc(h.txt)}</span><b class="mono">${h.v || ''}</b></li>`).join('') || '<li class="why">Nada ainda.</li>'}</ul>
         </section>
-        ${passadas.length ? `<details class="card"><summary><b>Histórico · ${passadas.length}</b></summary>
-          ${passadas.map(b => `<div class="deprow"><b class="mono">${opCurta(b.date)}</b><span>${esc(opNomeServ(b))} · ${b.pax}p${b.status === 'cancelled' ? ' · cancelado' : ''}</span><b class="mono">${eur(b.total)}</b></div>`).join('')}
-        </details>` : ''}
-        <section class="card"><h3>Pagamentos</h3>
-          ${pgs.length ? `<table class="tbl"><thead><tr><th>Data</th><th>Serviço</th><th>Conta</th><th class="right">Valor</th></tr></thead><tbody>
-            ${pgs.map(p => `<tr><td class="mono">${opCurta(p.date)}</td><td>${esc(opNomeServ(p.b))}</td>
-              <td>${esc(Contas.nome(p.conta) || formaPg(p.method))} <small class="why">${ladoDoPagamento(p) === 'brasil' ? '🇧🇷' : ladoDoPagamento(p) === 'europa' ? '🇪🇺' : '(com o prestador)'}</small></td>
-              <td class="mono right">${eur(p.amount)}</td></tr>`).join('')}</tbody></table>` : '<p class="why">Nenhum pagamento registrado.</p>'}
+        <section class="card"><h3>Cadastro</h3>
+          <div class="frow"><label class="fld">Nome completo<input id="fcNome" value="${esc(c.nome)}"></label><label class="fld">Nascimento<input id="fcNasc" value="${esc(c.nasc || '')}" placeholder="dd/mm/aaaa"></label></div>
+          <div class="frow"><label class="fld">WhatsApp<input id="fcWa" value="${esc(c.whats || '')}"></label><label class="fld">E-mail<input id="fcEm" value="${esc(c.email || '')}"></label></div>
+          <div class="frow"><label class="fld">Instagram<input id="fcIg" value="${esc(c.insta || '')}"></label><label class="fld">País / cidade<input id="fcPais" value="${esc(c.pais || '')}"></label></div>
+          <div class="frow"><label class="fld">Veio por<select id="fcVeio"><option value="">—</option>${VEIO_POR.map(([vv, nn]) => `<option value="${vv}" ${c.veioPor === vv ? 'selected' : ''}>${nn}</option>`).join('')}</select></label>
+            <label class="fld">Indicado por<input id="fcInd" list="fcClis" value="${esc(ind ? ind.nome : c.indicadoNome || '')}" placeholder="nome de quem indicou"></label></div>
+          <div class="frow"><label class="fld">Parceiro / cupom<select id="fcPar"><option value="">—</option>${Parceiros.all().map(p => `<option value="${esc(p.id)}" ${c.parceiroId === p.id ? 'selected' : ''}>${esc(p.nome)}${p.cupom ? ' · ' + esc(p.cupom) : ''}</option>`).join('')}</select></label>
+            <label class="fld">Idioma<input id="fcIdi" value="${esc(c.idioma || '')}" placeholder="pt, en…"></label></div>
+          <datalist id="fcClis">${Cadastro.all().filter(x => x.id !== c.id).map(x => `<option value="${esc(x.nome)}">`).join('')}</datalist>
+          <button class="cta sm" id="fcSalvaCad">Salvar cadastro</button>
         </section>
       </div>
       <div>
         <section class="card"><h3>Anotações</h3>
-          <label class="fld">Etiquetas<input id="fcTags" value="${esc(f.tags || '')}" placeholder="VIP, vegana, alergia a lactose, indicação da Patrícia"></label>
-          <label class="fld">O que você sabe dele<textarea id="fcNotas" rows="7" placeholder="Gostos, restrições, como chegou, o que já comprou fora do app...">${esc(f.notas || '')}</textarea></label>
+          <label class="fld">Etiquetas<input id="fcTags" value="${esc(f.tags || '')}" placeholder="VIP, vegana, alergia a lactose"></label>
+          <label class="fld">O que você sabe dela<textarea id="fcNotas" rows="5" placeholder="Gostos, restrições, como chegou…">${esc(f.notas || '')}</textarea></label>
           <button class="cta sm" id="fcSalva">Salvar anotações</button>
+          <div class="rulesep"></div>
+          ${tfsHtmlFicha(tfs)}
+          <div class="frow" style="margin-top:8px"><label class="fld grow"><input id="fcTf" placeholder="Nova tarefa: mandar o voucher sexta 10h"></label><button class="mini strong" id="fcTfAdd">+ tarefa</button><button class="mini" id="fcNtAdd">+ anotação</button></div>
         </section>
-        ${grupo.size ? `<section class="card"><h3>Quem vem junto</h3>
-          ${[...grupo].map(([n, nasc]) => `<div class="deprow"><a href="#/adm/clients/${encodeURIComponent('g:' + n.toLowerCase())}">${esc(n)}</a>${nasc ? `<small class="mono">${esc(nasc)}</small>` : ''}</div>`).join('')}
-        </section>` : ''}
-        <section class="card"><h3>Tarefas e anotações</h3>
-          ${tfMiniHtml(Tarefas.doCliente(k, base.whats).filter(t => !t.feita || t.tipo === 'nota').filter(t => t.tipo === 'tarefa'), isoToday(), 'Nenhuma tarefa aberta.')}
-          ${Tarefas.doCliente(k, base.whats).filter(t => t.tipo === 'nota').map(n => `<div class="nt-card mini"><b>${esc(n.texto)}</b>${n.detalhe ? `<p>${esc(n.detalhe)}</p>` : ''}<small class="why">${new Date(n.criada).toLocaleDateString('pt-BR')}</small></div>`).join('')}
-          <div class="frow" style="margin-top:8px"><label class="fld grow">Nova tarefa para ${esc(opPrimeiro(base.name))}<input id="fcTf" placeholder="Ex.: mandar o voucher sexta 10h"></label>
-            <button class="mini strong" id="fcTfAdd">+ tarefa</button><button class="mini" id="fcNtAdd">+ anotação</button></div>
+        <section class="card"><h3>Quem viaja com ${esc(opPrimeiro(c.nome))}</h3>
+          ${[...junto.values()].map(p => `<div class="deprow">${p.clienteId ? `<a href="${fichaHref({ id: p.clienteId })}">${esc(p.nome)}</a>` : esc(p.nome)}<small class="mono">${idadeDe(p.nasc) != null ? idadeDe(p.nasc) + ' anos' : esc(p.nasc || '')}${p.vezes > 1 ? ' · ' + p.vezes + ' passeios' : ''}</small></div>`).join('') || '<p class="why">Ninguém ainda.</p>'}
         </section>
+        ${indicou.length ? `<section class="card"><h3>Indicou · ${indicou.length}</h3>${indicou.map(x => `<div class="deprow"><a href="${fichaHref(x)}">${esc(x.nome)}</a><small>${x.criado ? new Date(x.criado).toLocaleDateString('pt-BR') : ''}</small></div>`).join('')}</section>` : ''}
         <section class="card"><h3>Pedidos e orçamentos</h3>
           ${orcamentos.map(o => `<div class="deprow"><a href="#/adm/consulta/${esc(o.id)}">${esc(o.num)}</a><span>${o.itens.length} itens · ${eur(Orc.total(o))}</span>${opOrcPill(o)}</div>`).join('')}
           ${pedidos.map(p => `<div class="deprow"><span>🗺️ Monte seu roteiro · ${p.ini ? opCurta(p.ini) : ''}</span><span class="pill ${p.respondido ? 'ok' : 'warn'}">${p.respondido ? 'respondido' : 'novo'}</span></div>`).join('')}
           ${!orcamentos.length && !pedidos.length ? '<p class="why">Nenhum.</p>' : ''}
-          <button class="mini" id="fcOrc">+ novo orçamento para ${esc(opPrimeiro(base.name))}</button>
         </section>
       </div>
     </div>`);
-  $('#fcSalva').onclick = () => { Fichas.salva(k, { notas: $('#fcNotas').value, tags: $('#fcTags').value }); toast('Anotações salvas'); admFicha(chave); };
-  $('#fcOrc').onclick = () => {
-    const o = Orc.cria({ origem: 'manual', status: 'rascunho', clienteKey: k, cliente: { nome: base.name, whats: base.whats, email: base.email } });
-    go('/adm/consulta/' + o.id);
+  const re = () => admFicha(arg);
+  opLigaCards(re); tfLigaMini(re);
+  $('#fvSalva').onclick = () => { Cadastro.salva(c.id, { viagem: { hotel: $('#fvHotel').value.trim(), chegada: $('#fvCheg').value.trim(), partida: $('#fvPart').value.trim(), bagagem: $('#fvBag').value.trim() } }); toast('Viagem salva'); re(); };
+  $('#fcSalvaCad').onclick = () => {
+    const indNome = $('#fcInd').value.trim(), indC = indNome ? Cadastro.all().find(x => x.id !== c.id && _nomeN(x.nome) === _nomeN(indNome)) : null;
+    const nasc = $('#fcNasc').value.trim();
+    if (nasc && !nascOk(nasc)) { $('#fcNasc').focus(); return toast('Nascimento em dd/mm/aaaa'); }
+    Cadastro.salva(c.id, { nome: $('#fcNome').value, nasc, whats: $('#fcWa').value, email: $('#fcEm').value, insta: $('#fcIg').value, pais: $('#fcPais').value,
+      veioPor: $('#fcVeio').value, indicadoPor: indC ? indC.id : '', indicadoNome: indC ? indC.nome : indNome, parceiroId: $('#fcPar').value, idioma: $('#fcIdi').value });
+    toast('Cadastro salvo'); re();
   };
-  opLigaCards(() => admFicha(chave));
-  tfLigaMini(() => admFicha(chave));
-  const novaDaFicha = (tipo) => {
-    const v = $('#fcTf').value.trim(); if (!v) { $('#fcTf').focus(); return toast('Escreva a tarefa.'); }
-    const p = lerPrazo(v);
-    const t0 = Tarefas.cria({ tipo, texto: v, prazo: tipo === 'nota' ? '' : p.data, hora: tipo === 'nota' ? '' : p.hora, clienteKey: k, clienteNome: base.name, whats: base.whats });
-    toast(tipo === 'nota' ? 'Anotação salva' : 'Tarefa criada' + (t0.prazo ? ' para ' + tfPrazoTxt(t0, isoToday()) : ''));
-    admFicha(chave);
+  mascaraNasc($('#fcNasc'));
+  $('#fcSalva').onclick = () => { Fichas.salva(k, { notas: $('#fcNotas').value, tags: $('#fcTags').value }); toast('Anotações salvas'); re(); };
+  const nova = (tipo) => {
+    const t0 = $('#fcTf').value.trim(); if (!t0) { $('#fcTf').focus(); return toast('Escreva a tarefa.'); }
+    const p = lerPrazo(t0);
+    Tarefas.cria({ tipo, texto: t0, prazo: tipo === 'nota' ? '' : p.data, hora: tipo === 'nota' ? '' : p.hora, repete: p.repete, clienteKey: k, clienteNome: c.nome, whats: c.whats });
+    toast(tipo === 'nota' ? 'Anotação salva' : 'Tarefa criada'); re();
   };
-  $('#fcTfAdd').onclick = () => novaDaFicha('tarefa');
-  $('#fcNtAdd').onclick = () => novaDaFicha('nota');
+  $('#fcTfAdd').onclick = () => nova('tarefa');
+  $('#fcNtAdd').onclick = () => nova('nota');
+  const fo = $('#fcOrc'); if (fo) fo.onclick = (e) => { e.preventDefault(); const o = Orc.cria({ origem: 'manual', status: 'rascunho', clienteKey: k, cliente: { nome: c.nome, whats: c.whats, email: c.email } }); go('/adm/consulta/' + o.id); };
+}
+function tfsHtmlFicha(tfs) {
+  const abertas = tfs.filter(t => t.tipo === 'tarefa' && !t.feita), notas = tfs.filter(t => t.tipo === 'nota');
+  return (abertas.length ? tfMiniHtml(abertas, isoToday(), '') : '<p class="why">Nenhuma tarefa aberta.</p>')
+    + notas.map(n => `<div class="nt-card mini"><b>${esc(n.texto)}</b>${n.detalhe ? `<p>${esc(n.detalhe)}</p>` : ''}<small class="why">${new Date(n.criada).toLocaleDateString('pt-BR')}</small></div>`).join('');
+}
+
+/* =====================================================
+   CLIENTES — o dashboard (quem sao, de onde vem, quem indica)
+===================================================== */
+function admClientes() {
+  const S = admClientes._s = admClientes._s || { q: '', f: 'todos' };
+  const hoje = isoToday(), mes = +hoje.slice(5, 7), mesIso = hoje.slice(0, 7);
+  const todos = Cadastro.all();
+  const resumo = new Map(todos.map(c => [c.id, Cadastro.resumo(c, hoje)]));
+  const compradores = todos.filter(c => !c.grupoDe);
+  const novos = todos.filter(c => String(c.criado || '').slice(0, 7) === mesIso).length;
+  const voltaram = compradores.filter(c => DB.bookings.filter(b => b.clienteId === c.id && b.status !== 'cancelled').length > 1).length;
+  const porIndic = compradores.filter(c => c.veioPor === 'indicacao').length;
+  const aniv = todos.map(c => ({ c, dia: aniversarioNoMes(c.nasc, mes) })).filter(x => x.dia).sort((a, b) => a.dia - b.dia);
+  const origens = VEIO_POR.map(([v, nome]) => ({ v, nome, n: compradores.filter(c => c.veioPor === v).length })).filter(o => o.n);
+  const semOrigem = compradores.filter(c => !c.veioPor).length;
+  const indicadores = todos.map(c => ({ c, n: Cadastro.indicou(c).length + Cadastro.trouxe(c).length, ind: Cadastro.indicou(c).length, tr: Cadastro.trouxe(c).length })).filter(x => x.n).sort((a, b) => b.n - a.n).slice(0, 6);
+  const n = (v) => _nomeN(v), q = n(S.q), dig = String(S.q).replace(/\D/g, '');
+  let lista = todos.filter(c => !q || n(c.nome).includes(q) || n(c.email).includes(q) || (dig.length >= 4 && String(c.whats || '').replace(/\D/g, '').includes(dig)));
+  const F = {
+    todos: () => true, compradores: (c) => !c.grupoDe, junto: (c) => !!c.grupoDe,
+    marcado: (c) => !!resumo.get(c.id).prox, devem: (c) => resumo.get(c.id).deve > 0, voltaram: (c) => DB.bookings.filter(b => b.clienteId === c.id).length > 1,
+  };
+  lista = lista.filter(F[S.f] || (c => c.veioPor === S.f));
+  lista.sort((a, b) => { const ra = resumo.get(a.id), rb = resumo.get(b.id); return (rb.prox ? 1 : 0) - (ra.prox ? 1 : 0) || String((ra.prox || {}).date || '').localeCompare(String((rb.prox || {}).date || '')) || rb.gasto - ra.gasto || a.nome.localeCompare(b.nome); });
+  const maxO = Math.max(1, ...origens.map(o => o.n));
+  admShell('clients', `${cliTopo('clientes')}
+    <div class="pagehead"><h1 class="pageh">Clientes</h1>
+      <div class="chips"><button class="mini strong" id="clNovo">+ novo cliente</button><button class="mini" id="clCsv">baixar planilha</button></div></div>
+    <div class="rp-tiles cl-tiles">
+      ${rpTile('Clientes', String(todos.length), `<span class="rp-d n">${compradores.length} compraram · ${todos.length - compradores.length} vieram junto</span>`, '', '')}
+      ${rpTile('Novos este mês', String(novos), '', '', 'cadastros feitos este mês')}
+      ${rpTile('Voltaram', String(voltaram), `<span class="rp-d ok">${compradores.length ? Math.round(voltaram / compradores.length * 100) : 0}% dos que compraram</span>`, '', 'mais de uma reserva')}
+      ${rpTile('Por indicação', compradores.length ? Math.round(porIndic / compradores.length * 100) + '%' : '—', '', '', `${porIndic} clientes indicados por alguém`)}
+      ${rpTile('Aniversários este mês', String(aniv.length), '', '', 'bom motivo para mandar uma mensagem')}
+      ${rpTile('Devem a você', eur([...resumo.values()].reduce((s2, r) => s2 + r.deve, 0)), '', '', `${[...resumo.values()].filter(r => r.deve).length} clientes`)}
+    </div>
+    <div class="two-col rp-duas">
+      <section class="card"><h3>De onde vêm</h3>
+        ${origens.length ? `<div class="rp-hbars">${origens.map(o => `<button class="rp-hb cl-orig" data-f="${o.v}"><span class="rp-hb-nome">${esc(o.nome)}</span><span class="rp-hb-pista"><i style="width:${Math.max(2, o.n / maxO * 100)}%"></i><em>${o.n} · ${Math.round(o.n / compradores.length * 100)}%</em></span></button>`).join('')}</div>` : '<p class="why">Sem dados ainda.</p>'}
+        ${semOrigem ? `<p class="why">${semOrigem} sem "veio por" — preencha na ficha para o mapa ficar certo.</p>` : ''}
+      </section>
+      <section class="card"><h3>Quem mais indica e traz gente</h3>
+        ${indicadores.map(x => `<div class="deprow"><a href="${fichaHref(x.c)}">${esc(x.c.nome)}</a><small>${x.ind ? x.ind + ' indicado(s)' : ''}${x.ind && x.tr ? ' · ' : ''}${x.tr ? x.tr + ' junto' : ''}</small></div>`).join('') || '<p class="why">Ninguém ainda.</p>'}
+        ${aniv.length ? `<div class="rulesep"></div><span class="op-lbl">Aniversários este mês</span>${aniv.map(x => `<div class="deprow"><a href="${fichaHref(x.c)}">${esc(x.c.nome)}</a><small class="mono">dia ${x.dia}${idadeDe(x.c.nasc) != null ? ' · faz ' + (idadeDe(x.c.nasc) + (x.dia >= +hoje.slice(8, 10) ? 1 : 0)) : ''}</small>
+          ${(x.c.whats || (x.c.grupoDe && (Cadastro.get(x.c.grupoDe) || {}).whats)) ? `<a class="mini" target="_blank" rel="noopener" href="${waLink(`Oi ${opPrimeiro(x.c.nome)}! Feliz aniversário! 🎉 Um beijo da ${guiaNome()}, de Roma.`, opNum(x.c.whats || Cadastro.get(x.c.grupoDe).whats))}">💬 parabéns</a>` : ''}</div>`).join('')}` : ''}
+      </section>
+    </div>
+    <div class="crm-filtros">
+      <input id="clQ" type="search" placeholder="🔎 nome, WhatsApp ou e-mail" value="${esc(S.q)}">
+      <div class="chips" style="margin:0">${[['todos', 'Todos'], ['compradores', 'Compraram'], ['junto', 'Vieram junto'], ['marcado', 'Com serviço marcado'], ['devem', 'Devem'], ['voltaram', 'Voltaram']].map(([f, l]) => `<button class="chip ${S.f === f ? 'on' : ''}" data-f="${f}">${l}</button>`).join('')}
+        ${VEIO_POR.some(v => v[0] === S.f) ? `<button class="chip on" data-f="${S.f}">${esc(veioPorNome(S.f))} ✕</button>` : ''}</div>
+    </div>
+    <section class="card cl-lista">
+      ${lista.length ? lista.slice(0, 200).map(c => { const r = resumo.get(c.id), dono = c.grupoDe ? Cadastro.get(c.grupoDe) : null;
+        return `<a class="cl-row" href="${fichaHref(c)}">
+          <span class="cl-nome"><b>${esc(c.nome)}</b><small>${c.veioPor ? esc(veioPorNome(c.veioPor)) + (c.indicadoNome ? ' — ' + esc(c.indicadoNome) : '') : 'veio por: ?'}${dono ? ' · veio com ' + esc(dono.nome) : ''}${idadeDe(c.nasc) != null ? ' · ' + idadeDe(c.nasc) + ' anos' : ''}</small></span>
+          <span class="cl-prox">${r.prox ? `<small>próximo</small><b>${crmData(r.prox.date)} · ${esc(nomeDoServico(r.prox).slice(0, 34))}</b>` : r.ultima ? `<small>último</small><b>${crmData(r.ultima)}/${r.ultima.slice(2, 4)}</b>` : '<small>sem serviço</small>'}</span>
+          <span class="cl-num"><small>${r.reservas} passeio(s)</small><b>${eur(r.gasto)}</b></span>
+          ${r.deve ? `<span class="pill bad">deve ${eur(r.deve)}</span>` : '<span></span>'}
+        </a>`; }).join('') : '<p class="empty">Nenhum cliente com esse filtro.</p>'}
+      ${lista.length > 200 ? `<p class="why">Mostrando 200 de ${lista.length}. Use a busca.</p>` : ''}
+    </section>
+    <details class="card" id="clNovoBox"><summary><b>+ Novo cliente</b></summary>
+      <div class="frow"><label class="fld">Nome completo<input id="ncNome"></label><label class="fld">WhatsApp<input id="ncWa"></label></div>
+      <div class="frow"><label class="fld">Veio por<select id="ncVeio"><option value="">—</option>${VEIO_POR.map(([vv, nn]) => `<option value="${vv}">${nn}</option>`).join('')}</select></label><label class="fld">Indicado por<input id="ncInd" list="clClis"></label></div>
+      <datalist id="clClis">${todos.map(x => `<option value="${esc(x.nome)}">`).join('')}</datalist>
+      <button class="cta sm" id="ncSalva">Cadastrar</button></details>`);
+  const re = () => admClientes();
+  $$('[data-f]').forEach(b => b.onclick = () => { S.f = S.f === b.dataset.f && b.classList.contains('cl-orig') ? 'todos' : b.dataset.f; re(); });
+  $('#clQ').oninput = (e) => { S.q = e.target.value; clearTimeout(admClientes._t); admClientes._t = setTimeout(() => { re(); const i2 = $('#clQ'); if (i2) { i2.focus(); i2.setSelectionRange(i2.value.length, i2.value.length); } }, 250); };
+  $('#clNovo').onclick = () => { const d = $('#clNovoBox'); d.open = true; d.scrollIntoView({ block: 'center' }); $('#ncNome').focus(); };
+  $('#ncSalva').onclick = () => {
+    const nome = $('#ncNome').value.trim(); if (!nome) return toast('Falta o nome.');
+    const indN = $('#ncInd').value.trim(), indC = indN ? Cadastro.all().find(x => _nomeN(x.nome) === _nomeN(indN)) : null;
+    const c = Cadastro.novo({ nome, whats: $('#ncWa').value, veioPor: $('#ncVeio').value || (indN ? 'indicacao' : ''), indicadoPor: indC ? indC.id : '', indicadoNome: indC ? indC.nome : indN });
+    if (c) go(fichaHref(c).slice(1)); else toast('Não cadastrou');
+  };
+  $('#clCsv').onclick = () => {
+    const linhas = [['Nome', 'WhatsApp', 'E-mail', 'Instagram', 'Nascimento', 'Idade', 'País/cidade', 'Veio por', 'Indicado por', 'Veio com', 'Passeios', 'Pagou', 'Deve', 'Próximo serviço', 'Cliente desde'],
+      ...todos.map(c => { const r = resumo.get(c.id), dono = c.grupoDe ? Cadastro.get(c.grupoDe) : null;
+        return [c.nome, c.whats, c.email, c.insta, c.nasc, idadeDe(c.nasc) ?? '', c.pais, veioPorNome(c.veioPor), c.indicadoNome, dono ? dono.nome : '', r.reservas, r.gasto, r.deve, r.prox ? r.prox.date : '', String(c.criado || '').slice(0, 10)]; })];
+    opBaixa('clientes-EmRoma-' + hoje + '.csv', linhas);
+  };
 }
 
 /* =====================================================
@@ -630,56 +843,155 @@ function opOrcPill(o) {
   return `<span class="pill ${cl}">${L(st[1], st[2])}</span>`;
 }
 const ORIGEM_ORC = { whats: '💬 WhatsApp', site: '🧾 pelo app', roteiro: '🗺️ Monte seu roteiro', manual: '✍️ você' };
+/* O CRM DELA — a planilha "CRM" dentro do app.
+   As mesmas abas (CRM, Confirmado, Avaliar, Finalizado, Perdido), as mesmas
+   colunas na vista Planilha, e em cartoes a PROXIMA ACAO de cada pedido. */
+function crmEtapaPill(e, st) {
+  const cls = { aberto: 'warn', confirmado: 'ok', avaliar: 'warn', finalizado: 'ok', perdido: 'bad' }[e] || 'n';
+  const txt = e === 'aberto' ? ({ novo: 'Novo', rascunho: 'Em montagem', enviado: 'Enviado' }[st] || 'Aberto') : (CRM_ETAPAS.find(x => x[0] === e) || [0, e])[1];
+  return `<span class="pill ${cls}">${esc(txt)}</span>`;
+}
+/* as colunas de link da planilha dela: o que o app gera (PDF do orcamento,
+   voucher) e o que ela colou (pelo nome do link) */
+function crmLinksTd(r) {
+  const o = r.tipo === 'orcamento' ? r.o : (r.b && r.b.orcamentoId ? Orc.get(r.b.orcamentoId) : null);
+  const todos = [...(r.links || []), ...((o && o.links) || [])];
+  const acha = (re) => todos.filter(l => re.test(l.nome)).map(l => `<a target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.nome)}</a>`).join('<br>');
+  const comprov = r.b ? (r.b.payments || []).filter(p => p.comprovante).map((p, k) => `<a target="_blank" rel="noopener" href="${esc(p.comprovante)}">comprovante ${k + 1}</a>`).join('<br>') : '';
+  const aval = r.b && r.b.avaliacaoEm ? (DB.settings.linkAvaliacao ? `<a target="_blank" rel="noopener" href="${esc(DB.settings.linkAvaliacao)}">pedida ${crmData(r.b.avaliacaoEm)}</a>` : 'pedida ' + crmData(r.b.avaliacaoEm)) : '';
+  return `<td>${o ? esc(Orc.nomeArquivo(o)) : esc(String(r.dataServ || '').replace(/-/g, '_') + ' ' + r.nome)}</td>
+    <td>${o ? `<a href="#/adm/orcdoc/${esc(o.id)}">PDF do orçamento</a>` : ''}${acha(/pdf/i) ? '<br>' + acha(/pdf/i) : ''}</td>
+    <td>${acha(/or[cç]amento|planilha/i)}</td>
+    <td>${r.b ? `<a href="#/adm/voucher/${esc(r.b.id)}">voucher</a>` : ''}${acha(/voucher/i) ? '<br>' + acha(/voucher/i) : ''}</td>
+    <td>${comprov}${acha(/comprov/i) ? '<br>' + acha(/comprov/i) : ''}</td>
+    <td>${aval}</td>`;
+}
+function crmData(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '—'; }
 function admConsulta(arg) {
   if (arg) return admOrcEditor(arg);
-  const S = admConsulta._s = admConsulta._s || { f: 'abertos' };
-  const todos = Orc.all();
-  const lista = S.f === 'abertos' ? todos.filter(o => ['novo', 'rascunho', 'enviado'].includes(o.status))
-    : S.f === 'todos' ? todos : todos.filter(o => o.status === S.f);
-  const rotSemOrc = Roteiros.all().filter(p => !todos.some(o => o.pedidoId === p.id));
-  admShell('consulta', `
-    <div class="pagehead"><h1 class="pageh">Sob consulta</h1>
-      <div class="chips">
-        ${[['abertos', 'Em aberto'], ['fechado', 'Fechados'], ['perdido', 'Não fecharam'], ['todos', 'Todos']].map(([v, l]) =>
-          `<button class="chip ${S.f === v ? 'on' : ''}" data-f="${v}">${l}</button>`).join('')}
-      </div></div>
-    <p class="why">O app lê o pedido e deixa o orçamento montado com os preços da sua tabela. <b>Nada vai para o cliente sem você conferir e mandar.</b></p>
+  const S = admConsulta._s = admConsulta._s || { e: 'aberto', vista: innerWidth > 1000 ? 'planilha' : 'cartoes', q: '', mes: '' };
+  const hoje = isoToday();
+  const todas = crmLinhas(hoje);
+  const conta = Object.fromEntries(CRM_ETAPAS.map(([e]) => [e, new Set(todas.filter(r => r.etapa === e).map(r => r.pedido)).size]));
+  const n = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const q = n(S.q).trim();
+  let linhas = todas.filter(r => S.e === 'todos' || r.etapa === S.e)
+    .filter(r => !q || [r.nome, r.whats, r.servico, r.obs, r.cidade, r.veio].some(v => n(v).includes(q)))
+    .filter(r => !S.mes || String(r.dataServ || '').slice(0, 7) === S.mes);
+  if (S.e === 'finalizado' || S.e === 'perdido') linhas = linhas.reverse();
+  /* os pedidos (cartoes): as linhas do mesmo pedido juntas */
+  const pedidos = [];
+  for (const r of linhas) { let p = pedidos.find(x => x.pedido === r.pedido); if (!p) { p = { pedido: r.pedido, linhas: [], r }; pedidos.push(p); } p.linhas.push(r); }
+  const rotSemOrc = Roteiros.all().filter(p => !Orc.all().some(o => o.pedidoId === p.id));
+  const meses = [...new Set(todas.map(r => String(r.dataServ || '').slice(0, 7)).filter(Boolean))].sort();
+  const MESN = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
-    <details class="card" ${todos.length ? '' : 'open'}>
+  const acoes = (p) => {
+    const r = p.r, b = r.b, o = r.o;
+    if (r.tipo === 'orcamento' && r.etapa === 'aberto') return `<a class="mini strong" href="#/adm/consulta/${esc(o.id)}">${o.status === 'enviado' ? 'abrir' : 'montar e mandar'}</a>
+      ${o.cliente.whats && o.status === 'enviado' ? `<a class="mini" target="_blank" rel="noopener" data-repesca="${esc(o.id)}" href="${waLink(`Oi ${opPrimeiro(o.cliente.nome)}! Tudo bem? Conseguiu ver o orçamento que te mandei (${o.num})? Se quiser, ajusto alguma coisa. ${guiaNome()}`, opNum(o.cliente.whats))}">💬 repescar</a>` : ''}
+      <button class="mini" data-fecha="${esc(o.id)}">fechou ✓</button><button class="mini ghost" data-perde="${esc(o.id)}">perdido</button>`;
+    if (r.tipo === 'orcamento' && r.etapa === 'perdido') return `<span class="why">${esc(o.motivoPerda || '')}</span><button class="mini ghost" data-reabre="${esc(o.id)}">reabrir</button>`;
+    const ficha = `<a class="mini" href="#/adm/clients/${encodeURIComponent('c:' + (b.clienteId || ''))}">ficha</a>`;
+    if (r.etapa === 'confirmado') return `${ficha}<a class="mini" href="#/adm/voucher/${esc(b.id)}">voucher</a>`;
+    if (r.etapa === 'avaliar') return `${ficha}${b.whats ? `<a class="mini strong" target="_blank" rel="noopener" data-avalia="${esc(p.linhas.map(x => x.id).join(','))}" href="${waLink(msgAvaliacao(b), opNum(b.whats))}">⭐ pedir avaliação</a>` : ''}
+      <button class="mini ghost" data-final="${esc(p.linhas.map(x => x.id).join(','))}">finalizado</button>`;
+    return ficha;
+  };
+  const cartoes = pedidos.map(p => {
+    const r = p.r, tot = r.totalPedido || p.linhas.reduce((s2, x) => s2 + (x.clientePaga || 0), 0);
+    const rp = (r.repescagens || []).map(x => `${x.n}ª ${crmData(x.data)} · ${x.resultado}`).join(' | ');
+    return `<article class="crm-card">
+      <div class="crm-top"><b class="crm-nome">${esc(r.nome || 'Sem nome')}</b>${crmEtapaPill(r.etapa, r.status)}
+        ${r.veio ? `<span class="crm-veio">${esc(r.veio)}</span>` : ''}${r.parceiro ? `<span class="crm-veio">🤝 ${esc(r.parceiro)}</span>` : ''}</div>
+      <ul class="crm-linhas">${p.linhas.map(x => `<li><span class="mono">${crmData(x.dataServ)}${x.hora ? ' ' + esc(x.hora) : ''}</span><span>${esc(x.servico)}${x.pax ? ` <small>· ${esc(x.pax)}p</small>` : ''}${x.obs ? `<small> · ${esc(x.obs)}</small>` : ''}</span><b class="mono">${x.clientePaga ? eur(x.clientePaga) : '—'}</b></li>`).join('')}</ul>
+      <div class="crm-pe"><span>Total <b>${eur(tot)}</b>${r.sinal ? ` · sinal ${eur(r.sinal)}` : ''}${r.forma ? ` · ${esc(r.forma)}` : ''}</span>
+        ${rp ? `<small class="crm-rp">Repescagem: ${esc(rp)}</small>` : ''}
+        <div class="tacts">${acoes(p)}${r.whats ? `<a class="mini ghost" target="_blank" rel="noopener" href="${waLink('', opNum(r.whats))}">WhatsApp</a>` : ''}</div></div>
+    </article>`;
+  }).join('');
+  const planilha = `<div class="crm-plan-wrap"><table class="tbl crm-plan"><thead><tr>
+      ${['Data', 'veio por', 'WhatsApp', 'Nome', 'Data serviço', 'Hora', 'PAX', 'Serviço pedido', 'Obs', 'Cliente paga', 'Ingrid paga', 'Cidade', 'Parceiro', 'Total', 'Sinal', 'forma Pagamento', 'Em Real', 'Comissão vendor', 'Status', 'Motivo da perda', 'Repescagem 1', 'Repescagem 2', 'Repescagem 3', 'Nome do arquivo', 'Link PDF', 'Link Orçamento', 'Link Voucher', 'Link Comprov', 'Link Avaliação'].map(c => `<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${linhas.map(r => { const rp = (k) => { const x = (r.repescagens || []).find(y => y.n === k); return x ? `${crmData(x.data)} · ${esc(x.resultado)}` : ''; };
+      const alvo = r.tipo === 'orcamento' ? '#/adm/consulta/' + r.o.id : '#/adm/clients/' + encodeURIComponent('c:' + (r.b.clienteId || ''));
+      return `<tr data-ir="${esc(alvo)}"><td class="mono">${crmData(r.dataPedido)}</td><td>${esc(r.veio)}</td><td class="mono">${esc(r.whats)}</td><td><b>${esc(r.nome)}</b></td>
+        <td class="mono">${crmData(r.dataServ)}</td><td class="mono">${esc(r.hora)}</td><td class="right">${esc(r.pax)}</td><td class="crm-serv">${esc(r.servico)}</td><td>${esc(r.obs)}</td>
+        <td class="mono right">${r.clientePaga ? eur(r.clientePaga) : ''}</td><td class="mono right">${r.ingridPaga ? eur(r.ingridPaga) : ''}</td><td>${esc(r.cidade)}</td><td>${esc(r.parceiro)}</td>
+        <td class="mono right">${r.totalPedido ? eur(r.totalPedido) : ''}</td><td class="mono right">${r.sinal ? eur(r.sinal) : ''}</td><td>${esc(r.forma)}</td><td class="mono right">${r.emReal ? 'R$ ' + r.emReal : ''}</td>
+        <td class="mono right">${r.comVendor ? eur(r.comVendor) : ''}</td><td>${crmEtapaPill(r.etapa, r.status)}</td><td>${esc(r.motivo)}</td><td>${rp(1)}</td><td>${rp(2)}</td><td>${rp(3)}</td>
+        ${crmLinksTd(r)}</tr>`; }).join('') || `<tr><td colspan="29" class="why">Nada nesta etapa.</td></tr>`}
+    </tbody></table></div>`;
+
+  admShell('clients', `${cliTopo('crm')}
+    <div class="pagehead"><h1 class="pageh">CRM</h1>
+      <div class="chips">
+        <button class="mini strong" id="crmNovo">+ novo orçamento</button>
+        <button class="mini" id="crmImp">importar a planilha</button>
+        <button class="mini" id="crmBaixa">baixar planilha</button>
+      </div></div>
+    <div class="crm-etapas" role="tablist">${[...CRM_ETAPAS, ['todos', 'Todos']].map(([e, nome]) =>
+      `<button class="crm-etapa ${S.e === e ? 'on' : ''}" data-e="${e}" role="tab" aria-selected="${S.e === e}">${nome}${e !== 'todos' ? ` <b>${conta[e]}</b>` : ''}</button>`).join('')}</div>
+    <div class="crm-filtros">
+      <input id="crmQ" type="search" placeholder="🔎 nome, WhatsApp, serviço, hotel…" value="${esc(S.q)}">
+      <select id="crmMes"><option value="">todos os meses</option>${meses.map(m => `<option value="${m}" ${S.mes === m ? 'selected' : ''}>${MESN[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}</option>`).join('')}</select>
+      <div class="chips" style="margin:0"><button class="chip ${S.vista === 'cartoes' ? 'on' : ''}" data-vista="cartoes">cartões</button><button class="chip ${S.vista === 'planilha' ? 'on' : ''}" data-vista="planilha">planilha</button></div>
+    </div>
+    <details class="card" id="crmNovoBox" ${Orc.all().length ? '' : 'open'}>
       <summary><b>+ Novo pedido</b> <small class="why">cole a conversa do WhatsApp ou comece em branco</small></summary>
-      <label class="fld">Conversa do WhatsApp / Instagram / e-mail<textarea id="ccTxt" rows="6" placeholder="Cole aqui a conversa inteira. O app tira nome, telefone, datas, quantas pessoas, cidades e serviços."></textarea></label>
+      <label class="fld">Conversa do WhatsApp / Instagram / e-mail<textarea id="ccTxt" rows="5" placeholder="Cole aqui a conversa inteira. O app tira nome, telefone, datas, quantas pessoas, cidades e serviços."></textarea></label>
       <div class="btnrow"><button class="cta sm" id="ccLer">Ler e montar o rascunho</button><button class="mini" id="ccBranco">começar em branco</button></div>
       <div id="ccPrev"></div>
     </details>
+    <details class="card" id="crmImpBox"><summary><b>Importar a planilha CRM</b> <small class="why">no Google Planilhas: Arquivo → Fazer download → .csv</small></summary>
+      <p class="why">O app lê as colunas pelo nome (Data, veio por, Whatsapp, Nome, Data Serviço, Hora, PAX, Serviço pedido, Obs, Cliente Paga, Ingrid Paga, Cidade). Cada linha vira uma reserva e cada nome um cadastro. Importar de novo não duplica.</p>
+      <label class="fld">Arquivo .csv<input type="file" id="crmArq" accept=".csv,text/csv"></label><div id="crmImpPrev"></div></details>
+    ${rotSemOrc.length ? `<section class="card"><h3>🗺️ Monte seu roteiro · ${rotSemOrc.length}</h3>
+      ${rotSemOrc.map(p => `<div class="orc-row"><div class="tinfo"><b>${esc(p.nome)}</b><small>${[p.ini && opCurta(p.ini), p.fim && opCurta(p.fim)].filter(Boolean).join(' → ')} · ${p.adultos} adultos${p.criancas ? ' + ' + p.criancas + ' crianças' : ''} · ${(p.onde || []).join(', ')}${p.modo === 'consultoria' ? ' · <b>consultoria</b>' : ''}</small></div>
+        <button class="mini strong" data-rot="${esc(p.id)}">Montar orçamento</button></div>`).join('')}</section>` : ''}
+    ${S.vista === 'planilha' ? planilha : (cartoes || '<p class="empty">Nada nesta etapa.</p>')}`);
 
-    ${rotSemOrc.length ? `<section class="card"><h3>🗺️ Monte seu roteiro · ${rotSemOrc.length} ${rotSemOrc.length > 1 ? 'pedidos' : 'pedido'}</h3>
-      ${rotSemOrc.map(p => `<div class="orc-row">
-        <div class="tinfo"><b>${esc(p.nome)}</b><small>${[p.ini && opCurta(p.ini), p.fim && opCurta(p.fim)].filter(Boolean).join(' → ')} · ${p.adultos} adultos${p.criancas ? ' + ' + p.criancas + ' crianças' : ''} · ${(p.onde || []).join(', ')}${p.modo === 'consultoria' ? ' · <b>consultoria</b>' : ''}</small></div>
-        <button class="mini strong" data-rot="${esc(p.id)}">Montar orçamento</button>
-      </div>`).join('')}</section>` : ''}
-
-    <section class="card">
-      ${lista.length ? lista.map(o => `<a class="orc-row" href="#/adm/consulta/${esc(o.id)}">
-        <div class="tinfo"><b>${esc(o.cliente.nome || 'Sem nome')}</b>
-          <small><span class="mono">${esc(o.num)}</span> · ${ORIGEM_ORC[o.origem] || o.origem} · ${new Date(o.criado).toLocaleDateString('pt-BR')} ${new Date(o.criado).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</small>
-          ${o.resumo ? `<small>${esc(o.resumo)}</small>` : ''}</div>
-        <b class="mono">${o.itens.length ? eur(Orc.total(o)) : '—'}</b>${opOrcPill(o)}
-      </a>`).join('') : '<p class="empty">Nenhum pedido aqui.</p>'}
-    </section>`);
-  $$('[data-f]').forEach(b => b.onclick = () => { S.f = b.dataset.f; admConsulta(); });
+  const re = () => admConsulta();
+  $$('[data-e]').forEach(b => b.onclick = () => { S.e = b.dataset.e; re(); });
+  $$('[data-vista]').forEach(b => b.onclick = () => { S.vista = b.dataset.vista; re(); });
+  $('#crmMes').onchange = (e) => { S.mes = e.target.value; re(); };
+  $('#crmQ').oninput = (e) => { S.q = e.target.value; clearTimeout(admConsulta._t); admConsulta._t = setTimeout(() => { re(); const i2 = $('#crmQ'); if (i2) { i2.focus(); i2.setSelectionRange(i2.value.length, i2.value.length); } }, 250); };
+  $('#crmNovo').onclick = () => { const d = $('#crmNovoBox'); d.open = true; d.scrollIntoView({ block: 'start' }); $('#ccTxt').focus(); };
+  $('#crmImp').onclick = () => { const d = $('#crmImpBox'); d.open = true; d.scrollIntoView({ block: 'start' }); };
+  $('#crmBaixa').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + crmCsv(todas)], { type: 'text/csv;charset=utf-8' })); a.download = 'CRM-EmRoma-' + hoje + '.csv'; a.click(); };
+  $('#crmArq').onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const txt = await f.text(), sim = importarPlanilha(txt, true), box = $('#crmImpPrev');
+    if (sim.erro) { box.innerHTML = `<div class="alert bad">${esc(sim.erro)}</div>`; return; }
+    box.innerHTML = `<div class="alert warn bkp-volta"><div><b>${sim.linhas.length} serviços de ${sim.clientes} clientes</b>${sim.pulou.length ? `<br><small>${sim.pulou.length} linha(s) sem data de serviço ficaram de fora</small>` : ''}</div><button class="cta sm" id="crmImpOk">Importar</button></div>`;
+    $('#crmImpOk').onclick = () => { const r = importarPlanilha(txt); toast(r.erro || `${r.criadas} reservas importadas${r.repetidas ? ` · ${r.repetidas} já estavam no app` : ''}`); S.e = 'todos'; re(); };
+  };
+  $$('tr[data-ir]').forEach(tr => tr.onclick = (e) => { if (!e.target.closest('a')) location.hash = tr.dataset.ir; });
+  $$('[data-fecha]').forEach(b => b.onclick = () => go('/adm/consulta/' + b.dataset.fecha));
+  $$('[data-perde]').forEach(b => b.onclick = () => {
+    const box = b.closest('.tacts');
+    box.innerHTML = `<select class="crm-motivo">${MOTIVOS_PERDA.map(m => `<option>${m}</option>`).join('')}</select><button class="mini strong" data-perdeok="${esc(b.dataset.perde)}">marcar perdido</button>`;
+    box.querySelector('[data-perdeok]').onclick = () => { perdeOrcamento(b.dataset.perde, box.querySelector('.crm-motivo').value); Tarefas.sincroniza(); toast('Marcado como perdido'); re(); };
+  });
+  $$('[data-reabre]').forEach(b => b.onclick = () => { Orc.status(b.dataset.reabre, 'enviado'); re(); });
+  $$('[data-avalia]').forEach(a => a.addEventListener('click', () => { a.dataset.avalia.split(',').forEach(marcaAvaliacao); setTimeout(() => { toast('Avaliação pedida · foi para Finalizado'); re(); }, 400); }));
+  $$('[data-final]').forEach(b => b.onclick = () => { b.dataset.final.split(',').forEach(marcaAvaliacao); re(); });
+  $$('[data-repesca]').forEach(a => a.addEventListener('click', () => {
+    const o = Orc.get(a.dataset.repesca); const t0 = Tarefas.all().find(t => !t.feita && t.orcId === o.id && t.etapa === 'aguardar');
+    if (t0) Tarefas.conclui(t0.id, 'cutucar'); else { o.repescagens = o.repescagens || []; o.repescagens.push({ n: o.repescagens.length + 1, data: isoToday(), resultado: 'mandada' }); _opSave(); }
+    const nov = Tarefas.all().find(t => !t.feita && t.orcId === o.id && t.etapa !== 'aguardar'); if (nov) Tarefas.conclui(nov.id);
+    setTimeout(() => { toast('Repescagem registrada · aguardando resposta'); re(); }, 400);
+  }));
   $('#ccBranco').onclick = () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho' }); go('/adm/consulta/' + o.id); };
   $('#ccLer').onclick = () => {
     const txt = $('#ccTxt').value;
     if (!txt.trim()) return toast('Cole a conversa primeiro.');
-    const c = lerConversa(txt);
-    const itens = rascunhoDaConversa(c);
-    $('#ccPrev').innerHTML = `<div class="cc-lido">
-      <p><b>O que o app entendeu</b> — confira:</p>
-      <ul><li>Nome: <b>${esc(c.nome || '?')}</b></li><li>WhatsApp: <b>${esc(c.whats || '?')}</b></li>
-        <li>Resumo: ${esc(c.resumo || '—')}</li><li>Rascunho: ${itens.length} ${itens.length === 1 ? 'serviço' : 'serviços'} com preço da tabela</li></ul>
+    const c = lerConversa(txt), itens = rascunhoDaConversa(c);
+    $('#ccPrev').innerHTML = `<div class="cc-lido"><p><b>O que o app entendeu</b> — confira:</p>
+      <ul><li>Nome: <b>${esc(c.nome || '?')}</b></li><li>WhatsApp: <b>${esc(c.whats || '?')}</b></li><li>Resumo: ${esc(c.resumo || '—')}</li><li>Rascunho: ${itens.length} ${itens.length === 1 ? 'serviço' : 'serviços'} com preço da tabela</li></ul>
       <button class="cta sm" id="ccCria">Criar o orçamento</button></div>`;
     $('#ccCria').onclick = () => {
       const o = Orc.cria({ origem: 'whats', status: 'rascunho', cliente: { nome: c.nome, whats: c.whats }, conversa: txt, resumo: c.resumo, pax: c.pax, datas: c.datas, itens });
+      Tarefas.cria({ tipo: 'nota', origem: 'whats', texto: `Resumo do WhatsApp — ${c.nome || 'cliente novo'}`, detalhe: c.resumo, orcId: o.id, clienteNome: c.nome, whats: c.whats });
       go('/adm/consulta/' + o.id);
     };
   };
@@ -719,6 +1031,7 @@ function admOrcEditor(id) {
       <label class="fld sm">Pessoas<input type="number" min="1" data-k="pax" value="${i.pax}"></label>
       <label class="fld sm">Valor €<input type="number" min="0" data-k="valor" value="${i.valor}"></label>
       <label class="fld sm">Sinal €<input type="number" min="0" data-k="sinal" value="${i.sinal ?? ''}" placeholder="${Orc.sinalDoItem(o, i)}"></label>
+      <label class="fld sm" title="o que você paga a quem faz o serviço">Ingrid paga €<input type="number" min="0" data-k="custo" value="${i.custo || ''}" placeholder="0"></label>
       ${(Tours.get(i.tourId) || {}).priceMode === 'transfer' ? `<label class="fld sm">Voo / trem<input data-k="voo" value="${esc(i.voo || '')}" placeholder="AZ 673"></label>` : ''}
     </div>
     <div class="orc-item-pe">
@@ -729,8 +1042,8 @@ function admOrcEditor(id) {
       <button class="mini danger" data-rmi="${esc(i.id)}">tirar</button>
     </div>
   </div>`;
-  admShell('consulta', `
-    <a class="linkbtn" href="#/adm/consulta">← sob consulta</a>
+  admShell('clients', `
+    <a class="linkbtn" href="#/adm/consulta">← CRM</a>
     <div class="pagehead"><h1 class="pageh">${esc(o.num)} ${opOrcPill(o)}</h1>
       <div class="chips">
         <a class="mini" href="#/adm/orcdoc/${esc(o.id)}">ver / imprimir PDF</a>
@@ -768,7 +1081,11 @@ function admOrcEditor(id) {
       </div>
       <label class="optin"><input type="checkbox" id="orTermos" ${o.termos ? 'checked' : ''}><span><b>Incluir os termos e condições</b><small>Pagou o sinal = aceitou. Edite os seus em Ajustes.${DB.settings.termos && DB.settings.termos.pt ? '' : ' <b>Hoje ainda é o MODELO.</b>'}</small></span></label>
       <label class="fld">Observações para o cliente<textarea id="orObs" rows="2">${esc(o.obs)}</textarea></label>
-      <div class="orc-tot"><span>Total <b>${eur(tot)}</b></span><span>Sinal <b>${eur(sin)}</b></span><span>No dia <b>${eur(Math.max(0, tot - sin))}</b></span></div>
+      <div class="orc-tot"><span>Total <b>${eur(tot)}</b></span><span>Sinal <b>${eur(sin)}</b></span><span>No dia <b>${eur(Math.max(0, tot - sin))}</b></span>${o.itens.some(x => x.custo) ? `<span>Sua margem <b>${eur(tot - o.itens.reduce((s2, x) => s2 + (+x.custo || 0), 0))}</b></span>` : ''}</div>
+      <div class="orc-links"><span class="op-lbl">Arquivo: ${esc(Orc.nomeArquivo(o))}</span>
+        ${(o.links || []).map(l => `<a class="mini" target="_blank" rel="noopener" href="${esc(l.url)}">🔗 ${esc(l.nome)}</a>`).join('')}
+        <div class="frow"><label class="fld grow"><input id="orLkNome" placeholder="nome (ex.: PDF do orçamento)"></label><label class="fld grow"><input id="orLkUrl" placeholder="https://drive.google.com/…"></label><button class="mini" id="orLkAdd">+ link</button></div></div>
+      ${(o.repescagens || []).length ? `<p class="why">Repescagem: ${o.repescagens.map(x => `${x.n}ª ${crmData(x.data)} · ${esc(x.resultado)}`).join(' | ')}</p>` : ''}
       <div class="btnrow"><button class="cta sm" id="orSalva">Salvar</button><button class="mini danger" id="orApaga">apagar</button></div>
     </section>
     ${o.status !== 'fechado' ? `<section class="card orc-fecha">
@@ -786,7 +1103,7 @@ function admOrcEditor(id) {
       const el = document.querySelector(`[data-item="${i.id}"]`); if (!el) return i;
       const v = (k) => el.querySelector(`[data-k="${k}"]`).value;
       return { ...i, desc: v('desc'), data: v('data'), hora: v('hora'), pax: +v('pax') || 1, valor: +v('valor') || 0,
-               sinal: v('sinal') === '' ? null : +v('sinal'), obs: v('obs'),
+               sinal: v('sinal') === '' ? null : +v('sinal'), obs: v('obs'), custo: +v('custo') || 0,
                voo: el.querySelector('[data-k="voo"]') ? v('voo') : (i.voo || '') };
     });
     o.sinalPct = +$('#orPct').value || 0; o.validade = $('#orVal').value; o.status = $('#orSt').value;
@@ -807,6 +1124,7 @@ function admOrcEditor(id) {
     const it = Orc.itemDoCatalogo(tid, { pax: +$('#orAddP').value || 1, data: $('#orAddD').value });
     o.itens.push(it); Orc.salva(o); re();
   };
+  $('#orLkAdd').onclick = () => { lerTela(); const r = Orc.linkAdd(id, $('#orLkNome').value, $('#orLkUrl').value); if (r && r.erro) return toast(r.erro); re(); };
   $('#orAvulso').onclick = () => { lerTela(); o.itens.push(Orc._item({ desc: 'Roteiro com consultoria de especialista', pax: o.pax || 2 })); Orc.salva(o); re(); };
   $$('[data-rmi]').forEach(b => b.onclick = () => { lerTela(); o.itens = o.itens.filter(i => i.id !== b.dataset.rmi); Orc.salva(o); re(); });
   $$('[data-recalc]').forEach(b => b.onclick = () => {
@@ -1735,4 +2053,68 @@ async function bkpAjustesLiga() {
       setTimeout(() => go('/adm/today'), 400);
     };
   });
+}
+
+/* =====================================================
+   QUEM VAI NO PASSEIO (a reserva do cliente)
+
+   Pedido de 29/09: cada pessoa que vai — adulto ou crianca — com nome
+   completo e data de nascimento, porque os ingressos sao nominais. So quem
+   compra da WhatsApp e e-mail: a Ingrid fala so com ele. E quem compra pode
+   estar reservando para outra pessoa ("a filha reservou para a mae").
+===================================================== */
+function nascOk(v) {
+  const m = String(v || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (!m) return false;
+  const d = new Date(+m[3], +m[2] - 1, +m[1]);
+  return d.getMonth() === +m[2] - 1 && d.getFullYear() > 1900 && d <= new Date();
+}
+/* dd/mm/aaaa enquanto digita — no celular ninguem acha a barra */
+function mascaraNasc(el) {
+  el.addEventListener('input', () => {
+    const d = el.value.replace(/\D/g, '').slice(0, 8);
+    el.value = d.length > 4 ? `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}` : d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+  });
+}
+function participantesHtml(x, S) {
+  const obrig = x.priceMode !== 'transfer';
+  const vai = S.compradorVai !== false;
+  const n = Math.max(0, S.pax - (vai ? 1 : 0));
+  return `<div class="grupo part">
+    <b>${L('Quem vai no passeio', 'Who is coming')} · ${S.pax} ${S.pax > 1 ? L('pessoas', 'people') : L('pessoa', 'person')}</b>
+    <small class="why">${obrig ? L('Nome completo e data de nascimento de cada pessoa, adulto ou criança — os ingressos são nominais. Nós falamos só com você.',
+      'Full name and date of birth of each person, adult or child — tickets are issued by name. We only contact you.')
+      : L('Opcional no transfer: o nome de quem vem junto ajuda o motorista.', 'Optional for transfers: names help the driver.')}</small>
+    <label class="optin"><input type="checkbox" id="fVai" ${vai ? 'checked' : ''}><span><b>${L('Eu também vou', 'I am coming too')}</b><small>${L('Desmarque se estiver reservando para outra pessoa.', 'Untick if you are booking for someone else.')}</small></span></label>
+    <label class="fld" id="fNascBox" ${vai ? '' : 'hidden'}>${L('Sua data de nascimento', 'Your date of birth')}<input id="fNasc" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="bday"></label>
+    <div id="grpRows">${Array.from({ length: n }, grupoLinha).join('')}</div>
+  </div>
+  <div class="grupo veio">
+    <b>${L('Como você conheceu a', 'How did you find')} ${esc(guiaNegocio())}?</b>
+    <select id="fVeio"><option value="">${L('Escolha…', 'Choose…')}</option>
+      ${VEIO_POR.filter(v => v[0] !== 'junto').map(([v, n2]) => `<option value="${v}">${esc(v === 'voltou' ? L('Já viajei com ' + guiaNome(), 'I have travelled with ' + guiaNome()) : n2)}</option>`).join('')}</select>
+    <label class="fld" id="fIndBox" hidden>${L('Quem indicou?', 'Who referred you?')}<input id="fInd" placeholder="${L('nome de quem indicou', 'name')}"></label>
+  </div>`;
+}
+function ligaParticipantes(book, S) {
+  const rows = book.querySelector('#grpRows');
+  $$('.gnasc', book).forEach(mascaraNasc); const fn = book.querySelector('#fNasc'); if (fn) mascaraNasc(fn);
+  book.querySelector('#fVai').onchange = (e) => {
+    S.compradorVai = e.target.checked;
+    book.querySelector('#fNascBox').hidden = !e.target.checked;
+    if (e.target.checked) { const ult = rows.lastElementChild; if (ult) ult.remove(); }
+    else { rows.insertAdjacentHTML('beforeend', grupoLinha()); mascaraNasc(rows.lastElementChild.querySelector('.gnasc')); }
+  };
+  book.querySelector('#fVeio').onchange = (e) => { book.querySelector('#fIndBox').hidden = e.target.value !== 'indicacao'; };
+}
+function lerParticipantes(x) {
+  const vai = $('#fVai') ? $('#fVai').checked : true;
+  const nasc = vai && $('#fNasc') ? $('#fNasc').value.trim() : '';
+  const grupo = $$('.grow').map(r => ({ nome: r.querySelector('.gnome').value.trim(), nasc: r.querySelector('.gnasc').value.trim() }));
+  if (x.priceMode !== 'transfer') {
+    if (vai && !nascOk(nasc)) { $('#fNasc').focus(); return { erro: L('Falta a sua data de nascimento (dd/mm/aaaa) — é para o ingresso.', 'Your date of birth is missing (dd/mm/yyyy) — it is for the ticket.') }; }
+    const k = grupo.findIndex(g => !g.nome || g.nome.split(/\s+/).length < 2 || !nascOk(g.nasc));
+    if (k >= 0) { const r = $$('.grow')[k]; (r.querySelector('.gnome').value.trim().split(/\s+/).length < 2 ? r.querySelector('.gnome') : r.querySelector('.gnasc')).focus();
+      return { erro: L(`Falta o nome completo ou a data de nascimento da pessoa ${k + (vai ? 2 : 1)} — os ingressos são nominais.`, `Full name or date of birth missing for person ${k + (vai ? 2 : 1)} — tickets are issued by name.`) }; }
+  }
+  return { vai, nasc, grupo: grupo.filter(g => g.nome), veioPor: ($('#fVeio') || {}).value || '', indicadoPor: ($('#fInd') || {}).value || '' };
 }

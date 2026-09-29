@@ -196,6 +196,18 @@ const Op = {
     _opSaveBooking(b);
     return b;
   },
+  /* Os links que ficam no servico, como na ficha dela: PDF do ingresso, QR
+     code, voucher do parceiro (ela guarda no Drive e cola o link aqui). */
+  linkAdd(bookingId, nome, url) {
+    const b = Bookings.get(bookingId); if (!b) return null;
+    const u = String(url || '').trim(); if (!/^https?:\/\//i.test(u)) return { erro: 'o link precisa começar com http' };
+    b.links = b.links || []; const l = { id: uid(), nome: String(nome || '').trim() || 'link', url: u };
+    b.links.push(l); _opSaveBooking(b); return l;
+  },
+  linkRemove(bookingId, linkId) { const b = Bookings.get(bookingId); if (!b) return; b.links = (b.links || []).filter(l => l.id !== linkId); _opSaveBooking(b); },
+  /* ingressos: precisa? ja comprou? (servico com ingresso na tabela do passeio) */
+  precisaIngresso(b) { const x = Tours.get(b.tourId); return !!((x && (x.ingressos || []).length) || (b.ingressos && (b.ingressos.total || b.ingressos.totalDia))); },
+  ingressosOk(bookingId, sim) { const b = Bookings.get(bookingId); if (!b) return; b.ingressosOk = sim ? isoToday() : ''; _opSaveBooking(b); },
   /* servicos sem guia/motorista nos proximos N dias */
   semPrestador(dias) {
     const hoje = isoToday(), ate = addDays(hoje, dias || 7);
@@ -378,7 +390,8 @@ const Orc = {
     return { id: i.id || uid(), tourId: i.tourId || '', desc: String(i.desc || '').trim(),
              data: i.data || '', hora: i.hora || '', pax: Math.max(1, +i.pax || 1), opcao: +i.opcao || 0,
              valor: Math.max(0, +i.valor || 0), sinal: i.sinal != null && i.sinal !== '' ? Math.max(0, +i.sinal) : null,
-             obs: String(i.obs || '').trim(), sugestao: !!i.sugestao, voo: String(i.voo || '').trim() };
+             obs: String(i.obs || '').trim(), sugestao: !!i.sugestao, voo: String(i.voo || '').trim(),
+             custo: Math.max(0, +i.custo || 0) };
   },
   /* um servico do catalogo, ja com o preco da tabela dela para aquele grupo */
   itemDoCatalogo(tourId, { pax, data, hora, opcao } = {}) {
@@ -400,6 +413,13 @@ const Orc = {
     _opSave(); return x;
   },
   status(id, st) { const o = Orc.get(id); if (!o) return; o.status = st; _opSave(); },
+  linkAdd(id, nome, url) {
+    const o = Orc.get(id); if (!o) return null;
+    const u = String(url || '').trim(); if (!/^https?:\/\//i.test(u)) return { erro: 'o link precisa começar com http' };
+    o.links = o.links || []; const l = { id: uid(), nome: String(nome || '').trim() || 'link', url: u }; o.links.push(l); _opSave(); return l;
+  },
+  /* o nome do arquivo como ela ja usa: "2026_05_26 Jo Souza" */
+  nomeArquivo(o) { const d = (o.itens.map(i => i.data).filter(Boolean).sort()[0] || String(o.criado).slice(0, 10)).replace(/-/g, '_'); return `${d} ${o.cliente.nome || 'Cliente'}`; },
   remove(id) { DB.orcamentos = (DB.orcamentos || []).filter(o => o.id !== id); _opSave(); },
   /* Fechou: cada servico do catalogo vira uma reserva de verdade, com o
      cliente e o sinal. Item avulso (sem servico do catalogo) fica so no
@@ -419,6 +439,7 @@ const Orc = {
       b.policy = 'sinal'; b.sinal = Orc.sinalDoItem(o, i);
       if (i.obs && !i.sugestao) b.obsOp = i.obs;
       if (i.voo) b.voo = i.voo;
+      if (+i.custo > 0) b.custo = +i.custo;
       _opSaveBooking(b);
       if (sinalRecebido && b.sinal > 0) registraPagamento(b.id, { valor: b.sinal, conta });
       criadas.push(b);
@@ -625,11 +646,19 @@ function opGarante() {
   if (DB.settings && DB.settings.plantao === undefined) DB.settings.plantao = '';
   DB.tarefas = DB.tarefas || [];
   DB.lembretesVistos = DB.lembretesVistos || {};
+  DB.clientes = DB.clientes || [];
+  DB.parceiros = DB.parceiros || [];
   const demo = DB.demo && !(typeof temNuvem === 'function' && temNuvem());
   if (demo && (+DB.opSeed || 0) < OP_SEED) {
     opSemeiaDemo();
     DB.opSeed = OP_SEED;
   }
+  /* o cadastro nasce das reservas que ja existem (uma vez so) */
+  if (!DB.cadastroFeito) {
+    for (const bk of [...DB.bookings].sort((x, y) => String(x.createdAt).localeCompare(String(y.createdAt)))) cadastroDaReserva(bk);
+    DB.cadastroFeito = 1;
+  }
+  if (demo && !DB.parceirosSeed) { opSemeiaParceiros(); DB.parceirosSeed = 1; }
   /* tarefas de exemplo so uma vez, e so na demonstracao */
   if (demo && !DB.tarefasSeed && typeof opSemeiaTarefas === 'function') {
     opSemeiaTarefas();
@@ -744,9 +773,24 @@ function lerPrazo(txt, hoje) {
       }
     }
   }
+  /* repeticao: "todo dia 01", "toda quinta", "todas as quintas", "todo dia" */
+  let repete = '';
+  const mDia = low.match(/\btodo (?:o )?dia (\d{1,2})\b/);
+  if (mDia) {
+    repete = 'mensal';
+    const d = +mDia[1], hj = new Date(hoje + 'T12:00:00');
+    let alvo = new Date(hj.getFullYear(), hj.getMonth(), d, 12);
+    if (alvo.toISOString().slice(0, 10) < hoje) alvo = new Date(hj.getFullYear(), hj.getMonth() + 1, d, 12);
+    data = alvo.toISOString().slice(0, 10);
+  } else if (/\btod[ao]s? (?:as |os )?(segunda|terca|quarta|quinta|sexta|sabado|domingo)/.test(low)) {
+    repete = 'semanal';
+    const w = DIAS_SEMANA.findIndex(n => new RegExp('tod[ao]s? (?:as |os )?' + n).test(low));
+    const hj = new Date(hoje + 'T12:00:00').getDay();
+    data = addDays(hoje, (w - hj + 7) % 7);
+  } else if (/\btodo dia\b|\btodos os dias\b|\bdiariamente\b/.test(low)) { repete = 'diario'; data = data || hoje; }
   const h = low.match(/\b(\d{1,2})(?::(\d{2})|h(\d{2})?)\b/);
   if (h && +h[1] < 24) hora = String(+h[1]).padStart(2, '0') + ':' + String(h[2] || h[3] || '00').padStart(2, '0');
-  return { data, hora };
+  return { data, hora, repete };
 }
 const Tarefas = {
   all() { return DB.tarefas || []; },
@@ -765,6 +809,8 @@ const Tarefas = {
       etapa: d.etapa || (d.tipo === 'nota' ? '' : etapaDoTexto(texto)),
       fechaQuando: d.fechaQuando || '', liga: d.liga || {}, chave: d.chave || '',
       tentativa: +d.tentativa || 1, anterior: d.anterior || '', obsFim: '',
+      /* "todo dia 01", "toda quinta": ao concluir, nasce a proxima */
+      repete: ['diario', 'semanal', 'mensal'].includes(d.repete) ? d.repete : '',
     };
     DB.tarefas.push(t); _opSave(); return t;
   },
@@ -781,7 +827,20 @@ const Tarefas = {
     const t = Tarefas.get(id); if (!t || t.feita) return null;
     t.feita = true; t.feitaEm = new Date().toISOString();
     t.obsFim = resultado === 'respondeu' ? 'respondeu' : resultado === 'cutucar' ? 'não respondeu' : '';
-    const prox = proximoPasso(t, resultado);
+    /* REPESCAGEM (colunas da planilha dela): a espera de um orcamento que
+       acabou vira "Repescagem N · data · resultado" no proprio pedido */
+    if (t.orcId && t.etapa === 'aguardar') {
+      const o = Orc.get(t.orcId);
+      if (o) { o.repescagens = o.repescagens || []; o.repescagens.push({ n: +t.tentativa || 1, data: isoToday(), resultado: t.obsFim || resultado || 'feito' }); }
+    }
+    if (t.repete && t.prazo) {
+      const d0 = new Date(t.prazo + 'T12:00:00');
+      if (t.repete === 'mensal') d0.setMonth(d0.getMonth() + 1); else d0.setDate(d0.getDate() + (t.repete === 'semanal' ? 7 : 1));
+      let pz = d0.toISOString().slice(0, 10);
+      while (pz < isoToday()) { const dd = new Date(pz + 'T12:00:00'); if (t.repete === 'mensal') dd.setMonth(dd.getMonth() + 1); else dd.setDate(dd.getDate() + (t.repete === 'semanal' ? 7 : 1)); pz = dd.toISOString().slice(0, 10); }
+      Tarefas.cria({ texto: t.texto, detalhe: t.detalhe, prazo: pz, hora: t.hora, repete: t.repete, clienteKey: t.clienteKey, clienteNome: t.clienteNome, whats: t.whats, etapa: t.etapa === 'aguardar' ? '' : t.etapa });
+    }
+    const prox = t.repete ? null : proximoPasso(t, resultado);
     const nova = prox ? Tarefas.garante({ ...prox, anterior: t.id, clienteKey: prox.clienteKey ?? t.clienteKey,
       clienteNome: prox.clienteNome ?? t.clienteNome, whats: prox.whats ?? t.whats, bookingId: prox.bookingId ?? t.bookingId,
       orcId: prox.orcId ?? t.orcId, pessoaId: prox.pessoaId ?? t.pessoaId }) : null;
@@ -984,6 +1043,9 @@ const Lembretes = {
       if (b.date >= hoje && b.date <= addDays(hoje, 3) && !b.prestadorId)
         add({ chave: 'escalar:' + b.id, grupo: 'servicos', nivel: b.date <= addDays(hoje, 1) ? 'bad' : 'warn', data: b.date, bookingId: b.id,
               txt: `Escalar ${(Tours.get(b.tourId) || {}).priceMode === 'transfer' ? 'motorista' : 'guia'} para ${b.name} (${b.date.slice(8, 10)}/${b.date.slice(5, 7)} ${b.time})`, href: '#/adm/guias/servico:' + b.id });
+      if (b.date >= hoje && b.date <= addDays(hoje, 30) && Op.precisaIngresso(b) && !b.ingressosOk)
+        add({ chave: 'ingresso:' + b.id, grupo: 'servicos', nivel: b.date <= addDays(hoje, 7) ? 'bad' : 'warn', data: b.date, bookingId: b.id,
+              txt: `Comprar os ingressos de ${b.name} — ${(Tours.get(b.tourId) || { name: { pt: '?' } }).name.pt} (${b.date.slice(8, 10)}/${b.date.slice(5, 7)})`, href: '#/adm/clients/' + encodeURIComponent('c:' + (b.clienteId || '')) });
       if (b.date >= hoje && b.date <= addDays(hoje, 2) && !b.voucherEm)
         add({ chave: 'voucher:' + b.id, grupo: 'servicos', nivel: 'n', data: b.date, bookingId: b.id,
               txt: `Mandar o voucher para ${b.name} (${b.date.slice(8, 10)}/${b.date.slice(5, 7)})`, href: '#/adm/voucher/' + b.id });
@@ -1013,6 +1075,18 @@ function icsTarefa(t) {
     'BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(t.texto), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR');
   return linhas.join('\r\n');
 }
+function opSemeiaParceiros() {
+  const lu = Parceiros.salva({ nome: 'Lu Viaja (RPV)', tipo: 'agencia', contato: '@luviaja', cupom: 'LURPV', desconto: 0, comissao: 10, obs: 'Agência parceira de Recife' });
+  const inf = Parceiros.salva({ nome: 'Carol pelo Mundo', tipo: 'influencer', contato: '@carolpelomundo', cupom: 'CAROL10', desconto: 10, comissao: 8 });
+  /* duas reservas de exemplo vindas deles, e uma indicacao entre clientes */
+  const bs = DB.bookings.filter(b => b.status !== 'cancelled');
+  const a1 = bs.find(b => b.name === 'Grupo Viagens Sol (agência)'); if (a1 && !lu.erro) { a1.parceiroId = lu.id; const c = Cadastro.get(a1.clienteId); if (c) { c.veioPor = 'agencia'; c.parceiroId = lu.id; } }
+  const a2 = bs.find(b => b.name === 'Camila Teixeira'); if (a2 && !inf.erro) { a2.coupon = 'CAROL10'; const c = Cadastro.get(a2.clienteId); if (c) { c.veioPor = 'influencer'; c.parceiroId = inf.id; } }
+  const pat = Cadastro.acha({ nome: 'Patrícia Menezes' }), rob = Cadastro.acha({ nome: 'Roberto Farias' }), jul = Cadastro.acha({ nome: 'Juliana Andrade' });
+  if (pat && rob) { rob.veioPor = 'indicacao'; rob.indicadoPor = pat.id; rob.indicadoNome = pat.nome; }
+  if (pat && jul) { jul.veioPor = 'indicacao'; jul.indicadoPor = pat.id; jul.indicadoNome = pat.nome; }
+  if (pat) { pat.nasc = pat.nasc || addDays(isoToday(), 5).slice(5).split('-').reverse().join('/') + '/1984'; pat.pais = 'Brasil (São Paulo)'; }
+}
 function opSemeiaTarefas() {
   const hoje = isoToday();
   const jul = DB.bookings.find(b => b.name === 'Juliana Andrade');
@@ -1024,6 +1098,8 @@ function opSemeiaTarefas() {
   cria({ texto: 'Responder a Patrícia sobre o Natal em Roma', prazo: addDays(hoje, -1), clienteNome: 'Patrícia Menezes', clienteKey: 'patricia.menezes@email.com' });
   cria({ texto: 'Pagar a guia do bate e volta de Pompeia (agência Viagens Sol)', prazo: addDays(hoje, 4), hora: '18:00', clienteNome: ag ? ag.name : '', clienteKey: ag ? chaveCliente(ag) : '', bookingId: ag ? ag.id : '' });
   cria({ texto: 'Montar a tabela de preços de Florença com a Sofia', detalhe: 'Mesmo formato da de Roma: 1 a 20 pessoas.' });
+  const p01 = lerPrazo('todo dia 01', hoje);
+  cria({ texto: 'Mandar o extrato do Nubank para a Aurea (contadora)', prazo: p01.data, repete: 'mensal', etapa: '' });
   const feita = cria({ texto: 'Renovar o seguro do carro do Paolo', prazo: addDays(hoje, -2) }); if (feita) Tarefas.marca(feita.id, true);
   cria({ tipo: 'nota', texto: 'O Luca prefere receber a lista de transfers até as 18h do dia anterior.', fixa: true });
   cria({ tipo: 'nota', texto: 'Ideia: pacote "Roma em 3 dias" para famílias com criança — Coliseu, Vaticano curto e gelato tour.' });
@@ -1089,6 +1165,348 @@ const Backup = {
   feitoHoje(hoje) { const u = Backup.ultimo(); return !!u.em && u.em.slice(0, 10) === (hoje || isoToday()); },
   nome(dia) { return `EmRoma-backup-${dia || isoToday()}.json`; },
 };
+
+/* ---------- CADASTRO DE CLIENTES ----------
+   A planilha dela tem "veio por" em toda linha: e assim que ela sabe de onde
+   o cliente chega (Instagram, status do WhatsApp, indicacao de alguem,
+   influencer, agencia). Aqui cada pessoa e UM cadastro guardado — quem
+   reservou e cada um que veio junto — e ele nasce sozinho na hora da
+   reserva. Ninguem precisa digitar de novo.
+     DB.clientes [{id, nome, whats, email, insta, nasc, pais, idioma, veioPor,
+                   indicadoPor (id), indicadoNome, parceiroId, grupoDe (id),
+                   obs, criado, atualizado}] */
+const VEIO_POR = [
+  ['instagram', 'Instagram'], ['status', 'Status do WhatsApp'], ['indicacao', 'Indicação de alguém'],
+  ['influencer', 'Influencer / cupom'], ['agencia', 'Agência ou parceiro'], ['google', 'Google / site'],
+  ['voltou', 'Já era cliente'], ['junto', 'Veio junto com alguém'], ['outro', 'Outro'],
+];
+const veioPorNome = (v) => (VEIO_POR.find(x => x[0] === v) || [0, v || '—'])[1];
+/* as origens antigas das reservas viram o "veio por" */
+const ORIGEM_PARA_VEIO = { instagram: 'instagram', friend: 'indicacao', whatsapp: 'status', agency: 'agencia', site: 'google' };
+const _nomeN = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+const _dig8 = (v) => String(v || '').replace(/\D/g, '').slice(-8);
+const Cadastro = {
+  all() { return DB.clientes || []; },
+  get(id) { return (DB.clientes || []).find(c => c.id === id) || null; },
+  /* o mesmo cliente: WhatsApp (os 8 ultimos digitos), e-mail, ou o nome igual
+     quando nenhum dos dois tem contato que diga o contrario */
+  acha(d) {
+    const l = Cadastro.all(), w = _dig8(d.whats), em = String(d.email || '').trim().toLowerCase(), n = _nomeN(d.nome);
+    if (w.length >= 8) { const c = l.find(x => _dig8(x.whats) === w); if (c) return c; }
+    if (em) { const c = l.find(x => String(x.email || '').toLowerCase() === em); if (c) return c; }
+    if (n) return l.find(x => _nomeN(x.nome) === n && (!w || !_dig8(x.whats)) && (!em || !x.email)) || null;
+    return null;
+  },
+  /* cria ou completa. Nunca apaga um dado que ja existe com um vazio. */
+  garante(d) {
+    DB.clientes = DB.clientes || [];
+    const campos = ['nome', 'whats', 'email', 'insta', 'nasc', 'pais', 'idioma', 'veioPor', 'indicadoPor', 'indicadoNome', 'parceiroId', 'grupoDe', 'obs'];
+    let c = Cadastro.acha(d);
+    if (!c) {
+      if (!String(d.nome || '').trim()) return null;
+      c = { id: uid(), criado: d.criado || new Date().toISOString() };
+      for (const k of campos) c[k] = String(d[k] || '').trim();
+      DB.clientes.push(c);
+    } else {
+      for (const k of campos) if (!String(c[k] || '').trim() && String(d[k] || '').trim()) c[k] = String(d[k]).trim();
+      if (d.criado && (!c.criado || d.criado < c.criado)) c.criado = d.criado;
+    }
+    c.atualizado = new Date().toISOString();
+    return c;
+  },
+  salva(id, d) {
+    const c = Cadastro.get(id); if (!c) return null;
+    for (const k of Object.keys(d)) c[k] = typeof d[k] === 'string' ? d[k].trim() : d[k];
+    if (c.indicadoPor && !c.indicadoNome) c.indicadoNome = (Cadastro.get(c.indicadoPor) || {}).nome || '';
+    c.atualizado = new Date().toISOString(); _opSave(); return c;
+  },
+  novo(d) { const c = Cadastro.garante(d); _opSave(); return c; },
+  remove(id) { DB.clientes = Cadastro.all().filter(c => c.id !== id); _opSave(); },
+  /* as reservas desta pessoa: as que ela fez e as em que veio junto */
+  reservas(c) {
+    return DB.bookings.filter(b => b.clienteId === c.id || (b.group || []).some(g => g.clienteId === c.id))
+      .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+  },
+  indicou(c) { return Cadastro.all().filter(x => x.indicadoPor === c.id); },
+  trouxe(c) { return Cadastro.all().filter(x => x.grupoDe === c.id); },
+  /* resumo para o dashboard e a ficha */
+  resumo(c, hoje) {
+    hoje = hoje || isoToday();
+    const bs = Cadastro.reservas(c).filter(b => b.status !== 'cancelled');
+    const dele = bs.filter(b => b.clienteId === c.id);
+    const prox = bs.filter(b => b.date >= hoje).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0] || null;
+    return { reservas: bs.length, gasto: dele.reduce((s, b) => s + Bookings.paid(b), 0), deve: dele.filter(b => Op.restoPara(b) === 'ingrid').reduce((s, b) => s + Bookings.due(b), 0),
+             ultima: bs.map(b => b.date).filter(d => d < hoje).sort().pop() || '', prox, indicou: Cadastro.indicou(c).length, trouxe: Cadastro.trouxe(c).length };
+  },
+};
+/* NA HORA DA RESERVA: quem reservou e cada um do grupo viram cadastro, e a
+   reserva guarda o id de cada um. Chamado pelo store.js (create/criarManual). */
+function cadastroDaReserva(b) {
+  if (!b || !b.name) return null;
+  const parc = b.coupon ? (DB.parceiros || []).find(p => String(p.cupom || '').toUpperCase() === String(b.coupon).toUpperCase()) : null;
+  let veio = b.veioPor || (parc ? (parc.tipo === 'agencia' ? 'agencia' : 'influencer') : ORIGEM_PARA_VEIO[b.origin] || '');
+  let ind = null;
+  if (b.indicadoPor) {
+    ind = Cadastro.acha({ nome: b.indicadoPor, whats: b.indicadoPor }) || null;
+    if (!veio) veio = 'indicacao';
+  }
+  const ja = Cadastro.acha({ nome: b.name, whats: b.whats, email: b.email });
+  const c = Cadastro.garante({ nome: b.name, whats: b.whats, email: b.email, insta: b.insta, idioma: b.lang, nasc: b.nasc,
+    veioPor: ja && Cadastro.reservas(ja).length ? '' : veio, indicadoPor: ind ? ind.id : '', indicadoNome: ind ? ind.nome : (b.indicadoPor || ''),
+    parceiroId: parc ? parc.id : '', criado: String(b.createdAt || '').slice(0, 10) ? b.createdAt : '' });
+  if (!c) return null;
+  b.clienteId = c.id;
+  for (const g of b.group || []) {
+    if (!g || !String(g.nome || '').trim()) continue;
+    const gc = Cadastro.garante({ nome: g.nome, whats: g.whats, nasc: g.nasc, veioPor: 'junto', grupoDe: c.id, criado: b.createdAt });
+    if (gc) g.clienteId = gc.id;
+  }
+  return c;
+}
+
+/* ---------- PARCERIAS E CUPONS DE INFLUENCER ----------
+   Influencer, agencia ou parceiro com cupom proprio. O app conta quantas
+   reservas vieram por ele, quanto faturou e a comissao que ela deve.
+     DB.parceiros [{id, nome, tipo, contato, cupom, desconto, comissao, obs, pagamentos:[{valor, data}]}] */
+const TIPOS_PARCEIRO = [['influencer', 'Influencer'], ['agencia', 'Agência'], ['parceiro', 'Parceiro (hotel, loja…)']];
+const Parceiros = {
+  all() { return DB.parceiros || []; },
+  get(id) { return (DB.parceiros || []).find(p => p.id === id) || null; },
+  salva(d) {
+    DB.parceiros = DB.parceiros || [];
+    const nome = String(d.nome || '').trim(); if (!nome) return { erro: 'falta o nome' };
+    const cupom = String(d.cupom || '').toUpperCase().replace(/\s+/g, '');
+    let p = d.id && Parceiros.get(d.id);
+    if (cupom && Parceiros.all().some(x => x.cupom === cupom && x !== p)) return { erro: 'já existe um parceiro com esse cupom' };
+    const dados = { nome, tipo: TIPOS_PARCEIRO.some(t => t[0] === d.tipo) ? d.tipo : 'influencer', contato: String(d.contato || '').trim(),
+      cupom, desconto: Math.max(0, Math.min(100, +d.desconto || 0)), comissao: Math.max(0, Math.min(100, +d.comissao || 0)), obs: String(d.obs || '').trim() };
+    if (p) {
+      const antigo = p.cupom;
+      Object.assign(p, dados);
+      if (antigo && antigo !== cupom) DB.coupons = DB.coupons.filter(c => c.code !== antigo);
+    } else { p = { id: uid(), criado: isoToday(), pagamentos: [], ...dados }; DB.parceiros.push(p); }
+    /* o cupom de verdade, o que o cliente digita na reserva */
+    if (cupom) {
+      let c = DB.coupons.find(x => x.code === cupom);
+      if (!c) { c = { code: cupom, pct: dados.desconto, until: '2099-12-31', oncePerPerson: false, uses: [] }; DB.coupons.push(c); }
+      c.pct = dados.desconto; c.parceiroId = p.id;
+    }
+    _opSave(); return p;
+  },
+  remove(id) { const p = Parceiros.get(id); if (!p) return; DB.parceiros = Parceiros.all().filter(x => x.id !== id); if (p.cupom) DB.coupons = DB.coupons.filter(c => c.code !== p.cupom); _opSave(); },
+  reservas(p) {
+    return DB.bookings.filter(b => b.status !== 'cancelled' && ((p.cupom && String(b.coupon || '').toUpperCase() === p.cupom) || b.parceiroId === p.id))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  },
+  /* comissao sobre o valor dos servicos (total), nao sobre o que ja entrou */
+  conta(p) {
+    const bs = Parceiros.reservas(p);
+    const faturado = bs.reduce((s, b) => s + (+b.total || 0), 0);
+    const devida = Math.round(faturado * (+p.comissao || 0)) / 100;
+    const paga = (p.pagamentos || []).reduce((s, x) => s + (+x.valor || 0), 0);
+    const clientes = new Set(bs.map(b => b.clienteId || chaveCliente(b))).size;
+    return { reservas: bs.length, clientes, faturado, devida, paga, saldo: Math.round((devida - paga) * 100) / 100 };
+  },
+  paga(id, valor, data) { const p = Parceiros.get(id); if (!p || !(+valor > 0)) return null; p.pagamentos = p.pagamentos || []; p.pagamentos.push({ valor: +valor, data: data || isoToday() }); _opSave(); return p; },
+};
+
+/* ---------- idade, servico escrito, comprovante, interesse ---------- */
+/* "12/03/1985" ou "1985-03-12" -> anos completos hoje */
+function idadeDe(nasc, hoje) {
+  const s = String(nasc || '').trim(); let d, m, y;
+  let x = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if (x) { d = +x[1]; m = +x[2]; y = +x[3]; }
+  else if ((x = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) { y = +x[1]; m = +x[2]; d = +x[3]; } else return null;
+  const h = new Date((hoje || isoToday()) + 'T12:00:00');
+  let a = h.getFullYear() - y; if (h.getMonth() + 1 < m || (h.getMonth() + 1 === m && h.getDate() < d)) a--;
+  return a >= 0 && a < 120 ? a : null;
+}
+function aniversarioNoMes(nasc, mes) { const s = String(nasc || ''); const x = s.match(/^(\d{1,2})\/(\d{1,2})\//) || s.match(/^\d{4}-(\d{2})-(\d{2})$/); if (!x) return null; return s.includes('/') ? (+x[2] === mes ? +x[1] : null) : (+x[1] === mes ? +x[2] : null); }
+/* quem vai no servico: o comprador (se vai) e o grupo */
+function participantesDe(b) {
+  const l = [];
+  if (b.compradorVai !== false) l.push({ nome: b.name, nasc: b.nasc || '', clienteId: b.clienteId || '', comprador: true });
+  for (const g of b.group || []) if (g && g.nome) l.push({ nome: g.nome, nasc: g.nasc || '', clienteId: g.clienteId || '' });
+  return l;
+}
+/* a planilha dela descreve o servico com as proprias palavras ("MXP TP 824 x
+   Ibis Styles Milano Centro"); quando existe, e isso que aparece */
+function nomeDoServico(b) { if (b.servicoTxt) return b.servicoTxt; const x = typeof Tours !== 'undefined' && Tours.get(b.tourId); return x ? (x.name.pt || '') : '?'; }
+/* o comprovante do pagamento: o link do arquivo (Drive, foto) */
+function comprovante(bookingId, idx, url) {
+  const b = Bookings.get(bookingId); if (!b || !b.payments[idx]) return null;
+  const u = String(url || '').trim(); if (u && !/^https?:\/\//i.test(u)) return { erro: 'o link precisa começar com http' };
+  b.payments[idx].comprovante = u; _opSaveBooking(b); return b.payments[idx];
+}
+/* quantas vezes abriram cada passeio e quantas chegaram a preencher os dados.
+   So conta no aparelho de quem visita; com o banco ligado, vai para a nuvem. */
+const Interesse = {
+  conta(tourId, tipo) {
+    if (!tourId || (tipo !== 'visitas' && tipo !== 'quase')) return;
+    DB.interesse = DB.interesse || {};
+    const i = DB.interesse[tourId] = DB.interesse[tourId] || {}, c = i[tipo] = i[tipo] || {}, h = isoToday();
+    c[h] = (+c[h] || 0) + 1;
+    const dias = Object.keys(c).sort(); if (dias.length > 180) for (const d of dias.slice(0, dias.length - 180)) delete c[d];
+    _opSave();
+  },
+  soma(tourId, tipo, de, ate) { const c = ((DB.interesse || {})[tourId] || {})[tipo] || {}; return Object.entries(c).reduce((n, [d, v]) => n + (d >= de && d <= ate ? (+v || 0) : 0), 0); },
+  /* por passeio: visitas, quase reservaram, reservas feitas no periodo, conversao */
+  funil(de, ate) {
+    return Tours.all().map(x => {
+      const bs = DB.bookings.filter(b => b.tourId === x.id && b.status !== 'cancelled' && String(b.createdAt || '').slice(0, 10) >= de && String(b.createdAt || '').slice(0, 10) <= ate);
+      const visitas = Interesse.soma(x.id, 'visitas', de, ate), quase = Interesse.soma(x.id, 'quase', de, ate);
+      const pelo = bs.filter(b => b.origin === 'site').length;
+      return { tourId: x.id, nome: x.name.pt, visitas, quase, reservas: bs.length, peloSite: pelo, valor: bs.reduce((s, b) => s + (+b.total || 0), 0),
+               conv: visitas ? pelo / visitas : null };
+    }).filter(r => r.visitas || r.reservas).sort((a, b) => b.visitas - a.visitas || b.reservas - a.reservas);
+  },
+};
+
+/* ---------- IMPORTAR A PLANILHA DELA (o CRM) ----------
+   Ela baixa a planilha como CSV (Arquivo > Fazer download > .csv) e o app le
+   as colunas pelo NOME do cabecalho, em qualquer ordem: Data, veio por,
+   Whatsapp, Nome, Data Servico, Hora, PAX, Servico pedido, Obs, Cliente Paga,
+   Ingrid Paga, Cidade. Cada linha vira uma reserva, cada nome um cadastro. */
+function lerCsv(txt) {
+  const linhas = []; let campo = '', linha = [], aspas = false;
+  const t = String(txt || '').replace(/^﻿/, '');
+  const sep = (t.split('\n')[0].match(/;/g) || []).length > (t.split('\n')[0].match(/,/g) || []).length ? ';' : ',';
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i];
+    if (aspas) { if (ch === '"' && t[i + 1] === '"') { campo += '"'; i++; } else if (ch === '"') aspas = false; else campo += ch; continue; }
+    if (ch === '"') aspas = true; else if (ch === sep) { linha.push(campo); campo = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && t[i + 1] === '\n') i++; linha.push(campo); linhas.push(linha); linha = []; campo = ''; }
+    else campo += ch;
+  }
+  if (campo || linha.length) { linha.push(campo); linhas.push(linha); }
+  return linhas.filter(l => l.some(c => String(c).trim()));
+}
+function _dataPlanilha(v) {
+  const m = String(v || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if (!m) return '';
+  const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+  return `${y}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+}
+function _valorPlanilha(v) {
+  let s = String(v || '').replace(/[€$R\s]/g, ''); if (!s) return 0;
+  if (/,\d{1,2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.'); else s = s.replace(/,/g, '');
+  return +s || 0;
+}
+const COLS_CRM = {
+  data: /^data$/, veio: /veio/, whats: /whats|telefone|fone/, nome: /^nome/, dataServ: /data ?servi/, hora: /^hora/, pax: /^pax|pessoas/,
+  servico: /servi[cç]o/, obs: /^obs/, clientePaga: /cliente ?paga|total/, ingridPaga: /ingrid ?paga|custo/, cidade: /cidade|hotel/,
+};
+function importarPlanilha(txt, simular) {
+  const L = lerCsv(txt);
+  const n = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const hi = L.findIndex(l => l.some(c => /^nome/.test(n(c))) && l.some(c => /servi/.test(n(c))));
+  if (hi < 0) return { erro: 'não achei o cabeçalho (preciso das colunas Nome e Serviço pedido)' };
+  const cab = L[hi].map(n), col = {};
+  for (const [k, re] of Object.entries(COLS_CRM)) {
+    const j = cab.findIndex((c, idx) => re.test(c) && !Object.values(col).includes(idx) && !(k === 'data' && /servi/.test(c)) && !(k === 'servico' && /data/.test(c)));
+    if (j >= 0) col[k] = j;
+  }
+  if (col.nome === undefined || col.servico === undefined || col.dataServ === undefined) return { erro: 'faltam colunas: preciso de Nome, Data Serviço e Serviço pedido' };
+  const out = [], pulou = [];
+  for (const l of L.slice(hi + 1)) {
+    const get = (k) => col[k] === undefined ? '' : String(l[col[k]] || '').trim();
+    const nome = get('nome'), data = _dataPlanilha(get('dataServ'));
+    if (!nome || nome === '-' || !data) { if (nome && nome !== '-') pulou.push(nome); continue; }
+    const serv = get('servico').replace(/\s+/g, ' ');
+    const ehTransfer = /\b(FCO|CIA|MXP|LIN|BGY|VCE|NAP|FLR|PSA)\b|transfer|aeroporto|porto|esta[cç][aã]o| x /i.test(serv);
+    out.push({ nome, whats: get('whats'), veio: get('veio'), criado: _dataPlanilha(get('data')), data, hora: (get('hora').match(/\d{1,2}:\d{2}/) || [''])[0] || '09:00',
+      pax: parseInt(get('pax'), 10) || 1, servico: serv, obs: get('obs'), total: _valorPlanilha(get('clientePaga')), custo: _valorPlanilha(get('ingridPaga')),
+      cidade: get('cidade'), tipo: ehTransfer ? 'transfer' : 'servico' });
+  }
+  if (simular) return { linhas: out, pulou, clientes: new Set(out.map(r => _dig8(r.whats) || _nomeN(r.nome))).size };
+  /* os dois servicos "avulsos": o que vem da planilha nao cabe no catalogo */
+  const garanteAvulso = (tipo) => {
+    const id = tipo === 'transfer' ? 'avulso-transfer' : 'avulso-servico';
+    if (!Tours.get(id)) DB.tours.push({ id, type: tipo === 'transfer' ? 'transfer' : 'walk', region: tipo === 'transfer' ? 'transfer' : 'roma',
+      name: { pt: tipo === 'transfer' ? 'Transfer (da planilha)' : 'Serviço (da planilha)', en: tipo === 'transfer' ? 'Transfer' : 'Service' },
+      desc: { pt: '', en: '' }, meeting: '', price: 0, priceMode: 'session', min: 1, max: 60, payPolicy: 'sinal', status: 'draft', order: 999, photo: 'capa.jpg' });
+    return id;
+  };
+  const VEIO = [[/status/i, 'status'], [/insta/i, 'instagram'], [/indic|amig|filh|m[aã]e|pai|irm/i, 'indicacao'], [/ag[eê]ncia|rpv|parceir/i, 'agencia'], [/google|site/i, 'google'], [/influ|cupom/i, 'influencer']];
+  let criadas = 0;
+  for (const r of out) {
+    const ja = DB.bookings.some(b => b.date === r.data && _nomeN(b.name) === _nomeN(r.nome) && (b.servicoTxt || '') === r.servico);
+    if (ja) continue;
+    const b = Bookings.criarManual({ tourId: garanteAvulso(r.tipo), date: r.data, time: r.hora, name: r.nome, whats: r.whats, pax: r.pax, total: r.total, recebido: 0,
+      veioPor: (VEIO.find(([re]) => re.test(r.veio)) || [0, r.veio ? 'outro' : ''])[1], indicadoPor: /indic|filh|m[aã]e|reservou/i.test(r.veio) ? r.veio : '' });
+    b.servicoTxt = r.servico; b.obsOp = [r.obs, r.cidade].filter(Boolean).join(' · '); b.custo = r.custo; b.origin = 'planilha'; b.policy = 'sinal';
+    if (r.criado) b.createdAt = r.criado + 'T10:00:00.000Z';
+    if (r.veio && !b.indicadoPor) { const c = Cadastro.get(b.clienteId); if (c && !c.obs) c.obs = 'veio por: ' + r.veio; }
+    criadas++;
+  }
+  _opSave();
+  return { ok: true, criadas, repetidas: out.length - criadas, pulou };
+}
+
+/* ---------- O CRM DELA ----------
+   A planilha "CRM" e a mais importante da vida dela. Uma linha por servico,
+   com as colunas dela e as etapas das abas: CRM (enviado) -> CONFIRMADO ->
+   AVALIAR (o servico passou: pedir a avaliacao) -> FINALIZADO, ou PERDIDO
+   com o motivo. Aqui as linhas saem do que o app ja sabe: orcamentos em
+   aberto e reservas. */
+const CRM_ETAPAS = [['aberto', 'CRM'], ['confirmado', 'Confirmado'], ['avaliar', '⭐ Avaliar'], ['finalizado', '💚 Finalizado'], ['perdido', 'Perdido']];
+const MOTIVOS_PERDA = ['Preço', 'Data não serve', 'Fechou com outro', 'Não respondeu', 'Desistiu da viagem', 'Outro'];
+function etapaDaReserva(b, hoje) {
+  hoje = hoje || isoToday();
+  if (b.status === 'cancelled') return 'perdido';
+  if (b.date >= hoje) return 'confirmado';
+  return b.avaliacaoEm ? 'finalizado' : 'avaliar';
+}
+function crmLinhas(hoje) {
+  hoje = hoje || isoToday();
+  const out = [];
+  const contas = (b) => [...new Set((b.payments || []).map(p => p.conta ? Contas.nome(p.conta) : p.method).filter(Boolean))].join(', ');
+  /* o "Total" e o "Sinal" da planilha sao do PEDIDO inteiro (a Jo: 2002) */
+  const pedidoDe = (b) => b.orcamentoId || ((b.clienteId || chaveCliente(b)) + '|' + String(b.createdAt || '').slice(0, 10));
+  const porPedido = {};
+  for (const b of DB.bookings) { if (b.status === 'cancelled') continue; const k = pedidoDe(b); (porPedido[k] = porPedido[k] || []).push(b); }
+  for (const b of DB.bookings) {
+    const c = b.clienteId ? Cadastro.get(b.clienteId) : null, par = b.parceiroId ? Parceiros.get(b.parceiroId) : (b.coupon ? Parceiros.all().find(x => x.cupom === String(b.coupon).toUpperCase()) : null);
+    const irmas = porPedido[pedidoDe(b)] || [b];
+    const pagos = (b.payments || []).filter(p => p.conta !== CONTA_PRESTADOR);
+    out.push({ tipo: 'reserva', id: b.id, b, pedido: pedidoDe(b), etapa: etapaDaReserva(b, hoje),
+      dataPedido: String(b.createdAt || '').slice(0, 10), veio: c ? veioPorNome(c.veioPor) + (c.indicadoNome ? ' — ' + c.indicadoNome : '') : '', whats: b.whats || '', nome: b.name,
+      dataServ: b.date, hora: b.time, pax: b.pax, servico: nomeDoServico(b) + (b.voo ? ' · ' + b.voo : ''), obs: b.obsOp || '',
+      clientePaga: +b.total || 0, ingridPaga: +b.custo || 0, cidade: b.destino || b.origem || '', parceiro: par ? par.nome : '',
+      totalPedido: irmas.reduce((s2, x) => s2 + (+x.total || 0), 0), sinal: pagos.reduce((s2, p) => s2 + p.amount, 0),
+      forma: contas(b), emReal: pagos.reduce((s2, p) => s2 + (+p.reais || 0), 0),
+      comVendor: par ? Math.round((+b.total || 0) * (+par.comissao || 0)) / 100 : 0, motivo: b.motivoPerda || '',
+      repescagens: (b.orcamentoId && (Orc.get(b.orcamentoId) || {}).repescagens) || [], links: b.links || [] });
+  }
+  for (const o of DB.orcamentos || []) {
+    if (o.status === 'fechado') continue;
+    const etapa = o.status === 'perdido' ? 'perdido' : 'aberto';
+    const itens = o.itens.length ? o.itens : [{ desc: o.resumo || '(sem serviços ainda)', data: (o.datas || [])[0] || '', hora: '', pax: o.pax || 0, valor: 0 }];
+    for (const it of itens) out.push({ tipo: 'orcamento', id: o.id, o, pedido: o.id, etapa, status: o.status,
+      dataPedido: String(o.criado || '').slice(0, 10), veio: ORIGEM_ORC_TXT[o.origem] || o.origem, whats: o.cliente.whats || '', nome: o.cliente.nome || '',
+      dataServ: it.data || '', hora: it.hora || '', pax: it.pax || '', servico: it.desc + (it.voo ? ' · ' + it.voo : ''), obs: it.obs || '',
+      clientePaga: +it.valor || 0, ingridPaga: +it.custo || 0, cidade: '', parceiro: '', totalPedido: Orc.total(o), sinal: 0, forma: '', emReal: 0, comVendor: 0, motivo: o.motivoPerda || '',
+      repescagens: o.repescagens || [], links: o.links || [] });
+  }
+  return out.sort((a, b2) => String(a.dataServ || '9999').localeCompare(String(b2.dataServ || '9999')) || String(a.hora).localeCompare(String(b2.hora)));
+}
+const ORIGEM_ORC_TXT = { whats: 'WhatsApp', site: 'Meu pedido (app)', roteiro: 'Monte seu roteiro', manual: '' };
+/* pedir a avaliacao: a mensagem sai pronta; ela manda. Depois disso a linha vai para Finalizado */
+function msgAvaliacao(b) {
+  const link = (DB.settings && DB.settings.linkAvaliacao) || '';
+  return `Oi ${String(b.name || '').split(' ')[0]}! Tudo certo com ${nomeDoServico(b)}? Foi um prazer receber vocês. ` +
+    `Se puder, deixe sua avaliação — ajuda muito o meu trabalho${link ? ': ' + link : '.'} Obrigada! ${typeof guiaNome === 'function' ? guiaNome() : ''}`;
+}
+function marcaAvaliacao(bookingId) { const b = Bookings.get(bookingId); if (!b) return; b.avaliacaoEm = isoToday(); _opSaveBooking(b); }
+function perdeOrcamento(id, motivo) { const o = Orc.get(id); if (!o) return; o.status = 'perdido'; o.motivoPerda = motivo || 'Outro'; _opSave(); }
+/* a planilha de volta para o Google Planilhas, com as colunas dela */
+const CRM_COLUNAS = ['Data', 'veio por', 'Whatsapp', 'Nome', 'Data Serviço', 'Hora', 'PAX', 'Serviço pedido', 'Obs', 'Cliente Paga', 'Ingrid Paga', 'Cidade', 'Parceiro', 'Total', 'Sinal', 'forma Pagamento', 'Em Real', 'Comissao Vendor', 'Status', 'Motivo da perda'];
+function crmCsv(linhas) {
+  const d = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) : '';
+  const et = (e) => (CRM_ETAPAS.find(x => x[0] === e) || [0, e])[1].replace(/^[^A-Za-zÀ-ú]+/, '');
+  const q = (v) => { const t = String(v ?? ''); return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  return [CRM_COLUNAS, ...linhas.map(r => [d(r.dataPedido), r.veio, r.whats, r.nome, d(r.dataServ), r.hora, r.pax, r.servico, r.obs, r.clientePaga || '', r.ingridPaga || '',
+    r.cidade, r.parceiro, r.totalPedido || '', r.sinal || '', r.forma, r.emReal || '', r.comVendor || '', r.tipo === 'orcamento' && r.status === 'enviado' ? 'Enviado' : et(r.etapa), r.motivo])]
+    .map(l => l.map(q).join(';')).join('\n');
+}
 
 /* ---------- PAINEL DE NUMEROS (a aba Relatorios) ----------
    Cada marcador compara com o periodo ANTERIOR de mesmo tamanho: "este mes
@@ -1254,8 +1672,9 @@ const Painel = {
 if (typeof STR !== 'undefined') {
   Object.assign(STR, {
     admGuias:    { pt: 'Guias', en: 'Guides' },
-    admConsulta: { pt: 'Sob consulta', en: 'Quotes' },
+    admConsulta: { pt: 'CRM', en: 'CRM' },
     admTarefas:  { pt: 'Tarefas', en: 'Tasks' },
+    admClients:  { pt: 'Clientes · CRM', en: 'Clients · CRM' },
     admMoney:    { pt: 'Contabilidade', en: 'Accounting' },
   });
 }
