@@ -11,6 +11,13 @@ var APP_CONFIG = {
   supabaseUrl: '',   /* ex.: 'https://SEU-PROJETO.supabase.co' */
   supabaseKey: '',   /* a chave "publishable" do projeto; nunca a secreta */
 
+  /* Cofre (repositorio guia-cofre, no Supabase do Eugenio): o assistente
+     "ao vivo" usa o Claude de verdade por ali, com limite por dia, sem a
+     Ingrid colar chave nenhuma. Vazio = o assistente roda so com os pedidos
+     prontos (modo demonstracao). Na entrega, troca pela chave dela. */
+  cofre: 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre',
+  clienteCofre: 'ingrid',
+
   guia: {
     nome: 'Ingrid',
     negocio: 'EmRoma',

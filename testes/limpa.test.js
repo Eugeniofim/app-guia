@@ -72,7 +72,9 @@ for (const arq of arquivos(RAIZ)) {
   const txt = buf.toString('latin1'), utf = buf.toString('utf8').toLowerCase();
   for (const [nome, s] of DELA)
     if (txt.includes(s) || utf.includes(s.toLowerCase())) ok(nome + ' em ' + rel, false, 'apague: e dela');
-  if (rel === 'config.js') continue;
+  /* o config.js de cada app (a raiz e as pastas de cliente, como ingrid/) e o
+     lugar certo do endereco; o resto do codigo nao pode conhecer banco nenhum */
+  if (path.basename(rel) === 'config.js') continue;
   for (const [nome, re] of GERAIS)
     if (re.test(txt)) ok(nome + ' em ' + rel, false, 'banco gravado no codigo; vai em config.js');
 }
