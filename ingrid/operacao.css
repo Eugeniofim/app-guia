@@ -385,3 +385,9 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .tp-ponto{display:grid;grid-template-columns:20px 1fr 20px;gap:8px;align-items:center;padding:6px 10px;border-radius:var(--r-sm);background:var(--surface-2)}
 .doc-ponto-sel{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .doc-ponto-sel select{padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--line-2);max-width:100%}
+
+.fun-tab-wrap{overflow-x:auto}
+.fun-bar{position:relative;display:block;height:12px;min-width:140px;border-radius:3px;overflow:hidden}
+.fun-bar i{position:absolute;left:0;top:0;bottom:0;display:block;background:var(--cv-mute);border-radius:0 3px 3px 0}
+.fun-bar i.q{background:var(--cv-soft)}
+.fun-bar i.r{background:var(--cv-main)}

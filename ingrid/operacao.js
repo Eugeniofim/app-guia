@@ -653,6 +653,7 @@ function opGarante() {
   DB.pontos = DB.pontos || [];
   const demo = DB.demo && !(typeof temNuvem === 'function' && temNuvem());
   if (demo && !DB.pontosSeed) { opSemeiaPontos(); DB.pontosSeed = 1; }
+  if (demo && !DB.interesseSeed) { opSemeiaInteresse(); DB.interesseSeed = 1; }
   if (demo && (+DB.opSeed || 0) < OP_SEED) {
     opSemeiaDemo();
     DB.opSeed = OP_SEED;
@@ -1079,6 +1080,16 @@ function icsTarefa(t) {
     'BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(t.texto), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR');
   return linhas.join('\r\n');
 }
+function opSemeiaInteresse() {
+  const hoje = isoToday(), ids = ['vaticano-3h', 'roma-antiga-3h', 'transfer-aeroporto', 'bv-pompeia', 'barroca-3h', 'noturno-3h', 'bv-amalfi', 'papal-convites'];
+  const peso = [3, 3, 4, 2, 2, 1, 2, 1];
+  DB.interesse = DB.interesse || {};
+  ids.forEach((id, k) => {
+    if (!Tours.get(id)) return;
+    const i = DB.interesse[id] = { visitas: {}, quase: {} };
+    for (let d = 0; d < 60; d++) { const dia = addDays(hoje, -d), v = Math.max(0, Math.round(peso[k] * (0.6 + ((d * 7 + k * 3) % 10) / 12))); if (v) { i.visitas[dia] = v; if ((d + k) % 3 === 0) i.quase[dia] = 1; } }
+  });
+}
 function opSemeiaPontos() {
   const P = (nome, endereco, instrucoes) => Pontos.salva({ nome, endereco, instrucoes });
   const vat = P('Museus do Vaticano — entrada', 'Viale Vaticano, 100, Roma', 'Em frente à entrada dos Museus. A guia estará com uma plaquinha EmRoma. Chegue 15 minutos antes.');
@@ -1385,14 +1396,16 @@ const Interesse = {
     _opSave();
   },
   soma(tourId, tipo, de, ate) { const c = ((DB.interesse || {})[tourId] || {})[tipo] || {}; return Object.entries(c).reduce((n, [d, v]) => n + (d >= de && d <= ate ? (+v || 0) : 0), 0); },
-  /* por passeio: visitas, quase reservaram, reservas feitas no periodo, conversao */
+  /* por passeio: visitas, quase reservaram, reservas feitas no periodo, conversao.
+     Conversao = reservas (por qualquer caminho) / aberturas: quase todo mundo ve
+     o passeio no app e fecha pelo WhatsApp, entao so "pelo site" enganaria. */
   funil(de, ate) {
     return Tours.all().map(x => {
       const bs = DB.bookings.filter(b => b.tourId === x.id && b.status !== 'cancelled' && String(b.createdAt || '').slice(0, 10) >= de && String(b.createdAt || '').slice(0, 10) <= ate);
       const visitas = Interesse.soma(x.id, 'visitas', de, ate), quase = Interesse.soma(x.id, 'quase', de, ate);
       const pelo = bs.filter(b => b.origin === 'site').length;
       return { tourId: x.id, nome: x.name.pt, visitas, quase, reservas: bs.length, peloSite: pelo, valor: bs.reduce((s, b) => s + (+b.total || 0), 0),
-               conv: visitas ? pelo / visitas : null };
+               conv: visitas ? bs.length / visitas : null };
     }).filter(r => r.visitas || r.reservas).sort((a, b) => b.visitas - a.visitas || b.reservas - a.reservas);
   },
 };
@@ -1739,9 +1752,9 @@ const Painel = {
 if (typeof STR !== 'undefined') {
   Object.assign(STR, {
     admGuias:    { pt: 'Guias', en: 'Guides' },
-    admConsulta: { pt: 'CRM', en: 'CRM' },
+    admConsulta: { pt: 'Orçamentos', en: 'Quotes' },
     admTarefas:  { pt: 'Tarefas', en: 'Tasks' },
-    admClients:  { pt: 'Clientes · CRM', en: 'Clients · CRM' },
+    admClients:  { pt: 'Clientes', en: 'Clients' },
     admCoupons:  { pt: 'Cupons e parcerias', en: 'Coupons & partners' },
     admMoney:    { pt: 'Contabilidade', en: 'Accounting' },
   });

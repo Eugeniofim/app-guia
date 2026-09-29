@@ -905,6 +905,12 @@ function viewTour(id) {
   if (!x) return go('/tours');
   const S = viewTour._s = { tour: x, date: null, time: null, cap: 0, pax: x.priceMode === 'session' ? 1 : 2, adultos: x.priceMode === 'session' ? 1 : 2, criancas: 0, idades: [], opcao: 0, noCentro: null, step: 1, coupon: null, discount: 0, policy: x.payPolicy === 'split' ? 'split' : 'full' };
 
+  /* quantas vezes abriram este passeio (o relatorio de cliques e conversao).
+     Quem mexe no painel nao conta: so visitante. */
+  if (typeof Interesse !== 'undefined' && !(typeof isLoggedIn === 'function' && isLoggedIn()) && !sessionStorage.getItem('vi_viu_' + x.id)) {
+    try { sessionStorage.setItem('vi_viu_' + x.id, '1'); } catch (e) {}
+    Interesse.conta(x.id, 'visitas');
+  }
   const stops = Array.isArray(x.stops) ? x.stops : [];
   const L = a => (a && (a[LANG] || a.pt)) || '';
   const lista = a => (Array.isArray(a) ? a : (a && (a[LANG] || a.pt)) || []);
@@ -1305,6 +1311,8 @@ function renderBook() {
   }
 
   if (S.step === 3) {
+    /* chegou a preencher os dados: "quase reservou" (uma vez por visita) */
+    if (typeof Interesse !== 'undefined' && !S.contouQuase) { S.contouQuase = true; Interesse.conta(x.id, 'quase'); }
     const half = Math.round(total / 2);
     const splitAllowed = x.payPolicy === 'split';
     book.innerHTML = `
@@ -1395,6 +1403,7 @@ function renderBook() {
    chegou pedindo orcamento, quem faz, e so depois o resto. */
 const ADM_TABS = [
   ['today',    'admToday'],
+  ['consulta', 'admConsulta'],
   ['tarefas',  'admTarefas'],
   ['guias',    'admGuias'],
   ['agenda',   'admAgenda'],

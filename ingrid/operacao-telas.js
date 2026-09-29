@@ -293,7 +293,7 @@ function admHoje(arg) {
   Coach.start([
     { sel: '#hjBusca',     audio: 'adm-5', txt: { pt: 'Emergência: digite um pedaço do nome, o voo ou o telefone e o serviço aparece na hora.', en: 'Emergency: type part of the name, the flight or the phone and the service shows up at once.' } },
     { sel: '#nb-guias',    audio: 'adm-6', txt: { pt: 'Suas guias e motoristas: quem está livre, por preferência, e o WhatsApp pronto para perguntar.', en: 'Your guides and drivers: who is free, by preference, with the WhatsApp message ready.' } },
-    { sel: '#nb-clients', audio: 'adm-7', txt: { pt: 'Pedidos sob consulta: o app deixa o orçamento pronto, você confere e manda.', en: 'Quote requests: the app drafts the quote, you check and send it.' } },
+    { sel: '#nb-consulta', audio: 'adm-7', txt: { pt: 'Pedidos sob consulta: o app deixa o orçamento pronto, você confere e manda.', en: 'Quote requests: the app drafts the quote, you check and send it.' } },
     { sel: '#nb-money',    audio: 'adm-8', txt: { pt: 'Contabilidade: cada conta no seu lado — Brasil para um contador, Europa para o outro.', en: 'Accounting: each account on its side — Brazil for one accountant, Europe for the other.' } },
   ], 'tutorialAdm');
 }
@@ -497,7 +497,7 @@ function admGuias(arg) {
 function cliTopo(qual) {
   return `<div class="cli-seg" role="tablist">
     <a class="cli-seg-b ${qual === 'clientes' ? 'on' : ''}" href="#/adm/clients" role="tab">👤 Clientes</a>
-    <a class="cli-seg-b ${qual === 'crm' ? 'on' : ''}" href="#/adm/consulta" role="tab">📋 CRM · pedidos</a></div>`;
+    <a class="cli-seg-b ${qual === 'crm' ? 'on' : ''}" href="#/adm/consulta" role="tab">📋 Orçamentos · CRM</a></div>`;
 }
 /* acha o cadastro pela rota: "c:<id>", a chave antiga (e-mail/WhatsApp/nome) ou "g:<nome>" */
 function cadastroDaRota(arg) {
@@ -924,8 +924,8 @@ function admConsulta(arg) {
         ${crmLinksTd(r)}</tr>`; }).join('') || `<tr><td colspan="29" class="why">Nada nesta etapa.</td></tr>`}
     </tbody></table></div>`;
 
-  admShell('clients', `${cliTopo('crm')}
-    <div class="pagehead"><h1 class="pageh">CRM</h1>
+  admShell('consulta', `${cliTopo('crm')}
+    <div class="pagehead"><h1 class="pageh">Orçamentos · CRM</h1>
       <div class="chips">
         <button class="mini strong" id="crmNovo">+ novo orçamento</button>
         <button class="mini" id="crmImp">importar a planilha</button>
@@ -1044,8 +1044,8 @@ function admOrcEditor(id) {
       <button class="mini danger" data-rmi="${esc(i.id)}">tirar</button>
     </div>
   </div>`;
-  admShell('clients', `
-    <a class="linkbtn" href="#/adm/consulta">← CRM</a>
+  admShell('consulta', `
+    <a class="linkbtn" href="#/adm/consulta">← Orçamentos</a>
     <div class="pagehead"><h1 class="pageh">${esc(o.num)} ${opOrcPill(o)}</h1>
       <div class="chips">
         <a class="mini" href="#/adm/orcdoc/${esc(o.id)}">ver / imprimir PDF</a>
@@ -1675,6 +1675,36 @@ function admRelatorios() {
       </section>
     </div>`);
 
+  /* ---- o relatorio completo: cliques e conversao, clientes, parcerias ---- */
+  const fun = Interesse.funil(P.de, P.ate).slice(0, 10), pc = v => (v * 100).toFixed(1).replace('.', ',') + '%';
+  const vt = fun.reduce((s2, r) => s2 + r.visitas, 0), qt = fun.reduce((s2, r) => s2 + r.quase, 0), st = fun.reduce((s2, r) => s2 + r.peloSite, 0);
+  const cads = Cadastro.all(), compr = cads.filter(c => !c.grupoDe), novosP = cads.filter(c => String(c.criado || '').slice(0, 10) >= P.de && String(c.criado || '').slice(0, 10) <= P.ate).length;
+  const volt = compr.filter(c => DB.bookings.filter(b => b.clienteId === c.id && b.status !== 'cancelled').length > 1).length;
+  const topCli = compr.map(c => ({ c, r: Cadastro.resumo(c) })).filter(x => x.r.gasto).sort((a, b) => b.r.gasto - a.r.gasto).slice(0, 6);
+  const parcs = Parceiros.all().map(p => ({ p, c: Parceiros.conta(p) })).filter(x => x.c.reservas);
+  const extra = document.createElement('div');
+  extra.innerHTML = `<section class="card"><h3>Cliques e conversão por passeio</h3>
+      <p class="why">Quantas vezes abriram cada passeio no app, quantos chegaram a preencher os dados ("quase reservaram") e quantos reservaram — pelo site ou pelo WhatsApp. ${temNuvem() ? '' : 'Na demonstração os números são de exemplo; com o banco ligado, contam os visitantes de verdade.'}</p>
+      <div class="rp-mini"><div><b>${vt}</b><small>aberturas de passeio</small></div><div><b>${qt}</b><small>quase reservaram</small></div><div><b>${vt ? pc(fun.reduce((s2, r) => s2 + r.reservas, 0) / vt) : '—'}</b><small>viraram reserva${st ? ` (${st} pelo site)` : ''}</small></div></div>
+      ${fun.length ? `<div class="fun-tab-wrap"><table class="tbl"><thead><tr><th>Passeio</th><th class="right">Abriram</th><th class="right">Quase</th><th class="right">Reservas</th><th class="right">Conversão</th><th>Funil</th></tr></thead><tbody>
+        ${fun.map(r => `<tr><td>${esc(r.nome)}</td><td class="mono right">${r.visitas}</td><td class="mono right">${r.quase}</td><td class="mono right">${r.reservas}</td><td class="mono right">${r.conv == null ? '—' : pc(r.conv)}</td>
+          <td><span class="fun-bar" title="${r.visitas} abriram · ${r.quase} quase · ${r.reservas} reservaram"><i style="width:100%"></i><i class="q" style="width:${r.visitas ? Math.max(2, r.quase / r.visitas * 100) : 0}%"></i><i class="r" style="width:${r.visitas ? Math.max(r.reservas ? 2 : 0, Math.min(100, r.reservas / r.visitas * 100)) : 0}%"></i></span></td></tr>`).join('')}</tbody></table></div>
+        <p class="why">${(() => { const topo = Math.max(0, ...fun.map(r => r.visitas)), muito = fun.filter(r => r.visitas >= Math.max(20, topo / 2)).sort((a, b) => (a.conv || 0) - (b.conv || 0))[0]; const melhor = fun.filter(r => r.visitas >= 10 && r.conv).sort((a, b) => b.conv - a.conv)[0];
+          return [muito ? `<b>${esc(muito.nome)}</b> é muito visto (${muito.visitas}) e vende pouco — vale rever foto, preço ou texto.` : '', melhor ? `<b>${esc(melhor.nome)}</b> é o que mais converte (${pc(melhor.conv)}).` : ''].filter(Boolean).join(' '); })()}</p>` : '<p class="empty">Sem visitas no período.</p>'}
+    </section>
+    <div class="two-col rp-duas">
+      <section class="card"><h3>Clientes no período</h3>
+        <div class="rp-mini"><div><b>${novosP}</b><small>cadastros novos</small></div><div><b>${volt}</b><small>já voltaram (total)</small></div><div><b>${compr.length ? Math.round(compr.filter(c => c.veioPor === 'indicacao').length / compr.length * 100) : 0}%</b><small>vieram por indicação</small></div></div>
+        <span class="op-lbl">Quem mais comprou</span>
+        ${topCli.map(x => `<div class="deprow"><a href="${fichaHref(x.c)}">${esc(x.c.nome)}</a><small>${x.r.reservas} passeio(s)</small><b class="mono">${eur(x.r.gasto)}</b></div>`).join('') || '<p class="why">—</p>'}
+        <a class="mini" href="#/adm/clients">ver todos os clientes</a>
+      </section>
+      <section class="card"><h3>Parcerias <small class="why">(desde o começo)</small></h3>
+        ${parcs.length ? parcs.map(x => `<div class="deprow"><b>${esc(x.p.nome)}</b><small>${x.c.reservas} reserva(s) · ${eur(x.c.faturado)}</small><span class="pill ${x.c.saldo > 0 ? 'warn' : 'ok'}">${x.c.saldo > 0 ? 'comissão ' + eur(x.c.saldo) : '✓ em dia'}</span></div>`).join('') : '<p class="why">Nenhuma reserva veio por parceiro ainda.</p>'}
+        <a class="mini" href="#/adm/coupons">cupons e parcerias</a>
+      </section>
+    </div>`;
+  $('#stage').appendChild(extra);
   $$('[data-rp]').forEach(b => b.onclick = () => { S.p = b.dataset.rp; admRelatorios(); });
   const desenha = () => {
     rpColunas($('#rpEntrada'), entrada.map(e => ({ rot: e.rot, v: e.v, destaque: e.destaque,
