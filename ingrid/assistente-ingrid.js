@@ -87,7 +87,7 @@ function ingServ(b) {
     paga_no_dia: nd.valor ? `${nd.valor} € ${nd.para === 'prestador' ? 'para quem faz o serviço' : 'para a Ingrid'}` : 'nada',
     obs: b.obsOp || '', situacao: b.status === 'cancelled' ? 'cancelada' : 'confirmada' };
 }
-const ING_ABAS = ['today', 'consulta', 'tarefas', 'guias', 'agenda', 'bookings', 'clients', 'money', 'tours', 'reports', 'coupons', 'look', 'settings'];
+const ING_ABAS = ['today', 'planilha', 'consulta', 'tarefas', 'guias', 'agenda', 'bookings', 'clients', 'money', 'tours', 'reports', 'coupons', 'look', 'settings'];
 const ING_TURNOS = ['manha', 'tarde', 'noite', 'dia'];
 
 /* ---------- 2. as ferramentas das abas dela ---------- */
@@ -121,7 +121,8 @@ const ING_FERRAMENTAS = [
   { name: 'marcar_disponibilidade', description: 'Registra o que a guia respondeu: livre, ocupada ou limpar, num dia e turno (dia = o dia inteiro).', input_schema: obj({ guia: S_(), data: S_('AAAA-MM-DD'), turno: { type: 'string', enum: ING_TURNOS }, estado: { type: 'string', enum: ['livre', 'ocupada', 'limpar'] }, nota: S_('ex.: até 13h') }, ['guia', 'data', 'turno', 'estado']) },
   { name: 'escalar', description: 'Passa um serviço para uma guia/motorista (ou tira, com guia "ninguém").', input_schema: obj({ codigo: S_(), guia: S_() }, ['codigo', 'guia']) },
   { name: 'detalhes_servico', description: 'Voo/trem, onde buscar, para onde levar, observação, quanto ela paga a quem faz (custo) e quem recebe o resto (no_dia = a guia/motorista recebe do cliente; ingrid = ela recebe e acerta).', input_schema: obj({ codigo: S_(), voo: S_(), buscar_em: S_(), levar_para: S_(), obs: S_(), custo: N_(), resto: { type: 'string', enum: ['no_dia', 'ingrid'] } }, ['codigo']) },
-  { name: 'registrar_pagamento', description: 'Registra dinheiro recebido numa reserva, na conta certa (define Brasil ou Europa na contabilidade). "prestador" = o cliente pagou na mão da guia/motorista. Sem valor = o que falta. Se ela não disse a conta, PERGUNTE.', input_schema: obj({ codigo: S_(), valor: N_(), conta: S_('id de ver_contas ou "prestador"') }, ['codigo', 'conta']) },
+  { name: 'registrar_pagamento', description: 'Registra dinheiro recebido numa reserva, na conta certa (define Brasil ou Europa na contabilidade). "prestador" = o cliente pagou na mão da guia/motorista. Sem valor = o que falta. Se ela não disse a conta, PERGUNTE.', input_schema: obj({ codigo: S_(), valor: N_(), conta: S_('id de ver_contas ou "prestador"'), anexo: S_('ref do comprovante que ela mandou no chat (anexo1…): fica na ficha e na pasta do cliente no Google Drive') }, ['codigo', 'conta']) },
+  { name: 'arquivar', description: 'Guarda um arquivo que ela mandou no chat (anexo1…) na ficha do cliente e na pastinha dele no Google Drive (EmRoma › Clientes › nome). Para comprovante de pagamento use registrar_pagamento com anexo — ele já arquiva.', input_schema: obj({ anexo: S_('anexo1, anexo2…'), cliente: S_('nome, código da reserva ou WhatsApp'), descricao: S_('o que é: passaporte, voucher do hotel, bilhete de trem…') }, ['anexo', 'cliente']) },
   { name: 'criar_orcamento', description: 'Cria orçamento sob consulta com vários serviços; preço da tabela dela quando for serviço do catálogo (passeio_id de ver_passeios).', input_schema: obj({ cliente: S_(), whats: S_(), email: S_(), itens: { type: 'array', items: obj({ passeio_id: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_() }) }, sinal_pct: N_(), obs: S_() }, ['cliente']) },
   { name: 'ler_conversa', description: 'Lê uma conversa colada do WhatsApp/Instagram/e-mail e monta o rascunho do orçamento + a anotação com o resumo. Nunca responde o cliente.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'mudar_orcamento', description: 'Muda situação, validade ou % de sinal de um orçamento.', input_schema: obj({ numero: S_(), situacao: { type: 'string', enum: ['rascunho', 'enviado', 'perdido'] }, validade: S_(), sinal_pct: N_() }, ['numero']) },
@@ -337,8 +338,27 @@ const ING_PLANO = {
     const valor = +i.valor > 0 ? Math.min(+i.valor, falta) : falta;
     return { titulo: 'Registrar pagamento', assumiu: +i.valor > 0 ? [] : [`valor: o que faltava (${eur(valor)})`],
       linhas: [['Cliente', b.name], ['Código', b.code], ['Valor', eur(valor)], ['Onde caiu', Contas.nome(i.conta)],
-        ['Contabilidade', i.conta === CONTA_PRESTADOR ? 'fora do caixa dela' : (Contas.get(i.conta) || {}).pais === 'brasil' ? 'Brasil' : 'Europa'], ['Ainda falta', eur(Math.max(0, falta - valor))]],
-      fazer: () => { registraPagamento(b.id, { valor, conta: i.conta }); const fechou = Tarefas.sincroniza(); return { ok: true, tarefas_que_fecharam_sozinhas: fechou.map(t => t.texto) }; } };
+        ['Contabilidade', i.conta === CONTA_PRESTADOR ? 'fora do caixa dela' : (Contas.get(i.conta) || {}).pais === 'brasil' ? 'Brasil' : 'Europa'], ['Ainda falta', eur(Math.max(0, falta - valor))],
+        ...(i.anexo ? [['Comprovante', `fica na ficha e no Google Drive: EmRoma › Clientes › ${drvNome((Cadastro.get(b.clienteId) || {}).nome || b.name)}`]] : [])],
+      fazer: () => {
+        const p = registraPagamento(b.id, { valor, conta: i.conta });
+        const arq = p && i.anexo ? ingArquiva(i.anexo, b, `${isoToday()} comprovante ${eur(p.amount).replace(/\s/g, '')} ${b.code}`, 'comprovante') : null;
+        if (arq && arq.arquivo) { p.arquivoId = arq.arquivo.id; _opSaveBooking(b); }
+        const fechou = Tarefas.sincroniza();
+        return { ok: true, tarefas_que_fecharam_sozinhas: fechou.map(t => t.texto), ...(arq ? { comprovante: arq.onde || arq.erro } : {}) };
+      } };
+  },
+  arquivar(i) {
+    const a = ingAnexos.find(x => x.ref === String(i.anexo || '').trim());
+    if (!a) return E_('não achei esse anexo — ela precisa mandar o arquivo aqui no chat (anexo1, anexo2…)');
+    let b = null, c = null;
+    const rb = ingAchaReserva(i.cliente); if (rb.b) b = rb.b;
+    if (!b) { const r = ingAchaCliente(i.cliente); if (!r.c) return r; c = Cadastro.get(r.c.id); }
+    const nome = (c && c.nome) || (b && (Cadastro.get(b.clienteId) || {}).nome) || (b && b.name);
+    const desc = String(i.descricao || 'documento').trim();
+    return { titulo: 'Guardar arquivo', assumiu: [],
+      linhas: [['Arquivo', a.nome || i.anexo], ['Cliente', nome], ['O que é', desc], ['Onde fica', `na ficha e no Google Drive: EmRoma › Clientes › ${drvNome(nome)}`]],
+      fazer: () => { const r = ingArquiva(i.anexo, b || { clienteId: c.id, name: c.nome }, `${isoToday()} ${desc}`, /comprov|pix|recibo/i.test(desc) ? 'comprovante' : 'documento', desc); return r.erro ? E_(r.erro) : { ok: true, onde: r.onde }; } };
   },
   criar_orcamento(i) {
     if (!String(i.cliente || '').trim()) return E_('faltou o nome do cliente');
@@ -543,6 +563,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 ## VOCÊ ALCANÇA TODAS AS ABAS
 - Hoje (serviços do dia, emergência): ver_hoje, buscar, detalhes_servico, escalar, registrar_pagamento
 - Sob consulta (orçamentos): ver_orcamentos, ler_conversa (conversa colada → rascunho), criar_orcamento, mudar_orcamento, fechar_orcamento
+- Planilha (o CRM dela, linha por serviço, igual ao Google Planilhas): ver_crm para ler; para mudar use as mesmas ferramentas (mudar_orcamento, fechar_orcamento, registrar_pagamento, marcar_perdido) ou abrir_aba planilha
 - Tarefas e anotações: ver_tarefas (inclui lembretes do app e clientes que devem), anotar_tarefa, concluir_tarefa, ver_anotacoes, anotar
 - Guias e motoristas: ver_guias, quem_esta_livre, marcar_disponibilidade, cadastrar_guia, mudar_guia (inclui preferência), remover_guia, escalar
 - Agenda: ver_agenda, ver_hoje com a data; tarefas com dia aparecem na Agenda sozinhas
@@ -552,6 +573,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Quem vai no passeio (ingressos nominais): quem_vai, ingressos_comprados, link_servico
 - Cupons e parcerias: ver_parceiros, cadastrar_parceiro, comissao_paga, ver_cupons, criar_cupom
 - Contabilidade: ver_contabilidade, ver_contas, registrar_pagamento (a CONTA decide Brasil ou Europa; "prestador" = pago na mão da guia, fora do caixa dela)
+- Arquivos e Google Drive: registrar_pagamento com anexo (comprovante), arquivar (outro documento). Tudo fica na ficha do cliente e na pasta EmRoma › Clientes › nome do cliente no Google Drive.
 - Meus passeios: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, mudar_tabela (preço por número de pessoas), adicionar_horario, remover_horario
 - Relatórios: ver_relatorio
 - Cupons: ver_cupons, criar_cupom, apagar_cupom · Bloqueios: bloquear_datas, liberar_datas
@@ -565,6 +587,8 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Ideia, fornecedor, detalhe solto → anotar.
 - A guia respondeu livre/ocupada → marcar_disponibilidade (fecha sozinha a tarefa de espera).
 - Dinheiro que entrou → registrar_pagamento com a conta; se ela não disse a conta, PERGUNTE.
+- Ela mandou um comprovante no chat (print do Pix, PDF do banco) → leia o valor e o nome, ache a reserva (buscar) e chame registrar_pagamento com anexo. "Pagou tudo" = sem valor (o que falta). Diga onde o comprovante ficou (a ferramenta devolve).
+- Outro arquivo do cliente (passaporte, bilhete, voucher do hotel) → arquivar.
 - Conversa de cliente colada → ler_conversa.
 - Regra de trabalho dela para você lembrar sempre → guardar_memoria.
 
@@ -665,14 +689,43 @@ const ingPararFala = () => { try { ING_SINTESE && ING_SINTESE.cancel(); } catch 
    o historico redesenhado ao abrir a gaveta, nao */
 const _ingBolha = iaBolha;
 iaBolha = function (tipo, texto, antesDe, semCopiar, foto) {
+  /* o aviso interno dos anexos (⟦…⟧) e para a IA, nao para o balao dela */
+  if (tipo === 'user' && typeof texto === 'string') texto = texto.replace(/\s*⟦[\s\S]*?⟧/g, '');
   const el = _ingBolha(tipo, texto, antesDe, semCopiar, foto);
   if (tipo === 'assistant' && ingVozEspera) ingFalar(texto);
   return el;
 };
+/* ANEXOS: o que ela manda no chat (print do Pix, PDF do comprovante,
+   passaporte) vira anexo1, anexo2… desta conversa. Nao vai para as fotos de
+   marketing. registrar_pagamento / arquivar guardam na ficha e no Drive. */
+let ingAnexos = [];
+function ingArquiva(ref, b, nome, tipo, descricao) {
+  const a = ingAnexos.find(x => x.ref === ref); if (!a) return { erro: 'anexo não encontrado' };
+  if (typeof Arquivos === 'undefined') return { erro: 'arquivos indisponíveis aqui' };
+  const c = b && b.clienteId ? Cadastro.get(b.clienteId) : null;
+  const { arquivo } = Arquivos.guarda({ src: a.src, nome, tipo, clienteId: (b && b.clienteId) || '', clienteNome: (c && c.nome) || (b && b.name) || '', bookingId: (b && b.id) || '', descricao });
+  const onde = `guardado na ficha${drvEstado.liberada ? ' e no Google Drive: ' : '; vai para o Google Drive (' + (drvEstado.pasta ? 'o Chrome pede um toque — botão 📁 Google Drive' : 'ligue a pasta no botão 📁 Google Drive') + '): '}EmRoma › Clientes › ${drvNome(arquivo.clienteNome || 'Sem cliente')}`;
+  return { arquivo, onde };
+}
+const _ingMostraAnexo = iaMostraAnexo;
+iaMostraAnexo = function () {
+  _ingMostraAnexo();
+  const el = iaEl && iaEl.g.querySelector('#iaAnexo');
+  if (el) el.querySelectorAll('img[src^="data:application/pdf"]').forEach(im => { const sp = document.createElement('span'); sp.className = 'ia-pdf'; sp.textContent = '📄 PDF'; im.replaceWith(sp); });
+};
 const _ingConversa = iaConversa;
 iaConversa = async function (texto, fotos) {
   ingPararFala(); ingVozEspera = true;
-  try { return await _ingConversa(texto, fotos); } finally { ingVozEspera = false; }
+  fotos = !fotos ? [] : Array.isArray(fotos) ? fotos : [fotos];
+  const base = ingAnexos.length;
+  const novos = fotos.map((src, k) => ({ ref: 'anexo' + (base + k + 1), src, nome: /^data:application\/pdf/.test(src) ? 'PDF' : 'imagem' }));
+  ingAnexos = ingAnexos.concat(novos).slice(-8);
+  /* PDF nao entra como imagem na IA: vai so o aviso de que chegou */
+  const imgs = novos.filter(a => /^data:image/.test(a.src)).map(a => a.src);
+  const nota = novos.length ? `\n\n⟦Ela mandou ${novos.map(a => `${a.ref} (${a.nome})`).join(', ')}. Se for comprovante de pagamento: leia valor e nome${novos.some(a => a.nome === 'PDF') ? ' (o PDF você não consegue ler: pergunte o valor se ela não disse)' : ''}, ache a reserva e chame registrar_pagamento com anexo — fica na ficha e na pasta do cliente no Google Drive. Outro documento do cliente → arquivar.⟧` : '';
+  const _gf = guardaFoto; let n = 0;
+  guardaFoto = () => ({ id: (novos.filter(a => /^data:image/.test(a.src))[n++] || {}).ref || 'anexo' });
+  try { return await _ingConversa((texto || (novos.length ? 'Mandei um arquivo.' : '')) + nota, imgs); } finally { guardaFoto = _gf; ingVozEspera = false; }
 };
 const _ingCenario = iaRodaCenario;
 iaRodaCenario = async function (c) {
@@ -734,6 +787,20 @@ const _ingDesenha = iaDesenha;
 iaDesenha = function () {
   _ingDesenha();
   const g = iaEl && iaEl.g, f = g && g.querySelector('#iaForm');
+  const arq = g && g.querySelector('#iaArq');
+  if (arq && !arq.dataset.pdf) {
+    arq.dataset.pdf = '1'; arq.accept = 'image/*,application/pdf';
+    arq.onchange = async () => {
+      const files = [...arq.files].slice(0, 4 - iaFoto.length); arq.value = '';
+      for (const file of files) {
+        try {
+          if (/pdf/.test(file.type)) { if (file.size > 5e6) throw new Error('PDF grande demais (máx. 5 MB).'); iaFoto.push(await new Promise((ok, falha) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => falha(new Error('não li o PDF')); r.readAsDataURL(file); })); }
+          else iaFoto.push(await iaReduzFoto(file));
+        } catch (e) { iaBolha('erro', e.message); }
+      }
+      iaMostraAnexo();
+    };
+  }
   if (f && !f.querySelector('#iaMic')) {
     f.insertAdjacentHTML('beforebegin', `<div id="iaOuv" class="iaOuv" hidden><span class="iaOuvPonto" aria-hidden="true"></span><b id="iaOuvRel">0:00</b>
       <span id="iaOuvTxt">Estou ouvindo — fale normal. Quando parar, eu mando.</span>

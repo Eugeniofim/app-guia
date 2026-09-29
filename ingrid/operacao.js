@@ -393,7 +393,7 @@ const Orc = {
              data: i.data || '', hora: i.hora || '', pax: Math.max(1, +i.pax || 1), opcao: +i.opcao || 0,
              valor: Math.max(0, +i.valor || 0), sinal: i.sinal != null && i.sinal !== '' ? Math.max(0, +i.sinal) : null,
              obs: String(i.obs || '').trim(), sugestao: !!i.sugestao, voo: String(i.voo || '').trim(),
-             custo: Math.max(0, +i.custo || 0) };
+             custo: Math.max(0, +i.custo || 0), cidade: String(i.cidade || '').trim() };
   },
   /* um servico do catalogo, ja com o preco da tabela dela para aquele grupo */
   itemDoCatalogo(tourId, { pax, data, hora, opcao } = {}) {
@@ -421,7 +421,7 @@ const Orc = {
     o.links = o.links || []; const l = { id: uid(), nome: String(nome || '').trim() || 'link', url: u }; o.links.push(l); _opSave(); return l;
   },
   /* o nome do arquivo como ela ja usa: "2026_05_26 Jo Souza" */
-  nomeArquivo(o) { const d = (o.itens.map(i => i.data).filter(Boolean).sort()[0] || String(o.criado).slice(0, 10)).replace(/-/g, '_'); return `${d} ${o.cliente.nome || 'Cliente'}`; },
+  nomeArquivo(o) { if (o.arquivo) return o.arquivo; const d = (o.itens.map(i => i.data).filter(Boolean).sort()[0] || String(o.criado).slice(0, 10)).replace(/-/g, '_'); return `${d} ${o.cliente.nome || 'Cliente'}`; },
   remove(id) { DB.orcamentos = (DB.orcamentos || []).filter(o => o.id !== id); _opSave(); },
   /* Fechou: cada servico do catalogo vira uma reserva de verdade, com o
      cliente e o sinal. Item avulso (sem servico do catalogo) fica so no
@@ -430,13 +430,18 @@ const Orc = {
     const o = Orc.get(id); if (!o || o.status === 'fechado') return [];
     const criadas = [];
     for (const i of o.itens) {
-      if (!i.tourId || !Tours.get(i.tourId)) continue;
+      /* do catalogo, ou escrito a mao com data (a planilha dela) */
+      const avulso = !(i.tourId && Tours.get(i.tourId));
+      if (avulso && (!i.data || !String(i.desc || '').trim() || i.sugestao)) continue;
       const b = Bookings.criarManual({
-        tourId: i.tourId, date: i.data || isoToday(), time: i.hora || '09:00',
+        tourId: avulso ? tourAvulso(RE_TRANSFER.test(i.desc) ? 'transfer' : 'servico') : i.tourId, date: i.data || isoToday(), time: i.hora || '09:00',
         name: o.cliente.nome || 'Cliente', whats: o.cliente.whats, email: o.cliente.email,
-        pax: i.pax, total: i.valor, recebido: 0,
+        pax: i.pax, total: i.valor, recebido: 0, veioPor: o.veioPor || '',
       });
       b.origin = 'orcamento'; b.orcamentoId = o.id;
+      if (avulso) b.servicoTxt = String(i.desc).trim();
+      Object.assign(b, { indicou: o.indicou || '', parceiroTxt: o.parceiroTxt || '', arquivo: Orc.nomeArquivo(o), links: [...(o.links || [])] });
+      if (i.cidade) b.destino = i.cidade;
       /* o resto e pago no dia a quem faz o servico — o caso mais comum dela */
       b.policy = 'sinal'; b.sinal = Orc.sinalDoItem(o, i);
       if (i.obs && !i.sugestao) b.obsOp = i.obs;
@@ -1207,6 +1212,8 @@ const Backup = {
      DB.clientes [{id, nome, whats, email, insta, nasc, pais, idioma, veioPor,
                    indicadoPor (id), indicadoNome, parceiroId, grupoDe (id),
                    obs, criado, atualizado}] */
+/* o nome curto, para a coluna "veio por" da planilha */
+const VEIO_CURTO = { instagram: 'Instagram', status: 'Status WhatsApp', indicacao: 'Indicação', influencer: 'Influencer', agencia: 'Agência', google: 'Google / site', voltou: 'Já era cliente', junto: 'Veio junto', outro: 'Outro' };
 const VEIO_POR = [
   ['instagram', 'Instagram'], ['status', 'Status do WhatsApp'], ['indicacao', 'Indicação de alguém'],
   ['influencer', 'Influencer / cupom'], ['agencia', 'Agência ou parceiro'], ['google', 'Google / site'],
@@ -1440,54 +1447,128 @@ function _valorPlanilha(v) {
   return +s || 0;
 }
 const COLS_CRM = {
-  data: /^data$/, veio: /veio/, whats: /whats|telefone|fone/, nome: /^nome/, dataServ: /data ?servi/, hora: /^hora/, pax: /^pax|pessoas/,
-  servico: /servi[cç]o/, obs: /^obs/, clientePaga: /cliente ?paga|total/, ingridPaga: /ingrid ?paga|custo/, cidade: /cidade|hotel/,
+  data: /^data$/, veio: /^veio/, indicou: /^agencia|^quem indicou|influenc/, whats: /whats|telefone|fone/, nome: /^nome( do cliente| completo)?$/, dataServ: /data ?servi/,
+  hora: /^hora/, pax: /^pax|pessoas/, servico: /servi[cç]o/, obs: /^obs/, clientePaga: /cliente ?paga/, ingridPaga: /ingrid ?paga|custo/, cidade: /cidade|hotel/,
+  parceiro: /^parceiro/, total: /^total/, sinal: /^sinal/, forma: /forma/, emReal: /em real/, comVendor: /comiss.*vend/, comIndic: /comiss.*indic/,
+  status: /^status/, motivo: /motivo/, rep1: /^repescagem ?1/, res1: /^resultado ?1/, rep2: /^repescagem ?2/, res2: /^resultado ?2/, rep3: /^repescagem ?3/, res3: /^resultado ?3/,
+  arquivo: /nome do arquivo/, lPdf: /link ?pdf/, lOrc: /link ?or/, lVoucher: /link ?voucher/, lComprov: /link ?comprov/, lAval: /link ?avalia/,
 };
+/* o Status da planilha decide o que a linha vira:
+   Enviado (ou vazio)            -> orcamento em aberto (CRM)
+   CONFIRMADO / AVALIAR / FINAL. -> reserva (com o sinal na conta certa)
+   Perdido                       -> orcamento perdido, com o motivo
+   Planilha SEM coluna Status (a lista antiga) -> tudo reserva. */
+function _etapaPlanilha(v, temStatus) {
+  const t = String(v || '').toLowerCase().normalize('NFD').replace(/[^a-z]/g, '');
+  if (!temStatus) return 'confirmado';
+  if (/confirm/.test(t)) return 'confirmado';
+  if (/avali/.test(t)) return 'avaliar';
+  if (/finaliz/.test(t)) return 'finalizado';
+  if (/perd|cancel/.test(t)) return 'perdido';
+  return 'aberto';
+}
+function _contaDaForma(v) {
+  const t = String(v || '').toLowerCase();
+  if (/pix|nubank/.test(t)) return 'nubank';
+  if (/wise/.test(t)) return /br|real|brasil/.test(t) ? 'wise-br' : 'wise-eu';
+  if (/revolut/.test(t)) return 'revolut';
+  if (/cart|card|link|credito|crédito/.test(t)) return 'cartao';
+  if (/dinheiro|cash|esp[eé]cie/.test(t)) return 'dinheiro';
+  return t ? 'nubank' : '';
+}
+const LINKS_PLANILHA = [['lPdf', 'PDF'], ['lOrc', 'Orçamento'], ['lVoucher', 'Voucher'], ['lComprov', 'Comprovante'], ['lAval', 'Avaliação']];
+/* os dois servicos "avulsos": o que ela escreve a mao (planilha) nao cabe no catalogo */
+const RE_TRANSFER = /\b(FCO|CIA|MXP|LIN|BGY|VCE|NAP|FLR|PSA)\b|transfer|aeroporto|porto|esta[cç][aã]o| x /i;
+function tourAvulso(tipo) {
+  const id = tipo === 'transfer' ? 'avulso-transfer' : 'avulso-servico';
+  if (!Tours.get(id)) DB.tours.push({ id, type: tipo === 'transfer' ? 'transfer' : 'walk', region: tipo === 'transfer' ? 'transfer' : 'roma',
+    name: { pt: tipo === 'transfer' ? 'Transfer (da planilha)' : 'Serviço (da planilha)', en: tipo === 'transfer' ? 'Transfer' : 'Service' },
+    desc: { pt: '', en: '' }, meeting: '', price: 0, priceMode: 'session', min: 1, max: 60, payPolicy: 'sinal', status: 'draft', order: 999, photo: 'capa.jpg' });
+  return id;
+}
 function importarPlanilha(txt, simular) {
   const L = lerCsv(txt);
-  const n = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-  const hi = L.findIndex(l => l.some(c => /^nome/.test(n(c))) && l.some(c => /servi/.test(n(c))));
+  const n = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\[[^\]]*\]|\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+  const hi = L.findIndex(l => l.some(c => /^nome$/.test(n(c))) && l.some(c => /servi/.test(n(c))));
   if (hi < 0) return { erro: 'não achei o cabeçalho (preciso das colunas Nome e Serviço pedido)' };
   const cab = L[hi].map(n), col = {};
   for (const [k, re] of Object.entries(COLS_CRM)) {
-    const j = cab.findIndex((c, idx) => re.test(c) && !Object.values(col).includes(idx) && !(k === 'data' && /servi/.test(c)) && !(k === 'servico' && /data/.test(c)));
+    const j = cab.findIndex((c, idx) => re.test(c) && !Object.values(col).includes(idx) && !(k === 'data' && /servi/.test(c)) && !(k === 'servico' && /data|arquivo/.test(c)));
     if (j >= 0) col[k] = j;
   }
+  if (col.clientePaga === undefined && col.total !== undefined) { col.clientePaga = col.total; delete col.total; }
   if (col.nome === undefined || col.servico === undefined || col.dataServ === undefined) return { erro: 'faltam colunas: preciso de Nome, Data Serviço e Serviço pedido' };
+  const temStatus = col.status !== undefined;
   const out = [], pulou = [];
   for (const l of L.slice(hi + 1)) {
     const get = (k) => col[k] === undefined ? '' : String(l[col[k]] || '').trim();
-    const nome = get('nome'), data = _dataPlanilha(get('dataServ'));
-    if (!nome || nome === '-' || !data) { if (nome && nome !== '-') pulou.push(nome); continue; }
-    const serv = get('servico').replace(/\s+/g, ' ');
-    const ehTransfer = /\b(FCO|CIA|MXP|LIN|BGY|VCE|NAP|FLR|PSA)\b|transfer|aeroporto|porto|esta[cç][aã]o| x /i.test(serv);
-    out.push({ nome, whats: get('whats'), veio: get('veio'), criado: _dataPlanilha(get('data')), data, hora: (get('hora').match(/\d{1,2}:\d{2}/) || [''])[0] || '09:00',
-      pax: parseInt(get('pax'), 10) || 1, servico: serv, obs: get('obs'), total: _valorPlanilha(get('clientePaga')), custo: _valorPlanilha(get('ingridPaga')),
-      cidade: get('cidade'), tipo: ehTransfer ? 'transfer' : 'servico' });
+    let nome = get('nome'); const serv = get('servico').replace(/\s+/g, ' '), dataTxt = get('dataServ'), data = _dataPlanilha(dataTxt);
+    if (nome === '-' || (!nome && !serv) || (!nome && !get('whats') && !get('arquivo'))) continue;
+    if (!nome || nome === '?') nome = get('arquivo').replace(/^[\d_ ]+/, '').replace(/\?/g, '').trim() || (get('whats') ? 'Cliente ' + get('whats').replace(/\D/g, '').slice(-4) : 'Sem nome');
+    const etapa = _etapaPlanilha(get('status'), temStatus);
+    if (!data && etapa !== 'aberto' && etapa !== 'perdido') { pulou.push(nome); continue; }
+    const ehTransfer = RE_TRANSFER.test(serv);
+    const paxTxt = get('pax'), extra = (paxTxt.match(/\((.*)\)/s) || [])[1];
+    const reps = [1, 2, 3].map(k => ({ n: k, data: _dataPlanilha(get('rep' + k)), resultado: get('res' + k) || (get('rep' + k) && !_dataPlanilha(get('rep' + k)) ? get('rep' + k) : '') }))
+      .filter(x => x.data || x.resultado).map(x => ({ ...x, resultado: x.resultado || 'mandada' }));
+    out.push({ nome, whats: get('whats'), veio: get('veio'), indicou: get('indicou'), criado: _dataPlanilha(get('data')), data, dataTxt: data ? '' : dataTxt,
+      hora: (get('hora').match(/\d{1,2}:\d{2}/) || [''])[0], pax: parseInt(paxTxt, 10) || 1, paxObs: extra ? extra.replace(/\s+/g, ' ').trim() : '',
+      servico: serv || '(sem serviço)', obs: get('obs'), total: _valorPlanilha(get('clientePaga')), custo: _valorPlanilha(get('ingridPaga')),
+      cidade: get('cidade'), parceiro: get('parceiro'), totalPedido: _valorPlanilha(get('total')), sinal: _valorPlanilha(get('sinal')), forma: get('forma'),
+      emReal: _valorPlanilha(get('emReal')), comVendor: _valorPlanilha(get('comVendor')), comIndic: _valorPlanilha(get('comIndic')),
+      etapa, motivo: get('motivo'), repescagens: reps, arquivo: get('arquivo'),
+      links: LINKS_PLANILHA.map(([k, nm]) => ({ nome: nm, url: get(k) })).filter(x => /^https?:\/\//i.test(x.url)), tipo: ehTransfer ? 'transfer' : 'servico' });
   }
-  if (simular) return { linhas: out, pulou, clientes: new Set(out.map(r => _dig8(r.whats) || _nomeN(r.nome))).size };
-  /* os dois servicos "avulsos": o que vem da planilha nao cabe no catalogo */
-  const garanteAvulso = (tipo) => {
-    const id = tipo === 'transfer' ? 'avulso-transfer' : 'avulso-servico';
-    if (!Tours.get(id)) DB.tours.push({ id, type: tipo === 'transfer' ? 'transfer' : 'walk', region: tipo === 'transfer' ? 'transfer' : 'roma',
-      name: { pt: tipo === 'transfer' ? 'Transfer (da planilha)' : 'Serviço (da planilha)', en: tipo === 'transfer' ? 'Transfer' : 'Service' },
-      desc: { pt: '', en: '' }, meeting: '', price: 0, priceMode: 'session', min: 1, max: 60, payPolicy: 'sinal', status: 'draft', order: 999, photo: 'capa.jpg' });
-    return id;
-  };
-  const VEIO = [[/status/i, 'status'], [/insta/i, 'instagram'], [/indic|amig|filh|m[aã]e|pai|irm/i, 'indicacao'], [/ag[eê]ncia|rpv|parceir/i, 'agencia'], [/google|site/i, 'google'], [/influ|cupom/i, 'influencer']];
-  let criadas = 0;
-  for (const r of out) {
+  /* as linhas do mesmo pedido: o mesmo arquivo (ou o mesmo cliente no mesmo dia) e o mesmo PDF
+     (cada pedido tem o seu PDF; sem PDF, o mesmo Total). As duas opcoes da Aline
+     (3 pessoas e 5 pessoas) tem o mesmo arquivo e PDFs diferentes: dois pedidos. */
+  const chave = (r) => { const pdf = (r.links || []).find(l => l.nome === 'PDF');
+    return [_nomeN(r.arquivo) || (_dig8(r.whats) || _nomeN(r.nome)) + '|' + r.criado, pdf ? pdf.url : (r.totalPedido || '')].join('#'); };
+  const pedidos = new Map();
+  for (const r of out) { const k = chave(r); (pedidos.get(k) || pedidos.set(k, []).get(k)).push(r); }
+  const orcs = [...pedidos.entries()].filter(([, rs]) => rs[0].etapa === 'aberto' || rs[0].etapa === 'perdido');
+  const res = out.filter(r => r.etapa !== 'aberto' && r.etapa !== 'perdido');
+  if (simular) return { linhas: out, pulou, clientes: new Set(out.map(r => _dig8(r.whats) || _nomeN(r.nome))).size, orcamentos: orcs.length, reservas: res.length };
+  const garanteAvulso = tourAvulso;
+  const VEIO = [[/status/i, 'status'], [/insta/i, 'instagram'], [/indic|amig|filh|m[aã]e|pai|irm/i, 'indicacao'], [/ag[eê]ncia|rpv|viage|turismo|tour/i, 'agencia'], [/google|site/i, 'google'], [/influ|cupom/i, 'influencer']];
+  const veioDe = (r) => (VEIO.find(([re]) => re.test(r.veio)) || [0, r.veio ? 'agencia' : ''])[1];
+  const quemDe = (r) => r.indicou || (['agencia', 'indicacao', 'influencer'].includes(veioDe(r)) && !/^status|insta|google|site/i.test(r.veio) ? r.veio : '');
+  const obsDe = (r) => [r.obs, r.paxObs, r.dataTxt && 'data: ' + r.dataTxt].filter(Boolean).join(' · ');
+  let criadas = 0, orcCriados = 0;
+  /* orcamentos (Enviado / Perdido) */
+  for (const [k, rs] of orcs) {
+    const r0 = rs[0];
+    if ((DB.orcamentos || []).some(o => o.chavePlanilha === k)) continue;
+    const o = Orc.cria({ origem: 'planilha', status: r0.etapa === 'perdido' ? 'perdido' : 'enviado', cliente: { nome: r0.nome, whats: r0.whats }, sinalPct: 0,
+      itens: rs.map((r, x) => ({ desc: r.servico, data: r.data, hora: r.hora, pax: r.pax, valor: r.total, custo: r.custo, obs: [obsDe(r), r.cidade].filter(Boolean).join(' · '), sinal: x === 0 ? r0.sinal : 0 })) });
+    Object.assign(o, { chavePlanilha: k, veio: r0.veio, veioPor: veioDe(r0), indicou: quemDe(r0), arquivo: r0.arquivo, motivoPerda: r0.etapa === 'perdido' ? (r0.motivo || 'Outro') : '',
+      repescagens: r0.repescagens, links: r0.links, parceiroTxt: r0.parceiro, comVendor: r0.comVendor, comIndic: r0.comIndic, validade: addDays(isoToday(), 7) });
+    if (r0.criado) o.criado = r0.criado + 'T10:00:00.000Z';
+    orcCriados++;
+  }
+  /* reservas (CONFIRMADO / AVALIAR / FINALIZADO): o Sinal e do pedido inteiro, entra uma vez */
+  const restaSinal = new Map();
+  for (const r of res) {
     const ja = DB.bookings.some(b => b.date === r.data && _nomeN(b.name) === _nomeN(r.nome) && (b.servicoTxt || '') === r.servico);
     if (ja) continue;
-    const b = Bookings.criarManual({ tourId: garanteAvulso(r.tipo), date: r.data, time: r.hora, name: r.nome, whats: r.whats, pax: r.pax, total: r.total, recebido: 0,
-      veioPor: (VEIO.find(([re]) => re.test(r.veio)) || [0, r.veio ? 'outro' : ''])[1], indicadoPor: /indic|filh|m[aã]e|reservou/i.test(r.veio) ? r.veio : '' });
-    b.servicoTxt = r.servico; b.obsOp = [r.obs, r.cidade].filter(Boolean).join(' · '); b.custo = r.custo; b.origin = 'planilha'; b.policy = 'sinal';
+    const b = Bookings.criarManual({ tourId: garanteAvulso(r.tipo), date: r.data, time: r.hora || '09:00', name: r.nome, whats: r.whats, pax: r.pax, total: r.total, recebido: 0,
+      veioPor: veioDe(r), indicadoPor: /indic|filh|m[aã]e|reservou/i.test(r.veio) ? r.veio : '' });
+    b.servicoTxt = r.servico; b.obsOp = [obsDe(r), r.cidade].filter(Boolean).join(' · '); b.custo = r.custo; b.origin = 'planilha'; b.policy = 'sinal';
+    Object.assign(b, { veioTxt: r.veio, indicou: quemDe(r), parceiroTxt: r.parceiro, comVendor: r.comVendor, comIndic: r.comIndic, arquivo: r.arquivo, links: r.links });
     if (r.criado) b.createdAt = r.criado + 'T10:00:00.000Z';
+    if (r.etapa === 'finalizado') b.avaliacaoEm = r.data;
+    const k = chave(r);
+    if (!restaSinal.has(k)) restaSinal.set(k, r.sinal || 0);
+    const v = Math.min(restaSinal.get(k), b.total || restaSinal.get(k));
+    if (v > 0) {
+      const p = registraPagamento(b.id, { valor: v, conta: _contaDaForma(r.forma), data: r.criado || isoToday() });
+      if (p) { if (r.emReal && restaSinal.get(k) === r.sinal) { p.reais = r.emReal; _opSaveBooking(b); } restaSinal.set(k, restaSinal.get(k) - p.amount); }
+    }
     if (r.veio && !b.indicadoPor) { const c = Cadastro.get(b.clienteId); if (c && !c.obs) c.obs = 'veio por: ' + r.veio; }
     criadas++;
   }
   _opSave();
-  return { ok: true, criadas, repetidas: out.length - criadas, pulou };
+  return { ok: true, criadas, orcamentos: orcCriados, repetidas: res.length - criadas, pulou };
 }
 
 /* ---------- PONTOS DE ENCONTRO ----------
@@ -1543,32 +1624,211 @@ function crmLinhas(hoje) {
   const pedidoDe = (b) => b.orcamentoId || ((b.clienteId || chaveCliente(b)) + '|' + String(b.createdAt || '').slice(0, 10));
   const porPedido = {};
   for (const b of DB.bookings) { if (b.status === 'cancelled') continue; const k = pedidoDe(b); (porPedido[k] = porPedido[k] || []).push(b); }
+  /* "veio por" = o tipo (agencia, indicacao, influencer, Instagram...); a coluna
+     nova diz QUEM (a agencia, quem indicou, o influencer). Parceiro = o vendor
+     (hotel, loja). Comissao vendor e comissao indicacao, como na planilha. */
+  const quem = (veio, par, txt) => par && par.tipo !== 'parceiro' ? par.nome : (txt || '');
+  const comDe = (b, par, tipo) => { const manual = +(tipo === 'vendor' ? b.comVendor : b.comIndic) || 0; if (manual) return manual;
+    return par && ((tipo === 'vendor') === (par.tipo === 'parceiro')) ? Math.round((+b.total || 0) * (+par.comissao || 0)) / 100 : 0; };
+  /* agencia: o nome de quem viaja vai entre parenteses (nota [2] da planilha dela) */
+  const entre = (nome, veioPor) => veioPor === 'agencia' && nome && !/^\(.*\)$/.test(nome.trim()) ? '(' + nome.trim() + ')' : nome;
   for (const b of DB.bookings) {
     const c = b.clienteId ? Cadastro.get(b.clienteId) : null, par = b.parceiroId ? Parceiros.get(b.parceiroId) : (b.coupon ? Parceiros.all().find(x => x.cupom === String(b.coupon).toUpperCase()) : null);
     const irmas = porPedido[pedidoDe(b)] || [b];
     const pagos = (b.payments || []).filter(p => p.conta !== CONTA_PRESTADOR);
+    const veioPor = (c && c.veioPor) || (par ? (par.tipo === 'agencia' ? 'agencia' : par.tipo === 'influencer' ? 'influencer' : '') : '');
     out.push({ tipo: 'reserva', id: b.id, b, pedido: pedidoDe(b), etapa: etapaDaReserva(b, hoje),
-      dataPedido: String(b.createdAt || '').slice(0, 10), veio: c ? veioPorNome(c.veioPor) + (c.indicadoNome ? ' — ' + c.indicadoNome : '') : '', whats: b.whats || '', nome: b.name,
+      /* nota [1] da planilha: a Data e a do PAGAMENTO, nao a do registro */
+      dataPedido: pagos.map(p => p.date).filter(Boolean).sort()[0] || String(b.createdAt || '').slice(0, 10), dataPago: !!pagos.length,
+      veio: VEIO_CURTO[veioPor] || '', veioPor, indicou: quem(veioPor, par, b.indicou || (c && c.indicadoNome) || ''),
+      whats: b.whats || '', nome: b.name, nomePlan: entre(b.name, veioPor), arquivo: b.arquivo || '',
       dataServ: b.date, hora: b.time, pax: b.pax, servico: nomeDoServico(b) + (b.voo ? ' · ' + b.voo : ''), obs: b.obsOp || '',
-      clientePaga: +b.total || 0, ingridPaga: +b.custo || 0, cidade: b.destino || b.origem || '', parceiro: par ? par.nome : '',
+      clientePaga: +b.total || 0, ingridPaga: +b.custo || 0, cidade: b.destino || b.origem || '', parceiro: par && par.tipo === 'parceiro' ? par.nome : (b.parceiroTxt || ''),
       totalPedido: irmas.reduce((s2, x) => s2 + (+x.total || 0), 0), sinal: pagos.reduce((s2, p) => s2 + p.amount, 0),
       forma: contas(b), emReal: pagos.reduce((s2, p) => s2 + (+p.reais || 0), 0),
-      comVendor: par ? Math.round((+b.total || 0) * (+par.comissao || 0)) / 100 : 0, motivo: b.motivoPerda || '',
+      comVendor: comDe(b, par, 'vendor'), comIndic: comDe(b, par, 'indic'), motivo: b.motivoPerda || '',
       repescagens: (b.orcamentoId && (Orc.get(b.orcamentoId) || {}).repescagens) || [], links: b.links || [] });
   }
   for (const o of DB.orcamentos || []) {
     if (o.status === 'fechado') continue;
     const etapa = o.status === 'perdido' ? 'perdido' : 'aberto';
     const itens = o.itens.length ? o.itens : [{ desc: o.resumo || '(sem serviços ainda)', data: (o.datas || [])[0] || '', hora: '', pax: o.pax || 0, valor: 0 }];
-    for (const it of itens) out.push({ tipo: 'orcamento', id: o.id, o, pedido: o.id, etapa, status: o.status,
-      dataPedido: String(o.criado || '').slice(0, 10), veio: ORIGEM_ORC_TXT[o.origem] || o.origem, whats: o.cliente.whats || '', nome: o.cliente.nome || '',
+    for (const it of itens) out.push({ tipo: 'orcamento', id: o.id, o, itemId: it.id || '', pedido: o.id, etapa, status: o.status,
+      dataPedido: String(o.criado || '').slice(0, 10), veio: o.veioPor ? (VEIO_CURTO[o.veioPor] || '') : (ORIGEM_ORC_TXT[o.origem] || ''), veioPor: o.veioPor || '', indicou: o.indicou || '',
+      whats: o.cliente.whats || '', nome: o.cliente.nome || '', nomePlan: entre(o.cliente.nome || '', o.veioPor), arquivo: Orc.nomeArquivo(o),
       dataServ: it.data || '', hora: it.hora || '', pax: it.pax || '', servico: it.desc + (it.voo ? ' · ' + it.voo : ''), obs: it.obs || '',
-      clientePaga: +it.valor || 0, ingridPaga: +it.custo || 0, cidade: '', parceiro: '', totalPedido: Orc.total(o), sinal: 0, forma: '', emReal: 0, comVendor: 0, motivo: o.motivoPerda || '',
+      clientePaga: +it.valor || 0, ingridPaga: +it.custo || 0, cidade: it.cidade || '', parceiro: o.parceiroTxt || '', totalPedido: Orc.total(o), sinal: Orc.sinal(o), forma: o.forma || '', emReal: +o.emReal || 0,
+      comVendor: +o.comVendor || 0, comIndic: +o.comIndic || 0, motivo: o.motivoPerda || '',
       repescagens: o.repescagens || [], links: o.links || [] });
   }
   return out.sort((a, b2) => String(a.dataServ || '9999').localeCompare(String(b2.dataServ || '9999')) || String(a.hora).localeCompare(String(b2.hora)));
 }
-const ORIGEM_ORC_TXT = { whats: 'WhatsApp', site: 'Meu pedido (app)', roteiro: 'Monte seu roteiro', manual: '' };
+/* ---------- A PLANILHA QUE ELA PREENCHE ----------
+   Cada celula da aba Planilha grava direto no registro de verdade: a linha de
+   orcamento grava no orcamento (e no servico dele), a linha de reserva grava
+   na reserva. Status "CONFIRMADO" num orcamento = Fechou (vira reserva). */
+const CRM_STATUS_OPC = { orcamento: [['rascunho', 'Rascunho'], ['enviado', 'Enviado'], ['confirmado', 'CONFIRMADO'], ['perdido', 'Perdido']],
+                         reserva: [['confirmado', 'CONFIRMADO'], ['avaliar', '⭐AVALIAR'], ['finalizado', '💚FINALIZADO'], ['perdido', 'Perdido']] };
+/* "12/06", "12/06/26", "12/06/2026" ou ISO. Sem ano: a proxima vez que cai essa data */
+function _dataDigitada(v, hoje) {
+  const t = String(v || '').trim(); if (!t) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const m = t.match(/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/); if (!m) return null;
+  hoje = hoje || isoToday();
+  let y = m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : +hoje.slice(0, 4);
+  const iso = (a) => `${a}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+  if (!m[3] && iso(y) < addDays(hoje, -60)) y++;
+  const d = new Date(iso(y) + 'T12:00:00');
+  return isNaN(d) || d.getDate() !== +m[1] ? null : iso(y);
+}
+const _horaDigitada = (v) => { const m = String(v || '').match(/(\d{1,2})\s*[:h]\s*(\d{2})?/); return m ? String(m[1]).padStart(2, '0') + ':' + (m[2] || '00') : ''; };
+function crmEdita(ref, campo, valor, hoje) {
+  const v = String(valor ?? '').trim(), num = () => _valorPlanilha(v);
+  if (ref.tipo === 'orcamento') {
+    const o = Orc.get(ref.id); if (!o) return { erro: 'orçamento não encontrado' };
+    let it = o.itens.find(x => x.id === ref.itemId) || o.itens[0];
+    const precisaItem = ['dataServ', 'hora', 'pax', 'servico', 'obs', 'clientePaga', 'ingridPaga', 'cidade', 'sinal'];
+    if (precisaItem.includes(campo) && !it) { it = Orc._item({ desc: '' }); o.itens.push(it); }
+    const rp = campo.match(/^(rep|res)([123])$/);
+    if (rp) {
+      o.repescagens = o.repescagens || []; const n = +rp[2];
+      let x = o.repescagens.find(y => y.n === n); if (!x) { x = { n, data: '', resultado: '' }; o.repescagens.push(x); o.repescagens.sort((a, b) => a.n - b.n); }
+      if (rp[1] === 'rep') { const d = _dataDigitada(v, hoje); if (d === null) return { erro: 'data em dd/mm' }; x.data = d; } else x.resultado = v;
+      if (!x.data && !x.resultado) o.repescagens = o.repescagens.filter(y => y !== x);
+      _opSave(); return { ok: true };
+    }
+    if (CRM_LINK_CAMPO[campo]) return crmLinkPoe(o, CRM_LINK_CAMPO[campo], v);
+    switch (campo) {
+      case 'nome': o.cliente.nome = v; break;
+      case 'whats': o.cliente.whats = v; break;
+      case 'veio': o.veioPor = _veioDigitado(v); break;
+      case 'indicou': o.indicou = v; break;
+      case 'dataPedido': { const d = _dataDigitada(v, hoje); if (d === null) return { erro: 'data em dd/mm' }; o.criado = (d || isoToday()) + 'T10:00:00.000Z'; break; }
+      case 'dataServ': { const d = _dataDigitada(v, hoje); if (d === null) return { erro: 'data em dd/mm' }; it.data = d; break; }
+      case 'hora': it.hora = _horaDigitada(v); break;
+      case 'pax': it.pax = Math.max(1, parseInt(v, 10) || 1); break;
+      case 'servico': it.desc = v; break;
+      case 'obs': it.obs = v; break;
+      case 'clientePaga': it.valor = num(); break;
+      case 'ingridPaga': it.custo = num(); break;
+      case 'cidade': it.cidade = v; break;
+      case 'parceiro': o.parceiroTxt = v; break;
+      case 'sinal': o.itens.forEach((x, k) => { x.sinal = k === 0 ? num() : 0; }); break;
+      case 'forma': o.forma = v; break;
+      case 'emReal': o.emReal = num(); break;
+      case 'comVendor': o.comVendor = num(); break;
+      case 'comIndic': o.comIndic = num(); break;
+      case 'motivo': o.motivoPerda = v; if (v) o.status = 'perdido'; break;
+      case 'arquivo': o.arquivo = v; break;
+      case 'status': {
+        if (v === 'confirmado') {
+          const semData = o.itens.filter(x => String(x.desc || '').trim() && !x.data);
+          if (semData.length) return { erro: `falta a data do serviço: ${semData.map(x => x.desc).join(', ')}` };
+          const bs = Orc.fecha(o.id, { sinalRecebido: false }); return { ok: true, reservas: bs.length };
+        }
+        if (v === 'perdido') { o.status = 'perdido'; o.motivoPerda = o.motivoPerda || 'Outro'; }
+        else if (v === 'enviado' || v === 'rascunho') { o.status = v; o.motivoPerda = ''; if (v === 'enviado' && typeof Espera !== 'undefined') Espera.orcamento(o); }
+        else return { erro: 'status desconhecido' };
+        break;
+      }
+      default: return { erro: 'esta coluna não se edita aqui' };
+    }
+    _opSave(); return { ok: true };
+  }
+  const b = Bookings.get(ref.id); if (!b) return { erro: 'reserva não encontrada' };
+  if (CRM_LINK_CAMPO[campo]) return crmLinkPoe(b, CRM_LINK_CAMPO[campo], v);
+  switch (campo) {
+    case 'nome': if (v) b.name = v; break;
+    case 'whats': b.whats = v; break;
+    case 'veio': { const c = b.clienteId && Cadastro.get(b.clienteId); if (c) Cadastro.salva(c.id, { veioPor: _veioDigitado(v) }); else b.veioPor = _veioDigitado(v); break; }
+    case 'indicou': b.indicou = v; break;
+    case 'dataServ': { const d = _dataDigitada(v, hoje); if (!d) return { erro: 'data em dd/mm' }; b.date = d; break; }
+    case 'hora': { const h = _horaDigitada(v); if (h) b.time = h; break; }
+    case 'pax': b.pax = Math.max(1, parseInt(v, 10) || 1); break;
+    case 'servico': b.servicoTxt = v; break;
+    case 'obs': b.obsOp = v; break;
+    case 'clientePaga': b.total = num(); break;
+    case 'ingridPaga': b.custo = num(); break;
+    case 'cidade': b.destino = v; break;
+    case 'parceiro': b.parceiroTxt = v; break;
+    case 'comVendor': b.comVendor = num(); break;
+    case 'comIndic': b.comIndic = num(); break;
+    case 'motivo': b.motivoPerda = v; break;
+    case 'arquivo': b.arquivo = v; break;
+    case 'status':
+      if (v === 'perdido') { b.status = 'cancelled'; b.motivoPerda = b.motivoPerda || 'Outro'; }
+      else { if (b.status === 'cancelled') b.status = 'confirmed'; b.avaliacaoEm = v === 'finalizado' ? (b.avaliacaoEm || isoToday()) : ''; }
+      break;
+    default: return { erro: 'na reserva, sinal e forma de pagamento entram pelo 💶 Pagamento' };
+  }
+  _opSaveBooking(b); return { ok: true };
+}
+const CRM_LINK_CAMPO = { lPdf: 'PDF', lOrc: 'Orçamento', lVoucher: 'Voucher', lComprov: 'Comprovante', lAval: 'Avaliação' };
+function crmLinkPoe(x, nome, url) {
+  if (url && !/^https?:\/\//i.test(url)) return { erro: 'o link precisa começar com http' };
+  x.links = (x.links || []).filter(l => l.nome !== nome);
+  if (url) x.links.push({ nome, url });
+  if (x.itens) _opSave(); else _opSaveBooking(x);
+  return { ok: true };
+}
+function _veioDigitado(v) {
+  const t = _nomeN(v); if (!t) return '';
+  const k = Object.keys(VEIO_CURTO).find(x => x === t || _nomeN(VEIO_CURTO[x]) === t);
+  if (k) return k;
+  return /insta/.test(t) ? 'instagram' : /status/.test(t) ? 'status' : /indic/.test(t) ? 'indicacao' : /influ|cupom/.test(t) ? 'influencer' : /agenc/.test(t) ? 'agencia' : /google|site/.test(t) ? 'google' : 'outro';
+}
+/* linha nova na planilha = um pedido novo (orcamento), como ela faz hoje */
+function crmNovaLinha(d = {}) {
+  return Orc.cria({ origem: 'planilha', status: 'rascunho', cliente: { nome: d.nome || '', whats: d.whats || '' }, sinalPct: 0, itens: [{ desc: '', valor: 0 }] });
+}
+/* mais um servico no mesmo pedido (a linha de baixo, com o mesmo nome) */
+function crmMaisServico(orcId) {
+  const o = Orc.get(orcId); if (!o) return null;
+  const ult = o.itens[o.itens.length - 1] || {};
+  const it = Orc._item({ desc: '', data: ult.data || '', pax: ult.pax || 1, sinal: 0 }); o.itens.push(it); _opSave(); return it;
+}
+const ORIGEM_ORC_TXT = { whats: 'WhatsApp', site: 'Meu pedido (app)', roteiro: 'Monte seu roteiro', manual: '', planilha: '' };
+/* O PAINEL DO CRM (o topo da aba Orcamentos): os numeros que ela olha na
+   planilha e a lista "precisa de voce" — o que cada pedido espera dela hoje.
+   Recebe as linhas ja filtradas pelo mes que ela escolheu. */
+function crmPainel(linhas, hoje) {
+  hoje = hoje || isoToday();
+  const ped = new Map();
+  for (const r of linhas) { const p = ped.get(r.pedido) || { r, linhas: [], etapas: new Set() }; p.linhas.push(r); p.etapas.add(r.etapa); ped.set(r.pedido, p); }
+  const P = [...ped.values()];
+  const abertos = P.filter(p => p.etapas.has('aberto'));
+  const fechados = P.filter(p => ['confirmado', 'avaliar', 'finalizado'].some(e => p.etapas.has(e)));
+  const perdidos = P.filter(p => p.etapas.size === 1 && p.etapas.has('perdido'));
+  const conf = linhas.filter(r => r.etapa === 'confirmado' && r.b);
+  const motivos = {}; perdidos.forEach(p => { const m = p.r.motivo || 'sem motivo'; motivos[m] = (motivos[m] || 0) + 1; });
+  const comissoes = Parceiros.all().map(x => ({ x, c: Parceiros.conta(x) })).filter(y => y.c.saldo > 0);
+  /* o que espera por ela */
+  const agora = [];
+  for (const p of abertos) {
+    const o = p.r.o; if (!o) continue;
+    if (o.status === 'novo' || o.status === 'rascunho') agora.push({ tipo: 'montar', ordem: 2, nome: p.r.nome, o, txt: 'orçamento ainda não mandado' });
+    else {
+      const t = Tarefas.all().find(t2 => !t2.feita && t2.orcId === o.id && t2.etapa === 'aguardar');
+      if (t && t.prazo && t.prazo <= hoje) agora.push({ tipo: 'repescar', ordem: 1, nome: p.r.nome, o, txt: `mandado e sem resposta${(o.repescagens || []).length ? ` · já foram ${o.repescagens.length} repescagem(ns)` : ''}` });
+    }
+  }
+  const semSinal = new Map();
+  for (const r of conf) if (!Bookings.paid(r.b) && r.dataServ <= addDays(hoje, 14)) semSinal.set(r.pedido, r);
+  for (const r of semSinal.values()) agora.push({ tipo: 'sinal', ordem: 3, nome: r.nome, r, txt: `confirmado para ${r.dataServ.slice(8, 10)}/${r.dataServ.slice(5, 7)} e ainda sem sinal` });
+  const avaliar = new Map();
+  for (const r of linhas) if (r.etapa === 'avaliar') { const a = avaliar.get(r.pedido) || { r, ids: [] }; a.ids.push(r.id); if (r.dataServ > a.r.dataServ) a.r = r; avaliar.set(r.pedido, a); }
+  for (const a of avaliar.values()) agora.push({ tipo: 'avaliar', ordem: 4, nome: a.r.nome, r: a.r, ids: a.ids, txt: `o passeio foi ${a.r.dataServ.slice(8, 10)}/${a.r.dataServ.slice(5, 7)} · pedir a avaliação` });
+  agora.sort((x, y) => x.ordem - y.ordem || String(y.r ? y.r.dataServ : '').localeCompare(String(x.r ? x.r.dataServ : '')));
+  return {
+    abertos: { n: abertos.length, valor: abertos.reduce((s2, p) => s2 + (p.r.totalPedido || 0), 0), naoMandados: abertos.filter(p => p.r.o && (p.r.o.status === 'novo' || p.r.o.status === 'rascunho')).length },
+    confirmados: { n: new Set(conf.map(r => r.pedido)).size, valor: conf.reduce((s2, r) => s2 + (r.clientePaga || 0), 0),
+      recebido: conf.reduce((s2, r) => s2 + Bookings.paid(r.b), 0), falta: conf.reduce((s2, r) => s2 + Bookings.due(r.b), 0) },
+    fecha: { fechados: fechados.length, perdidos: perdidos.length, taxa: fechados.length + perdidos.length ? fechados.length / (fechados.length + perdidos.length) : null,
+      motivo: Object.entries(motivos).sort((x, y) => y[1] - x[1])[0] || null },
+    comissoes: { n: comissoes.length, valor: Math.round(comissoes.reduce((s2, y) => s2 + y.c.saldo, 0) * 100) / 100 },
+    agora,
+  };
+}
 /* pedir a avaliacao: a mensagem sai pronta; ela manda. Depois disso a linha vai para Finalizado */
 function msgAvaliacao(b) {
   const link = (DB.settings && DB.settings.linkAvaliacao) || '';
@@ -1578,13 +1838,23 @@ function msgAvaliacao(b) {
 function marcaAvaliacao(bookingId) { const b = Bookings.get(bookingId); if (!b) return; b.avaliacaoEm = isoToday(); _opSaveBooking(b); }
 function perdeOrcamento(id, motivo) { const o = Orc.get(id); if (!o) return; o.status = 'perdido'; o.motivoPerda = motivo || 'Outro'; _opSave(); }
 /* a planilha de volta para o Google Planilhas, com as colunas dela */
-const CRM_COLUNAS = ['Data', 'veio por', 'Whatsapp', 'Nome', 'Data Serviço', 'Hora', 'PAX', 'Serviço pedido', 'Obs', 'Cliente Paga', 'Ingrid Paga', 'Cidade', 'Parceiro', 'Total', 'Sinal', 'forma Pagamento', 'Em Real', 'Comissao Vendor', 'Status', 'Motivo da perda'];
+const CRM_COLUNAS = ['Data', 'veio por', 'Agência / indicação / influencer', 'Whatsapp', 'Nome', 'Data Serviço', 'Hora', 'PAX', 'Serviço pedido', 'Obs', 'Cliente Paga', 'Ingrid Paga', 'Cidade', 'Parceiro',
+  'Total', 'Sinal', 'forma Pagamento', 'Em Real (se fez PIX)', 'Comissao Vendor', 'Comissao indicacao', 'Status', 'Motivo da perda',
+  'Repescagem 1', 'Resultado 1', 'Repescagem 2', 'Resultado 2', 'Repescagem 3', 'Resultado 3', 'Nome do arquivo', 'Link PDF', 'Link Orçamento', 'Link Voucher', 'Link Comprov', 'Link Avaliacao'];
+/* o Status com as palavras da planilha dela */
+function crmStatusTxt(r) {
+  if (r.etapa === 'aberto') return r.status === 'enviado' ? 'Enviado' : 'Rascunho';
+  return { confirmado: 'CONFIRMADO', avaliar: '⭐AVALIAR', finalizado: '💚FINALIZADO', perdido: 'Perdido' }[r.etapa] || r.etapa;
+}
 function crmCsv(linhas) {
   const d = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) : '';
-  const et = (e) => (CRM_ETAPAS.find(x => x[0] === e) || [0, e])[1].replace(/^[^A-Za-zÀ-ú]+/, '');
   const q = (v) => { const t = String(v ?? ''); return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
-  return [CRM_COLUNAS, ...linhas.map(r => [d(r.dataPedido), r.veio, r.whats, r.nome, d(r.dataServ), r.hora, r.pax, r.servico, r.obs, r.clientePaga || '', r.ingridPaga || '',
-    r.cidade, r.parceiro, r.totalPedido || '', r.sinal || '', r.forma, r.emReal || '', r.comVendor || '', r.tipo === 'orcamento' && r.status === 'enviado' ? 'Enviado' : et(r.etapa), r.motivo])]
+  const num = (v) => v ? String(v).replace('.', ',') : '';
+  const rp = (r, k) => { const x = (r.repescagens || []).find(y => y.n === k); return x ? [d(x.data), x.resultado] : ['', '']; };
+  const lk = (r, re) => (r.links || []).filter(l => re.test(l.nome)).map(l => l.url).join(' ');
+  return [CRM_COLUNAS, ...linhas.map(r => [d(r.dataPedido), r.veio, r.indicou, r.whats, r.nomePlan || r.nome, d(r.dataServ), r.hora, r.pax, r.servico, r.obs, num(r.clientePaga), num(r.ingridPaga),
+    r.cidade, r.parceiro, num(r.totalPedido), num(r.sinal), r.forma, num(r.emReal), num(r.comVendor), num(r.comIndic), crmStatusTxt(r), r.motivo,
+    ...rp(r, 1), ...rp(r, 2), ...rp(r, 3), r.arquivo, lk(r, /pdf/i), lk(r, /or[cç]amento|planilha/i), lk(r, /voucher/i), lk(r, /comprov/i), lk(r, /avalia/i)])]
     .map(l => l.map(q).join(';')).join('\n');
 }
 
@@ -1753,6 +2023,7 @@ if (typeof STR !== 'undefined') {
   Object.assign(STR, {
     admGuias:    { pt: 'Guias', en: 'Guides' },
     admConsulta: { pt: 'Orçamentos', en: 'Quotes' },
+  admPlanilha: { pt: 'Planilha', en: 'Sheet' },
     admTarefas:  { pt: 'Tarefas', en: 'Tasks' },
     admClients:  { pt: 'Clientes', en: 'Clients' },
     admCoupons:  { pt: 'Cupons e parcerias', en: 'Coupons & partners' },

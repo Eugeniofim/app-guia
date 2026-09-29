@@ -496,8 +496,9 @@ function admGuias(arg) {
 /* O topo da aba Clientes: as duas partes dela */
 function cliTopo(qual) {
   return `<div class="cli-seg" role="tablist">
-    <a class="cli-seg-b ${qual === 'clientes' ? 'on' : ''}" href="#/adm/clients" role="tab">👤 Clientes</a>
-    <a class="cli-seg-b ${qual === 'crm' ? 'on' : ''}" href="#/adm/consulta" role="tab">📋 Orçamentos · CRM</a></div>`;
+    <a class="cli-seg-b ${qual === 'planilha' ? 'on' : ''}" href="#/adm/planilha" role="tab">📋 Planilha</a>
+    <a class="cli-seg-b ${qual === 'crm' ? 'on' : ''}" href="#/adm/consulta" role="tab">📨 Orçamentos</a>
+    <a class="cli-seg-b ${qual === 'clientes' ? 'on' : ''}" href="#/adm/clients" role="tab">👤 Clientes</a></div>`;
 }
 /* acha o cadastro pela rota: "c:<id>", a chave antiga (e-mail/WhatsApp/nome) ou "g:<nome>" */
 function cadastroDaRota(arg) {
@@ -636,6 +637,11 @@ function admFicha(arg) {
           ${[...junto.values()].map(p => `<div class="deprow">${p.clienteId ? `<a href="${fichaHref({ id: p.clienteId })}">${esc(p.nome)}</a>` : esc(p.nome)}<small class="mono">${idadeDe(p.nasc) != null ? idadeDe(p.nasc) + ' anos' : esc(p.nasc || '')}${p.vezes > 1 ? ' · ' + p.vezes + ' passeios' : ''}</small></div>`).join('') || '<p class="why">Ninguém ainda.</p>'}
         </section>
         ${indicou.length ? `<section class="card"><h3>Indicou · ${indicou.length}</h3>${indicou.map(x => `<div class="deprow"><a href="${fichaHref(x)}">${esc(x.nome)}</a><small>${x.criado ? new Date(x.criado).toLocaleDateString('pt-BR') : ''}</small></div>`).join('')}</section>` : ''}
+        <section class="card" id="fcArqs"><h3>📁 Arquivos <small class="why">comprovantes e documentos</small></h3>
+          ${Arquivos.lista({ clienteId: c.id }).map(a => `<div class="deprow"><a href="#" data-arq="${esc(a.id)}">${a.tipo === 'comprovante' ? '🧾' : '📄'} ${esc(a.nome)}</a><small>${a.drive ? '✓ no Drive' : '⏳ ainda não subiu para o Drive'}</small></div>`).join('') || '<p class="why">Nenhum arquivo ainda. O que você mandar pelo assistente ou pelo 💶 Pagamento aparece aqui.</p>'}
+          <p class="why">No Google Drive: <b>EmRoma › Clientes › ${esc(drvNome(c.nome))}</b></p>
+          <label class="mini fc-arq-add">+ guardar um arquivo<input type="file" id="fcArq" accept="image/*,application/pdf" hidden></label>
+        </section>
         <section class="card"><h3>Pedidos e orçamentos</h3>
           ${orcamentos.map(o => `<div class="deprow"><a href="#/adm/consulta/${esc(o.id)}">${esc(o.num)}</a><span>${o.itens.length} itens · ${eur(Orc.total(o))}</span>${opOrcPill(o)}</div>`).join('')}
           ${pedidos.map(p => `<div class="deprow"><span>🗺️ Monte seu roteiro · ${p.ini ? opCurta(p.ini) : ''}</span><span class="pill ${p.respondido ? 'ok' : 'warn'}">${p.respondido ? 'respondido' : 'novo'}</span></div>`).join('')}
@@ -645,6 +651,7 @@ function admFicha(arg) {
     </div>`);
   const re = () => admFicha(arg);
   opLigaCards(re); tfLigaMini(re);
+  $('#fcArq').onchange = (e) => { const f = e.target.files[0]; if (!f) return; Arquivos.guarda({ blob: f, nome: `${isoToday()} ${f.name}`, tipo: /comprov|pix|recibo/i.test(f.name) ? 'comprovante' : 'documento', clienteId: c.id, clienteNome: c.nome }); toast('Arquivo guardado'); re(); };
   $('#fvSalva').onclick = () => { Cadastro.salva(c.id, { viagem: { hotel: $('#fvHotel').value.trim(), chegada: $('#fvCheg').value.trim(), partida: $('#fvPart').value.trim(), bagagem: $('#fvBag').value.trim() } }); toast('Viagem salva'); re(); };
   $('#fcSalvaCad').onclick = () => {
     const indNome = $('#fcInd').value.trim(), indC = indNome ? Cadastro.all().find(x => x.id !== c.id && _nomeN(x.nome) === _nomeN(indNome)) : null;
@@ -855,36 +862,165 @@ function crmEtapaPill(e, st) {
 }
 /* as colunas de link da planilha dela: o que o app gera (PDF do orcamento,
    voucher) e o que ela colou (pelo nome do link) */
-function crmLinksTd(r) {
+function crmLinksCels(r) {
   const o = r.tipo === 'orcamento' ? r.o : (r.b && r.b.orcamentoId ? Orc.get(r.b.orcamentoId) : null);
   const todos = [...(r.links || []), ...((o && o.links) || [])];
   const acha = (re) => todos.filter(l => re.test(l.nome)).map(l => `<a target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.nome)}</a>`).join('<br>');
-  const comprov = r.b ? (r.b.payments || []).filter(p => p.comprovante).map((p, k) => `<a target="_blank" rel="noopener" href="${esc(p.comprovante)}">comprovante ${k + 1}</a>`).join('<br>') : '';
+  const comprov = r.b ? (r.b.payments || []).filter(p => p.comprovante || p.arquivoId).map((p, k) => p.arquivoId ? `<a href="#" data-arq="${esc(p.arquivoId)}">📎 comprovante ${k + 1}</a>` : `<a target="_blank" rel="noopener" href="${esc(p.comprovante)}">comprovante ${k + 1}</a>`).join('<br>') : '';
   const aval = r.b && r.b.avaliacaoEm ? (DB.settings.linkAvaliacao ? `<a target="_blank" rel="noopener" href="${esc(DB.settings.linkAvaliacao)}">pedida ${crmData(r.b.avaliacaoEm)}</a>` : 'pedida ' + crmData(r.b.avaliacaoEm)) : '';
-  return `<td>${o ? esc(Orc.nomeArquivo(o)) : esc(String(r.dataServ || '').replace(/-/g, '_') + ' ' + r.nome)}</td>
-    <td>${o ? `<a href="#/adm/orcdoc/${esc(o.id)}">PDF do orçamento</a>` : ''}${acha(/pdf/i) ? '<br>' + acha(/pdf/i) : ''}</td>
-    <td>${acha(/or[cç]amento|planilha/i)}</td>
-    <td>${r.b ? `<a href="#/adm/voucher/${esc(r.b.id)}">voucher</a>` : ''}${acha(/voucher/i) ? '<br>' + acha(/voucher/i) : ''}</td>
-    <td>${comprov}${acha(/comprov/i) ? '<br>' + acha(/comprov/i) : ''}</td>
-    <td>${aval}</td>`;
+  return [esc(r.arquivo || (o ? Orc.nomeArquivo(o) : String(r.dataServ || '').replace(/-/g, '_') + ' ' + r.nome)),
+    `${o ? `<a href="#/adm/orcdoc/${esc(o.id)}">PDF do orçamento</a>` : ''}${acha(/pdf/i) ? '<br>' + acha(/pdf/i) : ''}`,
+    acha(/or[cç]amento|planilha/i),
+    `${r.b ? `<a href="#/adm/voucher/${esc(r.b.id)}">voucher</a>` : ''}${acha(/voucher/i) ? '<br>' + acha(/voucher/i) : ''}`,
+    `${comprov}${acha(/comprov/i) ? '<br>' + acha(/comprov/i) : ''}`,
+    aval];
+}
+/* as colunas da planilha, na ordem dela, em grupos que ela pode esconder
+   (como ocultar colunas no Google Planilhas). O NOME fica sempre fixo a esquerda. */
+const CRM_GRUPOS = [['cli', 'Cliente'], ['serv', 'Serviço'], ['val', 'Valores'], ['par', 'Parceria'], ['st', 'Status'], ['rep', 'Repescagem'], ['arq', 'Arquivos e links']];
+function crmColunas() {
+  const m = (v) => v ? eur(v) : '';
+  const rpx = (r, k) => (r.repescagens || []).find(y => y.n === k);
+  const rp = (k) => (r) => { const x = rpx(r, k); return x && x.data ? crmData(x.data) : ''; };
+  const rs = (k) => (r) => { const x = rpx(r, k); return x ? esc(x.resultado) : ''; };
+  const lk = (i) => (r) => crmLinksCels(r)[i];
+  const dd = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) : '';
+  const T = (c, val, t, extra) => ({ c, t: t || 'txt', val, ...(extra || {}) });
+  const soOrc = (ed) => (r) => r.tipo === 'orcamento' ? ed : null;
+  const linkUrl = (nome) => (r) => ((r.links || []).find(l => l.nome === nome) || {}).url || '';
+  const VEIO_OPC = [['', '—'], ...Object.entries(VEIO_CURTO)];
+  const ed = {
+    data: soOrc(T('dataPedido', r => dd(r.dataPedido), 'data')), veio: () => T('veio', r => r.veioPor || '', 'sel', { opc: VEIO_OPC }), indicou: () => T('indicou', r => r.indicou || '', 'txt', { lista: 'crmQuemL' }),
+    whats: () => T('whats', r => r.whats || ''), dataServ: () => T('dataServ', r => dd(r.dataServ), 'data'), hora: () => T('hora', r => r.hora || ''), pax: () => T('pax', r => String(r.pax || ''), 'num'),
+    servico: () => T('servico', r => r.tipo === 'orcamento' ? ((r.o.itens.find(i => i.id === r.itemId) || {}).desc || '') : (r.b.servicoTxt || nomeDoServico(r.b)), 'txt', { lista: 'crmServL' }),
+    obs: () => T('obs', r => r.obs || ''), cidade: () => T('cidade', r => r.cidade || ''),
+    clientePaga: () => T('clientePaga', r => r.clientePaga ? String(r.clientePaga).replace('.', ',') : '', 'num'), ingridPaga: () => T('ingridPaga', r => r.ingridPaga ? String(r.ingridPaga).replace('.', ',') : '', 'num'),
+    sinal: (r) => r.tipo === 'orcamento' ? T('sinal', x => x.sinal ? String(x.sinal).replace('.', ',') : '', 'num') : T('pagto', null, 'pagto'),
+    forma: (r) => r.tipo === 'orcamento' ? T('forma', x => x.forma || '') : T('pagto', null, 'pagto'),
+    emReal: (r) => r.tipo === 'orcamento' ? T('emReal', x => x.emReal ? String(x.emReal).replace('.', ',') : '', 'num') : T('pagto', null, 'pagto'),
+    parceiro: () => T('parceiro', r => r.parceiro || ''), comVendor: () => T('comVendor', r => r.comVendor ? String(r.comVendor).replace('.', ',') : '', 'num'), comIndic: () => T('comIndic', r => r.comIndic ? String(r.comIndic).replace('.', ',') : '', 'num'),
+    status: (r) => T('status', x => x.etapa === 'aberto' ? (x.status === 'enviado' ? 'enviado' : 'rascunho') : x.etapa, 'sel', { opc: CRM_STATUS_OPC[r.tipo] }),
+    motivo: () => T('motivo', r => r.motivo || '', 'sel', { opc: [['', '—'], ...MOTIVOS_PERDA.map(m => [m, m])] }),
+    arquivo: () => T('arquivo', r => r.arquivo || ''),
+  };
+  const edRep = (k) => soOrc(T('rep' + k, r => { const x = rpx(r, k); return x && x.data ? dd(x.data) : ''; }, 'data'));
+  const edRes = (k) => soOrc(T('res' + k, r => { const x = rpx(r, k); return x ? x.resultado : ''; }));
+  const edLk = (campo, nome) => () => T(campo, linkUrl(nome), 'url');
+  return [
+    { g: 'cli', ed: ed.data, h: 'Data', dica: 'a data do pagamento (se ainda não pagou, a do pedido)', v: r => r.tipo === 'reserva' && !r.dataPago ? `<span class="crm-sem" title="ainda sem pagamento — data do pedido">${crmData(r.dataPedido)}</span>` : crmData(r.dataPedido), c: 'mono' },
+    { g: 'cli', ed: ed.veio, h: 'veio por', v: r => esc(r.veio) },
+    { g: 'cli', ed: ed.indicou, h: 'Agência · indicação · influencer', dica: 'quem mandou o cliente: a agência, a pessoa que indicou ou o influencer', v: r => r.indicou ? `<b class="crm-quem">${esc(r.indicou)}</b>` : '' },
+    { g: 'cli', ed: ed.whats, h: 'WhatsApp', v: r => r.whats ? `<a target="_blank" rel="noopener" href="${waLink('', opNum(r.whats))}">${esc(r.whats)}</a>` : '', c: 'mono' },
+    { g: 'serv', ed: ed.dataServ, h: 'Data serviço', v: r => crmData(r.dataServ), c: 'mono' },
+    { g: 'serv', ed: ed.hora, h: 'Hora', v: r => esc(r.hora), c: 'mono' },
+    { g: 'serv', ed: ed.pax, h: 'PAX', v: r => esc(r.pax), c: 'mono right', soma: r => +r.pax || 0, fmt: v => v },
+    { g: 'serv', ed: ed.servico, h: 'Serviço pedido', v: r => esc(r.servico), c: 'crm-serv' },
+    { g: 'serv', ed: ed.obs, h: 'Obs', v: r => esc(r.obs), c: 'crm-obs' },
+    { g: 'serv', ed: ed.cidade, h: 'Cidade', v: r => esc(r.cidade) },
+    { g: 'val', ed: ed.clientePaga, h: 'Cliente paga', v: r => m(r.clientePaga), c: 'mono right', soma: r => r.clientePaga || 0 },
+    { g: 'val', ed: ed.ingridPaga, h: 'Ingrid paga', v: r => m(r.ingridPaga), c: 'mono right', soma: r => r.ingridPaga || 0 },
+    { g: 'val', h: 'Total', v: (r, prim) => prim ? m(r.totalPedido) : '<span class="crm-idem">〃</span>', c: 'mono right', somaPedido: r => r.totalPedido || 0 },
+    { g: 'val', ed: ed.sinal, h: 'Sinal', v: r => m(r.sinal), c: 'mono right', soma: r => r.sinal || 0 },
+    { g: 'val', ed: ed.forma, h: 'forma Pagamento', v: r => esc(r.forma) },
+    { g: 'val', ed: ed.emReal, h: 'Em Real (se fez PIX)', v: r => r.emReal ? 'R$ ' + String(r.emReal).replace('.', ',') : '', c: 'mono right' },
+    { g: 'par', ed: ed.parceiro, h: 'Parceiro', v: r => esc(r.parceiro) },
+    { g: 'par', ed: ed.comVendor, h: 'Comissão vendor', v: r => m(r.comVendor), c: 'mono right', soma: r => r.comVendor || 0 },
+    { g: 'par', ed: ed.comIndic, h: 'Comissão indicação', v: r => m(r.comIndic), c: 'mono right', soma: r => r.comIndic || 0 },
+    { g: 'st', ed: ed.status, h: 'Status', v: r => crmEtapaPill(r.etapa, r.status) },
+    { g: 'st', ed: ed.motivo, h: 'Motivo da perda', v: r => esc(r.motivo) },
+    { g: 'rep', ed: edRep(1), h: 'Repescagem 1', v: rp(1), c: 'mono' }, { g: 'rep', ed: edRes(1), h: 'Resultado 1', v: rs(1) }, { g: 'rep', ed: edRep(2), h: 'Repescagem 2', v: rp(2), c: 'mono' }, { g: 'rep', ed: edRes(2), h: 'Resultado 2', v: rs(2) },
+    { g: 'rep', ed: edRep(3), h: 'Repescagem 3', v: rp(3), c: 'mono' }, { g: 'rep', ed: edRes(3), h: 'Resultado 3', v: rs(3) },
+    { g: 'arq', ed: ed.arquivo, h: 'Nome do arquivo', v: lk(0) }, { g: 'arq', ed: edLk('lPdf', 'PDF'), h: 'Link PDF', v: lk(1) }, { g: 'arq', ed: edLk('lOrc', 'Orçamento'), h: 'Link Orçamento', v: lk(2) },
+    { g: 'arq', ed: edLk('lVoucher', 'Voucher'), h: 'Link Voucher', v: lk(3) }, { g: 'arq', ed: edLk('lComprov', 'Comprovante'), h: 'Link Comprov', v: lk(4) }, { g: 'arq', ed: edLk('lAval', 'Avaliação'), h: 'Link Avaliação', v: lk(5) },
+  ];
+}
+const CRM_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const crmChave = (r) => [r.tipo, r.id, r.itemId || ''].join('|');
+function crmPlanilha(linhas, cols, editavel) {
+  const vis = crmColunas().filter(c => !cols.includes(c.g));
+  const grupos = []; vis.forEach(c => { const g = grupos[grupos.length - 1]; if (g && g.g === c.g) g.n++; else grupos.push({ g: c.g, n: 1 }); });
+  const nomeG = Object.fromEntries(CRM_GRUPOS);
+  const vistos = new Set();
+  let mesAnt = null, corpo = '';
+  for (const r of linhas) {
+    const mes = String(r.dataServ || '').slice(0, 7) || 'sem data';
+    if (mes !== mesAnt) {
+      mesAnt = mes;
+      const doMes = linhas.filter(x => (String(x.dataServ || '').slice(0, 7) || 'sem data') === mes);
+      const nm = mes === 'sem data' ? 'Sem data de serviço' : CRM_MESES[+mes.slice(5, 7) - 1] + ' ' + mes.slice(0, 4);
+      corpo += `<tr class="crm-mes"><td class="crm-fix">${nm}</td><td colspan="${vis.length}">${doMes.length} ${doMes.length === 1 ? 'serviço' : 'serviços'} · cliente paga ${eur(doMes.reduce((s2, x) => s2 + (x.clientePaga || 0), 0))}</td></tr>`;
+    }
+    const prim = !vistos.has(r.pedido); vistos.add(r.pedido);
+    const alvo = r.tipo === 'orcamento' ? '#/adm/consulta/' + r.o.id : '#/adm/clients/' + encodeURIComponent('c:' + (r.b.clienteId || ''));
+    const k = linhas.indexOf(r);
+    const cel = (c) => { const e = editavel && c.ed ? c.ed(r) : null;
+      return `<td class="${c.c || ''}${e ? ' crm-ed' + (e.t === 'pagto' ? ' crm-pg' : '') : ''}"${e ? ` data-k="${k}" data-c="${e.c}"` : ''}${e && e.t === 'pagto' ? ' title="entra pelo 💶 Pagamento"' : ''}>${c.v(r, prim) || ''}</td>`; };
+    corpo += `<tr ${editavel ? '' : `data-ir="${esc(alvo)}"`} data-row="${esc(crmChave(r))}" class="crm-e-${r.etapa}${prim ? '' : ' crm-cont'}"><td class="crm-fix${editavel ? ' crm-ed' : ''}"${editavel ? ` data-k="${k}" data-c="nome"` : ''}><b>${prim || editavel ? esc((editavel ? r.nome : r.nomePlan || r.nome) || '') || '<span class="crm-vazio">nome…</span>' : '<span class="crm-idem">〃 ' + esc(opPrimeiro(r.nome)) + '</span>'}</b>
+      ${editavel ? `<span class="crm-fix-acoes"><a class="crm-abre" href="${esc(alvo)}" title="${r.tipo === 'orcamento' ? 'abrir o orçamento' : 'abrir a ficha'}" aria-label="abrir">↗</a>${r.tipo === 'orcamento' && prim && r.etapa === 'aberto' ? `<button class="crm-mais" data-mais="${esc(r.o.id)}" title="mais um serviço neste pedido" aria-label="mais um serviço">＋</button>` : ''}</span>` : ''}</td>
+      ${vis.map(cel).join('')}</tr>`;
+  }
+  const pedidos = new Map(linhas.map(r => [r.pedido, r]));
+  const pe = vis.map(c => { const v = c.soma ? linhas.reduce((s2, r) => s2 + c.soma(r), 0) : c.somaPedido ? [...pedidos.values()].reduce((s2, r) => s2 + c.somaPedido(r), 0) : null;
+    return `<td class="${c.c || ''}">${v == null ? '' : c.fmt ? c.fmt(v) : eur(v)}</td>`; }).join('');
+  return `<div class="crm-plan-wrap"><table class="crm-plan"><thead>
+      <tr class="crm-grp"><th class="crm-fix" rowspan="2">Nome</th>${grupos.map(g => `<th colspan="${g.n}" class="crm-g-${g.g}">${nomeG[g.g]}</th>`).join('')}</tr>
+      <tr>${vis.map(c => `<th class="crm-g-${c.g}"${c.dica ? ` title="${esc(c.dica)}"` : ''}>${c.h}${c.dica ? ' <span class="crm-dica" aria-hidden="true">ⓘ</span>' : ''}</th>`).join('')}</tr></thead>
+    <tbody>${corpo || `<tr><td class="crm-fix why">Nada aqui.</td><td colspan="${vis.length}"></td></tr>`}</tbody>
+    ${linhas.length ? `<tfoot><tr><td class="crm-fix">${linhas.length} ${linhas.length === 1 ? 'serviço' : 'serviços'} · ${pedidos.size} ${pedidos.size === 1 ? 'pedido' : 'pedidos'}</td>${pe}</tr></tfoot>` : ''}</table></div>`;
 }
 function crmData(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '—'; }
-function admConsulta(arg) {
+/* modo 'planilha' = a aba Planilha: a planilha dela, para preencher celula por
+   celula. Sem modo = a aba Orcamentos: o painel e os cartoes com a proxima acao. */
+function admConsulta(arg, modo) {
   if (arg) return admOrcEditor(arg);
-  const S = admConsulta._s = admConsulta._s || { e: 'aberto', vista: innerWidth > 1000 ? 'planilha' : 'cartoes', q: '', mes: '' };
+  const P = modo === 'planilha';
+  let colsSalvas = []; try { colsSalvas = JSON.parse(localStorage.getItem('emroma_crm_cols') || '[]'); } catch (e) {}
+  const S = P ? (admConsulta._sp = admConsulta._sp || { e: 'todos', vista: 'planilha', q: '', mes: '', cols: Array.isArray(colsSalvas) ? colsSalvas : [] })
+              : (admConsulta._s = admConsulta._s || { e: 'aberto', vista: 'cartoes', q: '', mes: '', cols: Array.isArray(colsSalvas) ? colsSalvas : [] });
+  if (P) S.vista = 'planilha';
   const hoje = isoToday();
   const todas = crmLinhas(hoje);
   const conta = Object.fromEntries(CRM_ETAPAS.map(([e]) => [e, new Set(todas.filter(r => r.etapa === e).map(r => r.pedido)).size]));
   const n = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const q = n(S.q).trim();
   let linhas = todas.filter(r => S.e === 'todos' || r.etapa === S.e)
-    .filter(r => !q || [r.nome, r.whats, r.servico, r.obs, r.cidade, r.veio].some(v => n(v).includes(q)))
+    .filter(r => !q || [r.nome, r.whats, r.servico, r.obs, r.cidade, r.veio, r.indicou, r.parceiro].some(v => n(v).includes(q)))
     .filter(r => !S.mes || String(r.dataServ || '').slice(0, 7) === S.mes);
   if (S.e === 'finalizado' || S.e === 'perdido') linhas = linhas.reverse();
   /* os pedidos (cartoes): as linhas do mesmo pedido juntas */
   const pedidos = [];
   for (const r of linhas) { let p = pedidos.find(x => x.pedido === r.pedido); if (!p) { p = { pedido: r.pedido, linhas: [], r }; pedidos.push(p); } p.linhas.push(r); }
   const rotSemOrc = Roteiros.all().filter(p => !Orc.all().some(o => o.pedidoId === p.id));
+  const doMes = todas.filter(r => !S.mes || String(r.dataServ || '').slice(0, 7) === S.mes);
+  const pn = crmPainel(doMes, hoje);
+  const ICO = { repescar: '🔁', montar: '✍️', sinal: '💶', avaliar: '⭐' };
+  const agoraAcao = (a) => {
+    if (a.tipo === 'montar') return `<a class="mini strong" href="#/adm/consulta/${esc(a.o.id)}">montar e mandar</a>`;
+    if (a.tipo === 'repescar') return a.o.cliente.whats ? `<a class="mini strong" target="_blank" rel="noopener" data-repesca="${esc(a.o.id)}" href="${waLink(`Oi ${opPrimeiro(a.o.cliente.nome)}! Tudo bem? Conseguiu ver o orçamento que te mandei (${a.o.num})? Se quiser, ajusto alguma coisa. ${guiaNome()}`, opNum(a.o.cliente.whats))}">💬 repescar</a>` : `<a class="mini" href="#/adm/consulta/${esc(a.o.id)}">abrir</a>`;
+    if (a.tipo === 'sinal') return `<a class="mini" href="#/adm/clients/${encodeURIComponent('c:' + (a.r.b.clienteId || ''))}">ficha</a>${a.r.whats ? `<a class="mini strong" target="_blank" rel="noopener" href="${waLink(`Oi ${opPrimeiro(a.r.nome)}! Para garantir a sua reserva (${nomeDoServico(a.r.b)}, ${opCurta(a.r.dataServ)}), falta só o sinal. Te mando os dados para pagamento? ${guiaNome()}`, opNum(a.r.whats))}">💬 cobrar sinal</a>` : ''}`;
+    return a.r.whats ? `<a class="mini strong" target="_blank" rel="noopener" data-avalia="${esc(a.ids.join(','))}" href="${waLink(msgAvaliacao(a.r.b), opNum(a.r.whats))}">⭐ pedir avaliação</a>` : `<button class="mini" data-final="${esc(a.ids.join(','))}">já pedi</button>`;
+  };
+  const mesNome = S.mes ? CRM_MESES[+S.mes.slice(5, 7) - 1] + ' ' + S.mes.slice(0, 4) : 'todos os meses';
+  const painel = P ? `<section class="crm-painel crm-painel-p" aria-label="Painel">
+    <div class="crm-tiles">
+      <button class="crm-tile t-warn" data-e="aberto"><small>Em aberto</small><b>${pn.abertos.n}</b><span>${pn.abertos.valor ? eur(pn.abertos.valor) : 'pedidos'}</span></button>
+      <button class="crm-tile t-ok" data-e="confirmado"><small>Confirmados a fazer</small><b>${eur(pn.confirmados.valor)}</b><span>${pn.confirmados.n} pedidos</span></button>
+      <button class="crm-tile" data-e="confirmado"><small>Falta receber</small><b>${eur(pn.confirmados.falta)}</b><span>sinal recebido ${eur(pn.confirmados.recebido)}</span></button>
+      <button class="crm-tile" data-e="todos"><small>Fechamento</small><b>${pn.fecha.taxa == null ? '—' : Math.round(pn.fecha.taxa * 100) + '%'}</b><span>${pn.fecha.fechados} fechados · ${pn.fecha.perdidos} perdidos</span></button>
+      <a class="crm-tile" href="#/adm/consulta"><small>⚡ Precisa de você</small><b>${pn.agora.length}</b><span>ver na aba Orçamentos</span></a>
+    </div></section>` : `<section class="crm-painel" aria-label="Painel do CRM">
+    <div class="crm-painel-top"><h2>Painel · ${esc(mesNome)}</h2><small class="why">toque num quadro para ver os pedidos</small></div>
+    <div class="crm-tiles">
+      <button class="crm-tile t-warn" data-e="aberto"><small>Em aberto</small><b>${pn.abertos.n}</b><span>${pn.abertos.n === 1 ? 'pedido' : 'pedidos'}${pn.abertos.valor ? ' · ' + eur(pn.abertos.valor) : ''}</span>${pn.abertos.naoMandados ? `<em>${pn.abertos.naoMandados} ainda não ${pn.abertos.naoMandados === 1 ? 'mandado' : 'mandados'}</em>` : ''}</button>
+      <button class="crm-tile t-ok" data-e="confirmado"><small>Confirmados a fazer</small><b>${eur(pn.confirmados.valor)}</b><span>${pn.confirmados.n} ${pn.confirmados.n === 1 ? 'pedido' : 'pedidos'}</span></button>
+      <button class="crm-tile" data-e="confirmado"><small>Falta receber</small><b>${eur(pn.confirmados.falta)}</b><span>sinal já recebido ${eur(pn.confirmados.recebido)}</span></button>
+      <button class="crm-tile" data-e="todos"><small>Taxa de fechamento</small><b>${pn.fecha.taxa == null ? '—' : Math.round(pn.fecha.taxa * 100) + '%'}</b><span>${pn.fecha.fechados} fechados · ${pn.fecha.perdidos} perdidos</span>${pn.fecha.motivo ? `<em>perde mais por: ${esc(pn.fecha.motivo[0])}</em>` : ''}</button>
+      <a class="crm-tile" href="#/adm/coupons"><small>Comissões a pagar</small><b>${eur(pn.comissoes.valor)}</b><span>${pn.comissoes.n ? pn.comissoes.n + (pn.comissoes.n === 1 ? ' parceiro' : ' parceiros') : 'tudo em dia'}</span></a>
+    </div>
+    <div class="crm-agora"><h3>⚡ Precisa de você ${pn.agora.length ? `<b>${pn.agora.length}</b>` : ''}</h3>
+      ${pn.agora.length ? `<ul>${pn.agora.slice(0, S.agoraTudo ? 99 : 5).map(a => `<li><span class="crm-ag-i" aria-hidden="true">${ICO[a.tipo]}</span><div><b>${esc(a.nome || 'Sem nome')}</b><small>${esc(a.txt)}</small></div><div class="tacts">${agoraAcao(a)}</div></li>`).join('')}</ul>
+        ${pn.agora.length > 5 ? `<button class="mini ghost" id="crmAgoraTudo">${S.agoraTudo ? 'mostrar menos' : `ver os ${pn.agora.length}`}</button>` : ''}` : '<p class="why">Nada esperando por você. 🎉</p>'}
+    </div></section>`;
   const meses = [...new Set(todas.map(r => String(r.dataServ || '').slice(0, 7)).filter(Boolean))].sort();
   const MESN = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
@@ -905,67 +1041,70 @@ function admConsulta(arg) {
     const rp = (r.repescagens || []).map(x => `${x.n}ª ${crmData(x.data)} · ${x.resultado}`).join(' | ');
     return `<article class="crm-card">
       <div class="crm-top"><b class="crm-nome">${esc(r.nome || 'Sem nome')}</b>${crmEtapaPill(r.etapa, r.status)}
-        ${r.veio ? `<span class="crm-veio">${esc(r.veio)}</span>` : ''}${r.parceiro ? `<span class="crm-veio">🤝 ${esc(r.parceiro)}</span>` : ''}</div>
+        ${r.veio ? `<span class="crm-veio">${esc(r.veio)}${r.indicou ? ': <b>' + esc(r.indicou) + '</b>' : ''}</span>` : ''}${r.parceiro ? `<span class="crm-veio">🤝 ${esc(r.parceiro)}</span>` : ''}</div>
       <ul class="crm-linhas">${p.linhas.map(x => `<li><span class="mono">${crmData(x.dataServ)}${x.hora ? ' ' + esc(x.hora) : ''}</span><span>${esc(x.servico)}${x.pax ? ` <small>· ${esc(x.pax)}p</small>` : ''}${x.obs ? `<small> · ${esc(x.obs)}</small>` : ''}</span><b class="mono">${x.clientePaga ? eur(x.clientePaga) : '—'}</b></li>`).join('')}</ul>
       <div class="crm-pe"><span>Total <b>${eur(tot)}</b>${r.sinal ? ` · sinal ${eur(r.sinal)}` : ''}${r.forma ? ` · ${esc(r.forma)}` : ''}</span>
         ${rp ? `<small class="crm-rp">Repescagem: ${esc(rp)}</small>` : ''}
         <div class="tacts">${acoes(p)}${r.whats ? `<a class="mini ghost" target="_blank" rel="noopener" href="${waLink('', opNum(r.whats))}">WhatsApp</a>` : ''}</div></div>
     </article>`;
   }).join('');
-  const planilha = `<div class="crm-plan-wrap"><table class="tbl crm-plan"><thead><tr>
-      ${['Data', 'veio por', 'WhatsApp', 'Nome', 'Data serviço', 'Hora', 'PAX', 'Serviço pedido', 'Obs', 'Cliente paga', 'Ingrid paga', 'Cidade', 'Parceiro', 'Total', 'Sinal', 'forma Pagamento', 'Em Real', 'Comissão vendor', 'Status', 'Motivo da perda', 'Repescagem 1', 'Repescagem 2', 'Repescagem 3', 'Nome do arquivo', 'Link PDF', 'Link Orçamento', 'Link Voucher', 'Link Comprov', 'Link Avaliação'].map(c => `<th>${c}</th>`).join('')}</tr></thead>
-    <tbody>${linhas.map(r => { const rp = (k) => { const x = (r.repescagens || []).find(y => y.n === k); return x ? `${crmData(x.data)} · ${esc(x.resultado)}` : ''; };
-      const alvo = r.tipo === 'orcamento' ? '#/adm/consulta/' + r.o.id : '#/adm/clients/' + encodeURIComponent('c:' + (r.b.clienteId || ''));
-      return `<tr data-ir="${esc(alvo)}"><td class="mono">${crmData(r.dataPedido)}</td><td>${esc(r.veio)}</td><td class="mono">${esc(r.whats)}</td><td><b>${esc(r.nome)}</b></td>
-        <td class="mono">${crmData(r.dataServ)}</td><td class="mono">${esc(r.hora)}</td><td class="right">${esc(r.pax)}</td><td class="crm-serv">${esc(r.servico)}</td><td>${esc(r.obs)}</td>
-        <td class="mono right">${r.clientePaga ? eur(r.clientePaga) : ''}</td><td class="mono right">${r.ingridPaga ? eur(r.ingridPaga) : ''}</td><td>${esc(r.cidade)}</td><td>${esc(r.parceiro)}</td>
-        <td class="mono right">${r.totalPedido ? eur(r.totalPedido) : ''}</td><td class="mono right">${r.sinal ? eur(r.sinal) : ''}</td><td>${esc(r.forma)}</td><td class="mono right">${r.emReal ? 'R$ ' + r.emReal : ''}</td>
-        <td class="mono right">${r.comVendor ? eur(r.comVendor) : ''}</td><td>${crmEtapaPill(r.etapa, r.status)}</td><td>${esc(r.motivo)}</td><td>${rp(1)}</td><td>${rp(2)}</td><td>${rp(3)}</td>
-        ${crmLinksTd(r)}</tr>`; }).join('') || `<tr><td colspan="29" class="why">Nada nesta etapa.</td></tr>`}
-    </tbody></table></div>`;
+  const colChips = `<div class="crm-cols"><span class="why">Colunas:</span>${CRM_GRUPOS.map(([g, nome]) => `<button class="chip ${S.cols.includes(g) ? '' : 'on'}" data-col="${g}" aria-pressed="${!S.cols.includes(g)}">${S.cols.includes(g) ? '' : '✓ '}${nome}</button>`).join('')}</div>`;
+  admConsulta._linhas = linhas;
+  const semPlanilha = !DB.bookings.some(b => b.origin === 'planilha') && !Orc.all().some(o => o.chavePlanilha);
+  const planilha = (P ? `<div class="crm-plan-barra"><button class="cta sm" id="crmLinha">＋ nova linha</button><span class="why">Toque numa célula para escrever · <b>Enter</b> grava · <b>Tab</b> vai para a próxima · Status <b>CONFIRMADO</b> vira reserva</span></div>` : '')
+    + colChips + crmPlanilha(linhas, S.cols, P)
+    + (P ? `<datalist id="crmServL">${Tours.all().filter(x => x.status !== 'draft').map(x => `<option value="${esc(x.name.pt)}">`).join('')}</datalist><datalist id="crmQuemL">${Parceiros.all().map(x => `<option value="${esc(x.nome)}">`).join('')}</datalist>` : '');
 
-  admShell('consulta', `${cliTopo('crm')}
-    <div class="pagehead"><h1 class="pageh">Orçamentos · CRM</h1>
+  admShell(P ? 'planilha' : 'consulta', `${cliTopo(P ? 'planilha' : 'crm')}
+    ${P && semPlanilha ? `<section class="card crm-traga"><div><h3>📥 Comece trazendo a sua planilha CRM</h3>
+      <p class="why">No Google Planilhas: <b>Arquivo › Fazer download › Valores separados por vírgula (.csv)</b>. Depois toque em <b>Importar a planilha</b> e escolha o arquivo. "Enviado" vira orçamento, "CONFIRMADO" vira reserva com o sinal — nada se perde, e importar de novo não duplica.</p></div>
+      <button class="cta sm" id="crmTraga">Importar a planilha</button></section>` : ''}
+    <div class="pagehead"><h1 class="pageh">${P ? 'Planilha · CRM' : 'Orçamentos'}</h1>
       <div class="chips">
         <button class="mini strong" id="crmNovo">+ novo orçamento</button>
         <button class="mini" id="crmImp">importar a planilha</button>
         <button class="mini" id="crmBaixa">baixar planilha</button>
       </div></div>
-    <div class="crm-etapas" role="tablist">${[...CRM_ETAPAS, ['todos', 'Todos']].map(([e, nome]) =>
-      `<button class="crm-etapa ${S.e === e ? 'on' : ''}" data-e="${e}" role="tab" aria-selected="${S.e === e}">${nome}${e !== 'todos' ? ` <b>${conta[e]}</b>` : ''}</button>`).join('')}</div>
+    ${painel}
+    <div class="crm-etapas" role="tablist">${[...CRM_ETAPAS, ['todos', 'Todos']].map(([e, nome], k) =>
+      `${k && k < CRM_ETAPAS.length - 1 ? '<span class="crm-seta" aria-hidden="true">→</span>' : ''}<button class="crm-etapa ${S.e === e ? 'on' : ''}" data-e="${e}" role="tab" aria-selected="${S.e === e}">${e === 'aberto' ? '📨 Em aberto' : nome}${e !== 'todos' ? ` <b>${conta[e]}</b>` : ''}</button>`).join('')}</div>
     <div class="crm-filtros">
       <input id="crmQ" type="search" placeholder="🔎 nome, WhatsApp, serviço, hotel…" value="${esc(S.q)}">
       <select id="crmMes"><option value="">todos os meses</option>${meses.map(m => `<option value="${m}" ${S.mes === m ? 'selected' : ''}>${MESN[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}</option>`).join('')}</select>
-      <div class="chips" style="margin:0"><button class="chip ${S.vista === 'cartoes' ? 'on' : ''}" data-vista="cartoes">cartões</button><button class="chip ${S.vista === 'planilha' ? 'on' : ''}" data-vista="planilha">planilha</button></div>
+      ${P ? '' : `<div class="chips crm-vistas" style="margin:0"><button class="chip ${S.vista === 'cartoes' ? 'on' : ''}" data-vista="cartoes">🗂️ cartões</button><button class="chip ${S.vista === 'planilha' ? 'on' : ''}" data-vista="planilha">📋 planilha</button></div>`}
     </div>
-    <details class="card" id="crmNovoBox" ${Orc.all().length ? '' : 'open'}>
-      <summary><b>+ Novo pedido</b> <small class="why">cole a conversa do WhatsApp ou comece em branco</small></summary>
+    <section class="card" id="crmNovoBox" ${Orc.all().length ? 'hidden' : ''}>
+      <h3>+ Novo orçamento <small class="why">cole a conversa do WhatsApp ou comece em branco</small></h3>
       <label class="fld">Conversa do WhatsApp / Instagram / e-mail<textarea id="ccTxt" rows="5" placeholder="Cole aqui a conversa inteira. O app tira nome, telefone, datas, quantas pessoas, cidades e serviços."></textarea></label>
       <div class="btnrow"><button class="cta sm" id="ccLer">Ler e montar o rascunho</button><button class="mini" id="ccBranco">começar em branco</button></div>
       <div id="ccPrev"></div>
-    </details>
-    <details class="card" id="crmImpBox"><summary><b>Importar a planilha CRM</b> <small class="why">no Google Planilhas: Arquivo → Fazer download → .csv</small></summary>
+    </section>
+    <section class="card" id="crmImpBox" hidden><h3>Importar a planilha CRM <small class="why">no Google Planilhas: Arquivo → Fazer download → .csv</small></h3>
       <p class="why">O app lê as colunas pelo nome (Data, veio por, Whatsapp, Nome, Data Serviço, Hora, PAX, Serviço pedido, Obs, Cliente Paga, Ingrid Paga, Cidade). Cada linha vira uma reserva e cada nome um cadastro. Importar de novo não duplica.</p>
-      <label class="fld">Arquivo .csv<input type="file" id="crmArq" accept=".csv,text/csv"></label><div id="crmImpPrev"></div></details>
+      <label class="fld">Arquivo .csv<input type="file" id="crmArq" accept=".csv,text/csv"></label><div id="crmImpPrev"></div></section>
     ${rotSemOrc.length ? `<section class="card"><h3>🗺️ Monte seu roteiro · ${rotSemOrc.length}</h3>
       ${rotSemOrc.map(p => `<div class="orc-row"><div class="tinfo"><b>${esc(p.nome)}</b><small>${[p.ini && opCurta(p.ini), p.fim && opCurta(p.fim)].filter(Boolean).join(' → ')} · ${p.adultos} adultos${p.criancas ? ' + ' + p.criancas + ' crianças' : ''} · ${(p.onde || []).join(', ')}${p.modo === 'consultoria' ? ' · <b>consultoria</b>' : ''}</small></div>
         <button class="mini strong" data-rot="${esc(p.id)}">Montar orçamento</button></div>`).join('')}</section>` : ''}
     ${S.vista === 'planilha' ? planilha : (cartoes || '<p class="empty">Nada nesta etapa.</p>')}`);
 
-  const re = () => admConsulta();
+  const re = () => admConsulta(undefined, modo);
+  if (P) crmLigaEdicao(re);
+  $('#crmTraga')?.addEventListener('click', () => { const d = $('#crmImpBox'); d.hidden = false; d.scrollIntoView({ block: 'start' }); $('#crmArq').click(); });
   $$('[data-e]').forEach(b => b.onclick = () => { S.e = b.dataset.e; re(); });
   $$('[data-vista]').forEach(b => b.onclick = () => { S.vista = b.dataset.vista; re(); });
   $('#crmMes').onchange = (e) => { S.mes = e.target.value; re(); };
   $('#crmQ').oninput = (e) => { S.q = e.target.value; clearTimeout(admConsulta._t); admConsulta._t = setTimeout(() => { re(); const i2 = $('#crmQ'); if (i2) { i2.focus(); i2.setSelectionRange(i2.value.length, i2.value.length); } }, 250); };
-  $('#crmNovo').onclick = () => { const d = $('#crmNovoBox'); d.open = true; d.scrollIntoView({ block: 'start' }); $('#ccTxt').focus(); };
-  $('#crmImp').onclick = () => { const d = $('#crmImpBox'); d.open = true; d.scrollIntoView({ block: 'start' }); };
+  $('#crmNovo').onclick = () => { const d = $('#crmNovoBox'); d.hidden = false; d.scrollIntoView({ block: 'start' }); $('#ccTxt').focus(); };
+  $('#crmImp').onclick = () => { const d = $('#crmImpBox'); d.hidden = false; d.scrollIntoView({ block: 'start' }); };
+  $$('[data-col]').forEach(b => b.onclick = () => { const g = b.dataset.col; S.cols = S.cols.includes(g) ? S.cols.filter(x => x !== g) : [...S.cols, g]; try { localStorage.setItem('emroma_crm_cols', JSON.stringify(S.cols)); } catch (e) {} re(); });
+  if ($('#crmAgoraTudo')) $('#crmAgoraTudo').onclick = () => { S.agoraTudo = !S.agoraTudo; re(); };
   $('#crmBaixa').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + crmCsv(todas)], { type: 'text/csv;charset=utf-8' })); a.download = 'CRM-EmRoma-' + hoje + '.csv'; a.click(); };
   $('#crmArq').onchange = async (e) => {
     const f = e.target.files[0]; if (!f) return;
     const txt = await f.text(), sim = importarPlanilha(txt, true), box = $('#crmImpPrev');
     if (sim.erro) { box.innerHTML = `<div class="alert bad">${esc(sim.erro)}</div>`; return; }
-    box.innerHTML = `<div class="alert warn bkp-volta"><div><b>${sim.linhas.length} serviços de ${sim.clientes} clientes</b>${sim.pulou.length ? `<br><small>${sim.pulou.length} linha(s) sem data de serviço ficaram de fora</small>` : ''}</div><button class="cta sm" id="crmImpOk">Importar</button></div>`;
-    $('#crmImpOk').onclick = () => { const r = importarPlanilha(txt); toast(r.erro || `${r.criadas} reservas importadas${r.repetidas ? ` · ${r.repetidas} já estavam no app` : ''}`); S.e = 'todos'; re(); };
+    box.innerHTML = `<div class="alert warn bkp-volta"><div><b>${sim.linhas.length} linhas de ${sim.clientes} clientes</b><br><small>viram ${sim.orcamentos} ${sim.orcamentos === 1 ? 'orçamento em aberto ou perdido' : 'orçamentos (em aberto ou perdidos)'} e ${sim.reservas} ${sim.reservas === 1 ? 'reserva confirmada' : 'reservas confirmadas'}, pelo Status de cada linha</small>${sim.pulou.length ? `<br><small>${sim.pulou.length} linha(s) sem data de serviço ficaram de fora</small>` : ''}</div><button class="cta sm" id="crmImpOk">Importar</button></div>`;
+    $('#crmImpOk').onclick = () => { const r = importarPlanilha(txt); if (P) S.e = 'todos'; toast(r.erro || `${r.orcamentos ? r.orcamentos + ' orçamentos · ' : ''}${r.criadas} reservas importadas${r.repetidas ? ` · ${r.repetidas} já estavam no app` : ''}`); S.e = 'todos'; re(); };
   };
   $$('tr[data-ir]').forEach(tr => tr.onclick = (e) => { if (!e.target.closest('a')) location.hash = tr.dataset.ir; });
   $$('[data-fecha]').forEach(b => b.onclick = () => go('/adm/consulta/' + b.dataset.fecha));
@@ -1003,6 +1142,70 @@ function admConsulta(arg) {
       resumo: msgRoteiro(p).split('\n').slice(1, 6).join(' · '), itens: rascunhoDoRoteiro(p), pax: (+p.adultos || 0) + (+p.criancas || 0) });
     go('/adm/consulta/' + o.id);
   });
+}
+
+/* A EDICAO NA PLANILHA: toque na celula -> campo; Enter grava (e desce),
+   Tab grava e vai para a direita, Esc desiste. Depois de gravar a tela e
+   redesenhada no MESMO lugar (a rolagem da planilha e da pagina volta). */
+function crmLigaEdicao(re) {
+  const wrap = $('.crm-plan-wrap'); if (!wrap) return;
+  const redesenha = (row, campo, dir) => {
+    const w0 = $('.crm-plan-wrap'), sl = w0 ? w0.scrollLeft : 0, st = w0 ? w0.scrollTop : 0, sy = scrollY;
+    re();
+    const w1 = $('.crm-plan-wrap'); if (w1) { w1.scrollLeft = sl; w1.scrollTop = st; } scrollTo(0, sy);
+    if (!dir) return;
+    const tr = [...document.querySelectorAll('.crm-plan tr[data-row]')].find(x => x.dataset.row === row); if (!tr) return;
+    let alvo = null;
+    if (dir === 'dir' || dir === 'esq') { const cs = [...tr.querySelectorAll('td[data-c]')], i = cs.findIndex(td => td.dataset.c === campo); alvo = cs[i + (dir === 'dir' ? 1 : -1)]; }
+    else if (dir === 'baixo') { let n = tr.nextElementSibling; while (n && !n.dataset.row) n = n.nextElementSibling; alvo = n && n.querySelector(`td[data-c="${campo}"]`); }
+    if (alvo) crmCelula(alvo, redesenha);
+  };
+  wrap.addEventListener('click', (e) => {
+    if (e.target.closest('a,button,input,select')) return;
+    const td = e.target.closest('td[data-c]'); if (td && !td.classList.contains('crm-editando')) crmCelula(td, redesenha);
+  });
+  $$('[data-mais]').forEach(b => b.onclick = () => { const it = crmMaisServico(b.dataset.mais); const o = Orc.get(b.dataset.mais);
+    redesenha(crmChave({ tipo: 'orcamento', id: o.id, itemId: it.id }), 'nome', null);
+    const tr = [...document.querySelectorAll('.crm-plan tr[data-row]')].find(x => x.dataset.row === crmChave({ tipo: 'orcamento', id: o.id, itemId: it.id }));
+    const td = tr && tr.querySelector('td[data-c="servico"]'); if (td) { td.scrollIntoView({ block: 'nearest', inline: 'center' }); crmCelula(td, redesenha); } });
+  $('#crmLinha')?.addEventListener('click', () => {
+    const o = crmNovaLinha(); const S = admConsulta._sp; if (S) { S.e = 'todos'; S.q = ''; S.mes = ''; }
+    const row = crmChave({ tipo: 'orcamento', id: o.id, itemId: o.itens[0].id });
+    re();
+    const tr = [...document.querySelectorAll('.crm-plan tr[data-row]')].find(x => x.dataset.row === row);
+    const td = tr && tr.querySelector('td[data-c="nome"]'); if (td) { tr.scrollIntoView({ block: 'center' }); crmCelula(td, redesenha); }
+  });
+}
+function crmCelula(td, redesenha) {
+  const r = (admConsulta._linhas || [])[+td.dataset.k]; if (!r) return;
+  const campo = td.dataset.c, row = crmChave(r);
+  if (campo === 'pagto') { ATALHO.pagto(r.b); return; }
+  const col = campo === 'nome' ? { t: 'txt', val: x => x.nome || '' } : (() => { for (const c of crmColunas()) { const e = c.ed && c.ed(r); if (e && e.c === campo) return e; } return null; })();
+  if (!col) return;
+  const atual = String(col.val(r) ?? '');
+  td.classList.add('crm-editando');
+  td.innerHTML = col.t === 'sel'
+    ? `<select aria-label="${esc(campo)}">${col.opc.map(([v, l]) => `<option value="${esc(v)}" ${v === atual ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`
+    : `<input aria-label="${esc(campo)}" value="${esc(atual)}" ${col.t === 'num' ? 'inputmode="decimal"' : ''} ${col.t === 'data' ? 'placeholder="dd/mm" inputmode="numeric"' : ''} ${col.t === 'url' ? 'placeholder="https://…" inputmode="url"' : ''} ${col.lista ? `list="${col.lista}"` : ''}>`;
+  const inp = td.firstElementChild; inp.focus(); if (inp.select && col.t !== 'sel') inp.select();
+  let feito = false;
+  const salva = (dir) => {
+    if (feito) return; feito = true;
+    const v = inp.value;
+    if (v !== atual) {
+      const res = crmEdita({ tipo: r.tipo, id: r.id, itemId: r.itemId }, campo, v);
+      if (res.erro) { toast(res.erro); redesenha(row, campo, null); return; }
+      if (res.reservas != null) toast(`✓ Confirmado: ${res.reservas} ${res.reservas === 1 ? 'reserva criada' : 'reservas criadas'} na agenda`);
+    }
+    redesenha(row, campo, dir);
+  };
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); salva('baixo'); }
+    else if (e.key === 'Tab') { e.preventDefault(); salva(e.shiftKey ? 'esq' : 'dir'); }
+    else if (e.key === 'Escape') { e.preventDefault(); feito = true; redesenha(row, campo, null); }
+  });
+  if (col.t === 'sel') inp.addEventListener('change', () => salva(null));
+  inp.addEventListener('blur', () => setTimeout(() => salva(null), 0));
 }
 
 function opMsgOrc(o) {
@@ -1975,22 +2178,105 @@ function tfLigaMini(redesenha) {
 }
 
 /* =====================================================
-   BACKUP AUTOMATICO — computador e Google Drive
+   GOOGLE DRIVE — a pasta EmRoma (backup + arquivos dos clientes)
 
    A ponte com o Drive e a PASTA: ela instala o Google Drive para computador
-   e escolhe, uma vez, a pasta "Meu Drive > Backup EmRoma". Todo dia, ao abrir
-   o painel, o app grava o arquivo do dia ali — e o Drive sobe sozinho.
+   e liga, uma vez, a pasta "Meu Drive > EmRoma". O app grava dentro dela e o
+   Drive sobe sozinho:
+     EmRoma › Backups              um arquivo por dia (os ultimos 60)
+     EmRoma › CRM › CRM-EmRoma.csv a planilha dela, atualizada todo dia
+     EmRoma › Clientes › <nome>    comprovantes e documentos (o assistente guarda)
    O Chrome guarda a permissao; as vezes, depois de reiniciar, pede um toque.
-   Sem pasta (iPhone, Safari), o backup do dia sai como download.
+   Sem pasta (iPhone, Safari): o arquivo fica guardado no app e o backup sai
+   como download. O que nao subiu fica na fila e sobe na proxima vez.
 ===================================================== */
 const BKP_IDB = 'emroma-backup';
 function bkpIdb() {
   return new Promise((ok, falha) => {
-    const r = indexedDB.open(BKP_IDB, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore('h');
+    const r = indexedDB.open(BKP_IDB, 2);
+    r.onupgradeneeded = () => { for (const st of ['h', 'arq']) if (!r.result.objectStoreNames.contains(st)) r.result.createObjectStore(st); };
     r.onsuccess = () => ok(r.result); r.onerror = () => falha(r.error);
   });
 }
+async function arqIdb(modo, id, valor) {
+  try {
+    const db = await bkpIdb();
+    return await new Promise((ok) => {
+      const tx = db.transaction('arq', modo === 'get' ? 'readonly' : 'readwrite'), st = tx.objectStore('arq');
+      if (modo === 'get') { const g = st.get(id); g.onsuccess = () => ok(g.result || null); g.onerror = () => ok(null); }
+      else { st.put(valor, id); tx.oncomplete = () => ok(true); tx.onerror = () => ok(false); }
+    });
+  } catch (e) { return modo === 'get' ? null : false; }
+}
+const DRV_BACKUPS = 'Backups', DRV_CRM = 'CRM', DRV_CLIENTES = 'Clientes';
+function drvNome(t) { return String(t || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Sem nome'; }
+/* a pasta, com a permissao do Chrome. comToque = veio de um clique (pode pedir) */
+async function drvLiberada(comToque) {
+  const h = await bkpPasta(); if (!h) return drvMarca({ erro: 'sem-pasta' });
+  let perm = 'prompt';
+  try { perm = await h.queryPermission({ mode: 'readwrite' }); } catch (e) {}
+  if (perm !== 'granted' && comToque) { try { perm = await h.requestPermission({ mode: 'readwrite' }); } catch (e) {} }
+  return drvMarca(perm === 'granted' ? { h, pasta: h.name } : { erro: 'precisa-toque', pasta: h.name });
+}
+/* o estado fica guardado para a tela e o assistente saberem sem esperar */
+let drvEstado = { pasta: '', liberada: false, visto: false };
+function drvMarca(r) {
+  drvEstado = { pasta: r.pasta || '', liberada: !!r.h, visto: true };
+  $$('.drv-bt').forEach(b => { b.classList.toggle('ok', drvEstado.liberada); b.classList.toggle('warn', !!drvEstado.pasta && !drvEstado.liberada); });
+  return r;
+}
+async function drvGrava(h, caminho, nome, conteudo) {
+  let d = h;
+  for (const p of caminho) d = await d.getDirectoryHandle(drvNome(p), { create: true });
+  const f = await d.getFileHandle(nome, { create: true });
+  const w = await f.createWritable(); await w.write(conteudo); await w.close();
+  return [h.name, ...caminho.map(drvNome), nome].join(' › ');
+}
+/* ARQUIVOS: o comprovante (ou documento) fica no app E na pastinha do cliente
+   no Drive. No app: o arquivo no IndexedDB do aparelho e a ficha em DB.arquivos
+   (que vai no backup e na nuvem). drive = onde ficou no Drive ('' = na fila). */
+const Arquivos = {
+  lista(f = {}) { return (DB.arquivos || []).filter(a => (!f.clienteId || a.clienteId === f.clienteId) && (!f.bookingId || a.bookingId === f.bookingId)).sort((a, b) => b.criado.localeCompare(a.criado)); },
+  get(id) { return (DB.arquivos || []).find(a => a.id === id) || null; },
+  pendentes() { return (DB.arquivos || []).filter(a => !a.drive); },
+  /* devolve a ficha na hora; gravar no aparelho e no Drive acontece por tras */
+  guarda({ src, blob, nome, tipo, clienteId, clienteNome, bookingId, descricao }) {
+    const ext = (String(src || '').match(/^data:([^;]+)/) || [])[1] || (blob && blob.type) || 'image/jpeg';
+    const fim = /pdf/.test(ext) ? '.pdf' : /png/.test(ext) ? '.png' : '.jpg';
+    const base = drvNome(nome || `${isoToday()} ${tipo || 'arquivo'}`).replace(/\.(jpe?g|png|pdf)$/i, '');
+    const a = { id: uid(), nome: base + fim, tipo: tipo || 'documento', clienteId: clienteId || '', clienteNome: clienteNome || '', bookingId: bookingId || '',
+                descricao: descricao || '', criado: new Date().toISOString(), mime: ext, drive: '' };
+    DB.arquivos = DB.arquivos || []; DB.arquivos.push(a); _opSave();
+    const feito = (async () => {
+      const b = blob || await (await fetch(src)).blob();
+      await arqIdb('put', a.id, b);
+      const r = await Arquivos.paraDrive(a, false);
+      if (r.ok) toast('📁 No Google Drive: ' + r.caminho);
+      return r;
+    })();
+    return { arquivo: a, feito };
+  },
+  async paraDrive(a, comToque) {
+    const l = await drvLiberada(comToque); if (l.erro) return l;
+    const b = await arqIdb('get', a.id); if (!b) return { erro: 'nao-esta-aqui' };
+    a.drive = await drvGrava(l.h, [DRV_CLIENTES, a.clienteNome || 'Sem cliente'], a.nome, b);
+    _opSave();
+    return { ok: true, caminho: a.drive };
+  },
+  /* sobe o que ficou na fila (celular, ou Chrome pedindo toque) */
+  async sobeFila(comToque) {
+    let n = 0;
+    for (const a of Arquivos.pendentes()) { const r = await Arquivos.paraDrive(a, comToque); if (r.ok) n++; else if (r.erro !== 'nao-esta-aqui') break; }
+    return n;
+  },
+  async abre(id) {
+    const a = Arquivos.get(id), b = await arqIdb('get', id);
+    if (b) { window.open(URL.createObjectURL(b), '_blank'); return; }
+    toast(a && a.drive ? 'Este arquivo está no Google Drive: ' + a.drive : 'Este arquivo foi guardado em outro aparelho.');
+  },
+};
+/* qualquer link de arquivo guardado no app: data-arq="id" */
+document.addEventListener('click', (e) => { const el = e.target.closest && e.target.closest('[data-arq]'); if (!el) return; e.preventDefault(); Arquivos.abre(el.dataset.arq); });
 async function bkpPasta(nova) {
   try {
     const db = await bkpIdb();
@@ -2012,22 +2298,19 @@ async function bkpEscolherPasta() {
 }
 /* grava o arquivo do dia na pasta. comToque = veio de um clique (pode pedir permissao) */
 async function bkpNaPasta(comToque) {
-  const h = await bkpPasta(); if (!h) return { erro: 'sem-pasta' };
-  let perm = 'prompt';
-  try { perm = await h.queryPermission({ mode: 'readwrite' }); } catch (e) {}
-  if (perm !== 'granted' && comToque) { try { perm = await h.requestPermission({ mode: 'readwrite' }); } catch (e) {} }
-  if (perm !== 'granted') return { erro: 'precisa-toque', pasta: h.name };
-  const nome = Backup.nome();
-  const f = await h.getFileHandle(nome, { create: true });
-  const w = await f.createWritable();
-  await w.write(JSON.stringify(pacoteBackup(), null, 2)); await w.close();
+  const l = await drvLiberada(comToque); if (l.erro) return l;
+  const h = l.h, nome = Backup.nome();
+  const caminho = await drvGrava(h, [DRV_BACKUPS], nome, JSON.stringify(pacoteBackup(), null, 2));
+  /* a planilha dela, sempre a mais nova, pronta para abrir no Google Planilhas */
+  try { await drvGrava(h, [DRV_CRM], 'CRM-EmRoma.csv', '\ufeff' + crmCsv(crmLinhas())); } catch (e) {}
   /* guarda os ultimos 60 dias; o resto sai para a pasta nao crescer para sempre */
   try {
-    const limite = Backup.nome(addDays(isoToday(), -60));
-    for await (const [n, e] of h.entries()) if (e.kind === 'file' && /^EmRoma-backup-\d{4}-\d{2}-\d{2}\.json$/.test(n) && n < limite) await h.removeEntry(n);
+    const limite = Backup.nome(addDays(isoToday(), -60)), d = await h.getDirectoryHandle(DRV_BACKUPS);
+    for await (const [n, e] of d.entries()) if (e.kind === 'file' && /^EmRoma-backup-\d{4}-\d{2}-\d{2}\.json$/.test(n) && n < limite) await d.removeEntry(n);
   } catch (e) {}
-  Backup.marca('pasta', h.name + '/' + nome);
-  return { ok: true, pasta: h.name, arquivo: nome };
+  try { await Arquivos.sobeFila(false); } catch (e) {}
+  Backup.marca('pasta', caminho);
+  return { ok: true, pasta: h.name, arquivo: nome, caminho };
 }
 function bkpBaixa() {
   const a = document.createElement('a');
@@ -2067,11 +2350,12 @@ function bkpAjustesHtml() {
   const u = Backup.ultimo();
   return `<section class="card" id="bkpCartao">
     <h3>Backup automático · computador e Google Drive</h3>
-    <p class="why">Todo dia, na primeira vez que você abre o painel, o app salva um arquivo com tudo (clientes, reservas, pagamentos, guias, orçamentos, tarefas) na pasta que você escolher. Se a pasta for a do Google Drive, ele sobe para o Drive sozinho.</p>
+    <p class="why">Todo dia, na primeira vez que você abre o painel, o app salva tudo (clientes, reservas, pagamentos, guias, orçamentos, tarefas) na pasta <b>EmRoma</b> do seu Google Drive: o backup em <b>Backups</b>, a planilha em <b>CRM</b> e os comprovantes em <b>Clientes</b>.</p>
+    <button class="mini strong" data-at="drive">📁 Abrir o painel do Google Drive</button>
     <ol class="bkp-passos">
       <li>No computador, instale o <b>Google Drive para computador</b> (google.com/drive/download) e entre com a sua conta.</li>
-      <li>No Drive, crie a pasta <b>Backup EmRoma</b>.</li>
-      <li>Toque em <b>Escolher a pasta</b> e escolha: Google Drive › Meu Drive › Backup EmRoma.</li>
+      <li>No Drive, crie a pasta <b>EmRoma</b>.</li>
+      <li>Toque em <b>Escolher a pasta</b> e escolha: Google Drive › Meu Drive › EmRoma.</li>
     </ol>
     <p class="bkp-estado" id="bkpEstado">${u.em ? `✓ Último backup: <b>${new Date(u.em).toLocaleString('pt-BR')}</b> · ${u.onde === 'pasta' ? 'na pasta ' + esc(u.arquivo) : 'baixado (' + esc(u.arquivo) + ')'}` : 'Nenhum backup ainda.'}</p>
     <div class="btnrow">
@@ -2240,3 +2524,156 @@ function admParcerias() {
     Coupons.create({ code, pct, until: $('#cpV').value || '2099-12-31', oncePerPerson: true, uses: [] }); re();
   };
 }
+
+/* =====================================================
+   ATALHOS — o que ela mais faz, a um toque, em TODAS as abas
+   (pedido de 29/09: "ela precisa ter facil orcamento pra enviar, voucher e
+   cadastro cliente"). Cada um abre uma janelinha; nada de procurar a aba.
+===================================================== */
+function atalhosHtml() {
+  return `<nav class="atalhos" aria-label="Atalhos">
+    <button class="at-b at-forte" data-at="orc">＋ Orçamento</button>
+    <button class="at-b" data-at="voucher">🎫 Voucher</button>
+    <button class="at-b" data-at="cliente">👤 Novo cliente</button>
+    <button class="at-b" data-at="pagto">💶 Pagamento</button>
+    <button class="at-b drv-bt ${drvEstado.liberada ? 'ok' : drvEstado.pasta ? 'warn' : ''}" data-at="drive"><i class="drv-dot" aria-hidden="true"></i>📁 Google Drive</button>
+  </nav>`;
+}
+/* a janelinha (dialog nativo: Esc fecha, o foco fica dentro) */
+function opJanela(titulo, corpo) {
+  document.querySelectorAll('dialog.op-dlg').forEach(d => d.remove());
+  const d = document.createElement('dialog');
+  d.className = 'op-dlg';
+  d.innerHTML = `<div class="op-dlg-top"><h2>${titulo}</h2><button class="op-dlg-x" aria-label="Fechar">✕</button></div><div class="op-dlg-corpo">${corpo}</div>`;
+  document.body.appendChild(d);
+  d.querySelector('.op-dlg-x').onclick = () => d.close();
+  d.addEventListener('close', () => d.remove());
+  d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+  d.showModal();
+  return d;
+}
+/* achar a reserva: por nome, codigo ou WhatsApp; sem busca, as proximas */
+function atReservas(q, soDevendo) {
+  const n = _nomeN(q), dig = String(q || '').replace(/\D/g, ''), hoje = isoToday();
+  return DB.bookings.filter(b => b.status !== 'cancelled' && (!soDevendo || Bookings.due(b) > 0))
+    .filter(b => !n || _nomeN(b.name).includes(n) || String(b.code || '').toLowerCase().includes(String(q).toLowerCase()) || (dig.length >= 4 && String(b.whats || '').replace(/\D/g, '').includes(dig)))
+    .sort((a, b) => ((a.date >= hoje) === (b.date >= hoje) ? (a.date >= hoje ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)) : a.date >= hoje ? -1 : 1))
+    .slice(0, 12);
+}
+function atLinhaReserva(b) {
+  return `<button class="at-res" data-res="${esc(b.id)}"><b>${esc(b.name)}</b><span>${crmData(b.date)} · ${esc(nomeDoServico(b))}</span><small>${esc(b.code || '')}${Bookings.due(b) > 0 ? ' · falta ' + eur(Bookings.due(b)) : ' · pago ✓'}</small></button>`;
+}
+function atBusca(d, soDevendo, escolhe) {
+  const inp = d.querySelector('.at-q'), box = d.querySelector('.at-lista');
+  const pinta = () => { const l = atReservas(inp.value, soDevendo); box.innerHTML = l.map(atLinhaReserva).join('') || '<p class="why">Nenhuma reserva com esse nome.</p>';
+    box.querySelectorAll('[data-res]').forEach(x => x.onclick = () => escolhe(Bookings.get(x.dataset.res))); };
+  inp.oninput = pinta; pinta(); inp.focus();
+}
+const ATALHO = {
+  orc() {
+    const d = opJanela('＋ Novo orçamento', `<p class="why">Cole a conversa do WhatsApp (ou Instagram, e-mail). O app monta o rascunho com os preços da sua tabela; você confere e manda.</p>
+      <label class="fld">Conversa<textarea id="atConv" rows="7" placeholder="Cole aqui a conversa inteira"></textarea></label>
+      <div class="btnrow"><button class="cta sm" id="atLer">Ler e montar o rascunho</button><button class="mini" id="atBranco">começar em branco</button></div>`);
+    d.querySelector('#atConv').focus();
+    d.querySelector('#atBranco').onclick = () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho' }); d.close(); go('/adm/consulta/' + o.id); };
+    d.querySelector('#atLer').onclick = () => {
+      const txt = d.querySelector('#atConv').value; if (!txt.trim()) return toast('Cole a conversa primeiro.');
+      const c = lerConversa(txt), itens = rascunhoDaConversa(c);
+      const o = Orc.cria({ origem: 'whats', status: 'rascunho', cliente: { nome: c.nome, whats: c.whats }, conversa: txt, resumo: c.resumo, pax: c.pax, datas: c.datas, itens });
+      Tarefas.cria({ tipo: 'nota', origem: 'whats', texto: `Resumo do WhatsApp — ${c.nome || 'cliente novo'}`, detalhe: c.resumo, orcId: o.id, clienteNome: c.nome, whats: c.whats });
+      d.close(); toast(`Rascunho montado: ${itens.length} ${itens.length === 1 ? 'serviço' : 'serviços'}`); go('/adm/consulta/' + o.id);
+    };
+  },
+  voucher() {
+    const d = opJanela('🎫 Voucher', `<p class="why">De quem é o voucher? Digite o nome, o código ou o WhatsApp.</p>
+      <input class="at-q" type="search" placeholder="🔎 nome, código ou WhatsApp"><div class="at-lista"></div>`);
+    atBusca(d, false, (b) => { d.close(); go('/adm/voucher/' + b.id); });
+  },
+  cliente() {
+    const d = opJanela('👤 Novo cliente', `
+      <div class="frow"><label class="fld">Nome completo<input id="atNome" autocomplete="off"></label><label class="fld">WhatsApp<input id="atWa" inputmode="tel" autocomplete="off"></label></div>
+      <div class="frow"><label class="fld">E-mail<input id="atEm" type="email" autocomplete="off"></label><label class="fld">Nascimento<input id="atNasc" placeholder="dd/mm/aaaa" inputmode="numeric"></label></div>
+      <div class="frow"><label class="fld">Veio por<select id="atVeio"><option value="">—</option>${VEIO_POR.filter(v => v[0] !== 'junto').map(([vv, nn]) => `<option value="${vv}">${nn}</option>`).join('')}</select></label>
+        <label class="fld">Agência · indicação · influencer<input id="atQuem" list="atQuemL" placeholder="quem mandou esta cliente"></label></div>
+      <datalist id="atQuemL">${[...Parceiros.all().map(p => p.nome), ...Cadastro.all().map(c => c.nome)].map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+      <button class="cta sm" id="atCad">Cadastrar e abrir a ficha</button>`);
+    mascaraNasc(d.querySelector('#atNasc')); d.querySelector('#atNome').focus();
+    d.querySelector('#atCad').onclick = () => {
+      const nome = d.querySelector('#atNome').value.trim(); if (!nome) return toast('Falta o nome.');
+      const nasc = d.querySelector('#atNasc').value.trim(); if (nasc && !nascOk(nasc)) return toast('Nascimento em dd/mm/aaaa');
+      const quem = d.querySelector('#atQuem').value.trim(), par = quem ? Parceiros.all().find(p => _nomeN(p.nome) === _nomeN(quem)) : null;
+      const indC = quem && !par ? Cadastro.all().find(x => _nomeN(x.nome) === _nomeN(quem)) : null;
+      let veio = d.querySelector('#atVeio').value || (par ? (par.tipo === 'agencia' ? 'agencia' : 'influencer') : quem ? 'indicacao' : '');
+      const c = Cadastro.novo({ nome, whats: d.querySelector('#atWa').value, email: d.querySelector('#atEm').value, nasc, veioPor: veio,
+        parceiroId: par ? par.id : '', indicadoPor: indC ? indC.id : '', indicadoNome: par ? par.nome : indC ? indC.nome : quem });
+      if (!c) return toast('Não cadastrou');
+      d.close(); toast('Cliente cadastrada'); go(fichaHref(c).slice(1));
+    };
+  },
+  pagto(jaEscolhida) {
+    const d = opJanela('💶 Registrar pagamento', `<p class="why">Quem pagou?</p><input class="at-q" type="search" placeholder="🔎 nome, código ou WhatsApp"><div class="at-lista"></div><div id="atPg"></div>`);
+    const escolhe = (b) => {
+      const falta = Bookings.due(b);
+      d.querySelector('.at-lista').innerHTML = atLinhaReserva(b); d.querySelector('.at-q').hidden = true;
+      d.querySelector('#atPg').innerHTML = `
+        <div class="frow"><label class="fld">Valor (€)<input id="atVal" inputmode="decimal" value="${falta}"></label>
+          <label class="fld">Onde caiu<select id="atConta"><option value="">escolha…</option>${Contas.all().map(c => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`).join('')}<option value="${CONTA_PRESTADOR}">${esc(Contas.nome(CONTA_PRESTADOR))}</option></select></label></div>
+        <label class="fld">Comprovante (foto ou PDF) — vai para a ficha e para a pasta do cliente no Google Drive<input id="atArq" type="file" accept="image/*,application/pdf"></label>
+        <button class="cta sm" id="atPgOk">Registrar ${eur(falta)}</button>`;
+      const val = d.querySelector('#atVal'), bt = d.querySelector('#atPgOk');
+      val.oninput = () => { bt.textContent = 'Registrar ' + eur(+String(val.value).replace(',', '.') || 0); };
+      bt.onclick = async () => {
+        const conta = d.querySelector('#atConta').value; if (!conta) return toast('Em que conta caiu?');
+        const p = registraPagamento(b.id, { valor: +String(val.value).replace(',', '.') || 0, conta }); if (!p) return toast('Nada a registrar (já está pago?)');
+        const f = d.querySelector('#atArq').files[0];
+        if (f) {
+          const c = b.clienteId ? Cadastro.get(b.clienteId) : null;
+          const { arquivo } = Arquivos.guarda({ blob: f, nome: `${isoToday()} comprovante ${eur(p.amount).replace(/\s/g, '')} ${b.code || ''}`.trim(), tipo: 'comprovante', clienteId: b.clienteId, clienteNome: (c && c.nome) || b.name, bookingId: b.id });
+          p.arquivoId = arquivo.id; _opSaveBooking(b);
+        }
+        Tarefas.sincroniza();
+        d.close(); toast(`💶 ${eur(p.amount)} registrado · ${Contas.nome(conta)}${Bookings.due(b) ? ' · ainda falta ' + eur(Bookings.due(b)) : ' · pago ✓'}`);
+        route();
+      };
+    };
+    if (jaEscolhida && jaEscolhida.id) { if (Bookings.due(jaEscolhida) <= 0) { d.close(); toast('Esta reserva já está paga ✓'); return; } escolhe(jaEscolhida); } else atBusca(d, true, escolhe);
+  },
+  async drive() {
+    const u = Backup.ultimo(), temPasta = bkpTemPasta(), fila = Arquivos.pendentes().length;
+    const l = await drvLiberada(false);
+    const d = opJanela('📁 Google Drive e backup', `
+      <div class="drv-estado ${l.h ? 'ok' : l.pasta ? 'warn' : ''}">${l.h ? `✓ Ligado à pasta <b>${esc(l.pasta)}</b> do seu Google Drive` : l.pasta ? `A pasta <b>${esc(l.pasta)}</b> está escolhida, mas o Chrome pede um toque para usar.` : temPasta ? 'O Google Drive ainda não está ligado.' : 'Neste aparelho não dá para ligar pasta (celular, Safari). Os arquivos ficam guardados no app; ligue o Drive no computador, pelo Chrome.'}</div>
+      <p class="drv-ultimo">${u.em ? `💾 Último backup: <b>${new Date(u.em).toLocaleString('pt-BR')}</b><br><small>${esc(u.onde === 'pasta' ? u.arquivo : 'baixado: ' + u.arquivo)}</small>` : '💾 Nenhum backup ainda.'}</p>
+      <div class="btnrow">
+        ${temPasta ? (l.h ? '' : l.pasta ? '<button class="cta sm" id="drvToque">Liberar a pasta</button>' : '<button class="cta sm" id="drvLiga">Ligar o Google Drive</button>') : ''}
+        <button class="mini strong" id="drvJa">Fazer backup agora</button>
+        ${fila && l.h ? `<button class="mini" id="drvFila">Mandar ${fila} ${fila === 1 ? 'arquivo' : 'arquivos'} que ficaram na fila</button>` : ''}
+        <a class="mini" href="https://drive.google.com/drive/my-drive" target="_blank" rel="noopener">Abrir o Google Drive ↗</a>
+        ${temPasta && l.pasta ? '<button class="mini ghost" id="drvTroca">trocar a pasta</button>' : ''}
+      </div>
+      <h3>O que vai para lá</h3>
+      <ul class="drv-arvore">
+        <li>📁 <b>${esc(l.pasta || 'EmRoma')}</b>
+          <ul><li>📁 <b>Backups</b> — tudo do app, um arquivo por dia (ficam os últimos 60 dias)</li>
+            <li>📁 <b>CRM</b> — <i>CRM-EmRoma.csv</i>: a sua planilha, atualizada todo dia (abre no Google Planilhas)</li>
+            <li>📁 <b>Clientes</b> › <i>nome do cliente</i> — comprovantes e documentos que você manda pelo assistente ou pelo 💶 Pagamento</li></ul></li>
+      </ul>
+      ${fila ? `<p class="why">⏳ ${fila} ${fila === 1 ? 'arquivo ainda não subiu' : 'arquivos ainda não subiram'} para o Drive — ${fila === 1 ? 'está guardado' : 'estão guardados'} no app e ${fila === 1 ? 'sobe' : 'sobem'} quando a pasta estiver ligada.</p>` : ''}
+      ${l.h ? '' : `<details ${temPasta && !l.pasta ? 'open' : ''}><summary><b>Como ligar (uma vez só, no computador)</b></summary><ol class="bkp-passos">
+        <li>Instale o <b>Google Drive para computador</b> (google.com/drive/download) e entre com a sua conta.</li>
+        <li>No Drive, crie a pasta <b>EmRoma</b> (em Meu Drive).</li>
+        <li>Aqui, toque em <b>Ligar o Google Drive</b> e escolha: Google Drive › Meu Drive › EmRoma.</li></ol></details>`}
+      <h3>☁️ Nuvem (celular e computador juntos)</h3>
+      <p class="why">${temNuvem() ? '✓ Ligada: o que você faz num aparelho aparece no outro sozinho.' : 'Ainda desligada: cada aparelho guarda o seu. Liga quando o banco de dados da EmRoma for criado — aí celular e computador ficam sempre iguais, sem fazer nada.'}</p>`);
+    const re = () => { d.close(); setTimeout(() => ATALHO.drive(), 50); };
+    const liga = async () => { const p = await bkpEscolherPasta(); if (!p) return; const r = await bkpNaPasta(true); toast(r.ok ? `📁 Ligado à pasta "${p.name}" · backup de hoje salvo` : 'Pasta escolhida'); re(); };
+    d.querySelector('#drvLiga')?.addEventListener('click', liga);
+    d.querySelector('#drvTroca')?.addEventListener('click', liga);
+    d.querySelector('#drvToque')?.addEventListener('click', async () => { const r = await bkpNaPasta(true); toast(r.ok ? '📁 Pasta liberada · backup de hoje salvo' : 'O Chrome não liberou'); re(); });
+    d.querySelector('#drvJa').onclick = async () => { const r = await bkpAgora(true); toast(r.ok ? (r.caminho ? '💾 Salvo em ' + r.caminho : '💾 Backup baixado') : 'Não salvou'); re(); };
+    d.querySelector('#drvFila')?.addEventListener('click', async () => { const n = await Arquivos.sobeFila(true); toast(`📁 ${n} ${n === 1 ? 'arquivo mandado' : 'arquivos mandados'} para o Drive`); re(); });
+  },
+};
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-at]'); if (!b || !ATALHO[b.dataset.at]) return; e.preventDefault(); ATALHO[b.dataset.at](); });
+/* a bolinha do botao do Drive: verde ligado, amarela pede toque */
+setTimeout(() => { if (typeof bkpPasta === 'function' && window.indexedDB) drvLiberada(false).catch(() => {}); }, 800);

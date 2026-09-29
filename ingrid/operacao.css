@@ -322,13 +322,64 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .crm-pe{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px;font-size:var(--fs-3)}
 .crm-pe .tacts{display:flex;flex-wrap:wrap;gap:6px}
 .crm-rp{color:var(--highlight-text)}
-.crm-plan-wrap{overflow:auto;max-height:70vh;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
-.crm-plan{min-width:1900px;font-size:var(--fs-2)}
-.crm-plan th{position:sticky;top:0;background:var(--brand-primaria);color:#fff;z-index:1;white-space:nowrap}
-.crm-plan td{vertical-align:top}
-.crm-plan tbody tr{cursor:pointer}
-.crm-plan tbody tr:hover{background:var(--accent-wash)}
-.crm-serv{min-width:260px;font-weight:600}
+/* a planilha: nome fixo a esquerda, cabecalho fixo em cima, grupos de colunas, meses, totais */
+.crm-plan-wrap{overflow:auto;max-height:75vh;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-1);border:1px solid var(--line)}
+.crm-plan{border-collapse:separate;border-spacing:0;font-size:var(--fs-2);width:max-content;min-width:100%}
+.crm-plan th,.crm-plan td{padding:7px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap;background:var(--surface)}
+.crm-plan thead th{position:sticky;top:0;z-index:2;background:var(--surface-2);color:var(--ink-2);font-weight:var(--t-strong);font-size:var(--fs-1);text-transform:uppercase;letter-spacing:.03em}
+.crm-plan thead tr:nth-child(2) th{top:31px}
+.crm-plan thead .crm-grp th{height:31px;box-sizing:border-box;background:var(--brand-primaria);color:#fff;text-align:center;font-size:var(--fs-2);letter-spacing:.06em}
+.crm-plan .crm-fix{position:sticky;left:0;z-index:1;min-width:170px;max-width:220px;white-space:normal;box-shadow:1px 0 0 var(--line-2)}
+.crm-plan thead .crm-fix{z-index:3;text-align:left;vertical-align:bottom}
+.crm-plan tbody tr[data-ir]{cursor:pointer}
+.crm-plan tbody tr[data-ir]:hover td{background:var(--surface-2)}
+.crm-plan tbody tr[data-ir] td.crm-fix{box-shadow:inset 4px 0 0 var(--st,var(--line-2)),1px 0 0 var(--line-2)}
+.crm-plan .crm-e-aberto{--st:var(--warn)}
+.crm-plan .crm-e-confirmado{--st:var(--ok)}
+.crm-plan .crm-e-avaliar{--st:var(--highlight)}
+.crm-plan .crm-e-finalizado{--st:var(--neutral)}
+.crm-plan .crm-e-perdido{--st:var(--danger)}
+.crm-plan .crm-e-perdido td,.crm-plan .crm-e-finalizado td{color:var(--ink-3)}
+.crm-plan .crm-cont td{border-bottom-style:dashed}
+.crm-plan .crm-idem{color:var(--ink-3);font-weight:400}
+.crm-plan .crm-serv{min-width:240px;max-width:360px;white-space:normal;font-weight:600}
+.crm-plan .crm-obs{min-width:160px;max-width:260px;white-space:normal;color:var(--ink-2)}
+.crm-plan .right{text-align:right}
+.crm-plan .crm-quem{color:var(--accent)}
+.crm-plan .crm-sem{color:var(--ink-3);font-style:italic}
+.crm-plan .crm-dica{color:var(--ink-3);font-weight:400}
+.crm-plan tr.crm-mes td{background:var(--surface-3);font-weight:var(--t-strong);font-size:var(--fs-2);color:var(--ink-2);text-transform:capitalize;padding:6px 10px}
+.crm-plan tr.crm-mes td.crm-fix{color:var(--ink);box-shadow:1px 0 0 var(--line-2)}
+.crm-plan tfoot td{position:sticky;bottom:0;z-index:1;background:var(--surface-2);font-weight:var(--t-strong);border-top:2px solid var(--line-2)}
+.crm-plan tfoot td.crm-fix{z-index:2}
+.crm-plan td a{color:var(--accent)}
+.crm-cols{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
+.crm-cols .chip{font-size:var(--fs-2);padding:4px 10px}
+/* o painel do CRM */
+.crm-painel{margin:4px 0 18px}
+.crm-painel-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.crm-painel-top h2{font-family:var(--f-display);font-size:var(--fs-5);margin:0;text-transform:none}
+.crm-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.crm-tile{display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:12px 14px;color:var(--ink);text-decoration:none;font:inherit;cursor:pointer;border-top:4px solid var(--line-2);min-width:0}
+.crm-tile:hover{border-color:var(--accent-line)}
+.crm-tile small{font-size:var(--fs-2);color:var(--ink-2);font-weight:var(--t-strong)}
+.crm-tile b{font-family:var(--f-display);font-size:var(--fs-7);line-height:1.1;font-variant-numeric:tabular-nums}
+.crm-tile span{font-size:var(--fs-2);color:var(--ink-3)}
+.crm-tile em{font-style:normal;font-size:var(--fs-2);color:var(--highlight-text);font-weight:var(--t-strong)}
+.crm-tile.t-warn{border-top-color:var(--warn)}
+.crm-tile.t-ok{border-top-color:var(--ok)}
+.crm-agora{margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:12px 14px}
+.crm-agora h3{margin:0 0 6px;font-size:var(--fs-4)}
+.crm-agora h3 b{font-family:var(--f-mono);font-size:var(--fs-2);background:var(--highlight-wash);color:var(--highlight-text);padding:1px 8px;border-radius:var(--r-pill);vertical-align:middle}
+.crm-agora ul{list-style:none;margin:0 0 6px;padding:0}
+.crm-agora li{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.crm-agora li:first-child{border-top:0}
+.crm-agora li small{display:block;color:var(--ink-3);font-size:var(--fs-2)}
+.crm-ag-i{font-size:18px;text-align:center}
+.crm-agora .tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.crm-seta{align-self:center;color:var(--ink-3);padding:0 2px}
+@media(max-width:1100px){.crm-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.crm-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.crm-tile b{font-size:var(--fs-6)}.crm-agora li{grid-template-columns:24px 1fr}.crm-agora .tacts{grid-column:2;justify-content:flex-start}.crm-seta{display:none}}
 .crm-motivo{padding:6px 8px;border-radius:var(--r-sm)}
 .orc-links{display:flex;flex-direction:column;gap:6px;margin:8px 0}
 .orc-links .frow{align-items:end}
@@ -391,3 +442,55 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .fun-bar i{position:absolute;left:0;top:0;bottom:0;display:block;background:var(--cv-mute);border-radius:0 3px 3px 0}
 .fun-bar i.q{background:var(--cv-soft)}
 .fun-bar i.r{background:var(--cv-main)}
+
+/* ---- atalhos em todas as abas ---- */
+.atalhos{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
+.at-b{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:var(--r-pill);border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);font:inherit;font-size:var(--fs-3);font-weight:var(--t-strong);cursor:pointer;min-height:40px;touch-action:manipulation}
+.at-b:hover{border-color:var(--accent-line);background:var(--accent-wash)}
+.at-b.at-forte{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.at-b.at-forte:hover{filter:brightness(1.06)}
+.drv-bt{margin-left:auto}
+.drv-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-3);display:inline-block}
+.drv-bt.ok .drv-dot{background:var(--ok)}
+.drv-bt.warn .drv-dot{background:var(--warn)}
+@media(max-width:600px){.atalhos{gap:6px;padding:6px}.at-b{padding:8px 11px;font-size:var(--fs-2);min-height:38px}.drv-bt{margin-left:0}}
+/* ---- a janelinha ---- */
+.op-dlg{border:0;padding:0;border-radius:var(--r-xl);background:var(--surface);color:var(--ink);width:min(560px,calc(100vw - 24px));max-height:calc(100vh - 40px);box-shadow:var(--sh-3)}
+.op-dlg::backdrop{background:rgba(10,8,8,.55)}
+.op-dlg-top{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;background:var(--surface);border-bottom:1px solid var(--line)}
+.op-dlg-top h2{margin:0;font-family:var(--f-display);font-size:var(--fs-5)}
+.op-dlg-x{border:0;background:var(--surface-2);color:var(--ink);width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer}
+.op-dlg-corpo{padding:14px 18px 18px;display:flex;flex-direction:column;gap:10px}
+.op-dlg-corpo h3{margin:10px 0 0;font-size:var(--fs-4)}
+.op-dlg .at-q{width:100%;padding:11px 13px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--surface-2);font:inherit;color:var(--ink)}
+.at-lista{display:flex;flex-direction:column;gap:6px;max-height:44vh;overflow:auto}
+.at-res{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;padding:10px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;cursor:pointer}
+.at-res:hover{border-color:var(--accent-line)}
+.at-res span{grid-column:1;color:var(--ink-2);font-size:var(--fs-2)}
+.at-res small{grid-column:2;grid-row:1/3;align-self:center;color:var(--ink-3);font-size:var(--fs-2);text-align:right}
+.drv-estado{padding:12px 14px;border-radius:var(--r);background:var(--surface-2);border-left:4px solid var(--ink-3)}
+.drv-estado.ok{border-left-color:var(--ok);background:var(--ok-wash)}
+.drv-estado.warn{border-left-color:var(--warn);background:var(--warn-wash)}
+.drv-ultimo{margin:0}
+.drv-ultimo small{color:var(--ink-3);word-break:break-all}
+.drv-arvore,.drv-arvore ul{list-style:none;margin:0;padding-left:0}
+.drv-arvore ul{padding-left:22px;margin-top:6px;display:flex;flex-direction:column;gap:6px;border-left:2px solid var(--line);margin-left:7px}
+.drv-arvore li{font-size:var(--fs-3)}
+.fc-arq-add{cursor:pointer;display:inline-block;margin-top:6px}
+.ia-pdf{display:inline-flex;align-items:center;padding:6px 10px;border-radius:var(--r-sm);background:var(--surface-2);font-size:var(--fs-2);font-weight:var(--t-strong)}
+/* ---- a planilha que ela preenche ---- */
+.crm-plan-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 8px}
+.crm-plan td.crm-ed{cursor:text}
+.crm-plan td.crm-ed:hover{outline:2px solid var(--accent-line);outline-offset:-2px}
+.crm-plan td.crm-pg{cursor:pointer}
+.crm-plan td.crm-editando{padding:0;outline:2px solid var(--accent);outline-offset:-2px}
+.crm-plan td.crm-editando input,.crm-plan td.crm-editando select{width:100%;min-width:120px;box-sizing:border-box;border:0;padding:7px 10px;font:inherit;background:var(--surface);color:var(--ink);outline:none}
+.crm-plan td.crm-serv.crm-editando input{min-width:260px}
+.crm-plan .crm-fix-acoes{display:inline-flex;gap:4px;margin-left:6px;vertical-align:middle}
+.crm-plan .crm-abre,.crm-plan .crm-mais{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--surface-2);color:var(--ink-2);text-decoration:none;border:0;font:inherit;font-size:13px;cursor:pointer}
+.crm-plan .crm-abre:hover,.crm-plan .crm-mais:hover{background:var(--accent-wash);color:var(--accent)}
+.crm-plan .crm-vazio{color:var(--ink-3);font-weight:400;font-style:italic}
+.crm-traga{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-left:4px solid var(--accent)}
+.crm-traga h3{margin:0 0 4px}
+.crm-painel-p{margin-bottom:12px}
+.crm-painel-p .crm-tile b{font-size:var(--fs-6)}

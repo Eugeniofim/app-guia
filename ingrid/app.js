@@ -1403,6 +1403,7 @@ function renderBook() {
    chegou pedindo orcamento, quem faz, e so depois o resto. */
 const ADM_TABS = [
   ['today',    'admToday'],
+  ['planilha', 'admPlanilha'],
   ['consulta', 'admConsulta'],
   ['tarefas',  'admTarefas'],
   ['guias',    'admGuias'],
@@ -1468,7 +1469,7 @@ function admShell(tab, inner) {
         <button class="nb ghost" id="exitAdm">← ${t('exit')}</button>
       </div>
     </aside>
-    <main class="stage" id="stage">${noAuthBanner()}${inner}</main>
+    <main class="stage" id="stage">${noAuthBanner()}${typeof atalhosHtml === 'function' ? atalhosHtml() : ''}${inner}</main>
   </div>`;
   const nab = $('#goProtect');
   if (nab) nab.onclick = () => go('/login');
@@ -1483,6 +1484,7 @@ function admShell(tab, inner) {
 function viewAdm(tab, arg) {
   if (tab === 'today')    admToday(arg);
   else if (tab === 'guias')    admGuias(arg);
+  else if (tab === 'planilha') admConsulta(undefined, 'planilha');
   else if (tab === 'consulta') admConsulta(arg);
   else if (tab === 'tarefas')  admTarefas(arg);
   else if (tab === 'voucher')  opDocVoucher(arg);
