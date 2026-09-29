@@ -377,3 +377,11 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .par-nums .par-deve{background:var(--highlight-wash)}
 .par-val{width:110px;padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--line-2)}
 @media(max-width:700px){.par-nums{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* pontos de encontro */
+.pt-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.pt-row small{display:block;color:var(--ink-3)}
+.tp-pontos{display:flex;flex-direction:column;gap:6px}
+.tp-ponto{display:grid;grid-template-columns:20px 1fr 20px;gap:8px;align-items:center;padding:6px 10px;border-radius:var(--r-sm);background:var(--surface-2)}
+.doc-ponto-sel{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.doc-ponto-sel select{padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--line-2);max-width:100%}

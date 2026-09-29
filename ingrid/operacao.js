@@ -650,7 +650,9 @@ function opGarante() {
   DB.lembretesVistos = DB.lembretesVistos || {};
   DB.clientes = DB.clientes || [];
   DB.parceiros = DB.parceiros || [];
+  DB.pontos = DB.pontos || [];
   const demo = DB.demo && !(typeof temNuvem === 'function' && temNuvem());
+  if (demo && !DB.pontosSeed) { opSemeiaPontos(); DB.pontosSeed = 1; }
   if (demo && (+DB.opSeed || 0) < OP_SEED) {
     opSemeiaDemo();
     DB.opSeed = OP_SEED;
@@ -1077,6 +1079,20 @@ function icsTarefa(t) {
     'BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(t.texto), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR');
   return linhas.join('\r\n');
 }
+function opSemeiaPontos() {
+  const P = (nome, endereco, instrucoes) => Pontos.salva({ nome, endereco, instrucoes });
+  const vat = P('Museus do Vaticano — entrada', 'Viale Vaticano, 100, Roma', 'Em frente à entrada dos Museus. A guia estará com uma plaquinha EmRoma. Chegue 15 minutos antes.');
+  const col = P('Coliseu — saída do metrô Colosseo', 'Piazza del Colosseo, Roma', 'Na saída do metrô (linha B), do lado do Coliseu. A guia estará com a plaquinha EmRoma.');
+  const nav = P('Piazza Navona — Fontana dei Quattro Fiumi', 'Piazza Navona, Roma', 'Na fonte do centro da praça.');
+  const pie = P('Praça de São Pedro — obelisco', 'Piazza San Pietro, Città del Vaticano', 'Ao lado do obelisco no centro da praça.');
+  const hot = P('No seu hotel', '', 'O motorista busca na recepção do hotel no horário combinado.');
+  const fco = P('Aeroporto de Fiumicino — Terminal 3, desembarque', 'Aeroporto di Roma-Fiumicino, Terminal 3', 'Depois de pegar as malas, na saída do desembarque: o motorista espera com uma plaquinha com o seu nome.');
+  const liga = (id, pts, pad) => { const x = Tours.get(id); if (x) { x.pontos = pts.map(p => p.id); x.pontoPadrao = pad.id; } };
+  liga('vaticano-3h', [vat, pie], vat); liga('vaticano-4h', [vat, pie], vat); liga('basilicas-3h', [pie, vat], pie);
+  liga('roma-antiga-3h', [col], col); liga('roma-antiga-4h', [col], col); liga('barroca-3h', [nav], nav); liga('noturno-3h', [nav, col], nav);
+  liga('transfer-aeroporto', [fco, hot], fco);
+  for (const id of ['bv-pompeia', 'bv-amalfi', 'bv-tivoli', 'bv-assis', 'bv-castelli', 'bv-toscana-sul']) liga(id, [hot], hot);
+}
 function opSemeiaParceiros() {
   const lu = Parceiros.salva({ nome: 'Lu Viaja (RPV)', tipo: 'agencia', contato: '@luviaja', cupom: 'LURPV', desconto: 0, comissao: 10, obs: 'Agência parceira de Recife' });
   const inf = Parceiros.salva({ nome: 'Carol pelo Mundo', tipo: 'influencer', contato: '@carolpelomundo', cupom: 'CAROL10', desconto: 10, comissao: 8 });
@@ -1125,6 +1141,7 @@ function pacoteBackup() {
     pedidos: DB.pedidos || [], equipe: DB.equipe || [], disponibilidade: DB.disp || [],
     contas: DB.contas || [], orcamentos: DB.orcamentos || [], fichas: DB.fichas || {},
     tarefas: DB.tarefas || [], lembretesVistos: DB.lembretesVistos || {}, memoriaAssistente: memoria,
+    clientes: DB.clientes || [], parceiros: DB.parceiros || [], pontos: DB.pontos || [], interesse: DB.interesse || {},
   };
 }
 function resumoBackup(p) {
@@ -1147,7 +1164,9 @@ function restauraBackup(txt) {
     bookings: p.reservas, seatCounts: p.vagasVendidas || [], pedidos: p.pedidos || [],
     equipe: p.equipe || [], disp: p.disponibilidade || [], contas: p.contas || [], orcamentos: p.orcamentos || [],
     fichas: p.fichas || {}, tarefas: p.tarefas || [], lembretesVistos: p.lembretesVistos || {},
+    clientes: p.clientes || [], parceiros: p.parceiros || [], pontos: p.pontos || [], interesse: p.interesse || {},
   });
+  novo.cadastroFeito = Array.isArray(p.clientes) ? 1 : 0; novo.parceirosSeed = 1; novo.pontosSeed = 1;
   novo.settings = fillSettings(p.configuracoes || {});
   /* voltou dado de verdade: nao e mais demonstracao, e as sementes nao voltam */
   novo.demo = false; novo.opSeed = OP_SEED; novo.tarefasSeed = 1; novo.seedVer = typeof SEED_VER !== 'undefined' ? SEED_VER : 1;
@@ -1457,6 +1476,37 @@ function importarPlanilha(txt, simular) {
   _opSave();
   return { ok: true, criadas, repetidas: out.length - criadas, pulou };
 }
+
+/* ---------- PONTOS DE ENCONTRO ----------
+   O modelo de voucher dela lista varios pontos; para cada cliente ela
+   escolhia a mao o do passeio dele. Aqui: uma lista unica de pontos (feita
+   uma vez), cada passeio diz quais valem e qual e o normal, e no voucher
+   ela escolhe — sai so o ponto daquele cliente.
+     DB.pontos [{id, nome, endereco, mapa, instrucoes}]
+     Tour: pontos [ids], pontoPadrao; Booking: pontoId */
+const Pontos = {
+  all() { return DB.pontos || []; },
+  get(id) { return (DB.pontos || []).find(p => p.id === id) || null; },
+  salva(d) {
+    DB.pontos = DB.pontos || [];
+    const nome = String(d.nome || '').trim(); if (!nome) return { erro: 'falta o nome do ponto' };
+    const dados = { nome, endereco: String(d.endereco || '').trim(), mapa: String(d.mapa || '').trim(), instrucoes: String(d.instrucoes || '').trim() };
+    if (dados.mapa && !/^https?:\/\//i.test(dados.mapa)) return { erro: 'o link do mapa precisa começar com http' };
+    let p = d.id && Pontos.get(d.id);
+    if (p) Object.assign(p, dados); else { p = { id: uid(), ...dados }; DB.pontos.push(p); }
+    _opSave(); return p;
+  },
+  remove(id) { DB.pontos = Pontos.all().filter(p => p.id !== id); for (const t of DB.tours) { if (Array.isArray(t.pontos)) t.pontos = t.pontos.filter(x => x !== id); if (t.pontoPadrao === id) t.pontoPadrao = ''; } _opSave(); },
+  /* os que valem para o passeio (nenhum marcado = todos) */
+  doPasseio(tourId) { const x = Tours.get(tourId); const ids = (x && x.pontos) || []; return ids.length ? ids.map(Pontos.get).filter(Boolean) : Pontos.all(); },
+};
+/* o ponto deste servico: o que ela escolheu, senao o normal do passeio */
+function pontoDoServico(b) {
+  const x = Tours.get(b.tourId);
+  return Pontos.get(b.pontoId) || (x && Pontos.get(x.pontoPadrao)) || (x && (x.pontos || []).length ? Pontos.get(x.pontos[0]) : null);
+}
+function escolhePonto(bookingId, pontoId) { const b = Bookings.get(bookingId); if (!b) return; b.pontoId = pontoId || ''; _opSaveBooking(b); }
+function linkMapa(p) { return p.mapa || (p.endereco ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.endereco) : ''); }
 
 /* ---------- O CRM DELA ----------
    A planilha "CRM" e a mais importante da vida dela. Uma linha por servico,

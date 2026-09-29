@@ -1634,6 +1634,9 @@ function admTourEdit(id) {
         <label class="fld campo-en">${t('tDescEn')}<textarea id="fDescEn">${esc(x.desc.en)}</textarea></label>
         <label class="fld">${t('tMeeting')}<input id="fMeetPt" value="${esc(noIdioma(x.meeting))}"></label>
         <label class="fld campo-en">${t('tMeeting')} (EN)<input id="fMeetEn" value="${esc((x.meeting && x.meeting.en) || '')}"></label>
+        ${typeof Pontos !== 'undefined' && Pontos.all().length ? `<div class="fld tp-pontos">Pontos de encontro deste passeio <small class="why">marque os que valem; o ◉ é o normal. No voucher você escolhe o de cada cliente. (A lista fica em Ajustes.)</small>
+          ${Pontos.all().map(p => `<label class="tp-ponto"><input type="checkbox" data-tpponto="${esc(p.id)}" ${(x.pontos || []).includes(p.id) ? 'checked' : ''}><span>${esc(p.nome)}</span>
+            <input type="radio" name="tpPadrao" value="${esc(p.id)}" ${x.pontoPadrao === p.id ? 'checked' : ''} aria-label="ponto normal"></label>`).join('')}</div>` : ''}
         <div class="fld">${t('tPhoto')}
           <div class="photopick">
             <span class="pprev" id="pPrev" style="background-image:url(${esc(x.photo || '')})">${x.photo ? '' : '<i>+</i>'}</span>
@@ -1906,6 +1909,8 @@ function admTourEdit(id) {
       name: { pt: $('#fNamePt').value.trim(), en: $('#fNameEn').value.trim() || $('#fNamePt').value.trim() },
       desc: { pt: $('#fDescPt').value.trim(), en: $('#fDescEn').value.trim() || $('#fDescPt').value.trim() },
       meeting: par('#fMeetPt', '#fMeetEn'),
+      pontos: $$('[data-tpponto]').filter(el => el.checked).map(el => el.dataset.tpponto),
+      pontoPadrao: ($('input[name="tpPadrao"]:checked') || {}).value || '',
       price: +$('#fPrice').value || 0, priceMode: $('#fMode').value,
       tabela: $$('.ftab').sort((p, q) => +p.dataset.i - +q.dataset.i).map(el => +el.value || 0),
       transfer: { linhas: lerTrfLinhas() },

@@ -154,6 +154,7 @@ function opFormDetalhes(b) {
         <option value="prestador" ${b.restoPara === 'prestador' ? 'selected' : ''}>no dia, a quem faz o serviço</option>
         <option value="ingrid" ${b.restoPara === 'ingrid' ? 'selected' : ''}>a você (você acerta com quem faz)</option></select></label>
     </div>
+    ${Pontos.doPasseio(b.tourId).length ? `<label class="fld">Ponto de encontro (sai no voucher)<select id="dtpt-${esc(b.id)}">${Pontos.doPasseio(b.tourId).map(p => `<option value="${esc(p.id)}" ${(pontoDoServico(b) || {}).id === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>` : ''}
     <label class="fld">Observação da operação<textarea id="dtn-${esc(b.id)}" rows="2">${esc(b.obsOp || '')}</textarea></label>
     <button class="cta sm" data-dtok="${esc(b.id)}">Salvar</button>
     ${opPartHtml(b)}
@@ -218,6 +219,7 @@ function opLigaCards(redesenha) {
     const id = btn.dataset.dtok;
     Op.detalhes(id, { voo: $('#dtv-' + id).value, origem: $('#dto-' + id).value, destino: $('#dtd-' + id).value,
       prestadorId: $('#dtp-' + id).value, custo: $('#dtc-' + id).value, restoPara: $('#dtr-' + id).value, obsOp: $('#dtn-' + id).value });
+    if ($('#dtpt-' + id)) escolhePonto(id, $('#dtpt-' + id).value);
     toast('Salvo');
     redesenha();
   });
@@ -1169,7 +1171,9 @@ function opVoucherTexto(b) {
   const l = [`VOUCHER ${b.code} — ${guiaNegocio()}`, '', `${opNomeServ(b)}`, `${fmtDate(b.date)} às ${b.time} · ${b.pax} ${b.pax > 1 ? 'pessoas' : 'pessoa'}${b.veiculo ? ' · ' + b.veiculo : ''}`,
     `Cliente: ${b.name}${(b.group || []).length ? ' + ' + b.group.map(g => g.nome).join(', ') : ''}`];
   if (b.voo) l.push(`Voo/trem: ${b.voo}`);
-  l.push(`Encontro: ${b.origem || noIdioma(x && x.meeting) || 'combinado pelo WhatsApp'}`);
+  const pt = pontoDoServico(b);
+  if (pt) { l.push(`Encontro: ${pt.nome}${pt.endereco ? ' — ' + pt.endereco : ''}`); if (pt.instrucoes) l.push(pt.instrucoes); if (linkMapa(pt)) l.push('Mapa: ' + linkMapa(pt)); }
+  else l.push(`Encontro: ${b.origem || noIdioma(x && x.meeting) || 'combinado pelo WhatsApp'}`);
   if (b.destino) l.push(`Destino: ${b.destino}`);
   if (pres) l.push(`${opPapel(b) === 'motorista' ? 'Motorista' : 'Guia'}: ${pres.nome}`);
   l.push('', nd.valor > 0 ? (nd.para === 'prestador'
@@ -1195,7 +1199,9 @@ function opDocVoucher(id) {
       <dt>Quem</dt><dd>${esc(b.name)}${(b.group || []).length ? '<br>' + b.group.map(g => esc(g.nome)).join(', ') : ''} · ${b.pax} ${b.pax > 1 ? 'pessoas' : 'pessoa'}</dd>
       ${b.veiculo ? `<dt>Veículo</dt><dd>${esc(b.veiculo)}${b.malas ? ' · ' + esc(b.malas) : ''}</dd>` : ''}
       ${b.voo ? `<dt>Voo / trem</dt><dd>${esc(b.voo)}</dd>` : ''}
-      <dt>Encontro</dt><dd>${esc(b.origem || noIdioma(x && x.meeting) || 'combinado pelo WhatsApp')}</dd>
+      <dt>Encontro</dt><dd>${(() => { const pt = pontoDoServico(b); return pt
+        ? `${esc(pt.nome)}${pt.endereco ? `<br><small>${esc(pt.endereco)}</small>` : ''}${pt.instrucoes ? `<br><small>${esc(pt.instrucoes)}</small>` : ''}${linkMapa(pt) ? `<br><a href="${esc(linkMapa(pt))}" target="_blank" rel="noopener">abrir no mapa</a>` : ''}`
+        : esc(b.origem || noIdioma(x && x.meeting) || 'combinado pelo WhatsApp'); })()}</dd>
       ${b.destino ? `<dt>Destino</dt><dd>${esc(b.destino)}</dd>` : ''}
       ${pres ? `<dt>${opPapel(b) === 'motorista' ? 'Motorista' : 'Guia'}</dt><dd>${esc(pres.nome)}</dd>` : ''}
     </dl>
@@ -1210,7 +1216,11 @@ function opDocVoucher(id) {
       ${DB.settings.plantao ? `<p><b>Plantão (emergências):</b> ${esc(DB.settings.plantao)}</p>` : '<p class="why nao-imprime">Dica: cadastre o número de plantão em Ajustes para ele sair no voucher.</p>'}
       <p><b>WhatsApp:</b> ${esc(DB.settings.whats || '')}</p>
     </div>`;
-  opDoc('Voucher', corpo, b.whats ? `<a class="mini cta-ish" id="docVoucherWa" target="_blank" rel="noopener" href="${waLink(opVoucherTexto(b), opNum(b.whats))}">💬 mandar ao cliente</a>` : '');
+  /* o ponto de encontro: ela escolhe o deste cliente (so aparece aqui, nao no PDF) */
+  const opcoes = Pontos.doPasseio(b.tourId), atual = pontoDoServico(b);
+  const sel = opcoes.length ? `<label class="doc-ponto-sel">Ponto de encontro <select id="docPonto">${opcoes.map(p => `<option value="${esc(p.id)}" ${atual && atual.id === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>` : '';
+  opDoc('Voucher', corpo, sel + (b.whats ? `<a class="mini cta-ish" id="docVoucherWa" target="_blank" rel="noopener" href="${waLink(opVoucherTexto(b), opNum(b.whats))}">💬 mandar ao cliente</a>` : ''));
+  const ds = $('#docPonto'); if (ds) ds.onchange = () => { escolhePonto(b.id, ds.value); opDocVoucher(id); toast('Ponto de encontro escolhido'); };
   /* mandou: o lembrete "mandar o voucher" some sozinho */
   const vw = $('#docVoucherWa');
   if (vw) vw.addEventListener('click', () => { b.voucherEm = isoToday(); _opSaveBooking(b); });
@@ -1246,7 +1256,19 @@ function opDocOrc(id) {
 ===================================================== */
 function opAjustesHtml() {
   const s = DB.settings.termos || {};
-  return bkpAjustesHtml() + `<section class="card" id="opContas">
+  return bkpAjustesHtml() + `<section class="card" id="opPontos">
+      <h3>Pontos de encontro</h3>
+      <p class="why">A lista única de onde os clientes encontram a guia ou o motorista. Em cada passeio você marca quais valem; no voucher, escolhe o do cliente — e só ele sai no voucher.</p>
+      ${Pontos.all().map(p => `<div class="pt-row"><div class="tinfo"><b>${esc(p.nome)}</b><small>${esc(p.endereco || '')}${p.instrucoes ? ' · ' + esc(p.instrucoes) : ''}</small></div>
+        <div class="tacts">${linkMapa(p) ? `<a class="mini" target="_blank" rel="noopener" href="${esc(linkMapa(p))}">mapa</a>` : ''}<button class="mini" data-pted="${esc(p.id)}">editar</button><button class="mini ghost danger" data-ptrm="${esc(p.id)}">✕</button></div></div>`).join('') || '<p class="why">Nenhum ponto ainda.</p>'}
+      <div class="svc-form" id="ptForm">
+        <input type="hidden" id="ptId">
+        <div class="frow"><label class="fld">Nome<input id="ptNome" placeholder="Museus do Vaticano — entrada"></label><label class="fld">Endereço<input id="ptEnd" placeholder="Viale Vaticano, 100"></label></div>
+        <label class="fld">Link do mapa (opcional)<input id="ptMapa" placeholder="https://maps.app.goo.gl/…"></label>
+        <label class="fld">Instruções para o cliente<textarea id="ptIns" rows="2" placeholder="Em frente à entrada; a guia estará com a plaquinha EmRoma. Chegue 15 min antes."></textarea></label>
+        <button class="cta sm" id="ptSalva">Salvar ponto</button></div>
+    </section>
+    <section class="card" id="opContas">
       <h3>Suas contas</h3>
       <p class="why">Onde o dinheiro cai. Na hora de registrar um pagamento você escolhe a conta, e a contabilidade separa: Brasil para o contador do Brasil, Europa para o da Europa.</p>
       ${Contas.all().map(c => `<div class="frow conta-row" data-conta="${esc(c.id)}">
@@ -1268,6 +1290,13 @@ function opAjustesHtml() {
 }
 function opAjustesLiga() {
   bkpAjustesLiga();
+  $('#ptSalva').onclick = () => {
+    const r = Pontos.salva({ id: $('#ptId').value, nome: $('#ptNome').value, endereco: $('#ptEnd').value, mapa: $('#ptMapa').value, instrucoes: $('#ptIns').value });
+    if (r.erro) return toast(r.erro);
+    toast('Ponto salvo'); admSettings(); setTimeout(() => $('#opPontos') && $('#opPontos').scrollIntoView(), 30);
+  };
+  $$('[data-pted]').forEach(b => b.onclick = () => { const p = Pontos.get(b.dataset.pted); $('#ptId').value = p.id; $('#ptNome').value = p.nome; $('#ptEnd').value = p.endereco; $('#ptMapa').value = p.mapa; $('#ptIns').value = p.instrucoes; $('#ptNome').focus(); });
+  $$('[data-ptrm]').forEach(b => b.onclick = () => { const p = Pontos.get(b.dataset.ptrm); if (p && confirm(`Tirar "${p.nome}" da lista?`)) { Pontos.remove(p.id); admSettings(); } });
   const lerContas = () => $$('[data-conta]').forEach(row => {
     const c = Contas.get(row.dataset.conta); if (!c) return;
     const v = (k) => row.querySelector(`[data-ck="${k}"]`).value;
