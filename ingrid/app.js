@@ -289,6 +289,7 @@ function route() {
   }
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
   else if (p[0] === 'about') viewAbout();
+  else if (p[0] === 'avaliacoes') viewAvaliacoes();
   else if (p[0] === 'roteiro') viewRoteiro();
   else if (p[0] === 'pedido') viewPedido();
   else if (p[0] === 'tours') viewShowcase();
@@ -377,6 +378,9 @@ function viewHub() {
         <span class="ic"><img id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt=""
           style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
+      ${typeof Avaliacoes !== 'undefined' && (Avaliacoes.all().length || linkExterno(st.linkAvaliacao) || DB.demo) ? `<button class="lk" id="goAval">
+        <span class="ic">⭐</span><span><b>${t('hubAval')}</b><small>${Avaliacoes.media() ? `${String(Avaliacoes.media()).replace('.', ',')} ★ · ${Avaliacoes.all().length} ${LANG === 'en' ? (Avaliacoes.all().length === 1 ? 'review' : 'reviews') : (Avaliacoes.all().length === 1 ? 'avaliação' : 'avaliações')}` : t('hubAvalSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>` : ''}
       <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b><small>${t('hubWhatsSub')}</small></span><span class="go" aria-hidden="true">→</span></a>
       ${links.length ? `<p class="hubsec">${t('hubViagem')}</p>
       ${links.map(l => `<a class="lk parc" href="${esc(l.url)}" target="_blank" rel="noopener sponsored">
@@ -390,6 +394,7 @@ function viewHub() {
   $('#goRoteiro').onclick = () => go('/roteiro');
   fallbackPhoto($('#hubFace'), '☺');
   $('#goAbout').onclick = () => go('/about');
+  if ($('#goAval')) $('#goAval').onclick = () => go('/avaliacoes');
   $('#admEntry').onclick = () => go('/adm/today');
   Coach.start([
     { sel: '#goTours',  audio: 'hub-1', txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.' } },
@@ -571,6 +576,35 @@ function viewRoteiro() {
 /* --- quem sou eu ---
    Vem antes do preço de propósito: quem confia na pessoa
    aceita melhor o valor. A foto e o texto saem dos Ajustes. */
+/* AVALIACOES — so as de verdade, que ela cola no painel (Ajustes) */
+function viewAvaliacoes() {
+  const st = DB.settings, l = Avaliacoes.all(), m = Avaliacoes.media(), en = LANG === 'en';
+  const estrelas = (n) => `<span class="av-est" aria-label="${n} ${en ? 'of 5 stars' : 'de 5 estrelas'}">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`;
+  const deixar = linkExterno(st.linkAvaliacao), verTodas = linkExterno(st.linkAvaliacoesVer) || deixar;
+  app.innerHTML = `
+  <header class="topbar">
+    <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
+    <span class="tbrand">${logoMark(24, 'var(--brand-assinatura)')}<b>${esc(guiaNome())}</b></span>
+    ${langBar('right')}
+  </header>
+  <main class="wrap av-pag">
+    <h1>⭐ ${t('hubAval')}</h1>
+    ${m ? `<div class="av-media"><b>${String(m).replace('.', ',')}</b>${estrelas(Math.round(m))}<small>${l.length} ${en ? (l.length === 1 ? 'review' : 'reviews') : (l.length === 1 ? 'avaliação' : 'avaliações')}</small></div>` : ''}
+    ${l.length ? l.map(a => `<article class="av-card">
+        <div class="av-top"><b>${esc(a.nome)}</b>${a.cidade ? `<small>${esc(a.cidade)}</small>` : ''}${estrelas(a.nota)}</div>
+        <p>${esc(a.texto).replace(/\n/g, '<br>')}</p>
+        <small class="av-pe">${[a.passeio, a.data ? new Date(a.data + 'T12:00:00').toLocaleDateString(en ? 'en-GB' : 'pt-BR', { month: 'long', year: 'numeric' }) : '', a.fonte].filter(Boolean).map(esc).join(' · ')}</small>
+      </article>`).join('') : `<p class="empty">${en ? 'Reviews from our guests will appear here soon.' : 'Em breve as avaliações dos clientes aparecem aqui.'}</p>
+      ${DB.demo ? '<p class="why">No painel › Ajustes › <b>Avaliações do site</b> você cola as avaliações de verdade (do Google, do WhatsApp) e o link para deixar uma avaliação.</p>' : ''}`}
+    <div class="av-bts">
+      ${deixar ? `<a class="cta" href="${esc(deixar)}" target="_blank" rel="noopener">⭐ ${en ? 'Leave a review' : 'Deixar a minha avaliação'}</a>` : ''}
+      ${verTodas && verTodas !== deixar ? `<a class="lk-mini" href="${esc(verTodas)}" target="_blank" rel="noopener">${en ? 'See all on Google' : 'Ver todas no Google'} ↗</a>` : ''}
+    </div>
+  </main>`;
+  bindLang(app);
+  $('#bk').onclick = () => go('/');
+}
+
 function viewAbout() {
   const st = DB.settings;
   const bio = (st.bio && (st.bio[LANG] || st.bio.pt)) || '';

@@ -1460,7 +1460,7 @@ function opDocOrc(id) {
 ===================================================== */
 function opAjustesHtml() {
   const s = DB.settings.termos || {};
-  return bkpAjustesHtml() + `<section class="card" id="opPontos">
+  return bkpAjustesHtml() + avAjustesHtml() + `<section class="card" id="opPontos">
       <h3>Pontos de encontro</h3>
       <p class="why">A lista única de onde os clientes encontram a guia ou o motorista. Em cada passeio você marca quais valem; no voucher, escolhe o do cliente — e só ele sai no voucher.</p>
       ${Pontos.all().map(p => `<div class="pt-row"><div class="tinfo"><b>${esc(p.nome)}</b><small>${esc(p.endereco || '')}${p.instrucoes ? ' · ' + esc(p.instrucoes) : ''}</small></div>
@@ -1494,6 +1494,7 @@ function opAjustesHtml() {
 }
 function opAjustesLiga() {
   bkpAjustesLiga();
+  avAjustesLiga();
   visualLiga();
   $('#ptSalva').onclick = () => {
     const r = Pontos.salva({ id: $('#ptId').value, nome: $('#ptNome').value, endereco: $('#ptEnd').value, mapa: $('#ptMapa').value, instrucoes: $('#ptIns').value });
@@ -2768,4 +2769,45 @@ function admTransfer() {
     const url = $('#trUrl').value.trim(); if (url && !/^https?:\/\//i.test(url)) return toast('O link precisa começar com http');
     DB.settings.ncc = { nome: $('#trNome').value.trim() || NCC_PADRAO.nome, url: url || NCC_PADRAO.url }; save(); toast('Salvo'); re();
   };
+}
+
+/* =====================================================
+   AVALIACOES DO SITE (Ajustes) — ela cola as de verdade
+===================================================== */
+function avAjustesHtml() {
+  const l = Avaliacoes.all(), st = DB.settings;
+  return `<section class="card" id="avCartao">
+    <h3>⭐ Avaliações do site</h3>
+    <p class="why">Aparecem no menu da frente do app, em <b>⭐ Avaliações</b>. Só avaliações de verdade: copie do Google ou do WhatsApp (com a permissão do cliente).</p>
+    <div class="frow"><label class="fld">Link para deixar avaliação (Google)<input id="avLink" inputmode="url" placeholder="https://g.page/r/…/review" value="${esc(st.linkAvaliacao || '')}"></label>
+      <label class="fld">Link para ver todas (opcional)<input id="avVer" inputmode="url" placeholder="https://…" value="${esc(st.linkAvaliacoesVer || '')}"></label></div>
+    <p class="why">O primeiro link também vai na mensagem "⭐ pedir avaliação" do CRM.</p>
+    <button class="mini strong" id="avLinks">Salvar os links</button>
+    <div class="rulesep"></div>
+    ${l.map(a => `<div class="deprow"><span><b>${esc(a.nome)}</b> <span class="av-est-p">${'★'.repeat(a.nota)}</span><br><small class="why">${esc(a.texto.slice(0, 90))}${a.texto.length > 90 ? '…' : ''}</small></span><button class="mini ghost danger" data-avrm="${esc(a.id)}" aria-label="apagar a avaliação de ${esc(a.nome)}">✕</button></div>`).join('') || '<p class="why">Nenhuma avaliação ainda.</p>'}
+    <details><summary><b>+ Colar uma avaliação</b></summary>
+      <div class="frow"><label class="fld">Nome<input id="avNome"></label><label class="fld">Cidade / país<input id="avCid" placeholder="São Paulo"></label></div>
+      <div class="frow"><label class="fld">Estrelas<select id="avNota">${[5, 4, 3, 2, 1].map(n => `<option value="${n}">${'★'.repeat(n)} (${n})</option>`).join('')}</select></label>
+        <label class="fld">Passeio<input id="avPas" list="avPasL" placeholder="Vaticano 3 horas"></label></div>
+      <datalist id="avPasL">${Tours.all().filter(x => x.status !== 'draft').map(x => `<option value="${esc(x.name.pt)}">`).join('')}</datalist>
+      <div class="frow"><label class="fld">Data<input id="avData" placeholder="dd/mm/aaaa"></label><label class="fld">De onde<input id="avFonte" placeholder="Google, WhatsApp…"></label></div>
+      <label class="fld">O que o cliente escreveu<textarea id="avTxt" rows="4"></textarea></label>
+      <button class="cta sm" id="avAdd">Pôr no site</button></details>
+  </section>`;
+}
+function avAjustesLiga() {
+  const c = document.getElementById('avCartao'); if (!c) return;
+  const re = () => { c.outerHTML = avAjustesHtml(); avAjustesLiga(); };
+  c.querySelector('#avLinks').onclick = () => {
+    const a = c.querySelector('#avLink').value.trim(), v = c.querySelector('#avVer').value.trim();
+    if ((a && !/^https?:\/\//i.test(a)) || (v && !/^https?:\/\//i.test(v))) return toast('O link precisa começar com http');
+    DB.settings.linkAvaliacao = a; DB.settings.linkAvaliacoesVer = v; save(); toast('Links salvos'); re();
+  };
+  c.querySelector('#avAdd').onclick = () => {
+    const r = Avaliacoes.salva({ nome: c.querySelector('#avNome').value, cidade: c.querySelector('#avCid').value, nota: c.querySelector('#avNota').value,
+      passeio: c.querySelector('#avPas').value, data: c.querySelector('#avData').value, fonte: c.querySelector('#avFonte').value, texto: c.querySelector('#avTxt').value });
+    if (r.erro) return toast(r.erro);
+    toast('⭐ Avaliação no site'); re();
+  };
+  c.querySelectorAll('[data-avrm]').forEach(b => b.onclick = () => { if (confirm('Tirar esta avaliação do site?')) { Avaliacoes.remove(b.dataset.avrm); re(); } });
 }

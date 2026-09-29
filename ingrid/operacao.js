@@ -1595,6 +1595,27 @@ function nccMarca(id, codigo) {
   _opSaveBooking(b); return b;
 }
 
+/* ---------- AVALIACOES (o menu da frente) ----------
+   So avaliacoes de verdade: ela cola as do Google / WhatsApp. Ficam em
+   DB.settings.avaliacoes porque sao publicas (vao para o site). O link do
+   Google e o mesmo que o CRM usa no "pedir avaliacao". */
+const Avaliacoes = {
+  all() { return [...((DB.settings && DB.settings.avaliacoes) || [])].sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))); },
+  media() { const l = Avaliacoes.all().filter(a => +a.nota > 0); return l.length ? Math.round(l.reduce((s, a) => s + +a.nota, 0) / l.length * 10) / 10 : null; },
+  salva(d) {
+    const nome = String(d.nome || '').trim(), texto = String(d.texto || '').trim();
+    if (!nome || !texto) return { erro: 'falta o nome ou o texto da avaliação' };
+    const nota = Math.min(5, Math.max(1, parseInt(d.nota, 10) || 5));
+    let data = d.data ? _dataDigitada(d.data) : isoToday(); if (data === null) return { erro: 'data em dd/mm/aaaa' };
+    DB.settings.avaliacoes = DB.settings.avaliacoes || [];
+    const a = { id: d.id || uid(), nome, cidade: String(d.cidade || '').trim(), passeio: String(d.passeio || '').trim(), nota, texto, data: data || isoToday(), fonte: String(d.fonte || '').trim() };
+    const k = DB.settings.avaliacoes.findIndex(x => x.id === a.id);
+    if (k >= 0) DB.settings.avaliacoes[k] = a; else DB.settings.avaliacoes.push(a);
+    save(); return a;
+  },
+  remove(id) { DB.settings.avaliacoes = (DB.settings.avaliacoes || []).filter(a => a.id !== id); save(); },
+};
+
 /* ---------- PONTOS DE ENCONTRO ----------
    O modelo de voucher dela lista varios pontos; para cada cliente ela
    escolhia a mao o do passeio dele. Aqui: uma lista unica de pontos (feita
@@ -2047,6 +2068,8 @@ if (typeof STR !== 'undefined') {
   Object.assign(STR, {
     admGuias:    { pt: 'Guias', en: 'Guides' },
     admConsulta: { pt: 'Orçamentos', en: 'Quotes' },
+    hubAval: { pt: 'Avaliações', en: 'Reviews' },
+    hubAvalSub: { pt: 'O que dizem os clientes', en: 'What our guests say' },
   admPlanilha: { pt: 'Planilha', en: 'Sheet' },
   admTransfer: { pt: 'Transfer', en: 'Transfers' },
     admTarefas:  { pt: 'Tarefas', en: 'Tasks' },

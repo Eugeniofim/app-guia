@@ -545,3 +545,19 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .tr-ok{display:inline-flex;gap:6px;align-items:center}
 .tr-ok input{padding:7px 10px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--surface-2);font:inherit;color:var(--ink);width:170px}
 .tr-como .bkp-passos{margin:6px 0}
+/* ---- avaliacoes (site) ---- */
+.av-pag h1{font-family:var(--f-display);margin:8px 0 12px}
+.av-media{display:flex;align-items:center;gap:12px;margin:0 0 18px}
+.av-media b{font-family:var(--f-display);font-size:var(--fs-8)}
+.av-media small{color:var(--ink-3)}
+.av-est{color:var(--brand-assinatura);letter-spacing:2px;font-size:18px}
+.av-est i{font-style:normal;color:var(--line-2)}
+.av-est-p{color:var(--highlight-text)}
+.av-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:16px 18px;margin-bottom:12px}
+.av-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.av-top small{color:var(--ink-3)}
+.av-top .av-est{margin-left:auto;font-size:15px}
+.av-card p{margin:8px 0 6px;line-height:1.6}
+.av-pe{color:var(--ink-3);font-size:var(--fs-2)}
+.av-bts{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0 40px}
+.lk-mini{color:var(--accent);font-weight:var(--t-strong)}
