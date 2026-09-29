@@ -256,6 +256,7 @@ function route() {
     viewAdm(p[1] || 'today', p[2]);
   }
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
+  else if (p[0] === 'criar') viewCrieEnsaio();
   else if (p[0] === 'about') viewAbout();
   else if (p[0] === 'tours') viewShowcase();
   else if (p[0] === 'tour')  viewTour(p[1]);
@@ -309,6 +310,9 @@ function viewHub() {
       <button class="lk main" id="goTours">
         <span class="ic">📍</span><span><b>${t('seeTours')}</b><small>${t('seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
+      <button class="lk" id="goCriar">
+        <span class="ic">✨</span><span><b>${t('crieLink')}</b><small>${t('crieLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>
       <button class="lk" id="goAbout">
         <span class="ic"><img id="hubFace" src="${esc(DB.settings.photo || 'guia.jpg')}" alt=""
           style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
@@ -326,6 +330,7 @@ function viewHub() {
   bindLang(app);
   $('#goTours').onclick = () => go('/tours');
   fallbackPhoto($('#hubFace'), '☺');
+  $('#goCriar').onclick = () => go('/criar');
   $('#goAbout').onclick = () => go('/about');
   $('#admEntry').onclick = () => go('/adm/today');
   $$('[data-demo]').forEach(b => b.onclick = () => toast(t('xProtoBotao')));
@@ -2640,4 +2645,137 @@ route();
    direto numa aba que usa os icones (Clientes) — recarregando a pagina, ou
    pelo atalho do celular, que reabre na ultima tela — via a tela em branco:
    "Cannot access 'ICO' before initialization". Achado em 18/09/2026. */
+
+/* =====================================================
+   CRIE O SEU ENSAIO — pedido do Eugênio (29/09/2026)
+
+   O mesmo motor do "monte seu roteiro" do guia, com as perguntas que um
+   fotógrafo realmente precisa saber antes de dar preço: a ocasião, os
+   lugares, a hora da luz e o que mais a pessoa quer junto. Sai daqui uma
+   mensagem pronta no WhatsApp dele e um pedido guardado no painel.
+   ===================================================== */
+const ENS_OCASIAO = [
+  ['casal',     'Casal ou lua de mel',      'Couple or honeymoon'],
+  ['familia',   'Família',                  'Family'],
+  ['quinze',    '15 anos',                  'Sweet fifteen'],
+  ['gestante',  'Gestante',                 'Maternity'],
+  ['pedido',    'Pedido de casamento',      'Marriage proposal'],
+  ['aniversario','Aniversário',             'Birthday'],
+  ['individual','Ensaio individual',        'Solo session'],
+  ['amigas',    'Grupo de amigas',          'Group of friends'],
+  ['prewedding','Pré-wedding',              'Pre-wedding'],
+];
+const ENS_ONDE = [
+  ['torre',     'Torre Eiffel e Trocadéro', 'Eiffel Tower & Trocadéro'],
+  ['montmartre','Montmartre',               'Montmartre'],
+  ['louvre',    'Louvre e Tulherias',       'Louvre & Tuileries'],
+  ['sena',      'Sena e as pontes',         'The Seine & the bridges'],
+  ['luxemburgo','Jardim do Luxemburgo',     'Luxembourg Gardens'],
+  ['bairro',    'Ruas de bairro, sem multidão', 'Quiet neighbourhood streets'],
+  ['notredame', 'Notre-Dame e a Île',       'Notre-Dame & the island'],
+  ['naosei',    'Não sei, me ajuda a escolher', 'Not sure, help me choose'],
+];
+const ENS_QUANDO = [
+  ['nascer',    'Nascer do sol, sem gente', 'Sunrise, no crowds'],
+  ['manha',     'De manhã',                 'Morning'],
+  ['dourada',   'Fim de tarde, hora dourada','Late afternoon, golden hour'],
+  ['noite',     'À noite, com as luzes',    'At night, with the lights'],
+];
+const ENS_PRECISA = [
+  ['hotel',     'Me buscar no hotel',       'Pick me up at the hotel'],
+  ['troca',     'Troca de roupa no meio',   'Outfit change midway'],
+  ['video',     'Um vídeo curto para o Instagram', 'A short video for Instagram'],
+  ['beleza',    'Cabelo e maquiagem',       'Hair & make-up'],
+  ['album',     'Álbum impresso',           'Printed album'],
+  ['previa',    'Uma prévia no mesmo dia',  'A preview the same day'],
+];
+
+function viewCrieEnsaio() {
+  const P = viewCrieEnsaio._p = viewCrieEnsaio._p
+    || { nome: '', data: '', pessoas: 2, ocasiao: [], onde: [], quando: [], precisa: [], obs: '' };
+  const chip = (grupo, lista) => lista.map(([cod, pt, en]) =>
+    `<button class="pchip ${P[grupo].includes(cod) ? 'on' : ''}" data-g="${grupo}" data-v="${cod}">${LANG === 'en' ? en : pt}</button>`).join('');
+
+  app.innerHTML = `
+  <header class="topbar">
+    <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
+    <span class="tbrand">${logoMark(24, 'var(--brand-amarelo)')}<b>${esc(guiaNome())}</b></span>
+    ${langBar('right')}
+  </header>
+  <main class="wrap pers">
+    <h1 class="pageh">${t('crieTit')}</h1>
+    <p class="desc lead">${t('crieIntro')}</p>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('crieQuem')}</span>
+      <label class="fld">${t('crieNome')}<input id="cNome" value="${esc(P.nome)}" placeholder="${t('crieNomePh')}"></label>
+      <div class="frow">
+        <label class="fld">${t('crieData')}<input id="cData" type="date" value="${P.data}"></label>
+        <label class="fld">${t('criePessoas')}<input id="cPes" type="number" min="1" max="20" value="${P.pessoas}"></label>
+      </div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('crieOcasiao')}</span>
+      <div class="pchips">${chip('ocasiao', ENS_OCASIAO)}</div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('crieOnde')}</span>
+      <p class="why">${t('crieOndeWhy')}</p>
+      <div class="pchips">${chip('onde', ENS_ONDE)}</div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('crieQuando')}</span>
+      <p class="why">${t('crieQuandoWhy')}</p>
+      <div class="pchips">${chip('quando', ENS_QUANDO)}</div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('criePrecisa')}</span>
+      <div class="pchips">${chip('precisa', ENS_PRECISA)}</div>
+    </section>
+
+    <section class="card pbloco">
+      <span class="seclabel">${t('crieObs')}</span>
+      <textarea id="cObs" rows="3" placeholder="${t('crieObsPh')}">${esc(P.obs)}</textarea>
+    </section>
+
+    <button class="cta" id="cEnviar">${t('crieEnviar')}</button>
+    <p class="why center">${t('crieRodape')}</p>
+  </main>`;
+  bindLang(app);
+  $('#bk').onclick = () => go('/');
+  const guarda = () => {
+    P.nome = $('#cNome').value.trim(); P.data = $('#cData').value;
+    P.pessoas = +$('#cPes').value || 1; P.obs = $('#cObs').value.trim();
+  };
+  $$('.pchip').forEach(b => b.onclick = () => {
+    guarda();
+    const g = P[b.dataset.g], i = g.indexOf(b.dataset.v);
+    i < 0 ? g.push(b.dataset.v) : g.splice(i, 1);
+    viewCrieEnsaio();
+  });
+  $('#cEnviar').onclick = () => {
+    guarda();
+    const nome = (a, l) => a.map(c => (l.find(z => z[0] === c) || [])[LANG === 'en' ? 2 : 1]).filter(Boolean).join(', ');
+    const L = [t('crieMsgOi', { nome: P.nome || '' })];
+    if (P.data) L.push('🗓 ' + fmtDate(P.data));
+    L.push('👥 ' + t('crieMsgPessoas', { n: P.pessoas }));
+    if (P.ocasiao.length) L.push('📸 ' + nome(P.ocasiao, ENS_OCASIAO));
+    if (P.onde.length) L.push('📍 ' + nome(P.onde, ENS_ONDE));
+    if (P.quando.length) L.push('🌅 ' + nome(P.quando, ENS_QUANDO));
+    if (P.precisa.length) L.push('✅ ' + nome(P.precisa, ENS_PRECISA));
+    if (P.obs) L.push('📝 ' + P.obs);
+    try {
+      DB.pedidos = DB.pedidos || [];
+      DB.pedidos.unshift({ id: 'p' + Date.now(), criadoEm: new Date().toISOString(), ...P });
+      save();
+    } catch (e) {}
+    window.open(waLink(L.join('\n')), '_blank', 'noopener');
+    toast(t('crieEnviado'));
+  };
+}
+
 route();

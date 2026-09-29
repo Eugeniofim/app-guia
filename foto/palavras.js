@@ -68,6 +68,40 @@
     fWalk:    { pt: 'Curto',   en: 'Short' },
     fDay:     { pt: 'Dia inteiro', en: 'Full day' },
   };
+
+  /* frases da tela "Crie o seu ensaio" (29/09/2026) — ficam aqui e nao no
+     i18n.js para o app do guia continuar sendo a fonte, sem saber disso. */
+  const NOVAS = {
+    crieLink:    { pt: 'Crie o seu ensaio', en: 'Design your session' },
+    crieLinkSub: { pt: 'Você monta, eu faço o orçamento', en: 'You build it, I quote it' },
+    crieTit:     { pt: 'Crie o seu ensaio', en: 'Design your session' },
+    crieIntro:   { pt: 'Escolha a ocasião, os lugares e a hora da luz. No fim eu recebo tudo pelo WhatsApp e te mando o valor — sem compromisso.',
+                   en: 'Pick the occasion, the places and the light. At the end it all reaches me on WhatsApp and I send you a price — no commitment.' },
+    crieQuem:    { pt: 'Quem é e quando', en: 'Who and when' },
+    crieNome:    { pt: 'Seu nome', en: 'Your name' },
+    crieNomePh:  { pt: 'como prefere ser chamado', en: 'what you like to be called' },
+    crieData:    { pt: 'Dia do ensaio', en: 'Session date' },
+    criePessoas: { pt: 'Quantas pessoas', en: 'How many people' },
+    crieOcasiao: { pt: 'Qual é a ocasião', en: 'What is the occasion' },
+    crieOnde:    { pt: 'Onde você quer fotografar', en: 'Where you want to shoot' },
+    crieOndeWhy: { pt: 'Pode marcar mais de um. Em uma hora dá para fazer dois lugares perto.',
+                   en: 'You can pick more than one. In one hour we can do two nearby places.' },
+    crieQuando:  { pt: 'A hora da luz', en: 'The light' },
+    crieQuandoWhy:{ pt: 'O nascer do sol é a única hora em que os pontos famosos ficam vazios.',
+                    en: 'Sunrise is the only hour when the famous spots are empty.' },
+    criePrecisa: { pt: 'O que mais você quer junto', en: 'What else you want' },
+    crieObs:     { pt: 'Quer me contar mais alguma coisa?', en: 'Anything else you want to tell me?' },
+    crieObsPh:   { pt: 'uma surpresa, alguém com dificuldade de andar, uma roupa especial…',
+                   en: 'a surprise, someone with limited mobility, a special outfit…' },
+    crieEnviar:  { pt: 'Mandar para a fotógrafa', en: 'Send to the photographer' },
+    crieRodape:  { pt: 'Isso não reserva a data. A data trava quando o sinal entra.',
+                   en: 'This does not hold the date. The date is locked when the deposit is paid.' },
+    crieMsgOi:   { pt: 'Oi! Montei o meu ensaio no seu app 🙂 {nome}', en: 'Hi! I designed my session in your app 🙂 {nome}' },
+    crieMsgPessoas: { pt: '{n} pessoa(s)', en: '{n} person/people' },
+    crieEnviado: { pt: 'Pronto — é só enviar no WhatsApp', en: 'Done — just hit send on WhatsApp' },
+  };
+  for (const [k, v] of Object.entries(NOVAS)) STR[k] = Object.assign({}, STR[k], v);
+
   for (const [k, v] of Object.entries(ETIQUETAS)) {
     if (STR[k]) Object.assign(STR[k], v);
   }
