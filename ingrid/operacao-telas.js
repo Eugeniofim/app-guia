@@ -230,6 +230,8 @@ function admHoje(arg) {
   };
   opLigaCards(() => admHoje(dia));
   tfLigaMini(() => admHoje(dia));
+  /* o backup do dia sai sozinho na primeira abertura do painel */
+  setTimeout(() => bkpDoDia(), 600);
   if (admHoje._foco) {
     const el = document.getElementById('svc-' + admHoje._foco);
     admHoje._foco = null;
@@ -926,7 +928,7 @@ function opDocOrc(id) {
 ===================================================== */
 function opAjustesHtml() {
   const s = DB.settings.termos || {};
-  return `<section class="card" id="opContas">
+  return bkpAjustesHtml() + `<section class="card" id="opContas">
       <h3>Suas contas</h3>
       <p class="why">Onde o dinheiro cai. Na hora de registrar um pagamento você escolhe a conta, e a contabilidade separa: Brasil para o contador do Brasil, Europa para o da Europa.</p>
       ${Contas.all().map(c => `<div class="frow conta-row" data-conta="${esc(c.id)}">
@@ -947,6 +949,7 @@ function opAjustesHtml() {
     </section>`;
 }
 function opAjustesLiga() {
+  bkpAjustesLiga();
   const lerContas = () => $$('[data-conta]').forEach(row => {
     const c = Contas.get(row.dataset.conta); if (!c) return;
     const v = (k) => row.querySelector(`[data-ck="${k}"]`).value;
@@ -1591,4 +1594,145 @@ function tfLigaMini(redesenha) {
   $$('[data-tfed]').forEach(b => b.onclick = () => { const el = document.getElementById('tfe-' + b.dataset.tfed); if (el) el.hidden = !el.hidden; });
   $$('[data-tfsalva]').forEach(b => b.onclick = () => { const id = b.dataset.tfsalva; Tarefas.salva(id, { texto: $('#tfeT-' + id).value, prazo: $('#tfeD-' + id).value, hora: $('#tfeH-' + id).value, detalhe: $('#tfeX-' + id).value }); redesenha(); });
   $$('[data-tfrm]').forEach(b => b.onclick = () => { if (confirm('Apagar?')) { Tarefas.remove(b.dataset.tfrm); redesenha(); } });
+}
+
+/* =====================================================
+   BACKUP AUTOMATICO — computador e Google Drive
+
+   A ponte com o Drive e a PASTA: ela instala o Google Drive para computador
+   e escolhe, uma vez, a pasta "Meu Drive > Backup EmRoma". Todo dia, ao abrir
+   o painel, o app grava o arquivo do dia ali — e o Drive sobe sozinho.
+   O Chrome guarda a permissao; as vezes, depois de reiniciar, pede um toque.
+   Sem pasta (iPhone, Safari), o backup do dia sai como download.
+===================================================== */
+const BKP_IDB = 'emroma-backup';
+function bkpIdb() {
+  return new Promise((ok, falha) => {
+    const r = indexedDB.open(BKP_IDB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('h');
+    r.onsuccess = () => ok(r.result); r.onerror = () => falha(r.error);
+  });
+}
+async function bkpPasta(nova) {
+  try {
+    const db = await bkpIdb();
+    return await new Promise((ok) => {
+      const tx = db.transaction('h', nova === undefined ? 'readonly' : 'readwrite'), st = tx.objectStore('h');
+      if (nova === undefined) { const g = st.get('pasta'); g.onsuccess = () => ok(g.result || null); g.onerror = () => ok(null); }
+      else { (nova ? st.put(nova, 'pasta') : st.delete('pasta')); tx.oncomplete = () => ok(nova); tx.onerror = () => ok(null); }
+    });
+  } catch (e) { return null; }
+}
+const bkpTemPasta = () => typeof window.showDirectoryPicker === 'function';
+async function bkpEscolherPasta() {
+  if (!bkpTemPasta()) { toast('Este navegador não deixa escolher pasta. Use o Chrome no computador — ou o botão Baixar.'); return null; }
+  try {
+    const h = await window.showDirectoryPicker({ id: 'emroma-backup', mode: 'readwrite', startIn: 'documents' });
+    await bkpPasta(h);
+    return h;
+  } catch (e) { return null; }
+}
+/* grava o arquivo do dia na pasta. comToque = veio de um clique (pode pedir permissao) */
+async function bkpNaPasta(comToque) {
+  const h = await bkpPasta(); if (!h) return { erro: 'sem-pasta' };
+  let perm = 'prompt';
+  try { perm = await h.queryPermission({ mode: 'readwrite' }); } catch (e) {}
+  if (perm !== 'granted' && comToque) { try { perm = await h.requestPermission({ mode: 'readwrite' }); } catch (e) {} }
+  if (perm !== 'granted') return { erro: 'precisa-toque', pasta: h.name };
+  const nome = Backup.nome();
+  const f = await h.getFileHandle(nome, { create: true });
+  const w = await f.createWritable();
+  await w.write(JSON.stringify(pacoteBackup(), null, 2)); await w.close();
+  /* guarda os ultimos 60 dias; o resto sai para a pasta nao crescer para sempre */
+  try {
+    const limite = Backup.nome(addDays(isoToday(), -60));
+    for await (const [n, e] of h.entries()) if (e.kind === 'file' && /^EmRoma-backup-\d{4}-\d{2}-\d{2}\.json$/.test(n) && n < limite) await h.removeEntry(n);
+  } catch (e) {}
+  Backup.marca('pasta', h.name + '/' + nome);
+  return { ok: true, pasta: h.name, arquivo: nome };
+}
+function bkpBaixa() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(pacoteBackup(), null, 2)], { type: 'application/json' }));
+  a.download = Backup.nome(); a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  Backup.marca('download', Backup.nome());
+  return { ok: true, baixado: Backup.nome() };
+}
+/* "fazer backup agora": na pasta se tiver, senao baixa */
+async function bkpAgora(comToque) {
+  const r = await bkpNaPasta(comToque);
+  if (r.ok) return r;
+  if (r.erro === 'precisa-toque' && !comToque) return r;
+  return bkpBaixa();
+}
+/* O AUTOMATICO: uma vez por dia, quando ela abre o painel */
+async function bkpDoDia() {
+  if (Backup.feitoHoje() || bkpDoDia._rodou) return;
+  bkpDoDia._rodou = true;
+  if (!DB.bookings.length && !DB.tours.length) return;
+  const r = await bkpNaPasta(false);
+  if (r.ok) { toast(`💾 Backup de hoje salvo em ${r.pasta}`); return; }
+  /* nao deu sozinho (sem pasta, ou o Chrome pede um toque): um aviso discreto no Hoje */
+  const st = document.getElementById('stage');
+  if (!st || document.getElementById('bkpAviso')) return;
+  const el = document.createElement('div');
+  el.id = 'bkpAviso'; el.className = 'alert warn bkp-aviso';
+  el.innerHTML = r.erro === 'precisa-toque'
+    ? `💾 Backup de hoje: o Chrome pede um toque para usar a pasta "${esc(r.pasta)}". <button class="mini strong" id="bkpToque">Salvar agora</button>`
+    : `💾 Você ainda não fez o backup de hoje. <button class="mini strong" id="bkpToque">Salvar agora</button> <a class="mini" href="#/adm/settings">escolher a pasta do Drive</a>`;
+  const ph = st.querySelector('.pagehead'); if (ph) ph.after(el); else st.prepend(el);
+  el.querySelector('#bkpToque').onclick = async () => { const x = await bkpAgora(true); el.remove(); toast(x.ok ? `💾 Backup salvo${x.pasta ? ' em ' + x.pasta : ' (baixado)'}` : 'Não salvou — tente em Ajustes'); };
+}
+/* o cartao dos Ajustes */
+function bkpAjustesHtml() {
+  const u = Backup.ultimo();
+  return `<section class="card" id="bkpCartao">
+    <h3>Backup automático · computador e Google Drive</h3>
+    <p class="why">Todo dia, na primeira vez que você abre o painel, o app salva um arquivo com tudo (clientes, reservas, pagamentos, guias, orçamentos, tarefas) na pasta que você escolher. Se a pasta for a do Google Drive, ele sobe para o Drive sozinho.</p>
+    <ol class="bkp-passos">
+      <li>No computador, instale o <b>Google Drive para computador</b> (google.com/drive/download) e entre com a sua conta.</li>
+      <li>No Drive, crie a pasta <b>Backup EmRoma</b>.</li>
+      <li>Toque em <b>Escolher a pasta</b> e escolha: Google Drive › Meu Drive › Backup EmRoma.</li>
+    </ol>
+    <p class="bkp-estado" id="bkpEstado">${u.em ? `✓ Último backup: <b>${new Date(u.em).toLocaleString('pt-BR')}</b> · ${u.onde === 'pasta' ? 'na pasta ' + esc(u.arquivo) : 'baixado (' + esc(u.arquivo) + ')'}` : 'Nenhum backup ainda.'}</p>
+    <div class="btnrow">
+      ${bkpTemPasta() ? '<button class="cta sm" id="bkpPastaBt">Escolher a pasta</button>' : ''}
+      <button class="mini strong" id="bkpJa">Fazer backup agora</button>
+      <button class="mini" id="bkpDown">Baixar um arquivo</button>
+    </div>
+    ${bkpTemPasta() ? '' : '<p class="why">Neste navegador não dá para escolher pasta (iPhone e Safari). O backup sai como arquivo baixado — no computador, use o Chrome.</p>'}
+    <div class="rulesep"></div>
+    <b>Voltar um backup</b>
+    <p class="why">Trocou de computador ou perdeu os dados? Escolha o arquivo de backup: o app mostra o que tem dentro e só troca depois que você confirmar.</p>
+    <label class="fld">Arquivo de backup (.json)<input type="file" id="bkpArq" accept="application/json,.json"></label>
+    <div id="bkpPrev"></div>
+  </section>`;
+}
+async function bkpAjustesLiga() {
+  const h = await bkpPasta();
+  const est = document.getElementById('bkpEstado');
+  if (h && est) est.insertAdjacentHTML('beforeend', `<br>📁 Pasta escolhida: <b>${esc(h.name)}</b>`);
+  const re = () => { const c = document.getElementById('bkpCartao'); if (c) { c.outerHTML = bkpAjustesHtml(); bkpAjustesLiga(); } };
+  $('#bkpPastaBt')?.addEventListener('click', async () => { const p = await bkpEscolherPasta(); if (p) { const r = await bkpNaPasta(true); toast(r.ok ? `💾 Pasta "${p.name}" escolhida e backup de hoje salvo` : 'Pasta escolhida'); re(); } });
+  $('#bkpJa')?.addEventListener('click', async () => { const r = await bkpAgora(true); toast(r.ok ? (r.pasta ? `💾 Salvo em ${r.pasta}` : '💾 Backup baixado') : 'Não salvou'); re(); });
+  $('#bkpDown')?.addEventListener('click', () => { bkpBaixa(); toast('💾 Backup baixado'); re(); });
+  $('#bkpArq')?.addEventListener('change', async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const txt = await f.text(); const r = lerBackup(txt);
+    const box = document.getElementById('bkpPrev');
+    if (r.erro) { box.innerHTML = `<div class="alert bad">${esc(r.erro)}</div>`; return; }
+    const s = r.resumo;
+    box.innerHTML = `<div class="alert warn bkp-volta"><div><b>Backup de ${s.salvoEm ? new Date(s.salvoEm).toLocaleString('pt-BR') : '?'}</b><br>
+      ${s.reservas} reservas · ${s.clientes} clientes · ${s.passeios} passeios · ${s.guias} guias/motoristas · ${s.orcamentos} orçamentos · ${s.tarefas} tarefas e anotações<br>
+      <small>O que está no app AGORA será trocado por isto. Antes, o app baixa uma cópia do que existe hoje, por segurança.</small></div>
+      <button class="cta sm" id="bkpVoltaOk">Voltar este backup</button></div>`;
+    document.getElementById('bkpVoltaOk').onclick = () => {
+      bkpBaixa();   /* copia de seguranca do que existe agora */
+      const x = restauraBackup(txt);
+      if (x.erro) return toast(x.erro);
+      toast(`Backup restaurado: ${x.resumo.reservas} reservas, ${x.resumo.tarefas} tarefas`);
+      setTimeout(() => go('/adm/today'), 400);
+    };
+  });
 }

@@ -295,3 +295,9 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .agc{position:relative}
 .ag-tarefas{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .ag-tarefas .frow{align-items:end;margin-top:6px}
+
+/* backup */
+.bkp-passos{margin:6px 0 10px;padding-left:20px;display:flex;flex-direction:column;gap:4px;color:var(--ink-2);font-size:var(--fs-3)}
+.bkp-estado{font-size:var(--fs-3);color:var(--ink-2);margin:6px 0 10px}
+.bkp-aviso{flex-wrap:wrap}
+.bkp-volta{flex-wrap:wrap;justify-content:space-between}

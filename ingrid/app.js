@@ -2657,17 +2657,9 @@ function admSettings() {
 
   $('#bkpTudo').onclick = () => {
     if (!DB.bookings.length && !DB.tours.length) return toast(t('bkpVazio'));
-    const pacote = {
-      salvoEm: new Date().toISOString(),
-      versao: 'vi-backup-1',
-      passeios: DB.tours, regras: DB.rules, datas: DB.departures,
-      bloqueios: DB.blocks, cupons: DB.coupons,
-      configuracoes: DB.settings, reservas: DB.bookings,
-      pedidos: DB.pedidos || [], equipe: DB.equipe || [], disponibilidade: DB.disp || [],
-      contas: DB.contas || [], orcamentos: DB.orcamentos || [], fichas: DB.fichas || {},
-      tarefas: DB.tarefas || [],
-    };
-    baixaArquivo(JSON.stringify(pacote, null, 2), 'backup-' + hojeArq() + '.json', 'application/json');
+    const pacote = pacoteBackup();   /* operacao.js: tudo, inclusive guias, orcamentos e tarefas */
+    baixaArquivo(JSON.stringify(pacote, null, 2), Backup.nome(hojeArq()), 'application/json');
+    Backup.marca('download', Backup.nome(hojeArq()));
     toast(t('bkpFeito'));
   };
 

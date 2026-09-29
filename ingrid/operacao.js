@@ -1031,6 +1031,65 @@ function opSemeiaTarefas() {
   if (o) cria({ tipo: 'nota', origem: 'whats', texto: `Resumo do WhatsApp — ${o.cliente.nome}`, detalhe: o.resumo, orcId: o.id, clienteNome: o.cliente.nome, whats: o.cliente.whats });
 }
 
+/* ---------- BACKUP ----------
+   Um arquivo so, com TUDO o que ela tem (e o que o assistente aprendeu).
+   Serve para guardar (pasta do computador, que pode ser a do Google Drive)
+   e para VOLTAR: backup que nao restaura nao e backup. */
+const BKP_VERSAO = 'emroma-backup-2';
+const BKP_KEY = 'ingrid_bkp_v1';
+function pacoteBackup() {
+  let memoria = [];
+  try { if (typeof Mkt !== 'undefined') memoria = Mkt.get().memoria || []; } catch (e) {}
+  return {
+    app: 'EmRoma', versao: BKP_VERSAO, salvoEm: new Date().toISOString(),
+    passeios: DB.tours, regras: DB.rules, datas: DB.departures, bloqueios: DB.blocks, cupons: DB.coupons,
+    configuracoes: DB.settings, reservas: DB.bookings, vagasVendidas: DB.seatCounts || [],
+    pedidos: DB.pedidos || [], equipe: DB.equipe || [], disponibilidade: DB.disp || [],
+    contas: DB.contas || [], orcamentos: DB.orcamentos || [], fichas: DB.fichas || {},
+    tarefas: DB.tarefas || [], lembretesVistos: DB.lembretesVistos || {}, memoriaAssistente: memoria,
+  };
+}
+function resumoBackup(p) {
+  const n = (a) => Array.isArray(a) ? a.length : 0;
+  return { salvoEm: p.salvoEm || '', reservas: n(p.reservas), passeios: n(p.passeios), guias: n(p.equipe),
+           orcamentos: n(p.orcamentos), tarefas: n(p.tarefas), clientes: new Set((p.reservas || []).map(chaveCliente)).size };
+}
+/* aceita o arquivo antigo (vi-backup-1, so reservas e passeios) e o novo */
+function lerBackup(txt) {
+  let p; try { p = typeof txt === 'string' ? JSON.parse(txt.replace(/^﻿/, '')) : txt; } catch (e) { return { erro: 'o arquivo não é um backup do app (não abriu)' }; }
+  if (!p || !/^(vi-backup|emroma-backup)/.test(String(p.versao || ''))) return { erro: 'este arquivo não é um backup do EmRoma' };
+  if (!Array.isArray(p.reservas) || !Array.isArray(p.passeios)) return { erro: 'o backup está incompleto (faltam reservas ou passeios)' };
+  return { p, resumo: resumoBackup(p) };
+}
+function restauraBackup(txt) {
+  const r = lerBackup(txt); if (r.erro) return r;
+  const p = r.p, novo = _blank();
+  Object.assign(novo, {
+    tours: p.passeios, rules: p.regras || [], departures: p.datas || [], blocks: p.bloqueios || [], coupons: p.cupons || [],
+    bookings: p.reservas, seatCounts: p.vagasVendidas || [], pedidos: p.pedidos || [],
+    equipe: p.equipe || [], disp: p.disponibilidade || [], contas: p.contas || [], orcamentos: p.orcamentos || [],
+    fichas: p.fichas || {}, tarefas: p.tarefas || [], lembretesVistos: p.lembretesVistos || {},
+  });
+  novo.settings = fillSettings(p.configuracoes || {});
+  /* voltou dado de verdade: nao e mais demonstracao, e as sementes nao voltam */
+  novo.demo = false; novo.opSeed = OP_SEED; novo.tarefasSeed = 1; novo.seedVer = typeof SEED_VER !== 'undefined' ? SEED_VER : 1;
+  DB = novo;
+  try { if (typeof Mkt !== 'undefined' && Array.isArray(p.memoriaAssistente)) { const m = Mkt.get(); m.memoria = p.memoriaAssistente; Mkt.salva(); } } catch (e) {}
+  opGarante();
+  if (typeof save === 'function') save();
+  return { ok: true, resumo: r.resumo };
+}
+const Backup = {
+  ultimo() { try { return JSON.parse(localStorage.getItem(BKP_KEY)) || {}; } catch (e) { return {}; } },
+  marca(onde, arquivo) {
+    const u = { em: new Date().toISOString(), onde, arquivo: arquivo || '' };
+    try { localStorage.setItem(BKP_KEY, JSON.stringify(u)); localStorage.setItem('vi_bkp_em', String(Date.now())); } catch (e) {}
+    return u;
+  },
+  feitoHoje(hoje) { const u = Backup.ultimo(); return !!u.em && u.em.slice(0, 10) === (hoje || isoToday()); },
+  nome(dia) { return `EmRoma-backup-${dia || isoToday()}.json`; },
+};
+
 /* ---------- PAINEL DE NUMEROS (a aba Relatorios) ----------
    Cada marcador compara com o periodo ANTERIOR de mesmo tamanho: "este mes
    ate hoje" contra "o mes passado ate o mesmo dia". Sem isto, o dia 3 do mes

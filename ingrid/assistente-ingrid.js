@@ -104,6 +104,7 @@ const ING_FERRAMENTAS = [
   { name: 'ver_ficha', description: 'Ficha completa de um cliente: contato, serviços, pagamentos, quem veio junto, anotações, tarefas e orçamentos.', input_schema: obj({ cliente: S_('nome, e-mail ou WhatsApp') }, ['cliente']) },
   { name: 'ver_relatorio', description: 'Os números do período (semana, mês, 90 dias, ano): o que entrou, vendido, serviços, ticket, margem, a receber, orçamentos, o que já está vendido para as próximas semanas, serviço que mais rende, turno mais cheio, antecedência.', input_schema: obj({ periodo: { type: 'string', enum: ['semana', 'mes', '90', 'ano'] } }) },
   { name: 'ver_contas', description: 'As contas onde ela recebe (id, nome, Brasil ou Europa).', input_schema: obj() },
+  { name: 'ver_backup', description: 'Quando foi o último backup, onde (pasta do computador/Google Drive ou baixado) e se o de hoje já foi feito.', input_schema: obj() },
   { name: 'abrir_aba', description: 'Leva ela até uma tela do app (e, se quiser, a um item).', input_schema: obj({ aba: { type: 'string', enum: ING_ABAS }, item: S_('id do orçamento, código da reserva ou chave do cliente (opcional)') }, ['aba']) },
   /* gravar */
   { name: 'anotar_tarefa', description: 'Cria tarefa (com dia e hora se houver; entende "amanhã 9h" no texto). Mandar mensagem/cobrar/orçamento já vêm com o passo seguinte ("aguardar resposta").', input_schema: obj({ texto: S_(), dia: S_('AAAA-MM-DD'), hora: S_('HH:MM'), cliente: S_(), detalhe: S_() }, ['texto']) },
@@ -125,6 +126,7 @@ const ING_FERRAMENTAS = [
   { name: 'orcamento_do_roteiro', description: 'Monta o rascunho de orçamento a partir de um pedido do "Monte seu roteiro" (veja pedidos_de_roteiro em ver_orcamentos).', input_schema: obj({ pedido: S_('id ou nome de quem pediu') }, ['pedido']) },
   { name: 'cadastrar_conta', description: 'Acrescenta ou muda uma conta onde ela recebe (define se vai para o contador do Brasil ou da Europa).', input_schema: obj({ conta: S_('id de ver_contas para mudar; vazio = nova'), nome: S_(), lado: { type: 'string', enum: ['brasil', 'europa'] }, tipo: { type: 'string', enum: ['pix', 'transfer', 'card', 'cash', 'other'] } }, ['nome', 'lado']) },
   { name: 'lembrete_feito', description: 'Marca um lembrete do app (ver_tarefas → lembretes_do_app) como feito, para sumir da lista.', input_schema: obj({ lembrete: S_('pedaço do texto do lembrete') }, ['lembrete']) },
+  { name: 'fazer_backup', description: 'Faz o backup de tudo agora: na pasta escolhida (que pode ser a do Google Drive) ou, sem pasta, baixa o arquivo.', input_schema: obj() },
   { name: 'mudar_tabela', description: 'Muda a tabela de preço por número de pessoas de um passeio (preço do grupo).', input_schema: obj({ passeio_id: S_(), de_pessoas: { type: 'integer' }, ate_pessoas: { type: 'integer' }, valor: N_() }, ['passeio_id', 'de_pessoas', 'valor']) },
 ];
 IA_FERRAMENTAS.push(...ING_FERRAMENTAS);
@@ -187,6 +189,11 @@ const ING_LER = {
       vendido_proximas_8_semanas: { total: fut.reduce((s, f) => s + f.total, 0), ja_pago: fut.reduce((s, f) => s + f.pago, 0) },
       servico_que_mais_rende: porS[0] ? { servico: (Tours.get(porS[0].tourId) || { name: { pt: '?' } }).name.pt, valor: porS[0].valor } : null,
       antecedencia_mediana_dias: ant.mediana, origens: Painel.origens(P.de, P.ate) };
+  },
+  ver_backup() {
+    const u = Backup.ultimo();
+    return { ultimo: u.em || 'nunca', onde: u.onde === 'pasta' ? 'na pasta ' + u.arquivo : u.onde === 'download' ? 'baixado no computador' : '—', o_de_hoje_ja_foi: Backup.feitoHoje(),
+      como_ligar_o_drive: 'Ajustes → Backup automático: instalar o Google Drive para computador e escolher a pasta Backup EmRoma' };
   },
   ver_contas() { return Contas.all().map(c => ({ conta: c.id, nome: c.nome, lado: c.pais })).concat([{ conta: CONTA_PRESTADOR, nome: 'pago na mão da guia/motorista', lado: 'fora do caixa dela' }]); },
   abrir_aba(i) {
@@ -373,6 +380,10 @@ const ING_PLANO = {
     if (l.length > 1) return { erro: 'mais de um lembrete parecido — pergunte qual', opcoes: l.map(x => x.txt) };
     return { titulo: 'Lembrete feito', assumiu: [], linhas: [['Lembrete', l[0].txt]], fazer: () => { Lembretes.marca(l[0].chave); return { ok: true }; } };
   },
+  fazer_backup() {
+    return { titulo: 'Backup agora', assumiu: [], linhas: [['O quê', 'tudo: clientes, reservas, pagamentos, guias, orçamentos, tarefas'], ['Onde', 'na pasta escolhida em Ajustes (Google Drive) — sem pasta, baixa o arquivo']],
+      fazer: async () => { const r = await bkpAgora(true); return r.ok ? { ok: true, onde: r.pasta ? 'pasta ' + r.pasta : 'baixado', arquivo: r.arquivo || r.baixado } : { erro: 'não salvou: ' + (r.erro || '') }; } };
+  },
   mudar_tabela(i) {
     const x = Tours.get(i.passeio_id); if (!x) return E_('passeio não encontrado — use ver_passeios');
     if (x.priceMode !== 'tabela') return E_('este passeio não tem tabela por pessoas' + (x.priceMode === 'transfer' ? ' (transfer tem tabela própria: Meus passeios)' : ' — use mudar_preco'));
@@ -443,7 +454,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Meus passeios: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, mudar_tabela (preço por número de pessoas), adicionar_horario, remover_horario
 - Relatórios: ver_relatorio
 - Cupons: ver_cupons, criar_cupom, apagar_cupom · Bloqueios: bloquear_datas, liberar_datas
-- Ajustes: ver_ajustes, alterar_ajustes, ajustar_termos (termos do orçamento e plantão do voucher)
+- Ajustes: ver_ajustes, alterar_ajustes, ajustar_termos (termos do orçamento e plantão do voucher), ver_backup, fazer_backup
 - Qualquer tela: abrir_aba — nunca diga "faça na aba X" sem antes tentar a ferramenta; se não houver, abra a aba e diga o que tocar.
 
 ## ONDE GUARDAR CADA COISA
@@ -498,3 +509,169 @@ iaCenarios = function () {
    vem do motor; a gaveta e redesenhada para pegar a saudacao dela */
 if (typeof iaAtualizaFab === 'function') iaAtualizaFab();
 if (location.hash.startsWith('#/adm') && typeof route === 'function') route();
+
+/* =====================================================
+   VOZ — igual ao TI ARTES OS (o assistente do Eugenio)
+
+   FALAR: um toque no microfone, ela fala, e quando para de falar a mensagem
+   vai sozinha. Tocar de novo manda na hora; "descartar" joga fora e devolve
+   o campo como estava. Faixa com o cronometro enquanto ouve.
+   OUVIR: a resposta lida em voz alta, com a melhor voz em portugues do
+   Brasil que o aparelho tiver (no iPhone, a "Melhorada" que se baixa em
+   Ajustes > Acessibilidade > Conteudo Falado fica muito melhor).
+
+   Ditado do navegador (Web Speech): de graca, precisa de https — funciona
+   no link publicado, nao no arquivo aberto do computador.
+   ===================================================== */
+const ING_VOZ_KEY = 'ingrid_voz_v1';
+const ingVozCfg = () => iaLe(ING_VOZ_KEY, { ler: false, enviar: true, vel: 1.05 });
+const ingVozGrava = (c) => iaGrava(ING_VOZ_KEY, { ...ingVozCfg(), ...c });
+const ING_FALA = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+const ING_SINTESE = ('speechSynthesis' in window) ? window.speechSynthesis : null;
+const ingTemMic = () => !!ING_FALA && (location.protocol === 'https:' || location.hostname === 'localhost');
+let ingOuvindo = null, ingOuvJunto = '', ingOuvAntes = '', ingOuvCanc = false, ingOuvRel = 0, ingOuvRel0 = 0, ingVozEspera = false;
+
+/* a melhor voz DESTE aparelho: brasileira primeiro, a "melhorada" na frente */
+function ingMelhorVoz() {
+  if (!ING_SINTESE) return null;
+  const todas = ING_SINTESE.getVoices() || [];
+  const br = todas.filter(v => /^pt[-_]?br/i.test(v.lang || '')), pt = todas.filter(v => /^pt/i.test(v.lang || ''));
+  const lista = br.length ? br : pt.length ? pt : todas;
+  const nota = (v) => { const s = (v.name || '') + ' ' + (v.voiceURI || ''); let n = 0;
+    if (/premium|enhanced|melhorad|neural|natural|siri/i.test(s)) n += 6; if (/google/i.test(s)) n += 3;
+    if (/pt[-_]br/i.test(v.lang || '')) n += 4; if (v.localService) n += 1; if (/compact|eloquence|novelty/i.test(s)) n -= 8; return n; };
+  return lista.slice().sort((a, b) => nota(b) - nota(a))[0] || null;
+}
+if (ING_SINTESE) { try { ING_SINTESE.getVoices(); ING_SINTESE.onvoiceschanged = () => ING_SINTESE.getVoices(); } catch (e) {} }
+/* o que se fala: sem negrito, sem link, sem emoji de enfeite, sem "Copiar" */
+function ingParaFalar(t) {
+  return String(t || '').replace(/\*\*/g, '').replace(/https?:\/\/\S+/g, 'o link')
+    .replace(/[•·]/g, ',').replace(/\b(ER|ORC)-\d+/g, '').replace(/[\u{1F300}-\u{1FAFF}☀-➿]/gu, '')
+    .replace(/\n+/g, '. ').replace(/\s+/g, ' ').replace(/(\. ){2,}/g, '. ').trim().slice(0, 1200);
+}
+function ingFalar(t) {
+  if (!ING_SINTESE || !ingVozCfg().ler) return;
+  const txt = ingParaFalar(t); if (!txt) return;
+  try { ING_SINTESE.cancel(); } catch (e) {}
+  const u = new SpeechSynthesisUtterance(txt), v = ingMelhorVoz();
+  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'pt-BR';
+  u.rate = Math.min(1.4, Math.max(0.7, +ingVozCfg().vel || 1)); u.pitch = 1;
+  try { ING_SINTESE.speak(u); } catch (e) {}
+}
+const ingPararFala = () => { try { ING_SINTESE && ING_SINTESE.cancel(); } catch (e) {} };
+
+/* a resposta que chega depois de ela perguntar e lida em voz alta —
+   o historico redesenhado ao abrir a gaveta, nao */
+const _ingBolha = iaBolha;
+iaBolha = function (tipo, texto, antesDe, semCopiar, foto) {
+  const el = _ingBolha(tipo, texto, antesDe, semCopiar, foto);
+  if (tipo === 'assistant' && ingVozEspera) ingFalar(texto);
+  return el;
+};
+const _ingConversa = iaConversa;
+iaConversa = async function (texto, fotos) {
+  ingPararFala(); ingVozEspera = true;
+  try { return await _ingConversa(texto, fotos); } finally { ingVozEspera = false; }
+};
+const _ingCenario = iaRodaCenario;
+iaRodaCenario = async function (c) {
+  ingVozEspera = true;
+  try { return await _ingCenario(c); } finally { ingVozEspera = false; }
+};
+
+function ingOuvPinta() {
+  const g = iaEl && iaEl.g; if (!g) return;
+  const mic = g.querySelector('#iaMic'), faixa = g.querySelector('#iaOuv');
+  if (mic) { mic.classList.toggle('gravando', !!ingOuvindo); mic.setAttribute('aria-label', ingOuvindo ? 'Mandar agora' : 'Falar'); mic.title = ingOuvindo ? 'Ouvindo — toque para mandar agora' : 'Falar — toque, fale, e vai sozinho quando você parar'; }
+  if (faixa) faixa.hidden = !ingOuvindo;
+}
+function ingRelogio(liga) {
+  clearInterval(ingOuvRel); ingOuvRel = 0;
+  if (!liga) return;
+  ingOuvRel0 = Date.now();
+  const pinta = () => { const s = Math.floor((Date.now() - ingOuvRel0) / 1000), el = iaEl && iaEl.g.querySelector('#iaOuvRel'); if (el) el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  pinta(); ingOuvRel = setInterval(pinta, 500);
+}
+function ingOuvir() {
+  if (ingOuvindo) { ingOuvManda(); return; }
+  if (!ingTemMic()) { toast(ING_FALA ? 'O microfone só funciona no link do app (https).' : 'Este navegador não ouve. No iPhone use o Safari; no computador, o Chrome.'); return; }
+  const ta = iaEl.g.querySelector('#iaTxt'); if (!ta) return;
+  ingPararFala();
+  const r = new ING_FALA();
+  r.lang = 'pt-BR'; r.interimResults = true; r.maxAlternatives = 1;
+  /* NAO ligar continuous: o fim por silencio e o que manda sozinho (licao do TI ARTES) */
+  ingOuvAntes = ta.value.trim(); ingOuvJunto = ''; ingOuvCanc = false;
+  const mostra = (meio) => {
+    const tudo = [ingOuvAntes, ingOuvJunto, meio].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+    ta.value = tudo; ta.style.height = ''; ta.style.height = Math.min(140, ta.scrollHeight) + 'px';
+    const t = iaEl.g.querySelector('#iaOuvTxt'); if (t) t.textContent = tudo ? '“' + tudo.slice(-70) + '”' : 'Estou ouvindo — fale normal. Quando parar, eu mando.';
+  };
+  r.onresult = (e) => { let fim = '', meio = ''; for (let k = e.resultIndex; k < e.results.length; k++) { const t = e.results[k][0].transcript; if (e.results[k].isFinal) fim += t; else meio += t; } if (fim) ingOuvJunto = (ingOuvJunto + ' ' + fim).trim(); mostra(meio); };
+  r.onerror = (e) => {
+    ingOuvindo = null; ingRelogio(false); ingOuvPinta();
+    const q = e && e.error;
+    if (q === 'not-allowed' || q === 'service-not-allowed') toast('Falta liberar o microfone: toque no cadeado ao lado do endereço e permita.');
+    else if (q === 'no-speech') toast('Não ouvi nada — toque de novo e fale mais perto.');
+    else if (q === 'network') toast('Sem internet para transcrever a voz.');
+    else if (q !== 'aborted') toast('Deu problema no microfone: ' + (q || '?'));
+  };
+  r.onend = () => {
+    ingOuvindo = null; ingRelogio(false); ingOuvPinta();
+    if (ingOuvCanc) { ta.value = ingOuvAntes; return; }
+    const txt = ta.value.trim();
+    if (txt && ingVozCfg().enviar !== false) iaEl.g.querySelector('#iaForm')?.requestSubmit();
+    else ta.focus();
+  };
+  try { r.start(); ingOuvindo = r; mostra(''); ingRelogio(true); ingOuvPinta(); try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} }
+  catch (e) { toast('Não consegui abrir o microfone.'); }
+}
+function ingOuvManda() { ingOuvCanc = false; try { ingOuvindo && ingOuvindo.stop(); } catch (e) {} }
+function ingOuvDescarta() { ingOuvCanc = true; try { ingOuvindo && ingOuvindo.stop(); } catch (e) {} toast('Descartei — o que você falou não foi enviado.'); }
+
+/* a gaveta do motor ganha o microfone, a faixa de "ouvindo" e o "ler em voz alta" */
+const _ingDesenha = iaDesenha;
+iaDesenha = function () {
+  _ingDesenha();
+  const g = iaEl && iaEl.g, f = g && g.querySelector('#iaForm');
+  if (f && !f.querySelector('#iaMic')) {
+    f.insertAdjacentHTML('beforebegin', `<div id="iaOuv" class="iaOuv" hidden><span class="iaOuvPonto" aria-hidden="true"></span><b id="iaOuvRel">0:00</b>
+      <span id="iaOuvTxt">Estou ouvindo — fale normal. Quando parar, eu mando.</span>
+      <button type="button" id="iaOuvManda">enviar</button><button type="button" id="iaOuvDesc">descartar</button></div>`);
+    const ta = f.querySelector('#iaTxt');
+    ta.insertAdjacentHTML('beforebegin', `<button type="button" id="iaMic" aria-label="Falar" title="Falar — toque, fale, e vai sozinho quando você parar" ${ingTemMic() ? '' : 'hidden'}>
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>`);
+    ta.placeholder = ingTemMic() ? 'Fale ou escreva do jeito que você fala…' : ta.placeholder;
+    f.querySelector('#iaMic').onclick = ingOuvir;
+    g.querySelector('#iaOuvManda').onclick = ingOuvManda;
+    g.querySelector('#iaOuvDesc').onclick = ingOuvDescarta;
+  }
+  const pe = g && g.querySelector('#iaPe');
+  if (pe && ING_SINTESE && !pe.querySelector('#iaLer')) {
+    pe.insertAdjacentHTML('afterbegin', `<label title="Ler as respostas em voz alta"><input type="checkbox" id="iaLer" ${ingVozCfg().ler ? 'checked' : ''}> 🔈 ler em voz alta</label>`);
+    pe.querySelector('#iaLer').onchange = (e) => {
+      ingVozGrava({ ler: e.target.checked });
+      if (e.target.checked) { const v = ingMelhorVoz(); toast(v ? 'Voz ligada: ' + v.name : 'Voz ligada'); ingFalar('Pronto. Agora eu leio as respostas em voz alta.'); }
+      else { ingPararFala(); toast('Voz desligada'); }
+    };
+  }
+  ingOuvPinta();
+};
+const _ingFecha = iaFecha;
+iaFecha = function () { ingPararFala(); if (ingOuvindo) ingOuvDescarta(); return _ingFecha(); };
+(function () {
+  const st = document.createElement('style');
+  st.textContent = `
+#iaMic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--accent-wash);color:var(--accent);border:0;cursor:pointer;touch-action:manipulation}
+#iaMic:hover{background:var(--accent-line)}
+#iaMic.gravando{background:var(--danger);color:#fff;animation:iaMicPulsa 1.1s ease-in-out infinite}
+@keyframes iaMicPulsa{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--danger) 45%,transparent)}50%{box-shadow:0 0 0 9px transparent}}
+@media(prefers-reduced-motion:reduce){#iaMic.gravando{animation:none}}
+.iaOuv{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 12px 6px;padding:8px 12px;border-radius:12px;background:var(--danger-wash);color:var(--ink);font-size:13px}
+.iaOuv[hidden]{display:none}
+.iaOuvPonto{width:9px;height:9px;border-radius:50%;background:var(--danger);animation:iaMicPulsa 1.1s infinite}
+.iaOuv b{font-variant-numeric:tabular-nums}
+.iaOuv #iaOuvTxt{flex:1;min-width:120px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iaOuv button{border:0;border-radius:999px;padding:5px 11px;font-weight:600;font-size:12.5px;cursor:pointer;background:var(--surface);color:var(--ink)}
+.iaOuv #iaOuvManda{background:var(--accent);color:var(--accent-ink)}`;
+  document.head.appendChild(st);
+})();
