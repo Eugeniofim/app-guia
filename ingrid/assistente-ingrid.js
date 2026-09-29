@@ -109,7 +109,7 @@ const ING_FERRAMENTAS = [
   { name: 'ver_clientes', description: 'Clientes cadastrados: veio por, indicado por, passeios, quanto pagou, quanto deve, próximo serviço. Filtro opcional.', input_schema: obj({ filtro: { type: 'string', enum: ['todos', 'compraram', 'vieram_junto', 'com_servico', 'devem', 'voltaram', 'aniversario_mes'] }, veio_por: S_() }) },
   { name: 'ver_crm', description: 'A PLANILHA dela (aba Planilha / CRM), com TODAS as colunas: data do pagamento, veio por, agência/indicação/influencer, WhatsApp, nome, data serviço, hora, PAX, serviço, obs, cliente paga, Ingrid paga, cidade, parceiro, total, sinal, forma de pagamento, em real, comissões, status, motivo da perda, repescagens e resultados, nome do arquivo e links. Filtre por etapa, cliente ou mês.', input_schema: obj({ etapa: { type: 'string', enum: ['aberto', 'confirmado', 'avaliar', 'finalizado', 'perdido', 'todos'] }, cliente: S_('nome, WhatsApp ou agência'), mes: S_('AAAA-MM do serviço') }) },
   { name: 'ver_painel', description: 'O painel do CRM: em aberto, confirmados, falta receber, taxa de fechamento, motivo que mais perde, comissões a pagar e a lista "precisa de você" (repescar, mandar orçamento, cobrar sinal, pedir avaliação).', input_schema: obj({ mes: S_('AAAA-MM (opcional)') }) },
-  { name: 'ver_transfers', description: 'Aba Transfer: os transfers de hoje em diante, se já foram pedidos na New Star (e o número deles) e os dados prontos para colar na plataforma.', input_schema: obj({ so_falta: { type: 'boolean' } }) },
+  { name: 'ver_transfers', description: 'Aba Transfer: os transfers de ROMA de hoje em diante (a New Star só faz Roma), se já foram pedidos lá (e o número deles) e os dados prontos para colar; e, à parte, os de fora de Roma (outro fornecedor).', input_schema: obj({ so_falta: { type: 'boolean' } }) },
   { name: 'ver_arquivos', description: 'Arquivos guardados (comprovantes e documentos), por cliente ou todos, e onde estão no Google Drive.', input_schema: obj({ cliente: S_() }) },
   { name: 'ver_avaliacoes', description: 'As avaliações que estão no site (menu ⭐ Avaliações), a média e os links do Google.', input_schema: obj() },
   { name: 'procurar', description: 'Procura uma palavra em TUDO do app: clientes, planilha/reservas, orçamentos, tarefas e anotações, guias e motoristas, parceiros, transfers, arquivos e avaliações. Use quando não souber em que aba está.', input_schema: obj({ texto: S_() }, ['texto']) },
@@ -248,8 +248,9 @@ const ING_LER = {
       comissoes_a_pagar: P.comissoes, precisa_de_voce: P.agora.map(a => ({ o_que: a.tipo, cliente: a.nome, detalhe: a.txt, numero: a.o ? a.o.num : undefined, codigo: a.r && a.r.b ? a.r.b.code : undefined })) };
   },
   ver_transfers(i) {
-    const cfg = nccConfig(), l = transfersDe(hojeIso()).filter(b => !i.so_falta || !b.ncc);
-    return l.length ? { plataforma: cfg.nome, link: cfg.url, transfers: l.map(b => ({ codigo: b.code, dia: b.date, hora: b.time, cliente: b.name, pax: b.pax, voo: b.voo || undefined, de: b.origem || undefined, para: b.destino || undefined,
+    const cfg = nccConfig(), l = transfersDe(hojeIso(), '', 'roma').filter(b => !i.so_falta || !b.ncc), fora = transfersDe(hojeIso(), '', 'fora');
+    return l.length || fora.length ? { plataforma: cfg.nome + ' (só transfers de Roma)', link: cfg.url,
+      fora_de_roma_outro_fornecedor: fora.map(b => ({ codigo: b.code, dia: b.date, hora: b.time, cliente: b.name, servico: nomeDoServico(b) })), transfers_de_roma: l.map(b => ({ codigo: b.code, dia: b.date, hora: b.time, cliente: b.name, pax: b.pax, voo: b.voo || undefined, de: b.origem || undefined, para: b.destino || undefined,
       pedido_na_plataforma: b.ncc ? (b.ncc.codigo || 'sim') : 'falta pedir', dados_para_colar: nccTexto(b) })) } : 'nenhum transfer';
   },
   ver_arquivos(i) {
@@ -288,7 +289,7 @@ const ING_LER = {
       tarefas: { atrasadas: G.atrasadas.length, hoje: G.hoje.length, proximas: (G.proximas || []).length, anotacoes: Tarefas.notas ? Tarefas.notas().length : undefined },
       dinheiro_do_mes: { recebido_por_ela: pagosMes, devem_a_ela: Lembretes.devedores(hoje).reduce((s, d) => s + d.total, 0), comissoes_a_pagar: P.comissoes.valor },
       guias: Equipe.all('guia').length, motoristas: Equipe.all('motorista').length, parceiros: Parceiros.all().length,
-      transfers: { por_vir: tr.length, falta_pedir_na_plataforma: tr.filter(b => !b.ncc).length },
+      transfers: { de_roma_por_vir: tr.filter(transferEmRoma).length, falta_pedir_na_new_star: tr.filter(b => transferEmRoma(b) && !b.ncc).length, fora_de_roma: tr.filter(b => !transferEmRoma(b)).length },
       arquivos: typeof Arquivos !== 'undefined' ? { guardados: Arquivos.lista().length, na_fila_do_drive: Arquivos.pendentes().length } : undefined,
       avaliacoes: { no_site: Avaliacoes.all().length, media: Avaliacoes.media() },
       passeios_no_site: Tours.live().length, backup: Backup.ultimo().em || 'nunca',
@@ -629,7 +630,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Hoje (serviços do dia, emergência): ver_hoje, buscar, detalhes_servico, escalar, registrar_pagamento
 - Sob consulta (orçamentos): ver_orcamentos, ler_conversa (conversa colada → rascunho), criar_orcamento, mudar_orcamento, fechar_orcamento
 - Planilha (o CRM dela, linha por serviço, igual ao Google Planilhas): ver_crm lê TODAS as colunas (filtre por cliente/mês); ver_painel dá os números e o "precisa de você"; para mudar use mudar_orcamento, fechar_orcamento, registrar_pagamento, marcar_perdido ou abrir_aba planilha
-- Transfer (New Star): ver_transfers (inclui os dados prontos para colar na plataforma)
+- Transfer (New Star Limousine — SÓ transfers de Roma; os de fora de Roma são com outro fornecedor): ver_transfers (inclui os dados prontos para colar na plataforma)
 - ⭐ Avaliações do site: ver_avaliacoes
 - Arquivos: ver_arquivos
 - NÃO SABE ONDE ESTÁ? procurar (acha em todas as abas). Pergunta geral sobre o negócio ("como estamos?", "o que tem pendente?") → ver_tudo. Você lê TUDO do app: nunca diga que não tem acesso a uma aba.

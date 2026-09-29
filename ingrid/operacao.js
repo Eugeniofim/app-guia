@@ -1579,8 +1579,19 @@ function importarPlanilha(txt, simular) {
 const NCC_PADRAO = { nome: 'New Star Limousine', url: 'https://newstarlimousine.nccgest.com/clienti/index.php' };
 function nccConfig() { return Object.assign({}, NCC_PADRAO, (DB.settings && DB.settings.ncc) || {}); }
 function ehTransfer(b) { const x = Tours.get(b.tourId); return !!(x && (x.type === 'transfer' || x.region === 'transfer')) || RE_TRANSFER.test(nomeDoServico(b)); }
-function transfersDe(de, ate) {
-  return DB.bookings.filter(b => b.status !== 'cancelled' && b.date >= de && (!ate || b.date <= ate) && ehTransfer(b))
+/* A New Star so faz transfer em ROMA (29/09). O que e de Milao, Veneza, Bari…
+   fica numa lista a parte: outro fornecedor. Sem pista nenhuma = Roma (a base dela). */
+const RE_ROMA = /\b(FCO|CIA)\b|fiumicino|ciampino|\broma\b|\brome\b|termini|civitavecchia|tiburtina|ostiense|vaticano|trastevere|colosseo|coliseu/i;
+const RE_FORA_ROMA = /\b(MXP|LIN|BGY|VCE|TSF|NAP|FLR|PSA|BRI|BDS|BLQ|VRN)\b|mil[aã]o|milano|veneza|venezia|n[aá]poles|napoli|floren[cç]a|firenze|pisa|\bbari\b|brindisi|monopoli|\bcomo\b|bellagio|siena|amalfi|positano|sorrento|lecce|matera|pesaro|verona|bolonha|bologna|genova|g[eê]nova|turim|torino|palermo|catania/i;
+function transferEmRoma(b) {
+  const txt = [nomeDoServico(b), b.origem, b.destino, b.obsOp].filter(Boolean).join(' ');
+  if (RE_ROMA.test(txt)) return true;
+  return !RE_FORA_ROMA.test(txt);
+}
+/* onde: 'roma' (New Star), 'fora' (outro fornecedor) ou vazio (todos) */
+function transfersDe(de, ate, onde) {
+  return DB.bookings.filter(b => b.status !== 'cancelled' && b.date >= de && (!ate || b.date <= ate) && ehTransfer(b)
+      && (!onde || (onde === 'roma') === transferEmRoma(b)))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 }
 function nccTexto(b) {

@@ -256,7 +256,7 @@ function admHoje(arg) {
     </div>
     ${dia === hoje && (late.length || semPres.length || novos) ? `<div class="op-pend">
       ${novos ? `<a class="alert warn" href="#/adm/consulta">🧾 ${novos} ${novos > 1 ? 'pedidos esperando orçamento' : 'pedido esperando orçamento'} →</a>` : ''}
-      ${(() => { const n = transfersDe(isoToday(), addDays(isoToday(), 7)).filter(b => !b.ncc).length; return n ? `<a class="alert warn" href="#/adm/transfer">🚐 ${n} ${n > 1 ? 'transfers' : 'transfer'} dos próximos 7 dias ainda não ${n > 1 ? 'pedidos' : 'pedido'} na ${esc(nccConfig().nome)} →</a>` : ''; })()}
+      ${(() => { const n = transfersDe(isoToday(), addDays(isoToday(), 7), 'roma').filter(b => !b.ncc).length; return n ? `<a class="alert warn" href="#/adm/transfer">🚐 ${n} ${n > 1 ? 'transfers' : 'transfer'} dos próximos 7 dias ainda não ${n > 1 ? 'pedidos' : 'pedido'} na ${esc(nccConfig().nome)} →</a>` : ''; })()}
       ${semPres.length ? `<a class="alert warn" href="#/adm/guias">👤 ${semPres.length} ${semPres.length > 1 ? 'serviços' : 'serviço'} sem guia/motorista nos próximos 3 dias →</a>` : ''}
       ${late.length ? `<a class="alert bad" href="#/adm/bookings">⚠ ${late.length} ${late.length > 1 ? 'pagamentos atrasados' : 'pagamento atrasado'} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} →</a>` : ''}
     </div>` : ''}
@@ -2731,7 +2731,7 @@ function visualLiga() {
 function admTransfer() {
   const S = admTransfer._s = admTransfer._s || { ver: 'falta' };
   const hoje = isoToday(), cfg = nccConfig();
-  const todos = transfersDe(hoje), falta = todos.filter(b => !b.ncc), feitos = todos.filter(b => b.ncc);
+  const todos = transfersDe(hoje, '', 'roma'), falta = todos.filter(b => !b.ncc), feitos = todos.filter(b => b.ncc), fora = transfersDe(hoje, '', 'fora');
   const lista = S.ver === 'falta' ? falta : S.ver === 'feitos' ? feitos : todos;
   const card = (b) => `<article class="tr-card ${b.ncc ? 'ok' : ''}">
       <div class="tr-top"><b class="mono">${crmData(b.date)} · ${esc(b.time || '?')}</b><b>${esc(b.name)}</b><span class="why">${b.pax || 1} pax</span>
@@ -2746,14 +2746,17 @@ function admTransfer() {
   admShell('transfer', `
     <div class="pagehead"><h1 class="pageh">🚐 Transfer</h1>
       <div class="chips"><a class="cta sm" href="${esc(cfg.url)}" target="_blank" rel="noopener">Abrir a ${esc(cfg.nome)} ↗</a></div></div>
-    <section class="card tr-como"><h3>Como pedir o transfer na ${esc(cfg.nome)}</h3>
+    <section class="card tr-como"><h3>Como pedir o transfer na ${esc(cfg.nome)} <small class="why">— só transfers de Roma</small></h3>
       <ol class="bkp-passos"><li>Toque em <b>📋 Copiar os dados</b> — sai pronto, em italiano, do jeito que eles leem.</li>
         <li>Toque em <b>Abrir a ${esc(cfg.nome)}</b>, entre com o seu login de cliente e cole no pedido.</li>
         <li>Volte aqui, escreva o <b>nº da reserva deles</b> e toque em <b>✓ Pedido feito</b>.</li></ol>
       <p class="why">Com o contato técnico da ${esc(cfg.nome)}, o app passa a mandar o pedido sozinho.</p></section>
     <div class="crm-etapas" role="tablist">${[['falta', 'Falta pedir', falta.length], ['feitos', 'Já pedidos', feitos.length], ['todos', 'Todos', todos.length]].map(([k, n, c]) =>
       `<button class="crm-etapa ${S.ver === k ? 'on' : ''}" data-trver="${k}" role="tab" aria-selected="${S.ver === k}">${n} <b>${c}</b></button>`).join('')}</div>
-    ${lista.length ? lista.map(card).join('') : `<p class="empty">${S.ver === 'falta' ? 'Nenhum transfer esperando pedido. 🎉' : 'Nenhum transfer aqui.'}</p>`}
+    ${lista.length ? lista.map(card).join('') : `<p class="empty">${S.ver === 'falta' ? 'Nenhum transfer de Roma esperando pedido. 🎉' : 'Nenhum transfer aqui.'}</p>`}
+    ${fora.length ? `<details class="card tr-fora"><summary><b>🗺️ Fora de Roma · ${fora.length}</b> <small class="why">não é com a ${esc(cfg.nome)} — outro fornecedor</small></summary>
+      ${fora.map(b => `<div class="deprow"><span><b class="mono">${crmData(b.date)} · ${esc(b.time || '?')}</b> ${esc(b.name)} · ${b.pax || 1} pax<br><small class="why">${esc(nomeDoServico(b))}${b.origem || b.destino ? ' · ' + esc(b.origem || '?') + ' → ' + esc(b.destino || '?') : ''}</small></span>
+        <button class="mini" data-trcopia="${esc(b.id)}">📋 Copiar os dados</button></div>`).join('')}</details>` : ''}
     <details class="card"><summary><b>Trocar a plataforma</b> <small class="why">nome e link da área de cliente</small></summary>
       <div class="frow"><label class="fld">Nome<input id="trNome" value="${esc(cfg.nome)}"></label><label class="fld">Link da área de cliente<input id="trUrl" value="${esc(cfg.url)}" inputmode="url"></label></div>
       <button class="mini strong" id="trSalva">Salvar</button></details>`);
