@@ -46,6 +46,19 @@ const Tarefas = {
   feitas() { return this.all().filter(x => x.tipo === 'tarefa' && x.feita).sort((a, b) => b.feitaEm.localeCompare(a.feitaEm)); },
 };
 
+/* SEMENTE NOVA: quem abriu a demonstração antes guardou os dados da versão
+   anterior no aparelho (turistas estrangeiros, sem tarefas). Se a semente
+   mudou, troca tudo pela nova — é demonstração, não há nada dela a perder.
+   Suba o número quando mudar os dados de exemplo. */
+(function sementeNova() {
+  const VER = 2;
+  if (!DB || !DB.demo || DB.sementeFoto === VER) return;
+  const lang = DB.settings && DB.settings.lang;
+  DB = _seed(); DB.sementeFoto = VER;
+  if (lang) DB.settings.lang = lang;
+  save();
+})();
+
 /* exemplos da demonstração — só quando é demo e ainda não há nada */
 (function sementeTarefas() {
   if (!DB || !DB.demo || Array.isArray(DB.tarefas)) return;
@@ -478,5 +491,5 @@ if (typeof marcaExtras === 'function') {
   marcaExtras = function () { _marcaAntes(); tiraSeloExtra(); };
 }
 
-/* se a pessoa abriu direto numa aba do painel, redesenha com as peças novas */
-if (location.hash.startsWith('#/adm')) route();
+/* redesenha com as peças novas (e com a semente nova, se trocou) */
+route();
