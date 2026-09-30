@@ -472,6 +472,24 @@ if (typeof CLIENTES !== 'undefined') CLIENTES.splice(0, CLIENTES.length,
   { id: 'c6', nome: 'Luiza',    lang: 'pt', canal: 'whats', tipo: 'preco',  msg: 'Oi! Queria fazer o ensaio de 15 anos da minha filha. Quanto fica?' },
 );
 
+
+/* As respostas prontas vinham do guia: "sobram 6 lugares" e "custa 290 €
+   por pessoa" — ensaio não tem lugar e é cobrado pela sessão. E a regra do
+   saldo dizia "30 dias antes" quando o app cobra na véspera (balanceDays
+   padrão = 1). Resposta errada para cliente é pior que resposta nenhuma. */
+if (typeof IA_TXT !== 'undefined') Object.assign(IA_TXT, {
+  aDisp:     { pt: 'Oi, {nome}! Tem sim: {data}, às {hora}, está livre para o "{tour}". O ensaio sai por {preco} €, pela sessão. Te mando o link para reservar?',
+               en: 'Hi {nome}! Yes: {data} at {hora} is free for "{tour}". The session is €{preco}. Shall I send you the booking link?' },
+  aDispNao:  { pt: 'Oi, {nome}! Esse horário já foi reservado. O próximo livre é {data}, às {hora}. Serve?',
+               en: 'Hi {nome}! That slot is already booked. The next free one is {data} at {hora}. Would that work?' },
+  aDispSem:  { pt: 'Oi, {nome}! No sábado não tenho ensaio aberto. O próximo horário livre do "{tour}" é {data}, às {hora}. Serve?',
+               en: 'Hi {nome}! I have no session open on Saturday. The next free slot for "{tour}" is {data} at {hora}. Would that work?' },
+  aSemana:   { pt: 'Oi, {nome}! Para {n} pessoas, estes horários estão livres: {datas}. Qual prefere?',
+               en: 'Hi {nome}! For {n} people, these slots are free: {datas}. Which do you prefer?' },
+  polMetade: { pt: 'Metade no sinal, que trava a data, e o resto até a véspera do ensaio.',
+               en: 'Half as a deposit, which locks the date, and the rest by the day before the session.' },
+});
+
 /* No pacote do fotógrafo o assistente e o atendimento (Instagram e
    WhatsApp) VÊM JUNTO — é o que a arte de venda promete. Então aqui eles
    perdem o selo "extra". O Marketing continua como módulo à parte. */
