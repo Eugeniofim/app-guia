@@ -116,4 +116,20 @@
   for (const [k, v] of Object.entries(ETIQUETAS)) {
     if (STR[k]) Object.assign(STR[k], v);
   }
+
+  /* SEGUNDA PASSADA (29/09/2026): o assistente tem a tabela dele (IA_TXT, no
+     assistente.js), que é carregada DEPOIS deste arquivo. Sem isto o cartão
+     de confirmação dizia "Passeio" e o painel falava em "saída". O setTimeout
+     espera todos os <script> terminarem. */
+  setTimeout(function reguaNoAssistente() {
+    if (typeof IA_TXT !== 'object' || !IA_TXT) return;
+    for (const chave of Object.keys(IA_TXT)) {
+      const e = IA_TXT[chave];
+      if (!e || typeof e !== 'object') continue;
+      for (const lang of Object.keys(e)) {
+        if (typeof e[lang] !== 'string') continue;
+        e[lang] = passa(e[lang], lang === 'pt' ? TROCAS_PT : TROCAS_EN);
+      }
+    }
+  }, 0);
 })();
