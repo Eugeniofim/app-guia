@@ -46,7 +46,14 @@
     [/\bdepartures\b/g, 'sessions'],
   ];
 
-  const passa = (txt, regras) => regras.reduce((s, [de, para]) => s.replace(de, para), txt);
+  /* ARMADILHA (29/09/2026): o app tem variáveis como {guia}, {tour}, {nome}.
+     Trocar "guia" por "fotógrafa" dentro delas quebra a frase — o painel
+     chegou a dizer "Bom dia, {fotógrafa}" porque a variável deixou de existir.
+     Por isso a régua pula o que está entre chaves. */
+  const passa = (txt, regras) => txt
+    .split(/(\{[a-zA-Z_]+\})/)
+    .map((p, i) => (i % 2 ? p : regras.reduce((s, [de, para]) => s.replace(de, para), p)))
+    .join('');
 
   for (const chave of Object.keys(STR)) {
     const e = STR[chave];
