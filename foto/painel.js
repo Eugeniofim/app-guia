@@ -486,6 +486,8 @@ if (typeof IA_TXT !== 'undefined') Object.assign(IA_TXT, {
                en: 'Hi {nome}! I have no session open on Saturday. The next free slot for "{tour}" is {data} at {hora}. Would that work?' },
   aSemana:   { pt: 'Oi, {nome}! Para {n} pessoas, estes horários estão livres: {datas}. Qual prefere?',
                en: 'Hi {nome}! For {n} people, these slots are free: {datas}. Which do you prefer?' },
+  aPreco:    { pt: 'Oi, {nome}! O "{tour}" sai por {preco} € {modo}. Próximos horários livres: {datas}. Quer que eu segure um?',
+               en: 'Hi {nome}! "{tour}" is €{preco} {modo}. Next free slots: {datas}. Shall I hold one for you?' },
   polMetade: { pt: 'Metade no sinal, que trava a data, e o resto até a véspera do ensaio.',
                en: 'Half as a deposit, which locks the date, and the rest by the day before the session.' },
 });
