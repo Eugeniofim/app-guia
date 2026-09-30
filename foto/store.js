@@ -248,9 +248,11 @@ function _seed() {
   ];
 
   db.rules = [
-    { id: 'r1', tourId: 't1', weekdays: [1, 3, 5], time: '10:00', capacity: 12, from: isoToday(), until: addDays(isoToday(), 120) },
-    { id: 'r2', tourId: 't2', weekdays: [6],       time: '09:00', capacity: 8,  from: isoToday(), until: addDays(isoToday(), 120) },
-    { id: 'r3', tourId: 't3', weekdays: [0, 6],    time: '18:00', capacity: 4,  from: isoToday(), until: addDays(isoToday(), 120) },
+    /* horários de fotógrafo: torre cedo (sem gente), família de manhã, hora dourada no fim do dia */
+    { id: 'r1', tourId: 't1', weekdays: [0, 6],    time: '07:30', capacity: 6, from: isoToday(), until: addDays(isoToday(), 120) },
+    { id: 'r2', tourId: 't3', weekdays: [6],       time: '10:00', capacity: 8, from: isoToday(), until: addDays(isoToday(), 120) },
+    { id: 'r3', tourId: 't6', weekdays: [2, 4, 6], time: '19:30', capacity: 6, from: isoToday(), until: addDays(isoToday(), 120) },
+    { id: 'r4', tourId: 't5', weekdays: [3],       time: '09:00', capacity: 4, from: isoToday(), until: addDays(isoToday(), 120) },
   ];
 
   db.coupons = [
@@ -260,22 +262,29 @@ function _seed() {
 
   /* ---- clientes e reservas de exemplo (histórico crível) ---- */
   const people = [
-    ['Camille Bernard',  'camille.bernard@email.fr', '+33 6 21 44 55 10', 'camille.bern',  'site'],
-    ['Sarah Whitfield',  'sarah.w@email.co.uk',      '+44 7700 900431',   '',              'instagram'],
-    ['Markus Klein',     'm.klein@email.de',         '+49 176 5544 221',  'markus.k',      'site'],
-    ['Marcos Duarte',    'marcos.duarte@email.com',  '+55 11 98877 6655', 'marcos.duarte', 'friend'],
-    ['Élodie Rousseau',  'elodie.r@email.fr',        '+33 6 88 12 34 56', '',              'instagram'],
-    ['Hiroshi Mori',     'h.mori@email.jp',          '+81 90 1234 5678',  '',              'agency'],
-    ['Ana Sofía Rivas',  'anasofia@email.es',        '+34 611 223 344',   'anasofia.r',    'whatsapp'],
-    ['Beatriz Nogueira', 'bia.nog@email.com',        '+55 21 99123 4567', 'bia.nog',       'friend'],
+    /* clientes de exemplo — nomes fictícios, é demonstração */
+    ['Camila Andrade',    'camila.andrade@email.com',  '+55 11 98123 4410', 'camila.andrade', 'instagram'],
+    ['Rafael Teixeira',   'rafa.teixeira@email.com',   '+55 21 99654 1022', 'rafateixeira',   'site'],
+    ['Beatriz Nogueira',  'bia.nog@email.com',         '+55 21 99123 4567', 'bia.nog',        'friend'],
+    ['Marcos Duarte',     'marcos.duarte@email.com',   '+55 11 98877 6655', 'marcos.duarte',  'whatsapp'],
+    ['Fernanda Lopes',    'fe.lopes@email.com',        '+55 31 99712 3380', 'fe.lopes',       'instagram'],
+    ['Paula Mendes',      'paula.mendes@email.com',    '+55 41 99801 2277', '',               'site'],
+    ['Gustavo Ribeiro',   'gu.ribeiro@email.com',      '+55 51 99230 4461', 'gustavoribeiro', 'instagram'],
+    ['Luiza Carvalho',    'luiza.carvalho@email.com',  '+55 19 99144 8802', 'luizacarvalho',  'friend'],
+    ['Renata Siqueira',   'renata.siq@email.com',      '+55 11 97655 3019', 'renatasiq',      'whatsapp'],
+    ['Thiago Martins',    'thiago.m@email.com',        '+55 61 99488 1275', '',               'site'],
+    ['Ana Clara Souza',   'anaclara.souza@email.com',  '+55 81 99377 5640', 'anaclara.s',     'instagram'],
+    ['Sarah Whitfield',   'sarah.w@email.co.uk',       '+44 7700 900431',   '',               'site'],
   ];
   const plan = [
-    /* [pessoa, passeio, dias atrás, pax, quitado?] */
-    [0, 't1', 42, 2, true],  [1, 't1', 35, 2, true],  [2, 't2', 28, 4, true],
-    [3, 't3', 21, 2, true],  [4, 't1', 18, 3, true],  [0, 't2', 14, 2, true],
-    [5, 't1', 10, 2, true],  [6, 't3',  7, 2, true],  [7, 't1',  4, 4, true],
-    [1, 't2', -3, 2, false], [3, 't1', -6, 2, false], [4, 't3', -9, 1, true],
-    [7, 't2', -12, 3, false],
+    /* [pessoa, ensaio, dias atrás, pessoas, quitado?] — cinco meses para trás e três semanas para frente */
+    [0, 't1', 148, 2, true],  [5, 't3', 140, 4, true],  [3, 't1', 131, 2, true],  [10, 't6', 122, 2, true],
+    [1, 't2', 115, 2, true],  [4, 't1', 104, 2, true],  [8, 't5',  96, 1, true],  [7, 't4',  88, 3, true],
+    [2, 't3',  79, 5, true],  [11, 't1', 71, 2, true],  [9, 't6',  63, 2, true],  [6, 't2',  55, 2, true],
+    [0, 't6',  47, 2, true],  [5, 't1',  39, 2, true],  [3, 't3',  30, 4, true],  [10, 't4', 24, 2, true],
+    [1, 't1',  17, 2, true],  [4, 't6',  11, 2, true],  [8, 't5',   6, 1, true],  [2, 't1',   2, 2, true],
+    [7, 't6',   0, 2, false], [9, 't1',  -4, 2, false], [11, 't2', -6, 2, false], [3, 't4',  -9, 3, false],
+    [6, 't3', -13, 4, true],  [0, 't5', -17, 1, false], [5, 't6', -20, 2, false],
   ];
   let n = 0;
   for (const [pi, tourId, back, pax, settled] of plan) {

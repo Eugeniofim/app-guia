@@ -70,7 +70,9 @@ async function qFlush() {
 /* ---------- estado (tudo menos reservas) ---------- */
 function statePayload() {
   return { tours: DB.tours, rules: DB.rules, departures: DB.departures,
-           blocks: DB.blocks, coupons: DB.coupons, settings: DB.settings };
+           blocks: DB.blocks, coupons: DB.coupons, settings: DB.settings,
+           /* tarefas e anotações (painel.js, 29/09/2026) */
+           tarefas: DB.tarefas || [] };
 }
 /* A trancada do banco devolve HTTP 200 mesmo quando descarta a escrita:
    quem não é a dona simplesmente não altera nenhuma linha. Se a gente
@@ -261,6 +263,8 @@ async function cloudPull() {
       tours: st.data.tours || [], rules: st.data.rules || [],
       departures: st.data.departures || [], blocks: st.data.blocks || [],
       coupons: st.data.coupons || [],
+      /* nuvem antiga não tem tarefas: mantém as do aparelho em vez de apagar */
+      tarefas: Array.isArray(st.data.tarefas) ? st.data.tarefas : (DB.tarefas || []),
       /* a nuvem pode ser mais antiga que o app: completa o que faltar */
       settings: fillSettings({ ...st.data.settings, lang: keepLang,
                   tutorialClient: DB.settings.tutorialClient, tutorialAdm: DB.settings.tutorialAdm }),

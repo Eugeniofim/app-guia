@@ -308,10 +308,10 @@ function viewHub() {
         ${langBar('center')}
       </div>
       <button class="lk main" id="goTours">
-        <span class="ic">📍</span><span><b>${t('seeTours')}</b><small>${t('seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>${t('seeTours')}</b><small>${t('seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
       <button class="lk" id="goCriar">
-        <span class="ic">✨</span><span><b>${t('crieLink')}</b><small>${t('crieLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
+        <span class="ic cria"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span><span><b>${t('crieLink')}</b><small>${t('crieLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
       <button class="lk" id="goAbout">
         <span class="ic"><img id="hubFace" src="${esc(DB.settings.photo || 'guia.jpg')}" alt=""
