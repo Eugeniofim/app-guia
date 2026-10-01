@@ -1167,6 +1167,7 @@ function viewAdm(tab, arg) {
   else if (tab === 'money')    admMoney();
   else if (tab === 'agenda')   admAgenda();
   else if (tab === 'reports')  admReports();
+  else if (tab === 'clients' && arg) admFichaCliente(decodeURIComponent(arg));   /* ficha do cliente (ficha.js) */
   else if (tab === 'clients')  admClients();
   else if (tab === 'coupons')  admCoupons();
   else if (tab === 'look')     admAparencia();
@@ -2616,8 +2617,8 @@ function admClients() {
       </div></div>
     <section class="card">
       ${list.length ? `<table class="tbl"><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-      <tbody>${list.map(c => `<tr>
-        <td><b>${esc(c.name)}</b><br><small class="mono">${esc(c.email || '')}</small></td>
+      <tbody>${list.map(c => `<tr class="cli" data-cli="${esc((c.email || c.whats || c.name).toLowerCase())}" title="abrir a ficha">
+        <td><b>${esc(c.name)}</b><br><small class="mono">${esc(c.email || '')}</small><br><a class="mini" href="#/adm/clients/${encodeURIComponent((c.email || c.whats || c.name).toLowerCase())}">ficha →</a></td>
         <td>${c.tours > 1 ? `<span class="pill ok">${t('clRepeat', { n: c.tours })}</span>`
                           : `<span class="pill">${t('clNew')}</span>`}
           <br><span class="pill ${c.consent ? 'ok' : ''}" title="${c.consentAt ? c.consentAt.slice(0,10) : ''}">${c.consent ? '✓ ' + t('consentYes') : t('consentNo')}</span></td>
@@ -2632,6 +2633,7 @@ function admClients() {
         </td></tr>`).join('')}</tbody></table>`
       : `<p class="empty">${t('clEmpty')}</p>`}
     </section>`);
+  if (typeof ligarFichas === 'function') ligarFichas();
   $('#clAll').onclick = () => { admClients._f = 'all'; admClients(); };
   $('#clOpt').onclick = () => { admClients._f = 'optin'; admClients(); };
   $('#clCsv').onclick = () => {
