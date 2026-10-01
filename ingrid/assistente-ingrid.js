@@ -134,7 +134,7 @@ const ING_FERRAMENTAS = [
   { name: 'ler_conversa', description: 'Lê uma conversa colada do WhatsApp/Instagram/e-mail e monta o rascunho do orçamento + a anotação com o resumo. Nunca responde o cliente.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'mudar_orcamento', description: 'Muda situação, validade ou % de sinal de um orçamento.', input_schema: obj({ numero: S_(), situacao: { type: 'string', enum: ['rascunho', 'enviado', 'perdido'] }, validade: S_(), sinal_pct: N_() }, ['numero']) },
   { name: 'ver_precos', description: 'LÊ a Tabela de preços dela (as 4 abas do Excel: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma). Acha a linha certa por número de pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão (+10%) e noturno, com um ref para usar em preco_ref. Sem filtro, lista as tabelas e seções.', input_schema: obj({ tabela: { type: 'string', enum: ['transfer', 'transfer-roma-5', 'guia', 'bv'] }, pessoas: { type: 'integer', description: 'quantas pessoas (bebê e criança contam)' }, texto: S_('filtra por seção/veículo/duração: aeroporto, civitavecchia, termini, outlet, roma antiga, vaticano, walking, carro, minivan, van, 3 horas, 4 horas…') }) },
-  { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar'] }, item: S_('qual serviço: 1, 2… ou pedaço da descrição (para mudar/tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
+  { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar', 'voltar', 'apagar'], description: 'tirar = o cliente NÃO quis: fica registrado como perdido (estatística dela), sai do total e do que vai pro cliente; voltar = ele quer de novo; apagar = só erro de digitação (some de vez)' }, item: S_('qual serviço: 1, 2… ou pedaço da descrição (para mudar/tirar/voltar/apagar)'), motivo: S_('por que o cliente não quis (opcional, com tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
   { name: 'fechar_orcamento', description: 'O cliente fechou: cada serviço do catálogo vira reserva com o sinal; registra o sinal na conta se já caiu.', input_schema: obj({ numero: S_(), sinal_recebido: { type: 'boolean' }, conta: S_() }, ['numero', 'sinal_recebido']) },
   { name: 'ajustar_termos', description: 'Termos e condições do orçamento e o número de plantão do voucher.', input_schema: obj({ termos: S_(), plantao: S_() }) },
   { name: 'orcamento_do_roteiro', description: 'Monta o rascunho de orçamento a partir de um pedido do "Monte seu roteiro" (veja pedidos_de_roteiro em ver_orcamentos).', input_schema: obj({ pedido: S_('id ou nome de quem pediu') }, ['pedido']) },
@@ -486,12 +486,14 @@ const ING_PLANO = {
     if (i.cliente) { cli.nome = i.cliente; linhas.push(['Cliente', i.cliente]); }
     if (i.whats) { cli.whats = i.whats; linhas.push(['WhatsApp', i.whats]); }
     if (i.email) { cli.email = i.email; linhas.push(['E-mail', i.email]); }
-    const lista = () => itens.map((y, k) => (k + 1) + '. ' + y.desc).join(' · ');
+    const lista = () => itens.map((y, k) => (k + 1) + '. ' + y.desc + (y.perdido ? ' (perdido)' : '')).join(' · ');
     const acha = (q) => { const s = String(q || '').trim(); if (/^\d+$/.test(s)) return itens[+s - 1]; return itens.find(x => ingN(x.desc).includes(ingN(s))); };
     for (const it of i.itens || []) {
-      if (it.acao === 'tirar') {
+      if (it.acao === 'tirar' || it.acao === 'voltar' || it.acao === 'apagar') {
         const x = acha(it.item); if (!x) return E_(`não achei o serviço "${it.item}" — os serviços são: ${lista()}`);
-        itens.splice(itens.indexOf(x), 1); linhas.push(['Tira', x.desc]);
+        if (it.acao === 'apagar') { itens.splice(itens.indexOf(x), 1); linhas.push(['Apaga de vez', x.desc]); }
+        else if (it.acao === 'voltar') { x.perdido = false; x.perdidoEm = ''; linhas.push(['Volta (o cliente quer de novo)', x.desc]); }
+        else { x.perdido = true; x.perdidoEm = isoToday(); x.motivoPerda = String(it.motivo || x.motivoPerda || '').trim(); linhas.push(['Não fechou — fica registrado como perdido', x.desc]); }
       } else if (it.acao === 'adicionar') {
         let n = null;
         if (it.preco_ref && typeof Precos !== 'undefined') { n = Precos.itemOrc(it.preco_ref, { data: isoOk(it.data) ? it.data : '', hora: it.hora || '' }); if (!n) return E_('preco_ref não existe — use ver_precos'); if (it.pessoas) n.pax = +it.pessoas; }
@@ -738,7 +740,8 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 ## ORÇAMENTO — COMO ELA TRABALHA (tudo se conversa)
 - Transfer, guia ou bate-e-volta → ver_precos (pessoas + serviço) e passe o ref em preco_ref: valor, SINAL e custo entram certos da Tabela de preços. Sem ref, não invente preço nem sinal.
 - Bebê ou criança CONTA como pessoa (entra no número de pessoas da tabela). Escreva no pessoas_nota ("2 adultos + 1 bebê") e lembre de perguntar se tem carrinho de bebê e quantas malas (bagagem) — isso muda o veículo.
-- Ela pediu uma mudança num orçamento que já existe → editar_orcamento NO MESMO NÚMERO. Nunca crie um segundo orçamento para o mesmo pedido.
+- Ela pediu uma mudança num orçamento que já existe → editar_orcamento NO MESMO NÚMERO. Nunca crie um segundo orçamento para o mesmo pedido. UM orçamento por cliente/pedido.
+- Serviço que o cliente NÃO quer → editar_orcamento com acao "tirar": o serviço fica no orçamento como PERDIDO (sai do total e do que vai pro cliente, mas fica registrado — é a estatística dela de quanto pediram × quanto fecharam). Se o cliente voltar atrás → acao "voltar". "apagar" só para erro de digitação.
 - O orçamento que vai pro cliente nunca mostra o custo (só valor, sinal e o que paga no dia).
 - Nunca diga que não consegue ler a tabela ou uma aba: ver_precos, ver_crm, ver_tudo e procurar leem tudo.
 

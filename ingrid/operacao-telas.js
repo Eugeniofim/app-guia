@@ -1360,7 +1360,7 @@ function opMsgOrc(o) {
   /* o formato dela: Nome / Whatsapp / Pessoas / Bagagem, e cada serviço com Total · Sinal · Pagar no dia */
   const pMax = Math.max(+o.pax || 0, ...o.itens.map(i => +i.pax || 0));
   l.push(`Nome: ${o.cliente.nome || ''}`, `Whatsapp: ${o.cliente.whats || ''}`, `Pessoas: ${o.paxNota || (pMax ? pMax + ' pessoa' + (pMax > 1 ? 's' : '') : '')}`, `Bagagem: ${o.bagagem || ''}`, '');
-  o.itens.forEach((i, n) => { const si = Orc.sinalDoItem(o, i);
+  o.itens.filter(i => !i.perdido).forEach((i, n) => { const si = Orc.sinalDoItem(o, i);
     l.push(`${n + 1}. ${i.data ? opCurta(i.data) + ' ' + diaSemanaCurto(i.data) + (i.hora ? ' ' + i.hora : '') + ' — ' : ''}${i.desc} · ${i.pax} ${i.pax > 1 ? 'pessoas' : 'pessoa'}`,
       i.valor ? `   Total ${eur(i.valor)} · Sinal ${eur(si)} · Pagar no dia ${eur(Math.max(0, i.valor - si))}` : '   valor a definir'); });
   l.push('', `TOTAL: ${eur(tot)} · Sinal: ${eur(sin)} · Pagar no dia: ${eur(Math.max(0, tot - sin))}`);
@@ -1378,7 +1378,7 @@ function admOrcEditor(id) {
   if (!o) { go('/adm/consulta'); return; }
   const tours = Tours.all();
   const tot = Orc.total(o), sin = Orc.sinal(o);
-  const linhaItem = (i) => `<div class="orc-item ${i.sugestao ? 'sug' : ''}" data-item="${esc(i.id)}">
+  const linhaItem = (i) => `<div class="orc-item ${i.sugestao ? 'sug' : ''}${i.perdido ? ' perdido' : ''}" data-item="${esc(i.id)}">
     <div class="frow">
       <label class="fld grow">Serviço<input data-k="desc" value="${esc(i.desc)}"></label>
       <label class="fld">Dia<input type="date" data-k="data" value="${esc(i.data)}"></label>
@@ -1394,7 +1394,9 @@ function admOrcEditor(id) {
       ${i.sugestao ? '<span class="pill warn">sugestão do app — confira</span>' : ''}
       <input class="orc-obs" data-k="obs" value="${esc(i.obs)}" placeholder="observação para o cliente">
       ${i.tourId ? `<button class="mini" data-recalc="${esc(i.id)}">preço da tabela</button>` : ''}
-      <button class="mini danger" data-rmi="${esc(i.id)}">tirar</button>
+      ${i.perdido
+        ? `<span class="pill bad" title="o cliente não quis — fica registrado, fora do total e do que vai pro cliente">não fechou${i.perdidoEm ? ' · ' + crmData(i.perdidoEm) : ''}</span><button class="mini" data-volta="${esc(i.id)}" title="o cliente quer de novo">voltar</button><button class="mini ghost danger" data-apaga="${esc(i.id)}" title="apagar de vez (sem registro)">apagar</button>`
+        : `<button class="mini danger" data-rmi="${esc(i.id)}" title="o cliente não quis: fica registrado como perdido e sai do total">não fechou</button>`}
     </div>
   </div>`;
   admShell('consulta', `
@@ -1485,7 +1487,10 @@ function admOrcEditor(id) {
   };
   $('#orLkAdd').onclick = () => { lerTela(); const r = Orc.linkAdd(id, $('#orLkNome').value, $('#orLkUrl').value); if (r && r.erro) return toast(r.erro); re(); };
   $('#orAvulso').onclick = () => { lerTela(); o.itens.push(Orc._item({ desc: 'Roteiro com consultoria de especialista', pax: o.pax || 2 })); Orc.salva(o); re(); };
-  $$('[data-rmi]').forEach(b => b.onclick = () => { lerTela(); o.itens = o.itens.filter(i => i.id !== b.dataset.rmi); Orc.salva(o); re(); });
+  /* "não fechou": o item vira perdido (fica registrado, sai do total); "voltar" desfaz; "apagar" some de vez */
+  $$('[data-rmi]').forEach(b => b.onclick = () => { lerTela(); const i = o.itens.find(z => z.id === b.dataset.rmi); if (i) { i.perdido = true; i.perdidoEm = isoToday(); } Orc.salva(o); re(); });
+  $$('[data-volta]').forEach(b => b.onclick = () => { lerTela(); const i = o.itens.find(z => z.id === b.dataset.volta); if (i) { i.perdido = false; i.perdidoEm = ''; } Orc.salva(o); re(); });
+  $$('[data-apaga]').forEach(b => b.onclick = () => { if (!confirm('Apagar de vez? Não fica registrado.')) return; lerTela(); o.itens = o.itens.filter(i => i.id !== b.dataset.apaga); Orc.salva(o); re(); });
   $$('[data-recalc]').forEach(b => b.onclick = () => {
     lerTela();
     const i = o.itens.find(z => z.id === b.dataset.recalc);
@@ -1715,7 +1720,7 @@ function opDocOrc(id) {
     </tbody></table>
     <p class="why">Orçamento ${esc(o.num)} · emitido em ${opCurta(o.criado.slice(0, 10))} · válido até ${opCurta(o.validade)}</p>
     <table class="tbl doc-tbl doc-orc"><thead><tr><th>Data</th><th>Hora</th><th>Serviço</th><th class="right">Total</th><th class="right">Sinal</th><th class="right">Pagar no dia</th></tr></thead><tbody>
-      ${o.itens.map(i => { const si = Orc.sinalDoItem(o, i); return `<tr><td class="mono">${i.data ? crmDataSem(i.data) : '—'}</td><td class="mono">${esc(i.hora || '')}</td><td>${esc(i.desc)}${i.pax ? ` <small>· ${i.pax}p</small>` : ''}${i.obs && !i.sugestao ? `<br><small>${esc(i.obs)}</small>` : ''}</td><td class="mono right">${i.valor ? eur(i.valor) : 'a definir'}</td><td class="mono right">${i.valor ? eur(si) : ''}</td><td class="mono right">${i.valor ? eur(Math.max(0, i.valor - si)) : ''}</td></tr>`; }).join('')}
+      ${o.itens.filter(i => !i.perdido).map(i => { const si = Orc.sinalDoItem(o, i); return `<tr><td class="mono">${i.data ? crmDataSem(i.data) : '—'}</td><td class="mono">${esc(i.hora || '')}</td><td>${esc(i.desc)}${i.pax ? ` <small>· ${i.pax}p</small>` : ''}${i.obs && !i.sugestao ? `<br><small>${esc(i.obs)}</small>` : ''}</td><td class="mono right">${i.valor ? eur(i.valor) : 'a definir'}</td><td class="mono right">${i.valor ? eur(si) : ''}</td><td class="mono right">${i.valor ? eur(Math.max(0, i.valor - si)) : ''}</td></tr>`; }).join('')}
     </tbody><tfoot>
       <tr><td colspan="3"><b>TOTAL</b></td><td class="mono right"><b>${eur(tot)}</b></td><td class="mono right"><b>${eur(sin)}</b></td><td class="mono right"><b>${eur(Math.max(0, tot - sin))}</b></td></tr>
     </tfoot></table>

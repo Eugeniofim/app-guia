@@ -393,7 +393,10 @@ const Orc = {
              data: i.data || '', hora: i.hora || '', pax: Math.max(1, +i.pax || 1), opcao: +i.opcao || 0,
              valor: Math.max(0, +i.valor || 0), sinal: i.sinal != null && i.sinal !== '' ? Math.max(0, +i.sinal) : null,
              obs: String(i.obs || '').trim(), sugestao: !!i.sugestao, voo: String(i.voo || '').trim(),
-             custo: Math.max(0, +i.custo || 0), cidade: String(i.cidade || '').trim() };
+             custo: Math.max(0, +i.custo || 0), cidade: String(i.cidade || '').trim(),
+             /* o cliente NAO quis este servico: fica no orcamento como perdido (estatistica dela),
+                fora do total e do que vai pro cliente; pode voltar se ele mudar de ideia */
+             perdido: !!i.perdido, perdidoEm: i.perdido ? (i.perdidoEm || isoToday()) : '', motivoPerda: String(i.motivoPerda || '').trim() };
   },
   /* um servico do catalogo, ja com o preco da tabela dela para aquele grupo */
   itemDoCatalogo(tourId, { pax, data, hora, opcao } = {}) {
@@ -404,11 +407,12 @@ const Orc = {
                        valor: pr.total || 0, sinal: x.priceMode === 'transfer' ? (pr.sinal || null) : null,
                        obs: pr.consultar ? 'Sem preço na tabela — defina o valor' : '' });
   },
-  total(o) { return (o.itens || []).reduce((s, i) => s + (+i.valor || 0), 0); },
+  /* itens "perdidos" (o cliente nao quis) ficam registrados, mas fora da conta */
+  total(o) { return (o.itens || []).filter(i => !i.perdido).reduce((s, i) => s + (+i.valor || 0), 0); },
   sinalDoItem(o, i) {
     return i.sinal != null ? +i.sinal : Math.round((+i.valor || 0) * (+o.sinalPct || 0) / 100);
   },
-  sinal(o) { return (o.itens || []).reduce((s, i) => s + Orc.sinalDoItem(o, i), 0); },
+  sinal(o) { return (o.itens || []).filter(i => !i.perdido).reduce((s, i) => s + Orc.sinalDoItem(o, i), 0); },
   salva(o) {
     const x = Orc.get(o.id); if (!x) return null;
     Object.assign(x, o, { itens: (o.itens || x.itens).map(Orc._item) });
@@ -430,6 +434,7 @@ const Orc = {
     const o = Orc.get(id); if (!o || o.status === 'fechado') return [];
     const criadas = [];
     for (const i of o.itens) {
+      if (i.perdido) continue;   // o cliente nao quis este servico: nao vira reserva (fica so o registro)
       /* do catalogo, ou escrito a mao com data (a planilha dela) */
       const avulso = !(i.tourId && Tours.get(i.tourId));
       if (avulso && (!i.data || !String(i.desc || '').trim() || i.sugestao)) continue;
@@ -2033,7 +2038,7 @@ function crmLinhas(hoje) {
     if (o.status === 'fechado') continue;
     const etapa = o.status === 'perdido' ? 'perdido' : 'aberto';
     const itens = o.itens.length ? o.itens : [{ desc: o.resumo || '(sem serviços ainda)', data: (o.datas || [])[0] || '', hora: '', pax: o.pax || 0, valor: 0 }];
-    for (const it of itens) out.push({ tipo: 'orcamento', id: o.id, o, itemId: it.id || '', pedido: o.id, etapa, status: o.status,
+    for (const it of itens) out.push({ tipo: 'orcamento', id: o.id, o, itemId: it.id || '', pedido: o.id, etapa: it.perdido ? 'perdido' : etapa, status: o.status,
       dataPedido: String(o.criado || '').slice(0, 10), veio: o.veioPor ? (VEIO_CURTO[o.veioPor] || '') : (ORIGEM_ORC_TXT[o.origem] || ''), veioPor: o.veioPor || '', indicou: o.indicou || '',
       whats: o.cliente.whats || '', nome: o.cliente.nome || '', nomePlan: entre(o.cliente.nome || '', o.veioPor), arquivo: Orc.nomeArquivo(o),
       dataServ: it.data || '', hora: it.hora || '', pax: it.pax || '', servico: it.desc + (it.voo ? ' · ' + it.voo : ''), obs: it.obs || '',

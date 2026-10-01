@@ -426,6 +426,11 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .cv-comp textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
 .cv-acts{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 @media(max-width:820px){.cv-wrap{grid-template-columns:1fr}.cv-lista,.cv-thread{max-height:none}.cv-ev{max-width:100%}}
+
+/* item do orçamento que o cliente NÃO quis: fica registrado (perdido), fora do total */
+.orc-item.perdido{opacity:.62;background:var(--danger-wash);border-color:var(--danger-wash)}
+.orc-item.perdido input{text-decoration:line-through}
+.orc-item.perdido .pill{margin-right:6px}
 .crm-plan .crm-dica{color:var(--ink-3);font-weight:400}
 .crm-plan tr.crm-mes td{background:var(--surface-3);font-weight:var(--t-strong);font-size:var(--fs-2);color:var(--ink-2);text-transform:capitalize;padding:6px 10px}
 .crm-plan tr.crm-mes td.crm-fix{color:var(--ink);box-shadow:1px 0 0 var(--line-2)}
