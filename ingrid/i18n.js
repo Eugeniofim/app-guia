@@ -498,7 +498,7 @@ const STR = {
   lastSpotGone:{ pt: 'Alguém pegou a última vaga enquanto você preenchia. Escolha outro horário.', en: 'Someone just took the last spot. Pick another time.' },
 
   /* ADM comum */
-  admToday:   { pt: 'Hoje', en: 'Today' },
+  admToday:   { pt: 'Meu dia', en: 'My day' },
   admTours:   { pt: 'Meus passeios', en: 'My tours' },
   admBookings:{ pt: 'Reservas', en: 'Bookings' },
   admMoney:   { pt: 'Extrato', en: 'Statement' },

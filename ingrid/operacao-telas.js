@@ -267,6 +267,15 @@ function admHoje(arg) {
     <p class="op-resumo"><b>${fmtDate(dia)}</b> · ${lista.length} ${lista.length === 1 ? 'serviço' : 'serviços'} · ${pax} pessoas${noDia ? ` · <b>${eur(noDia)}</b> pagos no dia a guias e motoristas` : ''}</p>
     ${lista.length ? lista.map(b => opCardServico(b)).join('')
       : `<div class="emptybox"><p>Nenhum serviço neste dia.</p><a class="mini" href="#/adm/consulta">Ver pedidos sob consulta</a></div>`}
+    ${dia === hoje ? (() => {
+      const prox = [];
+      for (let i = 1; i <= 21 && prox.length < 6; i++) {
+        const d = addDays(hoje, i), l = Op.doDia(d).filter(b => b.status !== 'cancelled');
+        if (l.length) prox.push({ d, n: l.length, pax: l.reduce((s, b) => s + (+b.pax || 0), 0), nomes: [...new Set(l.map(b => opPrimeiro(b.name)))].slice(0, 3).join(', ') });
+      }
+      return prox.length ? `<section class="card md-prox"><div class="rp-cab"><h3>📅 Próximos dias</h3><a class="mini" href="#/adm/agenda">ver agenda completa</a></div>
+        ${prox.map(x => `<button class="md-dia" data-dia="${x.d}"><span class="md-data">${esc(fmtDate(x.d))}</span><span class="md-n">${x.n} ${x.n === 1 ? 'serviço' : 'serviços'} · ${x.pax}p</span><small class="md-nomes">${esc(x.nomes)}</small></button>`).join('')}</section>` : '';
+    })() : ''}
   `);
   const vai = (d) => go('/adm/today/' + d);
   $$('[data-dia]').forEach(b => b.onclick = () => vai(b.dataset.dia));
