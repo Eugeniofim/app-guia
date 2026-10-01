@@ -1357,9 +1357,13 @@ function opMsgOrc(o) {
   const nome = opPrimeiro(o.cliente.nome) || '';
   const tot = Orc.total(o), sin = Orc.sinal(o);
   const l = [`Olá${nome ? ' ' + nome : ''}! Segue o seu orçamento ${o.num} — ${guiaNegocio()}`, ''];
-  o.itens.forEach((i, n) => l.push(`${n + 1}. ${i.desc}${i.data ? ' — ' + opCurta(i.data) + (i.hora ? ' ' + i.hora : '') : ''} · ${i.pax} ${i.pax > 1 ? 'pessoas' : 'pessoa'} — ${i.valor ? eur(i.valor) : 'a definir'}`));
-  if (o.paxNota || o.bagagem) l.push('', [o.paxNota && 'Pessoas: ' + o.paxNota, o.bagagem && 'Bagagem: ' + o.bagagem].filter(Boolean).join(' · '));
-  l.push('', `Total: ${eur(tot)}`);
+  /* o formato dela: Nome / Whatsapp / Pessoas / Bagagem, e cada serviço com Total · Sinal · Pagar no dia */
+  const pMax = Math.max(+o.pax || 0, ...o.itens.map(i => +i.pax || 0));
+  l.push(`Nome: ${o.cliente.nome || ''}`, `Whatsapp: ${o.cliente.whats || ''}`, `Pessoas: ${o.paxNota || (pMax ? pMax + ' pessoa' + (pMax > 1 ? 's' : '') : '')}`, `Bagagem: ${o.bagagem || ''}`, '');
+  o.itens.forEach((i, n) => { const si = Orc.sinalDoItem(o, i);
+    l.push(`${n + 1}. ${i.data ? opCurta(i.data) + ' ' + diaSemanaCurto(i.data) + (i.hora ? ' ' + i.hora : '') + ' — ' : ''}${i.desc} · ${i.pax} ${i.pax > 1 ? 'pessoas' : 'pessoa'}`,
+      i.valor ? `   Total ${eur(i.valor)} · Sinal ${eur(si)} · Pagar no dia ${eur(Math.max(0, i.valor - si))}` : '   valor a definir'); });
+  l.push('', `TOTAL: ${eur(tot)} · Sinal: ${eur(sin)} · Pagar no dia: ${eur(Math.max(0, tot - sin))}`);
   if (sin) l.push(`Para reservar: sinal de ${eur(sin)}. O restante (${eur(Math.max(0, tot - sin))}) é pago no dia, a quem faz cada serviço.`);
   const formas = [DB.settings.pixKey && 'Pix', DB.settings.wiseLink && 'Wise', DB.settings.iban && 'transferência (IBAN)'].filter(Boolean);
   if (formas.length) l.push('Formas de pagamento: ' + formas.join(' · '));
@@ -1557,6 +1561,88 @@ function vchFmt(txt) {
   fecha();
   return html;
 }
+/* =====================================================
+   CONVERSAS — a central: quem está esperando algo seu, a linha do tempo
+   de cada cliente (orçamento, pagamento, voucher, tarefas, o que você
+   mandou) e a mensagem pronta que abre no WhatsApp. O que CHEGA do
+   WhatsApp/Instagram entra quando ligarmos o WhatsApp oficial (Meta).
+===================================================== */
+function admConversas(arg) {
+  const S = admConversas._s = admConversas._s || { q: '', f: 'pendentes', sel: '' };
+  if (arg) S.sel = decodeURIComponent(arg);
+  const hoje = isoToday();
+  const itens = Cadastro.all().map(c => { const k = chaveFicha(c), ult = Conversas.ultima(k);
+    return { c, k, pend: Conversas.pendencias(c, hoje), ult, quando: ult ? ult.quando.slice(0, 10) : '' }; });
+  const q = _nomeN(S.q), dig = String(S.q).replace(/\D/g, '');
+  let lista = itens.filter(x => !S.q || _nomeN(x.c.nome).includes(q) || (dig.length >= 4 && String(x.c.whats || '').replace(/\D/g, '').includes(dig)));
+  if (S.f === 'pendentes') lista = lista.filter(x => x.pend.length);
+  lista.sort((a, b) => (b.pend.length ? 1 : 0) - (a.pend.length ? 1 : 0) || String(b.quando).localeCompare(String(a.quando)) || a.c.nome.localeCompare(b.c.nome));
+  const sel = itens.find(x => x.k === S.sel) || lista[0] || null;
+  const nPend = itens.filter(x => x.pend.length).length;
+
+  const thread = (x) => {
+    const c = x.c, k = x.k, num = opNum(c.whats || (c.grupoDe && (Cadastro.get(c.grupoDe) || {}).whats));
+    const bs = Cadastro.reservas(c).filter(b => b.status !== 'cancelled');
+    const orcs = (Fichas.doCliente(k, c.whats, c.email).orcamentos) || [];
+    const vistos = new Set();
+    const tfs = Tarefas.doCliente(k, c.whats).concat(Tarefas.all().filter(t => t.clienteKey === 'c:' + c.id)).filter(t => !vistos.has(t.id) && vistos.add(t.id));
+    const h = [];
+    for (const b of bs) h.push({ d: b.date, ico: '🏛️', txt: `${nomeDoServico(b)} · ${b.pax}p${b.clienteId === c.id ? ' · ' + eur(b.total) : ' (veio junto)'}`, link: '#/adm/voucher/' + b.id, rot: 'voucher' });
+    for (const b of bs.filter(z => z.clienteId === c.id)) for (const p of b.payments || []) h.push({ d: p.date, ico: '💶', txt: `pagou ${eur(p.amount)} · ${Contas.nome(p.conta) || formaPg(p.method)}` });
+    for (const o of orcs) h.push({ d: String(o.criado).slice(0, 10), ico: '🧾', txt: `orçamento ${o.num} · ${o.status} · ${eur(Orc.total(o))}`, link: '#/adm/consulta/' + o.id, rot: 'abrir' });
+    for (const t of tfs) h.push({ d: String(t.feitaEm || t.criada).slice(0, 10), ico: t.tipo === 'nota' ? '📝' : t.feita ? '✅' : '⏳', txt: t.texto });
+    for (const m of Conversas.de(k)) h.push({ d: m.quando.slice(0, 10), hora: m.quando.slice(11, 16), ico: '💬', txt: m.texto, msg: true });
+    h.sort((a, b) => String(a.d).localeCompare(String(b.d)) || String(a.hora || '').localeCompare(String(b.hora || '')));
+    /* mensagens prontas: o app já sabe o que está pendente com este cliente */
+    const modelos = [];
+    const fm = followupMotivo(c, Cadastro.resumo(c, hoje), hoje);
+    if (fm) modelos.push({ rot: '✨ ' + fm.rotulo, txt: fm.msg });
+    for (const o of orcs.filter(o => o.status === 'enviado')) modelos.push({ rot: 'repescar ' + o.num, txt: `Oi ${opPrimeiro(c.nome)}! Passando pra saber se conseguiu ver o orçamento ${o.num} 😊 Qualquer dúvida ou ajuste é só me falar. ${guiaNome()}` });
+    const passou = bs.filter(b => b.clienteId === c.id && b.date < hoje && !b.avaliacaoEm).slice(-1)[0];
+    if (passou) modelos.push({ rot: 'pedir avaliação', txt: `Oi ${opPrimeiro(c.nome)}! Espero que o ${nomeDoServico(passou)} tenha sido especial 💚 Se puder, deixe sua avaliação — ajuda muito o meu trabalho. Obrigada! ${guiaNome()}` });
+    if (!modelos.length) modelos.push({ rot: 'oi', txt: `Oi ${opPrimeiro(c.nome)}! Tudo bem? ` });
+    admConversas._modelos = modelos; admConversas._num = num; admConversas._sel = x;
+    return `<div class="cv-cab"><div><b>${esc(c.nome)}</b><small>${c.whats ? esc(c.whats) : 'sem WhatsApp na ficha'} · <a href="${fichaHref(c)}">ficha</a></small></div>
+        ${x.pend.length ? `<div class="cv-pend">${x.pend.map(p => `<span class="pill ${p.tipo === 'cobrar' ? 'bad' : p.tipo === 'confirmar' ? 'warn' : 'n'}">${esc(p.txt)}</span>`).join('')}</div>` : ''}</div>
+      <div class="cv-hist">${h.length ? h.map(e => `<div class="cv-ev${e.msg ? ' cv-msg' : ''}"><span class="cv-ico">${e.ico}</span><div><div class="cv-txt">${esc(e.txt)}${e.link ? ` <a class="mini" href="${e.link}">${e.rot || 'abrir'}</a>` : ''}</div><small>${e.d ? crmData(e.d) + '/' + String(e.d).slice(2, 4) : ''}${e.hora ? ' · ' + e.hora : ''}${e.msg ? ' · você, pelo WhatsApp' : ''}</small></div></div>`).join('') : '<p class="why">Nada ainda com este cliente.</p>'}</div>
+      <div class="cv-comp">
+        <div class="chips cv-modelos">${modelos.map((m, i) => `<button class="chip" data-cvm="${i}">${esc(m.rot)}</button>`).join('')}<button class="chip chip-fup" id="cvIa">✨ escrever com o assistente</button></div>
+        <textarea id="cvTxt" rows="4" placeholder="Escreva a mensagem — ou toque num modelo acima"></textarea>
+        <div class="cv-acts"><button class="mini" id="cvCopia">copiar</button>${num ? `<a class="mini strong" id="cvWa" target="_blank" rel="noopener" href="${waLink('', num)}">💬 mandar no WhatsApp</a>` : '<small class="why">sem WhatsApp — cadastre na ficha</small>'}</div>
+      </div>`;
+  };
+
+  admShell('conversas', `
+    <div class="pagehead"><h1 class="pageh">Conversas</h1><span class="why">quem está esperando algo seu · a mensagem sai pronta pro WhatsApp</span></div>
+    <p class="why cv-nota">💡 Aqui ficam as mensagens que você manda e tudo que o app já sabe de cada cliente (orçamento, pagamento, voucher, tarefas). As que <b>chegam</b> do WhatsApp/Instagram entram quando ligarmos o WhatsApp oficial.</p>
+    <div class="cv-wrap">
+      <aside class="card cv-lista">
+        <input id="cvQ" type="search" placeholder="🔎 nome ou WhatsApp" value="${esc(S.q)}">
+        <div class="chips cv-chips">${[['pendentes', `Esperando você${nPend ? ' (' + nPend + ')' : ''}`], ['todos', 'Todos']].map(([f, l]) => `<button class="chip ${S.f === f ? 'on' : ''}" data-cvf="${f}">${l}</button>`).join('')}</div>
+        ${lista.length ? lista.slice(0, 150).map(x => `<a class="cv-item${sel && sel.k === x.k ? ' on' : ''}" href="#/adm/conversas/${encodeURIComponent(x.k)}">
+            <b>${esc(x.c.nome)}</b>${x.pend.length ? `<span class="pill warn">${x.pend.length}</span>` : '<span></span>'}
+            <small>${x.pend.length ? esc(x.pend[0].txt) + (x.pend.length > 1 ? ' · +' + (x.pend.length - 1) : '') : x.ult ? 'você: ' + esc(x.ult.texto.slice(0, 44)) : 'sem conversa ainda'}</small></a>`).join('')
+          : `<p class="empty">${S.f === 'pendentes' ? 'Ninguém esperando você. 💚' : 'Nenhum cliente ainda.'}</p>`}
+      </aside>
+      <section class="card cv-thread">${sel ? thread(sel) : '<p class="empty">Escolha um cliente ao lado.</p>'}</section>
+    </div>`);
+
+  const re = () => admConversas();
+  $$('[data-cvf]').forEach(b => b.onclick = () => { S.f = b.dataset.cvf; re(); });
+  const iq = $('#cvQ'); if (iq) iq.oninput = (e) => { S.q = e.target.value; clearTimeout(admConversas._t); admConversas._t = setTimeout(() => { re(); const i2 = $('#cvQ'); if (i2) { i2.focus(); i2.setSelectionRange(i2.value.length, i2.value.length); } }, 250); };
+  const ta = $('#cvTxt'), wa = $('#cvWa'), x = admConversas._sel;
+  if (ta && x && sel) {
+    const num = admConversas._num;
+    $$('[data-cvm]').forEach(b => b.onclick = () => { ta.value = admConversas._modelos[+b.dataset.cvm].txt; ta.focus(); if (wa) wa.href = waLink(ta.value.trim(), num); });
+    ta.oninput = () => { if (wa) wa.href = waLink(ta.value.trim(), num); };
+    const ia = $('#cvIa'); if (ia) ia.onclick = () => { try { iaAbre(); setTimeout(() => { const t = document.querySelector('#iaTxt'); if (t) { t.value = `Escreve uma mensagem de WhatsApp para ${x.c.nome}${x.pend.length ? ' sobre: ' + x.pend.map(p => p.txt).join('; ') : ''}. Curta, carinhosa, no meu tom.`; t.focus(); } }, 150); } catch (e) { toast('Abra o Assistente e peça a mensagem.'); } };
+    const copia = $('#cvCopia'); if (copia) copia.onclick = () => { if (!ta.value.trim()) return toast('Escreva a mensagem.'); opCopia(ta.value.trim()); };
+    /* mandou: registra na conversa e o app passa a aguardar a resposta */
+    if (wa) wa.onclick = (e) => { const txt = ta.value.trim(); if (!txt) { e.preventDefault(); toast('Escreva a mensagem primeiro.'); return; }
+      wa.href = waLink(txt, num); Conversas.log(x.k, { texto: txt }); Espera.mensagem(x.c, x.k); if (typeof Tarefas.sincroniza === 'function') Tarefas.sincroniza();
+      setTimeout(() => { toast('Mensagem registrada · o app vai aguardar a resposta'); re(); }, 400); };
+  }
+}
 /* a ABA VOUCHER — edita os textos padrão; cada reserva monta o seu sozinho */
 function admVoucher() {
   const grupos = [...new Set(VOUCHER_BLOCOS_META.map(m => m.grupo))];
@@ -1621,14 +1707,17 @@ function opDocOrc(id) {
   const modelo = /^MODELO/.test(termos);
   const corpo = `
     <div class="doc-grande"><small>Orçamento</small><b class="mono">${esc(o.num)}</b></div>
-    <p>Para <b>${esc(o.cliente.nome || '')}</b>${o.cliente.whats ? ' · ' + esc(o.cliente.whats) : ''} · emitido em ${opCurta(o.criado.slice(0, 10))} · válido até ${opCurta(o.validade)}</p>
-    ${o.paxNota || o.bagagem ? `<p>${o.paxNota ? '<b>Pessoas:</b> ' + esc(o.paxNota) : ''}${o.paxNota && o.bagagem ? ' · ' : ''}${o.bagagem ? '<b>Bagagem:</b> ' + esc(o.bagagem) : ''}</p>` : ''}
-    <table class="tbl doc-tbl"><thead><tr><th>Serviço</th><th>Dia</th><th class="right">Pessoas</th><th class="right">Valor</th></tr></thead><tbody>
-      ${o.itens.map(i => `<tr><td>${esc(i.desc)}${i.obs && !i.sugestao ? `<br><small>${esc(i.obs)}</small>` : ''}</td><td class="mono">${i.data ? opCurta(i.data) + (i.hora ? ' ' + esc(i.hora) : '') : '—'}</td><td class="right">${i.pax}</td><td class="mono right">${i.valor ? eur(i.valor) : 'a definir'}</td></tr>`).join('')}
+    <table class="doc-cab"><tbody>
+      <tr><th>Nome:</th><td>${esc(o.cliente.nome || '')}</td></tr>
+      <tr><th>Whatsapp:</th><td>${esc(o.cliente.whats || '')}</td></tr>
+      <tr><th>Pessoas:</th><td>${(() => { const p = Math.max(+o.pax || 0, ...o.itens.map(i => +i.pax || 0)); return esc(o.paxNota || (p ? p + ' pessoa' + (p > 1 ? 's' : '') : '')); })()}</td></tr>
+      <tr><th>Bagagem:</th><td>${esc(o.bagagem || '')}</td></tr>
+    </tbody></table>
+    <p class="why">Orçamento ${esc(o.num)} · emitido em ${opCurta(o.criado.slice(0, 10))} · válido até ${opCurta(o.validade)}</p>
+    <table class="tbl doc-tbl doc-orc"><thead><tr><th>Data</th><th>Hora</th><th>Serviço</th><th class="right">Total</th><th class="right">Sinal</th><th class="right">Pagar no dia</th></tr></thead><tbody>
+      ${o.itens.map(i => { const si = Orc.sinalDoItem(o, i); return `<tr><td class="mono">${i.data ? crmDataSem(i.data) : '—'}</td><td class="mono">${esc(i.hora || '')}</td><td>${esc(i.desc)}${i.pax ? ` <small>· ${i.pax}p</small>` : ''}${i.obs && !i.sugestao ? `<br><small>${esc(i.obs)}</small>` : ''}</td><td class="mono right">${i.valor ? eur(i.valor) : 'a definir'}</td><td class="mono right">${i.valor ? eur(si) : ''}</td><td class="mono right">${i.valor ? eur(Math.max(0, i.valor - si)) : ''}</td></tr>`; }).join('')}
     </tbody><tfoot>
-      <tr><td colspan="3"><b>Total</b></td><td class="mono right"><b>${eur(tot)}</b></td></tr>
-      ${sin ? `<tr><td colspan="3">Sinal para reservar</td><td class="mono right">${eur(sin)}</td></tr>
-      <tr><td colspan="3">No dia, a quem faz cada serviço</td><td class="mono right">${eur(Math.max(0, tot - sin))}</td></tr>` : ''}
+      <tr><td colspan="3"><b>TOTAL</b></td><td class="mono right"><b>${eur(tot)}</b></td><td class="mono right"><b>${eur(sin)}</b></td><td class="mono right"><b>${eur(Math.max(0, tot - sin))}</b></td></tr>
     </tfoot></table>
     ${o.obs ? `<p>${esc(o.obs).replace(/\n/g, '<br>')}</p>` : ''}
     <h3>Como pagar o sinal</h3>

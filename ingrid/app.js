@@ -1439,7 +1439,7 @@ function renderBook() {
 /* O menu em grupos (como o TI ARTES): cada grupo tem um título e as abas.
    A Planilha (o CRM dela, a planilha mais importante) fica SEMPRE no menu. */
 const ADM_GROUPS = [
-  { h: 'O dia a dia',           tabs: [['today', 'admToday'], ['agenda', 'admAgenda'], ['tarefas', 'admTarefas']] },
+  { h: 'O dia a dia',           tabs: [['today', 'admToday'], ['conversas', 'admConversas'], ['agenda', 'admAgenda'], ['tarefas', 'admTarefas']] },
   { h: 'Orçamentos e clientes', tabs: [['planilha', 'admPlanilha'], ['pipeline', 'admPipeline'], ['consulta', 'admConsulta'], ['clients', 'admClients'], ['bookings', 'admBookings']] },
   { h: 'Em Roma',               tabs: [['guias', 'admGuias'], ['transfer', 'admTransfer'], ['tours', 'admTours'], ['precos', 'admPrecos'], ['voucher', 'admVoucher']] },
   { h: 'Dinheiro',              tabs: [['money', 'admMoney'], ['reports', 'admReports'], ['coupons', 'admCoupons']] },
@@ -1520,6 +1520,7 @@ function viewAdm(tab, arg) {
   else if (tab === 'precos')   admPrecos(arg);
   else if (tab === 'consulta') admConsulta(arg);
   else if (tab === 'tarefas')  admTarefas(arg);
+  else if (tab === 'conversas') admConversas(arg);
   else if (tab === 'voucher' && arg) opDocVoucher(arg);
   else if (tab === 'voucher')  admVoucher();
   else if (tab === 'orcdoc')   opDocOrc(arg);
@@ -2857,12 +2858,14 @@ function admAgenda() {
   const last = `${cur}-${String(daysIn).padStart(2, '0')}`;
   const startWd = (new Date(first + 'T12:00:00').getDay() + 6) % 7; // segunda = 0
 
-  /* todas as saídas do mês, de todos os passeios */
+  /* as saídas do mês que TÊM reserva. A Ingrid vende serviço privativo: a
+     regra de horário do catálogo não é agenda — só vira agenda quando alguém
+     reservou (pedido dela de 01/10: "zerar a agenda"). */
   const deps = [];
   for (const x of Tours.all()) {
     for (const d of Cal.departures(x.id, first, last)) {
       const left = Cal.seatsLeft(x.id, d.date, d.time, d.capacity);
-      deps.push({ ...d, tour: x, left, booked: d.capacity - left });
+      if (d.capacity - left > 0) deps.push({ ...d, tour: x, left, booked: d.capacity - left });
     }
   }
   const byDay = {};

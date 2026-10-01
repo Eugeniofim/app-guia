@@ -933,6 +933,7 @@ function opGarante() {
   if (DB.settings && !DB.settings.voucherSeed) { DB.settings.voucher = DB.settings.voucher || {}; if (!DB.settings.voucher.blocos) DB.settings.voucher.blocos = Object.assign({}, VOUCHER_BLOCOS_EMROMA); DB.settings.voucherSeed = 'emroma1'; }
   if (DB.settings && DB.settings.plantao === undefined) DB.settings.plantao = '';
   DB.tarefas = DB.tarefas || [];
+  DB.conversas = DB.conversas || {};
   DB.lembretesVistos = DB.lembretesVistos || {};
   DB.clientes = DB.clientes || [];
   DB.parceiros = DB.parceiros || [];
@@ -1283,7 +1284,43 @@ function proximoPasso(t, resultado) {
   return null;
 }
 /* as esperas que as outras telas criam sozinhas */
+/* ---------- CONVERSAS — a central de mensagens ----------
+   O que ela MANDOU a cada cliente (registrado quando aperta "mandar no
+   WhatsApp") e o que está esperando dela (orçamento sem resposta, cobrar,
+   confirmar, tarefas de espera). Mensagens que CHEGAM entram quando o
+   WhatsApp oficial for ligado (depende da Meta). Chave = a da ficha. */
+const Conversas = {
+  de(chave) { DB.conversas = DB.conversas || {}; return DB.conversas[chave] || []; },
+  log(chave, d) {
+    DB.conversas = DB.conversas || {};
+    const texto = String((d && d.texto) || '').trim(); if (!chave || !texto) return null;
+    const m = { id: uid(), quando: new Date().toISOString(), canal: (d && d.canal) || 'whats', texto, modelo: (d && d.modelo) || '' };
+    (DB.conversas[chave] = DB.conversas[chave] || []).push(m); _opSave(); return m;
+  },
+  ultima(chave) { const l = Conversas.de(chave); return l.length ? l[l.length - 1] : null; },
+  /* por que falar com este cliente agora */
+  pendencias(c, hoje) {
+    hoje = hoje || isoToday(); const out = [], k = chaveFicha(c);
+    const E = (v) => (typeof eur === 'function' ? eur(v) : v + ' €');
+    const r = Cadastro.resumo(c, hoje);
+    const orcs = ((typeof Fichas !== 'undefined' && Fichas.doCliente) ? Fichas.doCliente(k, c.whats, c.email).orcamentos : []) || [];
+    for (const o of orcs) if (o.status === 'enviado') out.push({ tipo: 'orc', txt: `orçamento ${o.num} enviado · sem resposta`, link: '#/adm/consulta/' + o.id });
+    for (const o of orcs) if (o.status === 'rascunho' || o.status === 'novo') out.push({ tipo: 'orc', txt: `orçamento ${o.num} em montagem`, link: '#/adm/consulta/' + o.id });
+    if (r.deve > 0) out.push({ tipo: 'cobrar', txt: `deve ${E(r.deve)}` });
+    if (r.prox) { const d = _dias(hoje, r.prox.date); if (d >= 0 && d <= 3) out.push({ tipo: 'confirmar', txt: `${nomeDoServico(r.prox)} ${d === 0 ? 'hoje' : 'em ' + d + ' dia' + (d > 1 ? 's' : '')}` }); }
+    const vistos = new Set();
+    for (const t of Tarefas.doCliente(k, c.whats).concat(Tarefas.all().filter(t => t.clienteKey === 'c:' + c.id)))
+      if (!t.feita && t.etapa === 'aguardar' && !vistos.has(t.id)) { vistos.add(t.id); out.push({ tipo: 'aguardar', txt: t.texto, tarefaId: t.id }); }
+    return out;
+  },
+};
 const Espera = {
+  /* ela mandou uma mensagem: o app passa a aguardar a resposta (2 dias), uma por dia por cliente */
+  mensagem(c, chave) {
+    return Tarefas.garante({ etapa: 'aguardar', texto: `Aguardar a resposta de ${String(c.nome || 'o cliente').split(' ')[0]}`,
+      prazo: addDays(isoToday(), 2), fechaQuando: '', clienteKey: 'c:' + c.id, clienteNome: c.nome, whats: c.whats,
+      chave: 'msg:' + chave + ':' + isoToday(), origem: 'app' });
+  },
   orcamento(o) {
     return Tarefas.garante({ etapa: 'aguardar', texto: `Aguardar a resposta de ${(o.cliente.nome || 'o cliente').split(' ')[0]} sobre o orçamento ${o.num}`,
       prazo: addDays(isoToday(), 2), fechaQuando: 'orc-decidido', orcId: o.id, clienteNome: o.cliente.nome, whats: o.cliente.whats,
@@ -2375,6 +2412,7 @@ if (typeof STR !== 'undefined') {
     admPipeline: { pt: 'Pipeline', en: 'Pipeline' },
     admPrecos:   { pt: 'Tabela de preços', en: 'Price list' },
     admVoucher:  { pt: 'Voucher', en: 'Voucher' },
+    admConversas: { pt: 'Conversas', en: 'Conversations' },
     admConsulta: { pt: 'Orçamentos', en: 'Quotes' },
     hubAval: { pt: 'Avaliações', en: 'Reviews' },
     hubAvalSub: { pt: 'O que dizem os clientes', en: 'What our guests say' },

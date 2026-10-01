@@ -87,13 +87,14 @@ function ingServ(b) {
     paga_no_dia: nd.valor ? `${nd.valor} € ${nd.para === 'prestador' ? 'para quem faz o serviço' : 'para a Ingrid'}` : 'nada',
     obs: b.obsOp || '', situacao: b.status === 'cancelled' ? 'cancelada' : 'confirmada' };
 }
-const ING_ABAS = ['today', 'planilha', 'pipeline', 'consulta', 'tarefas', 'guias', 'transfer', 'agenda', 'bookings', 'clients', 'money', 'tours', 'precos', 'voucher', 'reports', 'coupons', 'look', 'settings'];
+const ING_ABAS = ['today', 'conversas', 'planilha', 'pipeline', 'consulta', 'tarefas', 'guias', 'transfer', 'agenda', 'bookings', 'clients', 'money', 'tours', 'precos', 'voucher', 'reports', 'coupons', 'look', 'settings'];
 const ING_TURNOS = ['manha', 'tarde', 'noite', 'dia'];
 
 /* ---------- 2. as ferramentas das abas dela ---------- */
 const contasIds = () => [...Contas.all().map(c => c.id), CONTA_PRESTADOR];
 const ING_FERRAMENTAS = [
   /* ler */
+  { name: 'ver_conversas', description: 'A aba Conversas: quem está esperando algo DELA (orçamento enviado sem resposta, cobrar, confirmar passeio, tarefas de espera) e as últimas mensagens que ela mandou a cada cliente pelo WhatsApp. Mensagens que chegam só entram quando o WhatsApp oficial estiver ligado.', input_schema: obj({ cliente: S_('nome ou WhatsApp (opcional; vazio = todos que estão esperando)') }) },
   { name: 'ver_hoje', description: 'Os serviços de um dia (padrão: hoje) como na aba Hoje: cliente, voo, de onde para onde, quem faz, quanto o cliente paga no dia e para quem, observação.', input_schema: obj({ data: S_('AAAA-MM-DD') }) },
   { name: 'buscar', description: 'Emergência: acha serviço por pedaço do nome do cliente, do grupo, voo, código ou telefone.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'ver_guias', description: 'Guias e motoristas na ordem de preferência dela: id, nome, tipo, cidades, idiomas, WhatsApp, observação.', input_schema: obj({ tipo: { type: 'string', enum: ['guia', 'motorista'] }, cidade: S_() }) },
@@ -162,6 +163,15 @@ const ING_LER = {
     if (!l.length) return { nada: 'nenhuma linha com esse filtro', tabelas: Precos.resumo() };
     return { linhas: l.slice(0, 40), total_achado: l.length, como_usar: 'passe o ref em preco_ref (criar_orcamento ou editar_orcamento): valor, sinal e custo entram certos',
       regras: 'sinal = preço − custo (a margem dela); cartão = +10%; noturno (21h–6h) = +€30 por veículo; bebê e criança contam como pessoa; a "Transfer Roma 5%" (preço com desconto) só quando ela pedir desconto — o normal é Transfer Roma' };
+  },
+  ver_conversas(i) {
+    const hoje = hojeIso(), q = String(i.cliente || '').trim(), qd = q.replace(/\D/g, '');
+    const l = Cadastro.all().map(c => ({ c, pend: Conversas.pendencias(c, hoje), msgs: Conversas.de(chaveFicha(c)) }))
+      .filter(x => q ? (ingN(x.c.nome).includes(ingN(q)) || (qd.length >= 4 && String(x.c.whats || '').replace(/\D/g, '').includes(qd))) : (x.pend.length || x.msgs.length));
+    if (!l.length) return q ? 'não achei esse cliente' : 'ninguém esperando resposta e nenhuma mensagem registrada';
+    return l.slice(0, 30).map(x => ({ cliente: x.c.nome, whats: x.c.whats, esperando_voce: x.pend.map(p => p.txt),
+      ultimas_mensagens_dela: x.msgs.slice(-3).map(m => m.quando.slice(0, 16).replace('T', ' ') + ' — ' + m.texto),
+      como_mandar: 'ela manda pelo botão da aba Conversas (abrir_aba conversas) — você só escreve o texto se ela pedir' }));
   },
   ver_hoje(i) {
     const d = isoOk(i.data) ? i.data : hojeIso();
@@ -691,6 +701,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Orçamentos (Sob consulta): ver_orcamentos, ler_conversa (conversa colada → rascunho), criar_orcamento, editar_orcamento (MUDA o que já existe: cliente, serviços, datas, valores, bagagem, pessoas), mudar_orcamento (situação/validade/% sinal), fechar_orcamento
 - TABELA DE PREÇOS (as 4 abas do Excel dela: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma): ver_precos acha a linha certa por pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão e noturno, com um ref. VOCÊ LÊ ESSA TABELA — nunca peça o valor ou o sinal a ela: consulte ver_precos e passe o ref em preco_ref.
 - Voucher (o texto de cada reserva, que se monta sozinho) e Pipeline (kanban dos pedidos): abrir_aba voucher / pipeline
+- Conversas (central de mensagens): ver_conversas mostra quem está esperando algo dela e o que ela já mandou; a mensagem ELA manda pelo botão da aba (abrir_aba conversas) — você só escreve o texto quando ela pedir
 - Planilha (o CRM dela, linha por serviço, igual ao Google Planilhas): ver_crm lê TODAS as colunas (filtre por cliente/mês); ver_painel dá os números e o "precisa de você"; para mudar use mudar_orcamento, fechar_orcamento, registrar_pagamento, marcar_perdido ou abrir_aba planilha
 - Transfer (New Star Limousine — SÓ transfers de Roma; os de fora de Roma são com outro fornecedor): ver_transfers (inclui os dados prontos para colar na plataforma)
 - ⭐ Avaliações do site: ver_avaliacoes
