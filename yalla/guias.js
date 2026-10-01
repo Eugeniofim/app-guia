@@ -211,9 +211,28 @@ function viewGuia(id) {
 
     <section class="card">
       <span class="seclabel">${gt('gpSeus')}</span>
-      ${ps.length ? ps.map(b => `<div class="gpPass"><b>${esc(nomeTour(Tours.get(b.tourId)))}</b>
-        <small>${dataCurta(b.date)} · ${esc(b.time)} · ${b.pax} ${t('people')} · ${esc(b.name)}</small></div>`).join('')
-        : `<p class="why">${gt('gpNenhum')}</p>`}
+      ${ps.length ? `<p class="why" style="margin:-2px 0 10px">${ps.length} ${LANG==='pt'?'agendado(s)':'scheduled'} · ${LANG==='pt'?'próximo':'next'}: ${dataCurta(ps[0].date)} ${esc(ps[0].time||'')}</p>` : ''}
+      ${ps.length ? ps.map(b => {
+        const tour = Tours.get(b.tourId) || {};
+        const ehTransfer = (tour.type === 'transfer');
+        const wa = String(b.whats||'').replace(/\D/g,'');
+        const ig = String(b.insta||'').replace(/^@/,'').trim();
+        const contatos = [
+          wa ? `<a class="gpBtn wa" href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>` : '',
+          ig ? `<a class="gpBtn ig" href="https://instagram.com/${encodeURIComponent(ig)}" target="_blank" rel="noopener">@${esc(ig)}</a>` : '',
+          b.email ? `<a class="gpBtn em" href="mailto:${esc(b.email)}">${LANG==='pt'?'E-mail':'Email'}</a>` : '',
+        ].filter(Boolean).join('');
+        return `<div class="gpCard">
+          <div class="gpCardTop">
+            <b>${esc(nomeTour(tour))}</b>
+            ${ehTransfer ? `<span class="gpTag">${LANG==='pt'?'Transfer':'Transfer'}</span>` : ''}
+          </div>
+          <div class="gpMeta">📅 ${dataCurta(b.date)} · ${esc(b.time||'')} · 👥 ${b.pax} ${t('people')}</div>
+          ${tour.meeting ? `<div class="gpMeta">📍 ${esc(typeof tour.meeting === "string" ? tour.meeting : (tl(tour.meeting) || ""))}</div>` : ''}
+          <div class="gpCli">${LANG==='pt'?'Cliente':'Guest'}: <b>${esc(b.name)}</b></div>
+          ${contatos ? `<div class="gpContatos">${contatos}</div>` : `<div class="gpMeta" style="opacity:.6">${LANG==='pt'?'sem contato cadastrado':'no contact on file'}</div>`}
+        </div>`;
+      }).join('') : `<p class="why">${gt('gpNenhum')}</p>`}
     </section>
     <p class="why center">${gt('gpDemo')}</p>
   </main>`;
