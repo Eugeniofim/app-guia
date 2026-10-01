@@ -1436,23 +1436,16 @@ function renderBook() {
 ===================================================== */
 /* A ordem do dia dela (reuniao de 28/09/2026): o que acontece hoje, o que
    chegou pedindo orcamento, quem faz, e so depois o resto. */
-const ADM_TABS = [
-  ['today',    'admToday'],
-  ['planilha', 'admPlanilha'],
-  ['consulta', 'admConsulta'],
-  ['tarefas',  'admTarefas'],
-  ['guias',    'admGuias'],
-  ['transfer', 'admTransfer'],
-  ['agenda',   'admAgenda'],
-  ['bookings', 'admBookings'],
-  ['clients',  'admClients'],
-  ['money',    'admMoney'],
-  ['tours',    'admTours'],
-  ['reports',  'admReports'],
-  ['coupons',  'admCoupons'],
-  ['look',     'temaTit'],
-  ['settings', 'admSettings'],
+/* O menu em grupos (como o TI ARTES): cada grupo tem um título e as abas.
+   'planilha' não fica no menu — é um lado da aba Orçamentos (atalho cli-seg). */
+const ADM_GROUPS = [
+  { h: 'O dia a dia',           tabs: [['today', 'admToday'], ['agenda', 'admAgenda'], ['tarefas', 'admTarefas']] },
+  { h: 'Orçamentos e clientes', tabs: [['pipeline', 'admPipeline'], ['consulta', 'admConsulta'], ['clients', 'admClients'], ['bookings', 'admBookings']] },
+  { h: 'Em Roma',               tabs: [['guias', 'admGuias'], ['transfer', 'admTransfer'], ['tours', 'admTours']] },
+  { h: 'Dinheiro',              tabs: [['money', 'admMoney'], ['reports', 'admReports'], ['coupons', 'admCoupons']] },
+  { h: 'O app',                 tabs: [['look', 'temaTit'], ['settings', 'admSettings']] },
 ];
+const ADM_TABS = ADM_GROUPS.flatMap(g => g.tabs);
 
 /* ---- aviso de painel destravado ----
    Desde que as reservas passaram a ser privadas, quem não está logada
@@ -1496,8 +1489,10 @@ function admShell(tab, inner) {
   <div class="adm">
     <aside class="rail">
       <div class="brand">${logoFull({ mark: 26, sub: 'ADM' })}</div>
-      <nav>${ADM_TABS.map(([id, k]) =>
-        `<button class="nb ${tab === id ? 'on' : ''}" data-tab="${id}" id="nb-${id}">${t(k)}</button>`).join('')}</nav>
+      <button class="nb nb-ia" id="nbAssist" type="button">⚡ Assistente</button>
+      <nav>${ADM_GROUPS.map(g =>
+        `<div class="nav-grp">${g.h ? `<div class="nav-h">${g.h}</div>` : ''}${g.tabs.map(([id, k]) =>
+          `<button class="nb ${tab === id ? 'on' : ''}" data-tab="${id}" id="nb-${id}">${t(k)}</button>`).join('')}</div>`).join('')}</nav>
       <div class="railfoot">
         <button class="nb ghost" id="viewSite">👁 ${t('viewSite')}</button>
         <button class="nb ghost" id="exitAdm">← ${t('exit')}</button>
@@ -1508,6 +1503,7 @@ function admShell(tab, inner) {
   const nab = $('#goProtect');
   if (nab) nab.onclick = () => go('/login');
   $$('.nb[data-tab]').forEach(b => b.onclick = () => go('/adm/' + b.dataset.tab));
+  if ($('#nbAssist')) $('#nbAssist').onclick = () => { try { if (typeof iaAbre === 'function') iaAbre(); } catch (e) {} };
   $('#viewSite').onclick = () => go('/');
   $('#exitAdm').onclick = async () => {
     if (isLoggedIn()) { await authSignOut(); toast(t('loginOut')); }
@@ -1517,6 +1513,7 @@ function admShell(tab, inner) {
 
 function viewAdm(tab, arg) {
   if (tab === 'today')    admToday(arg);
+  else if (tab === 'pipeline') admPipeline();
   else if (tab === 'guias')    admGuias(arg);
   else if (tab === 'planilha') admConsulta(undefined, 'planilha');
   else if (tab === 'transfer') admTransfer();

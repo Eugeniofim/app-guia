@@ -2844,3 +2844,40 @@ function avAjustesLiga() {
   };
   c.querySelectorAll('[data-avrm]').forEach(b => b.onclick = () => { if (confirm('Tirar esta avaliação do site?')) { Avaliacoes.remove(b.dataset.avrm); re(); } });
 }
+
+/* =====================================================
+   PIPELINE — o funil (kanban) dos pedidos, como no TI ARTES.
+   Colunas = as etapas do CRM; cada cartão é um pedido. Toca para abrir.
+===================================================== */
+function admPipeline() {
+  const hoje = isoToday();
+  const COLS = [['aberto', 'Em aberto'], ['confirmado', 'Confirmado'], ['avaliar', '⭐ Avaliar'], ['finalizado', '💚 Finalizado'], ['perdido', 'Perdido']];
+  const ped = new Map();
+  for (const r of crmLinhas(hoje)) { let p = ped.get(r.pedido); if (!p) { p = { pedido: r.pedido, r, linhas: [] }; ped.set(r.pedido, p); } p.linhas.push(r); }
+  const todos = [...ped.values()];
+  const col = (e) => todos.filter(p => p.r.etapa === e);
+  const soma = (ps) => ps.reduce((s, p) => s + (p.r.totalPedido || p.linhas.reduce((s2, x) => s2 + (x.clientePaga || 0), 0)), 0);
+  const card = (p) => {
+    const r = p.r, tot = r.totalPedido || p.linhas.reduce((s2, x) => s2 + (x.clientePaga || 0), 0);
+    const alvo = r.tipo === 'orcamento' ? '#/adm/consulta/' + r.o.id : '#/adm/clients/' + encodeURIComponent('c:' + (r.b.clienteId || ''));
+    const serv = p.linhas.length === 1 ? esc(p.linhas[0].servico) : p.linhas.length + ' serviços';
+    const rp = (r.repescagens || []).length;
+    return `<a class="pl-card pl-e-${r.etapa}" href="${alvo}">
+      <b class="pl-nome">${esc(r.nome || 'Sem nome')}</b>
+      <span class="pl-serv">${serv}${r.dataServ ? ` · ${crmData(r.dataServ)}` : ''}</span>
+      <span class="pl-pe"><b class="mono">${tot ? eur(tot) : '—'}</b>${r.veio ? `<small>${esc(r.veio)}</small>` : ''}${rp ? `<small class="pl-rp">🔁 ${rp}</small>` : ''}</span>
+    </a>`;
+  };
+  admShell('pipeline', `
+    <div class="pagehead"><h1 class="pageh">Pipeline</h1>
+      <div class="chips"><a class="mini" href="#/adm/consulta">ver em lista</a><button class="mini strong" id="plNovo">+ novo orçamento</button></div></div>
+    <p class="why">O caminho de cada pedido, da chegada ao finalizado. Toque num cartão para abrir e mover de etapa.</p>
+    <div class="pl-board">
+      ${COLS.map(([e, nome]) => { const ps = col(e); return `<section class="pl-col pl-col-${e}">
+        <header class="pl-cab"><b>${nome}</b><span class="pl-n">${ps.length}</span></header>
+        ${soma(ps) ? `<div class="pl-soma">${eur(soma(ps))}</div>` : ''}
+        <div class="pl-cards">${ps.map(card).join('') || '<p class="pl-vazio">vazio</p>'}</div>
+      </section>`; }).join('')}
+    </div>`);
+  $('#plNovo') && ($('#plNovo').onclick = () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho' }); go('/adm/consulta/' + o.id); });
+}
