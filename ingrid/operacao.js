@@ -613,6 +613,104 @@ const TERMOS_MODELO = [
   '4. Atrasos do cliente podem reduzir a duração do passeio. No transfer, a espera incluída é a informada no orçamento.',
   '5. Ingressos são nominais e comprados com antecedência; depois de emitidos não têm reembolso.',
 ].join('\n');
+/* Os termos REAIS da EmRoma (aba "Orçamento" da planilha dela, 01/10/2026).
+   Entram sozinhos nos Ajustes no 1º acesso; ela pode editar por cima. */
+const TERMOS_EMROMA = `Todos os valores do orçamento estão sujeitos à mudança sem aviso prévio até a confirmação da reserva.
+
+CONFIRMAÇÃO DA RESERVA
+Para garantir a disponibilidade do serviço, é necessário o pagamento de um sinal de reserva via Pix ou Wise.
+O sinal possui caráter de bloqueio de agenda e disponibilidade operacional, sendo não reembolsável em caso de cancelamento, independentemente do serviço contratado.
+Para pagamentos via Pix, utilizamos a cotação do euro turismo (São Paulo — Melhor Câmbio) no dia da confirmação da reserva.
+O valor pago será abatido do total do serviço.
+
+FORMAS DE PAGAMENTO
+O valor restante poderá ser quitado no dia do serviço através das seguintes modalidades:
+- Em euros (dinheiro)
+- Cartão de crédito (+10%)
+Para maior comodidade, oferecemos a opção de pagamento antecipado integral com acréscimo de 15%.
+Alterações na forma de pagamento devem ser informadas com mínimo de 48 horas de antecedência.
+Obs.: O valor referente à guia deverá ser pago exclusivamente em espécie no dia do atendimento. Não aceitamos cartão de crédito para este pagamento. Caso o cliente opte pelo pagamento total antecipado, será aplicado acréscimo de 15%.
+
+INFORMAÇÕES DO SERVIÇO – TRANSFER PRIVATIVO
+- Valores informados são por trajeto (não por pessoa).
+- Serviço realizado com veículos privativos e motoristas profissionais.
+- Tarifa noturna (21h às 6h): acréscimo de €30 por veículo sobre o valor do serviço.
+- Custos de combustível e pedágios estão incluídos.
+É indispensável informar previamente:
+- Quantidade de passageiros
+- Quantidade e dimensões das bagagens
+- Equipamentos especiais, cadeirinhas, cadeiras de rodas, carrinhos de bebê
+- Qualquer item que possa impactar a operação do serviço
+Importante:
+- Motoristas não falam português.
+- Um WhatsApp de suporte 24h em português será disponibilizado no voucher de confirmação.
+
+POLÍTICA DE ESPERA E ATRASOS
+O serviço contempla as seguintes tolerâncias de espera:
+- Aeroportos: até 1 hora após o pouso do voo
+- Portos: até 30 minutos do horário agendado
+- Estações de trem: até 15 minutos após a chegada
+- Hotéis/Apartamentos: até 5 minutos do horário agendado
+Após o período de tolerância, serão aplicadas taxas adicionais de espera:
+- Aeroporto/Porto: €40 por hora (por veículo)
+- Demais locais: €20 a cada 15 minutos adicionais (por veículo)
+Em caso de atraso superior a 30 minutos em trens, ou qualquer alteração de voo (incluindo mudança de número do voo), o cliente deverá informar imediatamente.
+Não nos responsabilizamos por falhas na prestação do serviço decorrentes da ausência de aviso prévio.
+
+CANCELAMENTOS, DESISTÊNCIAS E NO-SHOW
+Após a chegada do motorista ao local agendado, o serviço será considerado integralmente devido, mesmo em casos de: desistência, mudança de planos, problemas com bagagem, processos migratórios, perda de voo, contratação de outro transporte ou não comparecimento do passageiro.
+O tempo de espera seguirá conforme a política descrita acima. Após o período de tolerância, poderão ser aplicadas taxas adicionais.
+
+SERVIÇOS DE PASSEIOS E GUIAS
+- Serviços realizados com guias locais credenciados, conforme legislação vigente.
+- O idioma do serviço será português.
+- Ingressos, refeições e despesas pessoais não estão incluídos, salvo indicação expressa.
+- O roteiro poderá sofrer ajustes por motivos operacionais, climáticos ou logísticos.
+Horas extras: caso o passeio exceda o período contratado, será aplicado custo adicional previamente informado.
+
+COMPRA DE INGRESSOS (ATRAÇÕES E EXPERIÊNCIAS)
+A solicitação de compra de ingressos será realizada conforme a disponibilidade apresentada pelas atrações no momento da aquisição.
+Não é possível garantir previamente: datas exatas, horários específicos ou a menor tarifa disponível.
+Cada atração possui política própria de venda, disponibilidade dinâmica e limitação de capacidade.
+Comprometemo-nos a buscar a melhor disponibilidade compatível com a solicitação do cliente, priorizar horários e datas mais próximos do desejado e informar previamente qualquer alteração antes da emissão.
+A compra será efetuada somente após aprovação do cliente quanto às condições disponíveis (data, horário e valor).
+
+POLÍTICA DE VALORES
+Os valores poderão sofrer atualização sem aviso prévio até a confirmação da reserva.
+Após a confirmação, o valor acordado será garantido até a execução do serviço contratado.
+
+CONDIÇÕES DE CANCELAMENTO
+Transfer privativo: possui bloqueio operacional imediato e, por este motivo, não é reembolsável após a confirmação da reserva, incluindo o sinal pago.
+Passeios e serviços com guia — em caso de cancelamento:
+- 30 dias ou mais de antecedência: retenção de 50% do valor total pago
+- 15 a 29 dias de antecedência: retenção de 75% do valor total pago
+- 14 dias ou menos: retenção de 100% do valor total pago
+O sinal de reserva é não reembolsável e será considerado dentro dos percentuais de retenção acima.
+A ausência de resposta após 3 tentativas de contato será considerada cancelamento por iniciativa do cliente.
+
+SITUAÇÕES DE FORÇA MAIOR
+Incluem, mas não se limitam a: greves, eventos sanitários, condições climáticas adversas, questões médicas relevantes, restrições governamentais ou operacionais.
+Nestes casos:
+- O serviço poderá ser remarcado ou convertido em crédito válido por até 12 meses.
+- A nova data estará sujeita à disponibilidade.
+- Poderá haver atualização tarifária.
+- O cancelamento seguirá as regras padrão previstas neste documento.
+
+RESPONSABILIDADES DO CLIENTE
+- Pertences pessoais são de responsabilidade exclusiva do cliente.
+- Objetos esquecidos não são cobertos pelo serviço.
+- A contratação de seguro-viagem é obrigatória para entrada na Itália.
+- Equipamentos fornecidos deverão ser devolvidos em perfeito estado. Em caso de perda ou dano: €80 por unidade.
+
+USO DE IMAGEM
+O cliente autoriza o uso de imagens (foto e vídeo) para fins institucionais e promocionais.
+- Validade da autorização: 5 anos.
+- Revogável mediante solicitação formal por escrito.
+
+DISPOSIÇÕES FINAIS
+- Este documento permanecerá válido até a conclusão integral dos serviços contratados.
+- Qualquer alteração deverá ser formalizada por escrito.
+- Os serviços contratados são pessoais e intransferíveis, salvo autorização prévia expressa.`;
 function termosTexto() {
   const s = (DB.settings && DB.settings.termos) || {};
   const l = (typeof LANG !== 'undefined' && LANG === 'en') ? 'en' : 'pt';
@@ -675,6 +773,7 @@ function opGarante() {
   DB.fichas = DB.fichas || {};
   if (!Array.isArray(DB.contas) || !DB.contas.length) DB.contas = contasPadrao();
   if (DB.settings && !DB.settings.termos) DB.settings.termos = { pt: '', en: '' };
+  if (DB.settings && DB.settings.termos && !DB.settings.termos.pt && !DB.settings.termosSeed) { DB.settings.termos.pt = TERMOS_EMROMA; DB.settings.termosSeed = 'emroma1'; }
   if (DB.settings && DB.settings.plantao === undefined) DB.settings.plantao = '';
   DB.tarefas = DB.tarefas || [];
   DB.lembretesVistos = DB.lembretesVistos || {};
