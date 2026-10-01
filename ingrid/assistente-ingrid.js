@@ -770,6 +770,7 @@ iaBolha = function (tipo, texto, antesDe, semCopiar, foto) {
   /* o aviso interno dos anexos (⟦…⟧) e para a IA, nao para o balao dela */
   if (tipo === 'user' && typeof texto === 'string') texto = texto.replace(/\s*⟦[\s\S]*?⟧/g, '');
   const el = _ingBolha(tipo, texto, antesDe, semCopiar, foto);
+  if (el.querySelectorAll) el.querySelectorAll('img[src^="data:application/pdf"]').forEach(im => { const sp = document.createElement('span'); sp.className = 'ia-pdf'; sp.textContent = '📄 PDF'; im.replaceWith(sp); });
   if (tipo === 'assistant' && ingVozEspera) ingFalar(texto);
   return el;
 };
@@ -798,12 +799,11 @@ iaConversa = async function (texto, fotos) {
   const base = ingAnexos.length;
   const novos = fotos.map((src, k) => ({ ref: 'anexo' + (base + k + 1), src, nome: /^data:application\/pdf/.test(src) ? 'PDF' : 'imagem' }));
   ingAnexos = ingAnexos.concat(novos).slice(-8);
-  /* PDF nao entra como imagem na IA: vai so o aviso de que chegou */
-  const imgs = novos.filter(a => /^data:image/.test(a.src)).map(a => a.src);
-  const nota = novos.length ? `\n\n⟦Ela mandou ${novos.map(a => `${a.ref} (${a.nome})`).join(', ')}. Se for comprovante de pagamento: leia valor e nome${novos.some(a => a.nome === 'PDF') ? ' (o PDF você não consegue ler: pergunte o valor se ela não disse)' : ''}, ache a reserva e chame registrar_pagamento com anexo — fica na ficha e na pasta do cliente no Google Drive. Outro documento do cliente → arquivar.⟧` : '';
-  const _gf = guardaFoto; let n = 0;
-  guardaFoto = () => ({ id: (novos.filter(a => /^data:image/.test(a.src))[n++] || {}).ref || 'anexo' });
-  try { return await _ingConversa((texto || (novos.length ? 'Mandei um arquivo.' : '')) + nota, imgs); } finally { guardaFoto = _gf; ingVozEspera = false; }
+  /* o Claude lê imagem E PDF: manda os dois para ele ler o comprovante direto */
+  const nota = novos.length ? `\n\n⟦Ela anexou ${novos.map(a => `${a.ref} (${a.nome})`).join(', ')} — você CONSEGUE ler (imagem e PDF). Se for comprovante de pagamento: leia o valor e o nome, ache a reserva (buscar) e chame registrar_pagamento com anexo — fica na ficha e na pasta do cliente no Google Drive. Outro documento do cliente → arquivar.⟧` : '';
+  /* não salva o anexo nas fotos de marketing nem deixa o motor gerar nota de "foto para criativo" */
+  const _gf = guardaFoto; guardaFoto = () => null;
+  try { return await _ingConversa((texto || (novos.length ? 'Te mandei um arquivo.' : '')) + nota, fotos); } finally { guardaFoto = _gf; ingVozEspera = false; }
 };
 const _ingCenario = iaRodaCenario;
 iaRodaCenario = async function (c) {

@@ -1067,8 +1067,8 @@ const ehPergunta = (m) => m.role === 'user' && (typeof m.content === 'string' ||
 function iaAparaHist(h) {
   let x = h.slice(-40);
   while (x.length && !ehPergunta(x[0])) x.shift();
-  return x.map(m => Array.isArray(m.content) && m.content.some(b => b.type === 'image')
-    ? { ...m, content: m.content.map(b => b.type === 'image' ? { type: 'text', text: '[foto]' } : b) } : m);
+  return x.map(m => Array.isArray(m.content) && m.content.some(b => b.type === 'image' || b.type === 'document')
+    ? { ...m, content: m.content.map(b => (b.type === 'image' || b.type === 'document') ? { type: 'text', text: b.type === 'document' ? '[documento]' : '[foto]' } : b) } : m);
 }
 
 let iaOcupado = false;
@@ -1080,7 +1080,12 @@ async function iaConversa(texto, fotos) {
   const refs = fotos.map(f => guardaFoto(f)).filter(Boolean).map(f => f.id);
   const nota = refs.length ? `\n\n[${refs.length > 1 ? 'fotos guardadas' : 'foto guardada'}; refs (para criativo ou capa de passeio): ${refs.join(', ')}]` : '';
   const pergunta = texto || (fotos.length > 1 ? 'O que dá para fazer com estas fotos?' : 'Escreva uma legenda para esta foto.');
-  hist.push({ role: 'user', dia: hojeLocalIso(), content: fotos.length ? [...fotos.map(f => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.split(',')[1] } })), { type: 'text', text: pergunta + nota }] : pergunta });
+  hist.push({ role: 'user', dia: hojeLocalIso(), content: fotos.length ? [...fotos.map(f => {
+    const mt = (String(f).match(/^data:([^;]+)/) || [])[1] || 'image/jpeg';
+    return /pdf/.test(mt)
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.split(',')[1] } }
+      : { type: 'image', source: { type: 'base64', media_type: /^image\//.test(mt) ? mt : 'image/jpeg', data: f.split(',')[1] } };
+  }), { type: 'text', text: pergunta + nota }] : pergunta });
   iaBolha('user', pergunta, null, false, fotos);
   const pensando = iaBolha('pensa', ia('pensando'));
   try {

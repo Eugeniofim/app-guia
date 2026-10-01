@@ -260,13 +260,21 @@ function admHoje(arg) {
       ${semPres.length ? `<a class="alert warn" href="#/adm/guias">👤 ${semPres.length} ${semPres.length > 1 ? 'serviços' : 'serviço'} sem guia/motorista nos próximos 3 dias →</a>` : ''}
       ${late.length ? `<a class="alert bad" href="#/adm/bookings">⚠ ${late.length} ${late.length > 1 ? 'pagamentos atrasados' : 'pagamento atrasado'} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} →</a>` : ''}
     </div>` : ''}
-    ${tfDia.length ? `<section class="card tf-hoje"><div class="rp-cab"><h3>✅ Tarefas ${dia === hoje ? 'de hoje' : 'do dia'}${dia === hoje && tfHoje.atrasadas.length ? ` · <span class="tf-bad">${tfHoje.atrasadas.length} atrasada${tfHoje.atrasadas.length > 1 ? 's' : ''}</span>` : ''}</h3>
-      <a class="mini" href="#/adm/tarefas">todas as tarefas</a></div>
-      ${sozinhas.map(t => `<p class="why">✨ ${esc(t.texto)} — ${esc(t.obsFim)}</p>`).join('')}
-      ${tfMiniHtml(tfDia, hoje, '')}</section>` : ''}
     <p class="op-resumo"><b>${fmtDate(dia)}</b> · ${lista.length} ${lista.length === 1 ? 'serviço' : 'serviços'} · ${pax} pessoas${noDia ? ` · <b>${eur(noDia)}</b> pagos no dia a guias e motoristas` : ''}</p>
-    ${lista.length ? lista.map(b => opCardServico(b)).join('')
-      : `<div class="emptybox"><p>Nenhum serviço neste dia.</p><a class="mini" href="#/adm/consulta">Ver pedidos sob consulta</a></div>`}
+    ${(() => {
+      /* A AGENDA DO DIA (espelha o TI ARTES): serviços e tarefas numa linha do
+         tempo única, em ordem de horário. As atrasadas vêm primeiro. */
+      const taskHoje = dia === hoje ? tfHoje.hoje : Tarefas.doDia(dia).filter(x => x.tipo === 'tarefa' && !x.feita);
+      const linha = [...lista.map(b => ({ h: b.time || '99:99', k: 'svc', b })), ...taskHoje.map(x => ({ h: x.hora || '99:98', k: 'task', x }))]
+        .sort((a, b) => String(a.h).localeCompare(String(b.h)));
+      const atrasadas = dia === hoje ? tfHoje.atrasadas : [];
+      if (!linha.length && !atrasadas.length && !sozinhas.length) return `<div class="emptybox"><p>Nada marcado para este dia.</p><a class="mini" href="#/adm/consulta">Ver pedidos sob consulta</a></div>`;
+      const cab = `<div class="md-ag-cab"><h3>📅 Agenda ${dia === hoje ? 'de hoje' : 'do dia'}</h3>${atrasadas.length ? `<span class="tf-bad">${atrasadas.length} atrasada${atrasadas.length > 1 ? 's' : ''}</span>` : ''}<a class="mini" href="#/adm/tarefas">todas as tarefas</a></div>`;
+      const avisos = sozinhas.length ? `<div class="card md-avisos">${sozinhas.map(x => `<p class="why">✨ ${esc(x.texto)} — ${esc(x.obsFim)}</p>`).join('')}</div>` : '';
+      const atr = atrasadas.map(x => `<div class="card tf-item atrasada">${tfLinha(x, hoje)}</div>`).join('');
+      const corpo = linha.map(it => it.k === 'svc' ? opCardServico(it.b) : `<div class="card tf-item">${tfLinha(it.x, hoje)}</div>`).join('');
+      return cab + avisos + atr + corpo;
+    })()}
     ${dia === hoje ? (() => {
       const prox = [];
       for (let i = 1; i <= 21 && prox.length < 6; i++) {

@@ -571,3 +571,12 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .md-n{color:var(--ink-2);font-size:var(--fs-3);text-align:right;white-space:nowrap}
 .md-nomes{grid-column:1/-1;color:var(--ink-3);font-size:var(--fs-2)}
 @media(min-width:560px){.md-dia{grid-template-columns:160px 1fr auto}.md-nomes{grid-column:2}.md-n{grid-row:1;grid-column:3}}
+/* ---- Meu dia: a agenda do dia (linha do tempo serviços + tarefas) ---- */
+.md-ag-cab{display:flex;align-items:baseline;gap:10px 14px;flex-wrap:wrap;margin:20px 0 10px}
+.md-ag-cab h3{margin:0;font-size:var(--fs-5)}
+.md-ag-cab .tf-bad{color:var(--danger);font-weight:var(--t-strong);font-size:var(--fs-2)}
+.md-ag-cab .mini{margin-left:auto}
+.card.tf-item{padding:12px 16px;margin-bottom:10px}
+.card.tf-item.atrasada{border-left:3px solid var(--danger)}
+.card.md-avisos{padding:12px 16px;margin-bottom:10px;border-left:3px solid var(--highlight)}
+.card.md-avisos .why{margin:2px 0}
