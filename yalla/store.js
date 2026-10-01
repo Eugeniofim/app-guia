@@ -162,6 +162,24 @@ function _seed() {
       espec: 'Corporativo, visitas técnicas e Abu Dhabi', cache: 0,
       livres: [addDays(isoToday(), 4), addDays(isoToday(), 5), addDays(isoToday(), 11)] },
   ];
+  /* Reservas de exemplo: dão vida a Clientes, à ficha de cada um (com saldo
+     e cobrança), ao Dinheiro/Relatório e ao painel dos guias (escalados).
+     Só na demonstração — some quando ela ligar a nuvem e entra o real. */
+  const _bk = (tourId, dias, time, name, email, whats, insta, pax, total, recebido, guiaId, metodo) => {
+    const b = { id: uid(), code: bookCode(), tourId, date: addDays(isoToday(), dias), time,
+      name, email: email || '', whats: whats || '', insta: insta || '',
+      pax, total, coupon: null, discount: 0, policy: 'half',
+      consent: { ok: true, at: isoToday() }, payments: [], status: 'confirmed',
+      guiaId: guiaId || '', createdAt: new Date().toISOString(), origin: 'manual' };
+    if (recebido > 0) b.payments.push({ amount: Math.min(recebido, total), date: isoToday(),
+      method: metodo || 'transfer', kind: recebido >= total ? 'full' : 'deposit' });
+    return b;
+  };
+  db.bookings = [
+    _bk('privativas', 4, '10:00', 'Sarah Whitfield', 'sarah.w@example.com', '+971501112233', 'sarahw', 2, 390, 195, 'g-ahmed', 'transfer'),
+    _bk('imersoes', 9, '09:00', 'James Carter', 'james.carter@example.com', '+447700900123', '', 4, 1200, 1200, 'g-ahmed', 'transfer'),
+    _bk('personalizadas', 14, '16:00', 'Lucía Gómez', 'lucia.gomez@example.com', '+34611223344', 'luciagomez', 2, 520, 0, 'g-carol', ''),
+  ];
   db.settings.bio = {"pt": "Sou Milena Fernandes, a Milla. Moro em Dubai desde 2010 e sou guia brasileira licenciada nos Emirados Árabes Unidos.\n\nA Yalla Experiences nasceu da paixão por conectar culturas, pessoas e oportunidades. Mais do que uma empresa de turismo, desenvolvemos experiências planejadas para apresentar o melhor dos Emirados e do Oriente Médio de forma personalizada, humana e exclusiva.\n\nAo longo dos anos construí uma rede de parceiros locais e fornecedores selecionados que permite aos nossos clientes viver muito além dos roteiros tradicionais.", "en": "I am Milena Fernandes, Milla. I have lived in Dubai since 2010 and I am a Brazilian guide licensed in the United Arab Emirates.\n\nYalla Experiences was born from a passion for connecting cultures, people and opportunities. More than a tourism company, we design experiences that show the best of the Emirates and the Middle East in a personal, human and exclusive way.\n\nOver the years I have built a network of local partners and selected suppliers that lets our clients go far beyond the usual itineraries."};
   db.settings.homeText = {"pt": "Experiências privativas, imersões de negócios e eventos nos Emirados Árabes Unidos. Cada experiência é única porque cada história também é.", "en": "Private experiences, business immersions and events in the United Arab Emirates. Every experience is unique because every story is too."};
   db.settings.photo = 'arte/milla-rosto.jpg';
