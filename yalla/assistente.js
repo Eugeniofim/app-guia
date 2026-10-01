@@ -26,10 +26,10 @@
    para fora: o assistente escreve, quem envia é o guia. */
 'use strict';
 
-const IA_CHAVE = 'guia_ia_chave';
-const IA_HIST = 'guia_ia_hist';
-const IA_GASTO = 'guia_ia_gasto';
-const IA_CONFIRMA = 'guia_ia_confirma';
+const IA_CHAVE = 'yalla_ia_chave';
+const IA_HIST = 'yalla_ia_hist';
+const IA_GASTO = 'yalla_ia_gasto';
+const IA_CONFIRMA = 'yalla_ia_confirma';
 const IA_MODELO = 'claude-haiku-4-5';
 const IA_PRECO = { in: 1, out: 5, cacheW: 1.25, cacheR: 0.10 };  /* US$ por milhão de tokens */
 const IA_MAX_VOLTAS = 10;
@@ -43,7 +43,11 @@ const iaChave = () => { try { return (localStorage.getItem(IA_CHAVE) || '').trim
               servidor, limite por pessoa e por dia) — ver guia-cofre;
    - 'demo':  sem nada disso, pedidos prontos que rodam as ferramentas. */
 const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
-const COFRE_FIM = 'guia_cofre_fim';
+/* De qual cliente é este app. Sem isto, a tela de treino de TODO app
+   escreveria por cima do treino do demo — um cliente apagaria o outro. */
+const CLIENTE_COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.clienteCofre) || 'demo';
+const urlEnsino = () => COFRE + '/api/ensino?cliente=' + encodeURIComponent(CLIENTE_COFRE);
+const COFRE_FIM = 'yalla_cofre_fim';
 let cofreEstado = { claude: false, imagem: false, instagram: false, whatsapp: false };
 const cofreEsgotado = (tipo) => { try { return sessionStorage.getItem(COFRE_FIM + tipo) === new Date().toISOString().slice(0, 10); } catch (e) { return false; } };
 const marcaEsgotado = (tipo) => { try { sessionStorage.setItem(COFRE_FIM + tipo, new Date().toISOString().slice(0, 10)); } catch (e) {} };
@@ -188,9 +192,9 @@ const IA_TXT = {
   sdHojeVazio:{ pt: 'Hoje não há saída marcada.', en: 'No departures today.', fr: 'Aucun départ aujourd’hui.', it: 'Oggi nessuna partenza.', de: 'Heute keine Termine.', es: 'Hoy no hay salidas.' },
   sdFalta:    { pt: 'A receber: {v} em {n} reserva(s).', en: 'Still due: {v} across {n} booking(s).', fr: 'À recevoir : {v} sur {n} réservation(s).', it: 'Da incassare: {v} su {n} prenotazione/i.', de: 'Offen: {v} bei {n} Buchung(en).', es: 'Por cobrar: {v} en {n} reserva(s).' },
   sdConvite:  { pt: 'Me diga o que precisa — eu preencho no app e mostro antes de gravar.', en: 'Tell me what you need — I fill it in the app and show you before saving.', fr: 'Dites-moi ce qu’il vous faut — je remplis l’app et vous montre avant d’enregistrer.', it: 'Dimmi di cosa hai bisogno — riempio l’app e ti mostro prima di salvare.', de: 'Sag mir, was du brauchst — ich trage es ein und zeige es dir vor dem Speichern.', es: 'Dime qué necesitas — lo relleno en la app y te lo muestro antes de guardar.' },
-  aoVivoTit: { pt: 'Veja o atendimento automático funcionando', en: 'See the automatic assistant in action' },
-  aoVivoTxt: { pt: 'Este é o robô de demonstração da Ti Artes, no Instagram @{c}. Mande um direct perguntando sobre um passeio: datas, vagas, preço. Ele responde em segundos, no seu idioma.', en: 'This is the Ti Artes demo robot on Instagram @{c}. Send a DM asking about a tour: dates, seats, price. It replies in seconds, in your language.' },
-  aoVivoNota: { pt: 'No seu app, o robô responde com os SEUS passeios, no seu Instagram e no seu WhatsApp. Para testar este aqui, peça ao Eugênio para liberar o seu Instagram (leva 1 minuto).', en: 'In your app the robot answers with YOUR tours, on your Instagram and WhatsApp. To try this one, ask Eugênio to enable your Instagram (takes a minute).' },
+  aoVivoTit: { pt: 'Teste o agente de verdade', en: 'Try the real agent' },
+  aoVivoTxt: { pt: 'Mande uma mensagem perguntando sobre um passeio: datas, vagas, preço. Em segundos chega a resposta, escrita pelo agente no seu idioma, com as vagas deste demo.', en: 'Send a message asking about a tour: dates, seats, price. Within seconds the agent replies in your language, with this demo’s availability.' },
+  aoVivoNota: { pt: 'Enquanto a Meta analisa o app, o seu Instagram ou número precisa ser liberado antes — peça ao seu contato da Ti Artes (1 minuto).', en: 'While Meta reviews the app, your Instagram or number must be enabled first — ask your Ti Artes contact (1 minute).' },
   ibConversas: { pt: 'Conversas', en: 'Chats' },
   ibEnsinar: { pt: 'Ensinar o agente', en: 'Teach the agent' },
   ensLead: { pt: 'Diga ao agente como falar e o que responder. Passeios, preços e vagas ele já lê sozinho do app.', en: 'Tell the agent how to talk and what to answer. Tours, prices and seats it already reads from the app.' },
@@ -265,8 +269,8 @@ const IA_TXT = {
   dVagasPede: { pt: 'Quais saídas estão com mais vaga nas próximas semanas?', en: 'Which departures have the most empty seats in the coming weeks?' },
   dVagasResp: { pt: 'As mais vazias:\n{lista}\n\nQuer que eu monte um post ou um anúncio para elas?', en: 'The emptiest ones:\n{lista}\n\nShall I make a post or an ad for them?' },
   dVagasNada: { pt: 'Nas próximas semanas todas as saídas estão cheias ou quase. Boa notícia.', en: 'Every departure in the coming weeks is full or nearly full. Good news.' },
-  dPrecoPede: { pt: 'Sobe o preço de "{tour}" para {preco} €', en: 'Raise the price of "{tour}" to €{preco}' },
-  dPrecoResp: { pt: 'Pronto: "{tour}" agora custa {preco} €. Reservas que já existem não mudam de valor.', en: 'Done: "{tour}" now costs €{preco}. Existing bookings keep their price.' },
+  dPrecoPede: { pt: 'Sobe o preço de "{tour}" para {moeda} {preco}', en: 'Raise the price of "{tour}" to {moeda} {preco}' },
+  dPrecoResp: { pt: 'Pronto: "{tour}" agora custa {moeda} {preco}. Reservas que já existem não mudam de valor.', en: 'Done: "{tour}" now costs {moeda} {preco}. Existing bookings keep their price.' },
   dPlanoPede: { pt: 'Monta o plano de postagem das próximas duas semanas', en: 'Build the post plan for the next two weeks' },
   dPlanoResp: { pt: 'Salvei {n} posts no plano, puxando as saídas com mais vaga. Estão em Marketing → Plano de postagem, com a legenda pronta para copiar.', en: 'I saved {n} posts to the plan, pushing the departures with the most empty seats. They’re in Marketing → Post plan, captions ready to copy.' },
   dP1Tema: { pt: '{tour}: o que quase ninguém repara', en: '{tour}: what almost nobody notices' },
@@ -278,7 +282,7 @@ const IA_TXT = {
   dP3Leg: { pt: '1. Dura {dur}. Sapato confortável ajuda.\n2. O encontro é em: {encontro}.\n3. Grupo pequeno: dá para perguntar tudo.\n\nPróxima data: {data}, {hora}.', en: '1. It lasts {dur}. Comfortable shoes help.\n2. We meet at: {encontro}.\n3. Small group: ask me anything.\n\nNext date: {data}, {hora}.' },
   dStoryPede: { pt: 'Faz um story para a saída com mais vaga', en: 'Make a story for the departure with the most empty seats' },
   dStoryTexto: { pt: '{data} · {hora}. Sobram {livres} lugares.', en: '{data} · {hora}. {livres} seats left.' },
-  dStoryRod: { pt: '{preco} € · link na bio', en: '€{preco} · link in bio' },
+  dStoryRod: { pt: '{moeda} {preco} · link na bio', en: '{moeda} {preco} · link in bio' },
   dStoryResp: { pt: 'Story pronto em Marketing → Criativos, para baixar em PNG. Quer outro título?', en: 'Story ready in Marketing → Creatives, to download as PNG. Want a different title?' },
   dTextoPede: { pt: 'Faz um post só de texto explicando por que fazer o passeio com guia local', en: 'Make a text-only post on why to tour with a local guide' },
   dTextoTit: { pt: 'Por que ir com guia local?', en: 'Why go with a local guide?' },
@@ -293,15 +297,15 @@ const IA_TXT = {
   dAnT2: { pt: 'A cidade que o guia de bolso não mostra', en: 'The city the pocket guide won’t show you' },
   dAnX2: { pt: 'Em {data} eu levo um grupo pequeno pelo "{tour}". Pergunte o que quiser pelo WhatsApp.', en: 'On {data} I’m taking a small group on "{tour}". Ask me anything on WhatsApp.' },
   dAnBot: { pt: 'Enviar mensagem', en: 'Send message' },
-  dAnuncioResp: { pt: 'Plano salvo em Marketing → Anúncios: {verba} € por dia durante 7 dias. Você monta no Gerenciador de Anúncios da Meta — eu não ligo nem pago nada.', en: 'Plan saved in Marketing → Ads: €{verba} a day for 7 days. You set it up in Meta Ads Manager — I never switch on or pay for anything.' },
+  dAnuncioResp: { pt: 'Plano salvo em Marketing → Anúncios: {moeda} {verba} por dia durante 7 dias. Você monta no Gerenciador de Anúncios da Meta — eu não ligo nem pago nada.', en: 'Plan saved in Marketing → Ads: {moeda} {verba} a day for 7 days. You set it up in Meta Ads Manager — I never switch on or pay for anything.' },
   dBloqPede: { pt: 'Bloqueia o dia 25 de dezembro', en: 'Block 25 December' },
   dBloqResp: { pt: 'Bloqueado: nenhum passeio sai em 25/12. Se alguém já tinha reserva nesse dia, eu aviso aqui antes — o bloqueio não cancela ninguém.', en: 'Blocked: no tours on 25/12. If someone had already booked that day I’d flag it first — blocking never cancels anyone.' },
   dMemPede: { pt: 'Lembra: criança até 6 anos não paga', en: 'Remember: children under 6 go free' },
   dMemResp: { pt: 'Guardado na memória. Vou considerar isso em respostas e anúncios.', en: 'Saved to memory. I’ll take it into account in replies and ads.' },
   /* atendimento: respostas no idioma do cliente */
-  aDisp: { pt: 'Oi, {nome}! Tem sim: {data}, às {hora}, sobram {livres} lugares no "{tour}". Custa {preco} € por pessoa. Te mando o link para reservar?', en: 'Hi {nome}! Yes: on {data} at {hora} there are {livres} seats left on "{tour}". It’s €{preco} per person. Shall I send you the booking link?' },
+  aDisp: { pt: 'Oi, {nome}! Tem sim: {data}, às {hora}, sobram {livres} lugares no "{tour}". Custa {moeda} {preco} por pessoa. Te mando o link para reservar?', en: 'Hi {nome}! Yes: on {data} at {hora} there are {livres} seats left on "{tour}". It’s {moeda} {preco} per person. Shall I send you the booking link?' },
   aDispNao: { pt: 'Oi, {nome}! Essa data já está cheia. A próxima com lugar é {data}, às {hora} ({livres} lugares). Serve?', en: 'Hi {nome}! That date is full. The next one with space is {data} at {hora} ({livres} seats). Would that work?' },
-  aPreco: { pt: 'Oi, {nome}! "{tour}" custa {preco} € {modo}. Próximas datas com lugar: {datas}. Quer que eu segure uma?', en: 'Hi {nome}! "{tour}" costs €{preco} {modo}. Next dates with space: {datas}. Shall I hold one for you?' },
+  aPreco: { pt: 'Oi, {nome}! "{tour}" custa {moeda} {preco} {modo}. Próximas datas com lugar: {datas}. Quer que eu segure uma?', en: 'Hi {nome}! "{tour}" costs {moeda} {preco} {modo}. Next dates with space: {datas}. Shall I hold one for you?' },
   porPessoa: { pt: 'por pessoa', en: 'per person' },
   porSessao: { pt: 'pela sessão', en: 'per session' },
   aSemana: { pt: 'Oi, {nome}! Para {n} pessoas, estas datas têm lugar: {datas}. Qual prefere?', en: 'Hi {nome}! For {n} people, these dates have space: {datas}. Which do you prefer?' },
@@ -317,6 +321,8 @@ function ia(k, vars) {
   const e = IA_TXT[k];
   let s = e ? (e[LANG] || (LANG !== 'pt' && e.en) || e.pt) : k;
   if (vars) for (const v in vars) s = s.split('{' + v + '}').join(vars[v]);
+  /* a moeda do negocio (config.js) */
+  if (s.includes('{moeda}')) s = s.split('{moeda}').join(typeof moedaSigla === 'function' ? moedaSigla() : '€');
   return s;
 }
 /* o mesmo texto num idioma escolhido (resposta ao cliente na língua dele) */
@@ -329,7 +335,7 @@ const naLingua = (lang, fn) => { const a = LANG; LANG = lang; try { return fn();
 /* ---------- dados do marketing e do atendimento ----------
    Protótipo: guardados neste navegador. No app de um cliente viram linhas
    no Supabase dele, para celular e laptop verem o mesmo. */
-const MKT_KEY = 'guia_mkt';
+const MKT_KEY = 'yalla_mkt';
 const KIT_PADRAO = { cores: { principal: '#E8A33D', destaque: '#C4553B', escura: '#1E3A4C', neutra: '#6B6B73' },
   voz: '', frases: '', proibidas: 'imperdível, incrível, experiência única, o melhor', hashtags: '' };
 const Mkt = {
@@ -401,7 +407,7 @@ function guardaFoto(src, nome) {
 }
 
 /* ---------- imagem por IA: Gemini, com a chave do guia (fica só no aparelho) ---------- */
-const IMG_CHAVE = 'guia_gemini_chave';
+const IMG_CHAVE = 'yalla_gemini_chave';
 const IMG_MODELOS = ['gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview'];
 const PROPORCAO = { story: '9:16', post: '1:1', flyer: '4:5' };
 const imgChave = () => { try { return (localStorage.getItem(IMG_CHAVE) || '').trim(); } catch (e) { return ''; } };
@@ -519,15 +525,6 @@ const IA_FERRAMENTAS = [
   { name: 'ensinar_agente', description: 'Treina o agente do WhatsApp/Instagram: tom, respostas prontas (pergunta e resposta), o que nunca dizer, quando passar a conversa para o guia.',
     input_schema: obj({ tom: { type: 'string', enum: ['simp', 'formal', 'leve', 'direto'] }, detalhe: S_(), respostas: { type: 'array', items: obj({ pergunta: S_(), resposta: S_() }, ['pergunta', 'resposta']) },
       nunca: S_(), passar: { type: 'array', items: { type: 'string', enum: ['hReclama', 'hDesconto', 'hGrupo', 'hEspecial'] } } }) },
-  { name: 'ver_tarefas', description: 'Lê as tarefas e notas dela: o que está pra fazer, o que está agendado (com data), as notas soltas e o contato guardado em cada uma.', input_schema: obj() },
-  { name: 'anotar_tarefa', description: 'Anota algo pra ELA fazer. Com data, vira compromisso e aparece em Hoje. Sem data, fica em "Pra fazer". Use quando ela disser "anota pra mim...", "preciso...", "lembra de...".',
-    input_schema: obj({ titulo: S_(), nota: S_('detalhes, se houver'), prioridade: { type: 'string', enum: ['alta', 'media', 'baixa'] }, data: S_('AAAA-MM-DD, só se tiver dia'), hora: S_('HH:MM'), cliente: S_('nome/contato de quem é, se for sobre alguém') }, ['titulo']) },
-  { name: 'anotar_nota', description: 'Guarda uma anotação livre: uma ideia, um recado, ou o CONTATO de um cliente ("anota o cadastro dessa pessoa"). Não é uma tarefa a fazer. Pode ganhar data depois e virar compromisso.',
-    input_schema: obj({ titulo: S_('o resumo da nota'), nota: S_('o conteúdo'), cliente: S_('nome e contato, se for cadastro de cliente') }, ['titulo']) },
-  { name: 'concluir_tarefa', description: 'Marca uma tarefa como feita (id de ver_tarefas).', input_schema: obj({ tarefa_id: S_() }, ['tarefa_id']) },
-  { name: 'mudar_tarefa', description: 'Muda uma tarefa ou nota: texto, prioridade, agendar (pôr data) ou tirar da agenda (data vazia). id de ver_tarefas.',
-    input_schema: obj({ tarefa_id: S_(), titulo: S_(), nota: S_(), prioridade: { type: 'string', enum: ['alta', 'media', 'baixa'] }, data: S_('AAAA-MM-DD, ou "sem" pra tirar da agenda'), hora: S_() }, ['tarefa_id']) },
-  { name: 'apagar_tarefa', description: 'Apaga uma tarefa ou nota (id de ver_tarefas).', input_schema: obj({ tarefa_id: S_() }, ['tarefa_id']) },
   { name: 'guardar_memoria', description: 'Guarda uma regra ou preferência que vale para sempre.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'apagar_memoria', description: 'Apaga um item da memória.', input_schema: obj({ memoria_id: S_() }, ['memoria_id']) },
 ];
@@ -820,53 +817,6 @@ function iaPlano(nome, i) {
     const x = m.memoria.find(x => x.id === i.memoria_id); if (!x) return E_('item não encontrado');
     return { titulo: ia('apagar'), assumiu: [], linhas: [['', x.texto]], fazer: () => { m.memoria = m.memoria.filter(y => y !== x); Mkt.salva(); return { ok: true }; } };
   }
-  if (nome === 'ver_tarefas') {
-    return (DB.tarefas || []).map(x => ({ id: x.id, tipo: x.tipo, titulo: x.titulo, nota: x.nota,
-      prioridade: x.prio, data: x.data || '', hora: x.hora || '', contato: x.cliente || '', feito: !!x.feito }));
-  }
-  if (nome === 'anotar_tarefa') {
-    const tit = String(i.titulo || '').trim(); if (!tit) return E_('sem título');
-    const campos = { titulo: tit, tipo: 'tarefa', nota: String(i.nota || ''), cliente: String(i.cliente || ''),
-      prio: ['alta', 'media', 'baixa'].includes(i.prioridade) ? i.prioridade : 'media',
-      data: /^\d{4}-\d{2}-\d{2}$/.test(i.data || '') ? i.data : '', hora: i.hora || '' };
-    const L = LANG === 'pt';
-    return { titulo: L ? 'Anotar tarefa' : 'Add task', assumiu: [],
-      linhas: [['', tit], ...(campos.data ? [[L ? 'Quando' : 'When', campos.data + (campos.hora ? ' ' + campos.hora : '')]] : []), ...(campos.cliente ? [[L ? 'Contato' : 'Contact', campos.cliente]] : [])],
-      fazer: () => { const x = Tarefas.cria(campos); return { ok: true, tarefa_id: x.id, onde: x.data ? (L ? 'na agenda' : 'scheduled') : (L ? 'em Pra fazer' : 'in To do') }; } };
-  }
-  if (nome === 'anotar_nota') {
-    const tit = String(i.titulo || '').trim(); if (!tit) return E_('sem título');
-    const L = LANG === 'pt';
-    const campos = { titulo: tit, tipo: 'nota', nota: String(i.nota || ''), cliente: String(i.cliente || '') };
-    return { titulo: L ? 'Guardar nota' : 'Save note', assumiu: [],
-      linhas: [['', tit], ...(campos.cliente ? [[L ? 'Contato' : 'Contact', campos.cliente]] : [])],
-      fazer: () => { const x = Tarefas.cria(campos); return { ok: true, tarefa_id: x.id }; } };
-  }
-  if (nome === 'concluir_tarefa') {
-    const x = Tarefas.get(i.tarefa_id); if (!x) return E_('não encontrei');
-    const L = LANG === 'pt';
-    return { titulo: L ? 'Concluir' : 'Complete', assumiu: [], linhas: [['', x.titulo]],
-      fazer: () => { Tarefas.conclui(x.id); return { ok: true }; } };
-  }
-  if (nome === 'mudar_tarefa') {
-    const x = Tarefas.get(i.tarefa_id); if (!x) return E_('não encontrei');
-    const L = LANG === 'pt';
-    const p = {};
-    if (i.titulo) p.titulo = i.titulo;
-    if (i.nota != null) p.nota = i.nota;
-    if (['alta', 'media', 'baixa'].includes(i.prioridade)) p.prio = i.prioridade;
-    if (i.data != null) { p.data = String(i.data) === 'sem' ? '' : (/^\d{4}-\d{2}-\d{2}$/.test(i.data) ? i.data : x.data); if (!p.data) p.hora = ''; if (p.data) p.tipo = 'tarefa'; }
-    if (i.hora != null) p.hora = i.hora;
-    if (!Object.keys(p).length) return E_('nada pra mudar');
-    return { titulo: L ? 'Mudar' : 'Edit', assumiu: [], linhas: [['', x.titulo], ...(p.data ? [[L ? 'Quando' : 'When', p.data + (p.hora || '')]] : [])],
-      fazer: () => { Tarefas.muda(x.id, p); return { ok: true }; } };
-  }
-  if (nome === 'apagar_tarefa') {
-    const x = Tarefas.get(i.tarefa_id); if (!x) return E_('não encontrei');
-    const L = LANG === 'pt';
-    return { titulo: L ? 'Apagar' : 'Delete', assumiu: [], linhas: [['', x.titulo]],
-      fazer: () => { Tarefas.apaga(x.id); return { ok: true }; } };
-  }
   return E_('ferramenta desconhecida');
 }
 IA_TXT.xPasseio = { pt: 'Passeio', en: 'Tour', fr: 'Visite', it: 'Tour', de: 'Tour', es: 'Tour' };
@@ -965,6 +915,8 @@ IA_TXT.imgLimite = { pt: 'As imagens de hoje da demonstração acabaram. Volte a
   fr: 'Les images du jour de la démo sont épuisées. Revenez demain ou connectez votre clé Gemini.', it: 'Le immagini di oggi della demo sono finite. Tornate domani o collegate la vostra chiave Gemini.',
   de: 'Die heutigen Demo-Bilder sind aufgebraucht. Morgen wieder, oder eigenen Gemini-Schlüssel verbinden.', es: 'Se acabaron las imágenes de hoy de la demo. Vuelve mañana o conecta tu clave de Gemini.' };
 IA_TXT.extra = { pt: 'extra', en: 'add-on', fr: 'option', it: 'extra', de: 'Zusatz', es: 'extra' };
+/* no app em que o assistente vem no pacote (APP_CONFIG.assistenteIncluido), sem selo de extra */
+const IA_EXTRA = !(typeof APP_CONFIG !== 'undefined' && APP_CONFIG.assistenteIncluido);
 IA_TXT.extraAviso = { pt: 'Módulo extra — contratado à parte do app de reservas.', en: 'Add-on module — purchased separately from the booking app.',
   fr: 'Module en option — acheté séparément de l’app de réservation.', it: 'Modulo extra — si acquista a parte rispetto all’app di prenotazione.',
   de: 'Zusatzmodul — separat zur Buchungs-App erhältlich.', es: 'Módulo extra — se contrata aparte de la app de reservas.' };
@@ -1046,9 +998,7 @@ Se um pedido tiver várias partes, faça todas e confirme uma por uma, na ordem 
 Se algo estiver estranho no app (vaga sobrando perto da data, reserva sem pagamento, passeio muito visto que não vende), diga em uma linha, sem alarme.
 
 ## O que você faz dentro do app
-Você é o painel inteiro em forma de conversa. Lê: passeios, agenda, vagas, reservas, clientes, cupons, bloqueios, fotos, marketing, relatório (visitas, conversão e receita por passeio), ajustes, o treino do agente de atendimento, e **as tarefas e notas dela**. Grava, sempre com cartão de confirmação: passeio, preço, horário, bloqueio, cupom, plano de postagem, criativo, anúncio, memória, **reserva (criar, mudar, cancelar), pagamento recebido, perfil do guia, o treino do agente, e TAREFAS e NOTAS**.
-
-TAREFAS E NOTAS — quando ela disser "anota pra mim...", "preciso...", "lembra de..." é anotar_tarefa (algo pra ela fazer). Com dia, vira compromisso e aparece em Hoje; sem dia, fica em Pra fazer. Quando ela mandar guardar um recado, uma ideia, ou o CONTATO/cadastro de um cliente ("anota o whats da fulana", "guarda esse contato") é anotar_nota. Uma nota pode ganhar data depois (mudar_tarefa) e virar compromisso. NÃO confunda com guardar_memoria, que é regra permanente de como você trabalha.
+Você é o painel inteiro em forma de conversa. Lê: passeios, agenda, vagas, reservas, clientes, cupons, bloqueios, fotos, marketing, relatório (visitas, conversão e receita por passeio), ajustes e o treino do agente de atendimento. Grava, sempre com cartão de confirmação: passeio, preço, horário, bloqueio, cupom, plano de postagem, criativo, anúncio, memória, **reserva (criar, mudar, cancelar), pagamento recebido, perfil do guia e o treino do agente**.
 Quando o guia contar algo que cabe no app ("fechei com o Pedro no dia 10", "recebi 150 do João por Pix", "mudei o ponto de encontro", "o cliente sempre pergunta X"), ofereça gravar você mesmo, em uma frase, e chame a ferramenta. Vários pedidos numa mensagem: resolva todos, um cartão por ação.
 O que você não sabe (o dado só existe na cabeça dele), pergunte — uma pergunta por vez, a mais importante primeiro.
 
@@ -1121,8 +1071,8 @@ const ehPergunta = (m) => m.role === 'user' && (typeof m.content === 'string' ||
 function iaAparaHist(h) {
   let x = h.slice(-40);
   while (x.length && !ehPergunta(x[0])) x.shift();
-  return x.map(m => Array.isArray(m.content) && m.content.some(b => b.type === 'image')
-    ? { ...m, content: m.content.map(b => b.type === 'image' ? { type: 'text', text: '[foto]' } : b) } : m);
+  return x.map(m => Array.isArray(m.content) && m.content.some(b => b.type === 'image' || b.type === 'document')
+    ? { ...m, content: m.content.map(b => (b.type === 'image' || b.type === 'document') ? { type: 'text', text: b.type === 'document' ? '[documento]' : '[foto]' } : b) } : m);
 }
 
 let iaOcupado = false;
@@ -1134,7 +1084,12 @@ async function iaConversa(texto, fotos) {
   const refs = fotos.map(f => guardaFoto(f)).filter(Boolean).map(f => f.id);
   const nota = refs.length ? `\n\n[${refs.length > 1 ? 'fotos guardadas' : 'foto guardada'}; refs (para criativo ou capa de passeio): ${refs.join(', ')}]` : '';
   const pergunta = texto || (fotos.length > 1 ? 'O que dá para fazer com estas fotos?' : 'Escreva uma legenda para esta foto.');
-  hist.push({ role: 'user', dia: hojeLocalIso(), content: fotos.length ? [...fotos.map(f => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.split(',')[1] } })), { type: 'text', text: pergunta + nota }] : pergunta });
+  hist.push({ role: 'user', dia: hojeLocalIso(), content: fotos.length ? [...fotos.map(f => {
+    const mt = (String(f).match(/^data:([^;]+)/) || [])[1] || 'image/jpeg';
+    return /pdf/.test(mt)
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.split(',')[1] } }
+      : { type: 'image', source: { type: 'base64', media_type: /^image\//.test(mt) ? mt : 'image/jpeg', data: f.split(',')[1] } };
+  }), { type: 'text', text: pergunta + nota }] : pergunta });
   iaBolha('user', pergunta, null, false, fotos);
   const pensando = iaBolha('pensa', ia('pensando'));
   try {
@@ -1489,7 +1444,7 @@ function admMarketing(arg) {
   const mes = new Date().toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
   admShell('marketing', `<div class="mk">
     <header class="mkTopo">
-      <div class="mkTitulo"><h1 class="pageh">${ia('marketing')} <small class="iaExtra">${ia('extra')}</small></h1><p>${ia(aba === 'inicio' ? 'mkSubSemana' : 'mkSub')}</p></div>
+      <div class="mkTitulo"><h1 class="pageh">${ia('marketing')} ${IA_EXTRA ? `<small class="iaExtra">${ia('extra')}</small>` : ''}</h1><p>${ia(aba === 'inicio' ? 'mkSubSemana' : 'mkSub')}</p></div>
       ${aba === 'inicio' ? `<button class="cta sm mkMes" data-pede="${esc(ia('pedidoSemana'))}">✦ ${ia('mkCriarSemana')}</button>` : ''}
     </header>
     ${aba === 'inicio' ? '' : `<nav class="mkVolta"><button class="mkLink" data-mk="inicio">${ia('mkVoltar')}</button><b>${ia(MKT_ABAS.find(([k]) => k === aba)[2])}</b></nav>`}
@@ -2037,14 +1992,14 @@ let ensAplMsg = '', ensCofreTemCodigo = null;
 function ensSondaCodigo() {
   if (ensCofreTemCodigo !== null || !COFRE) return;
   ensCofreTemCodigo = false;
-  fetch(COFRE + '/api/ensino', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+  fetch(urlEnsino(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
     .then(r => { ensCofreTemCodigo = r.status === 401 || r.status === 200; if (ensCofreTemCodigo && $('.ensForm') && !$('.ensApl')) admEnsinar(); }).catch(() => {});
 }
 function ensAplicarCartao() {
   const conta = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.agenteInstagram;
   ensSondaCodigo();
   if (!COFRE || !conta || !cofreEstado.instagram || !ensCofreTemCodigo) return '';
-  let cod = ''; try { cod = sessionStorage.getItem('guia_admin_codigo') || ''; } catch (e) {}
+  let cod = ''; try { cod = sessionStorage.getItem('yalla_admin_codigo') || ''; } catch (e) {}
   return `<section class="ensCard ensApl"><h3>📲 ${ia('ensAplTit')}</h3><p class="ensSub">${esc(ia('ensAplTxt').replace('{c}', conta))}</p>
     <form id="ensAplForm" class="ensAplLinha"><input type="password" id="ensCodigo" value="${esc(cod)}" placeholder="${ia('ensCodigo')}" autocomplete="current-password" aria-label="${ia('ensCodigo')}">
       <button class="ibBt" type="submit">${ia('ensAplBt')}</button></form>
@@ -2052,17 +2007,17 @@ function ensAplicarCartao() {
     ${ensAplMsg ? `<p class="ensAplMsg">${ensAplMsg}</p>` : ''}</section>`;
 }
 async function ensAplicar(codigo) {
-  try { sessionStorage.setItem('guia_admin_codigo', codigo); } catch (e) {}
+  try { sessionStorage.setItem('yalla_admin_codigo', codigo); } catch (e) {}
   const e = ensino();
-  let r; try { r = await fetch(COFRE + '/api/ensino', { method: 'POST', headers: { 'content-type': 'application/json', 'x-codigo': codigo }, body: JSON.stringify({ ensino: e }) }); } catch (x) { r = null; }
+  let r; try { r = await fetch(urlEnsino(), { method: 'POST', headers: { 'content-type': 'application/json', 'x-codigo': codigo }, body: JSON.stringify({ ensino: e }) }); } catch (x) { r = null; }
   const hora = new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
   ensAplMsg = r && r.ok ? '✓ ' + ia('ensAplOk') + ' (' + hora + ')' : r && r.status === 401 ? '⚠ ' + ia('ensAplErro') : r && r.status === 503 ? '⚠ ' + ia('ensAplSem') : '⚠ ' + ia('ensAplFalhou');
-  if (r && r.status === 401) try { sessionStorage.removeItem('guia_admin_codigo'); } catch (x) {}
+  if (r && r.status === 401) try { sessionStorage.removeItem('yalla_admin_codigo'); } catch (x) {}
   admEnsinar();
 }
 async function ensTrazer() {
   try {
-    const j = await fetch(COFRE + '/api/ensino', { cache: 'no-store' }).then(r => r.json());
+    const j = await fetch(urlEnsino(), { cache: 'no-store' }).then(r => r.json());
     if (j && j.ensino) { const m = Mkt.get(); m.ensino = { ...ensino(), ...j.ensino, faq: j.ensino.faq.map(f => ({ k: '', p: f.p, r: f.r })) }; Mkt.salva(); ensAplMsg = '✓ ' + ia('ensTrouxe'); }
     else ensAplMsg = ia('ensNadaNoAr');
   } catch (x) { ensAplMsg = '⚠ ' + ia('ensAplFalhou'); }
@@ -2416,7 +2371,7 @@ function iaAtualizaFab() {
   const mostra = iaPodeVer();
   if (!mostra) iaEl.g.classList.remove('aberta');
   iaEl.fab.classList.toggle('on', mostra && !iaEl.g.classList.contains('aberta'));
-  iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}<small class="iaExtra">${ia('extra')}</small>`;
+  iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}${IA_EXTRA ? `<small class="iaExtra">${ia('extra')}</small>` : ''}`;
   const selo = { demo: ia('demoTit'), vivo: '⚡ ' + ia('vivoTit') }[iaModo()] || '';
   iaEl.g.querySelector('#iaTit').innerHTML = esc(ia('assistente')) + (selo ? ` <span class="iaModo">${esc(selo)}</span>` : '');
   iaEl.g.querySelector('#iaFecha').setAttribute('aria-label', ia('fechar'));
@@ -2456,10 +2411,10 @@ function iaDesenha() {
   const msgs = corpo.querySelector('#iaMsgs');
   iaBolha('assistant', iaSaudacao(), null, true);
   if (demo) {
-    const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>${ia('demoTit')}</b>${esc(ia('demoTxt'))}<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>`; msgs.appendChild(d);
+    const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>${ia('demoTit')}</b>${esc(ia('demoTxt'))}${IA_EXTRA ? `<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>` : ''}`; msgs.appendChild(d);
     iaMostraSugestoes();
   } else {
-    if (vivo) { const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>⚡ ${ia('vivoTit')}</b>${esc(ia('vivoTxt'))}<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>`; msgs.appendChild(d); }
+    if (vivo) { const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>⚡ ${ia('vivoTit')}</b>${esc(ia('vivoTxt'))}${IA_EXTRA ? `<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>` : ''}`; msgs.appendChild(d); }
     for (const m of iaLe(IA_HIST, [])) {
       if (typeof m.content === 'string') iaBolha(m.role, m.content);
       else if (m.role === 'assistant' || ehPergunta(m)) { const t2 = m.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim(); if (t2) iaBolha(m.role, t2); }
@@ -2587,8 +2542,7 @@ if (!ADM_TABS.some(([id]) => id === 'inbox')) {
   const i = ADM_TABS.findIndex(([id]) => id === 'bookings');
   ADM_TABS.splice(i < 0 ? 1 : i + 1, 0, ['inbox', 'admInbox']);
 }
-/* A Yalla não contratou o módulo de Marketing (24/09/2026). */
-if (false && !ADM_TABS.some(([id]) => id === 'marketing')) {
+if (!ADM_TABS.some(([id]) => id === 'marketing')) {
   const i = ADM_TABS.findIndex(([id]) => id === 'coupons');
   ADM_TABS.splice(i < 0 ? ADM_TABS.length : i + 1, 0, ['marketing', 'admMarketing']);
 }
@@ -2602,7 +2556,7 @@ viewAdm = function (tab, arg) {
 function marcaExtras() {
   for (const id of ['nb-inbox', 'nb-marketing']) {
     const b = document.getElementById(id);
-    if (b && !b.querySelector('.iaExtra')) b.insertAdjacentHTML('beforeend', ` <small class="iaExtra">${ia('extra')}</small>`);
+    if (IA_EXTRA && b && !b.querySelector('.iaExtra')) b.insertAdjacentHTML('beforeend', ` <small class="iaExtra">${ia('extra')}</small>`);
   }
 }
 /* francês, italiano, alemão e espanhol dos textos do assistente */

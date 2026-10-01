@@ -5,7 +5,7 @@
    ===================================================== */
 'use strict';
 
-const AUTH_KEY = 'vi_session_v1';
+const AUTH_KEY = 'yalla_session_v1';
 let SESSION = null;   // { access_token, refresh_token, expires_at, user }
 
 /* Prazo para TODA chamada de rede daqui.

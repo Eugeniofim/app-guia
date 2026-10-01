@@ -7,15 +7,20 @@
    fonte responder e não houver nada guardado, não mostramos real nenhum. */
 'use strict';
 
-const FX_KEY = 'vi_fx_v1';
+const FX_KEY = 'vi_fx_v1_' + ((typeof APP_CONFIG !== 'undefined' && APP_CONFIG.moeda) || 'EUR');
 const FX_VALIDADE = 6 * 3600e3;   /* o BCE publica uma vez por dia; 6h basta */
 const FX_TIMEOUT  = 6000;
 
 /* Duas fontes independentes e gratuitas, ambas com CORS liberado.
    Se uma cair, a outra atende — e as duas batem até a quarta casa. */
+/* A moeda do negocio vem do config.js. O dirham (AED) e atrelado ao dolar
+   (1 USD = 3,6725 AED): o BCE nao publica AED, entao a segunda fonte le o
+   dolar e divide. */
+const FX_MOEDA = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.moeda) || 'EUR';
+const FX_PEG = { AED: 3.6725 };
 const FX_FONTES = [
-  { nome: 'bce',    url: 'https://api.frankfurter.dev/v1/latest?base=EUR&symbols=BRL' },
-  { nome: 'er-api', url: 'https://open.er-api.com/v6/latest/EUR' },
+  { nome: 'bce',    url: 'https://api.frankfurter.dev/v1/latest?base=' + (FX_PEG[FX_MOEDA] ? 'USD' : FX_MOEDA) + '&symbols=BRL', div: FX_PEG[FX_MOEDA] || 1 },
+  { nome: 'er-api', url: 'https://open.er-api.com/v6/latest/' + FX_MOEDA, div: 1 },
 ];
 
 let fxMem = null;
@@ -32,7 +37,7 @@ async function fxBusca(f) {
     const r = await fetch(f.url, { signal: ctrl.signal });
     if (!r.ok) return null;
     const j = await r.json();
-    const taxa = j && j.rates && +j.rates.BRL;
+    const taxa = j && j.rates && (+j.rates.BRL / (f.div || 1));
     return taxa > 0 ? taxa : null;
   } catch (e) { return null; } finally { clearTimeout(t); }
 }

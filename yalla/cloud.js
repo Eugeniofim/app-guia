@@ -12,7 +12,7 @@
    que nenhum banco fica gravado no codigo. */
 const SUPA_URL = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.supabaseUrl) || '';
 const SUPA_KEY = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.supabaseKey) || '';
-const QUEUE_KEY = 'vi_queue_v1';
+const QUEUE_KEY = 'yalla_queue_v1';
 
 /* Sem prazo maximo, uma requisicao pendurada trava o app inteiro: foi isso
    que fez o login demorar um minuto. 12s e generoso ate para 3G ruim. */
@@ -70,9 +70,7 @@ async function qFlush() {
 /* ---------- estado (tudo menos reservas) ---------- */
 function statePayload() {
   return { tours: DB.tours, rules: DB.rules, departures: DB.departures,
-           blocks: DB.blocks, coupons: DB.coupons, settings: DB.settings,
-           /* tarefas e notas sobem junto, senão ficam presas num aparelho só */
-           tarefas: DB.tarefas || [] };
+           blocks: DB.blocks, coupons: DB.coupons, settings: DB.settings };
 }
 /* A trancada do banco devolve HTTP 200 mesmo quando descarta a escrita:
    quem não é a dona simplesmente não altera nenhuma linha. Se a gente
@@ -263,7 +261,6 @@ async function cloudPull() {
       tours: st.data.tours || [], rules: st.data.rules || [],
       departures: st.data.departures || [], blocks: st.data.blocks || [],
       coupons: st.data.coupons || [],
-      tarefas: st.data.tarefas || DB.tarefas || [],
       /* a nuvem pode ser mais antiga que o app: completa o que faltar */
       settings: fillSettings({ ...st.data.settings, lang: keepLang,
                   tutorialClient: DB.settings.tutorialClient, tutorialAdm: DB.settings.tutorialAdm }),

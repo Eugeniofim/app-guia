@@ -7,10 +7,12 @@
   /* ---------- MARCA (brand kit Yalla Experiences, set/2026) ----------
      60% preto, 25% dourado, 10% neutro, 5% branco. O dourado #D4AF37 tem
      8.6:1 sobre o preto: serve para texto e para preenchimento com tinta
-     escura por cima. */
+     escura por cima. No claro (painel), o dourado vira bronze para texto. */
   --brand-primaria:   #D4AF37;   /* LUXURY GOLD */
   --brand-assinatura: #D4AF37;
   --brand-oro:        #F3E0A2;   /* CHAMPAGNE GOLD */
+  --brand-destaque:   #E7CF7A;
+  --brand-neutro:     #A99F8B;
   --brand-preto:      #000000;   /* MIDNIGHT BLACK */
   --brand-offwhite:   #F5F5F3;   /* IVORY WHITE */
   --brand-sand:       #D9C7A3;   /* SAND BEIGE */
@@ -25,6 +27,7 @@
   --surface-3: #262626;
   --line:      #2E2A22;
   --line-2:    #3C3527;
+  --rail:      #080808;
 
   /* ---------- TEXTO ---------- */
   --ink:    #F5F5F3;   /* IVORY · 17:1 sobre o preto */
@@ -44,15 +47,17 @@
   --highlight-text: #E7CF7A;        /* dourado claro para texto · 11:1 */
 
   /* ---------- ESTADOS (separados da paleta de marca) ---------- */
-  --ok:        #064c3f;  --ok-wash:    #e2e7e1;   /* pago, confirmado */
-  --warn:      #7e6308;  --warn-wash:  #f6edd3;   /* pendente, vence */
-  --danger:    #a3053f;  --danger-wash:#f2e0e1;   /* vencido, cancelado */
-  --neutral:   #4A4045;  --neutral-wash:#ece6e4;
+  --ok:        #7FC8A9;  --ok-wash:    #12291F;   /* pago, confirmado */
+  --warn:      #E7CF7A;  --warn-wash:  #2E2818;   /* pendente, vence */
+  --danger:    #E8836F;  --danger-wash:#301A16;   /* vencido, cancelado */
+  --neutral:   #A99F8B;  --neutral-wash:#22201B;
 
   /* ---------- TIPOGRAFIA ---------- */
-  /* Montserrat = a fonte do logotipo. Karla = leitura. Mono = números. */
-  --f-display: "Playfair Display", Georgia, "Times New Roman", serif;   /* títulos do manual dela */
-  --f-ui: "Montserrat", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  /* O brand kit: Montserrat Bold nos títulos, Montserrat Medium em subtítulos
+     e menus, Playfair Display só nas frases institucionais. Mono = números. */
+  --f-display: "Montserrat", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-ui:      "Montserrat", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  --f-serif:   "Playfair Display", Georgia, "Times New Roman", serif;
   --f-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --t-display: 700;   /* títulos: peso do logo */
@@ -94,29 +99,28 @@
   --d-fast: 180ms; --d-base: 260ms; --d-slow: 480ms;
 }
 
-/* Se ela nunca escolheu, o app segue o aparelho. Quem escolheu manda:
-   data-theme fixa e o media query abaixo nao se aplica. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --paper:#0B0B0B; --surface:#141414; --surface-2:#1D1D1D; --surface-3:#262626;
-    --line:#2E2A22; --line-2:#3C3527;
-    --ink:#F5F5F3; --ink-2:#DCD6C8; --ink-3:#A99F8B;
-    --accent:#D4AF37; --accent-ink:#0B0B0B; --accent-wash:#2A2314; --accent-line:#57492A;
-    --highlight:#F3E0A2; --highlight-ink:#0B0B0B; --highlight-wash:#2E2818; --highlight-text:#E7CF7A;
-    --ok:#7FC8A9;  --ok-wash:#12291F;
-    --warn:#E7CF7A; --warn-wash:#2E2818;
-    --danger:#E8836F; --danger-wash:#301A16;
-    --neutral:#A99F8B; --neutral-wash:#22201B;
-    --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
-    --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
-    --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
-  }
+/* O site da cliente é escuro (a marca). O painel tem o visual dele
+   (Ajustes → Visual do painel), claro por padrão: no claro o dourado vira
+   bronze para ter contraste em texto e botão. */
+:root[data-theme="light"]{
+  --paper:#F5F5F3; --surface:#FFFFFF; --surface-2:#EFEBE2; --surface-3:#E4DDCF;
+  --line:#E2DCCF; --line-2:#CFC6B4; --rail:#EDE7DA;
+  --ink:#0B0B0B; --ink-2:#3D372C; --ink-3:#6B6250;
+  --accent:#8A6D1E; --accent-ink:#FFFFFF; --accent-wash:#F3ECDA; --accent-line:#DCCB9E;
+  --highlight:#D4AF37; --highlight-ink:#0B0B0B; --highlight-wash:#F7EFD6; --highlight-text:#7A5A12;
+  --ok:#2E6B4F; --ok-wash:#E3EDE6;
+  --warn:#7e6308; --warn-wash:#f6edd3;
+  --danger:#a3053f; --danger-wash:#f2e0e1;
+  --neutral:#4A4045; --neutral-wash:#ece6e4;
+  --sh-1: 0 1px 2px rgba(17,17,17,.04), 0 8px 22px -16px rgba(17,17,17,.28);
+  --sh-2: 0 2px 6px rgba(17,17,17,.05), 0 20px 44px -24px rgba(17,17,17,.34);
+  --sh-3: 0 28px 64px -30px rgba(17,17,17,.42);
 }
 
-/* Tema escuro — o painel dela à noite. Verde clareia, amarelo se mantém. */
+/* Tema escuro — igual à marca */
 :root[data-theme="dark"]{
   --paper:#0B0B0B; --surface:#141414; --surface-2:#1D1D1D; --surface-3:#262626;
-  --line:#2E2A22; --line-2:#3C3527;
+  --line:#2E2A22; --line-2:#3C3527; --rail:#080808;
   --ink:#F5F5F3; --ink-2:#DCD6C8; --ink-3:#A99F8B;
   --accent:#D4AF37; --accent-ink:#0B0B0B; --accent-wash:#2A2314; --accent-line:#57492A;
   --highlight:#F3E0A2; --highlight-ink:#0B0B0B; --highlight-wash:#2E2818; --highlight-text:#E7CF7A;
@@ -128,6 +132,9 @@
   --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
   --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
 }
+:root{ --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
+  --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
+  --sh-3:0 32px 70px -32px rgba(0,0,0,.95); }
 
 /* =========================================================
    REGRAS QUE NÃO SE QUEBRAM

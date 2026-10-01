@@ -5,17 +5,25 @@
    ===================================================== */
 'use strict';
 
-const DB_KEY = 'yalla_db_v1';
+/* Chave propria, e nao a 'vi_db_v1' do molde: este app mora no mesmo
+   endereco da demonstracao (guia.eugeniofim.com/ingrid/), e o navegador
+   guarda os dados por endereco. Com a mesma chave, quem abrisse os dois
+   veria os passeios de um dentro do outro. */
+const DB_KEY = 'yalla_db_v2';
 
 /* ---------- modelo ----------
 Tour       {id, type, region, name:{pt,en}, desc:{pt,en}, meeting, photo,
-            price, priceMode:'pp'|'session', min, max, payPolicy:'full'|'split',
+            price, priceMode:'pp'|'session'|'tabela', tabela:[20 valores], min, max,
+            payPolicy:'full'|'split',
             status:'live'|'draft'|'seasonal', order}
 Rule       {id, tourId, weekdays:[0-6], time:'16:30', capacity, from:'2026-11-20', until:'2026-12-23'}
 Departure  {id, tourId, date:'2026-12-21', time, capacity}  // avulsas; recorrentes são geradas das Rules
 Block      {id, from, until, reason}                        // bloqueio global (férias)
 Booking    {id, code, tourId, date, time, name, email, whats, insta, pax, total,
-            coupon, discount, policy:'full'|'split',
+            veiculo, malas, sinal,          // so nos transfers (da tabela dela)
+            group:[{nome, nasc}],            // quem mais veio, alem de quem reservou
+            coupon, discount, policy:'full'|'split'|'sinal',
+            adultos, criancas,
             payments:[{amount, date, method, kind:'full'|'deposit'|'balance'}],
             status:'confirmed'|'cancelled', createdAt, origin}
 Coupon     {code, pct, until, oncePerPerson, uses:[email]}
@@ -35,6 +43,12 @@ function guiaNome() { return _cfgSettings().admName || GUIA_CFG.nome || 'Guia'; 
 function guiaNegocio() { return _cfgSettings().negocio || GUIA_CFG.negocio || guiaNome(); }
 function guiaBase() { return _cfgSettings().base || GUIA_CFG.cidade || ''; }
 function regioes() {
+  /* O que ela cadastrou no painel vem primeiro. O try e porque DB e "let"
+     e pode ainda nao existir quando o arquivo carrega. */
+  try {
+    const d = DB && DB.settings && DB.settings.regioes;
+    if (Array.isArray(d) && d.length) return d;
+  } catch (e) {}
   const r = GUIA_CFG.regioes;
   return (r && r.length) ? r : [['cidade', 'Cidade', 'City'], ['arredores', 'Arredores', 'Surroundings']];
 }
@@ -48,12 +62,146 @@ function regiaoOpts(cur) {
   return regioes().map(([v, pt, e]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${en ? e : pt}</option>`).join('');
 }
 
+/* ---------- transfer: pessoas, bagagem e horario ----------
+
+   A tabela dela de 2026 (TABELA VALORES 2026 - Transfer Roma.pdf) cobra por
+   TRECHO, nunca por pessoa, e o valor depende de tres coisas:
+
+     1. QUANTAS PESSOAS, de 1 a 20 ("1 ou 2 pessoas" e uma linha so);
+     2. para cada quantidade ha DUAS opcoes de veiculo, e quem decide entre
+        elas e a BAGAGEM (ex.: 3 pessoas com 2 malas cabem num carro; com 6
+        malas precisam de minivan);
+     3. a HORA: das 21h as 5h59 vale a coluna "Noturno".
+
+   Cada linha tem tambem o SINAL, que e o que o cliente paga antes para
+   garantir. O resto e no dia.
+
+   transfer.linhas = [{ pax, malas, veiculo, dia, noite, sinal }]
+   pax 2 = "1 ou 2 pessoas". */
+const NOITE_DE = 21, NOITE_ATE = 6;   /* 21:00 as 05:59 = noturno */
+
+function transferNoturno(hora) {
+  const h = parseInt(String(hora || '').slice(0, 2), 10);
+  if (isNaN(h)) return false;
+  return h >= NOITE_DE || h < NOITE_ATE;
+}
+
+/* "1 ou 2 pessoas" e a mesma linha na tabela dela */
+function transferPax(pax) { return Math.max(2, Math.min(20, +pax || 1)); }
+
+/* as opcoes de veiculo para aquela quantidade, na ordem da tabela */
+function transferOpcoes(x, pax) {
+  const ls = (x.transfer && Array.isArray(x.transfer.linhas)) ? x.transfer.linhas : [];
+  const n = transferPax(pax);
+  return ls.filter(l => +l.pax === n);
+}
+
+function transferLinha(x, pax, opcao) {
+  const ops = transferOpcoes(x, pax);
+  return ops[Math.max(0, Math.min(ops.length - 1, +opcao || 0))] || null;
+}
+
+function transferPreco(x, pax, opcao, hora) {
+  const l = transferLinha(x, pax, opcao);
+  if (!l) return 0;
+  return +(transferNoturno(hora) ? l.noite : l.dia) || 0;
+}
+
+/* o "a partir de": o menor valor diurno da tabela */
+function transferMenor(x) {
+  const ls = (x.transfer && x.transfer.linhas) || [];
+  const v = ls.map(l => +l.dia || 0).filter(v => v > 0);
+  return v.length ? Math.min(...v) : 0;
+}
+
+/* ate quantas pessoas a tabela responde */
+function transferAte(x) {
+  const ls = (x.transfer && x.transfer.linhas) || [];
+  return ls.reduce((m, l) => Math.max(m, +l.pax || 0), 0);
+}
+
+/* ---------- ingressos por idade ----------
+
+   Pedido da Ingrid (18/09/2026): "teria como ja somar o valor de ingressos
+   por idade?". Os ingressos nao estao no valor do passeio, e o preco muda com
+   a idade — no Vaticano, crianca ate 6 nao paga, jovem ate 18 paga €15 e
+   adulto €25. Ela compra os ingressos com antecedencia, entao precisa saber
+   o valor certo na hora da reserva.
+
+   x.ingressos = [{ nome:{pt,en}, gratisAte, reduzido, reduzidoAte, inteiro,
+                    guia, noDia }]
+     gratisAte   = ate esta idade (inclusive) nao paga
+     reduzido    = valor reduzido, ate reduzidoAte (inclusive)
+     inteiro     = o resto, e todo adulto
+     guia        = o ingresso da propria guia, cobrado uma vez (Sao Pedro)
+     noDia       = pago no dia, fora do total (os fones do Vaticano)
+
+   Adulto nao informa idade: paga o inteiro. */
+function precoIngresso(g, idade) {
+  const a = idade === null || idade === undefined ? 99 : +idade;
+  const tem = (v) => v !== null && v !== undefined && v !== '';
+  if (tem(g.gratisAte) && a <= +g.gratisAte) return 0;
+  if (+g.reduzido > 0 && tem(g.reduzidoAte) && a <= +g.reduzidoAte) return +g.reduzido;
+  return +g.inteiro || 0;
+}
+
+function ingressosDe(x, adultos, idades) {
+  const ings = Array.isArray(x.ingressos) ? x.ingressos : [];
+  const pessoas = Array(Math.max(0, +adultos || 0)).fill(null)
+    .concat((idades || []).map(v => (v === '' || v === null || v === undefined) ? null : +v));
+  const linhas = [], noDia = [];
+  let total = 0, totalDia = 0;
+  for (const g of ings) {
+    const porValor = {};
+    let soma = 0;
+    for (const idade of pessoas) {
+      const v = precoIngresso(g, idade);
+      soma += v; porValor[v] = (porValor[v] || 0) + 1;
+    }
+    const guia = +g.guia || 0;
+    soma += guia;
+    const linha = { nome: g.nome, valor: soma, porValor, guia };
+    if (g.noDia) { noDia.push(linha); totalDia += soma; } else { linhas.push(linha); total += soma; }
+  }
+  return { linhas, total, noDia, totalDia };
+}
+
+/* ---------- preco por numero de pessoas ----------
+
+   A Ingrid nao cobra por pessoa nem um valor unico: ela tem uma tabela com
+   o valor FECHADO do grupo para cada quantidade, de 1 ate 20. Ela montou
+   essa tabela justamente para parar de fazer conta a mao no meio de um dia
+   cheio — entao o app so serve para alguma coisa se souber ler a tabela.
+
+   tabela[i] = valor total do grupo com (i+1) pessoas. 0 = "consultar":
+   grupo grande, caso raro, ela responde a mao e tudo bem. */
+const TABELA_MAX = 20;
+
+function tabelaPreco(x, pax) {
+  const tb = Array.isArray(x.tabela) ? x.tabela : [];
+  const n = Math.max(1, Math.min(TABELA_MAX, +pax || 1));
+  return +tb[n - 1] || 0;
+}
+
+/* O menor valor da tabela — e o "a partir de" do cartao da vitrine. */
+function tabelaMenor(x) {
+  const tb = (Array.isArray(x.tabela) ? x.tabela : []).map(v => +v || 0).filter(v => v > 0);
+  return tb.length ? Math.min(...tb) : 0;
+}
+
+/* Ate quantas pessoas a tabela responde sozinha. Acima disso o app nao
+   inventa preco: manda falar com ela. */
+function tabelaAte(x) {
+  const tb = Array.isArray(x.tabela) ? x.tabela : [];
+  let n = 0;
+  for (let i = 0; i < TABELA_MAX; i++) if (+tb[i] > 0) n = i + 1;
+  return n;
+}
+
 function _blank() {
   return { tours: [], rules: [], departures: [], blocks: [], bookings: [], coupons: [], seatCounts: [],
-           /* interesse: quantas vezes abriram cada passeio e quantas chegaram a
-              escolher data ("quase reservou"). Só contagem por dia, sem nada
-              de quem é a pessoa. */
-           interesse: {},
+           /* pedidos de roteiro personalizado (o questionario do cliente) */
+           pedidos: [],
            settings: { lang: 'pt', tutorialClient: true, tutorialAdm: true,
            /* quem e o guia — nasce do config.js e o guia edita no painel */
            admName: GUIA_CFG.nome || 'Guia', negocio: GUIA_CFG.negocio || '',
@@ -66,6 +214,17 @@ function _blank() {
            /* pixName e pixCity sao exigidos pelo padrao do BR Code:
               sem eles o banco recusa o codigo. */
            pixKey: '', pixName: '', pixCity: '', iban: '', ibanName: '', payNote: '',
+           /* Wise: link de pagamento (wise.com/pay/...). Dinheiro no dia: o
+              transfer dela e cobrado assim. Vazio/falso = nao aparece. */
+           wiseLink: '', dinheiroNoDia: false,
+           /* A primeira tela e o "link na bio" dela: redes e os links de
+              parceiros que ela ja divulga (hotel, chip, seguro). Ela edita
+              tudo no painel, em Aparencia. */
+           youtube: '', facebook: '', blog: '',
+           links: [],
+           /* cidades e regioes da vitrine. Vazio = as do config.js. Ela
+              acrescenta uma cidade nova pelo painel, sem nos. */
+           regioes: [],
            /* para onde vai o aviso de reserva nova. Vazio = ela ainda nao
               preencheu; quem manda o e-mail e o robo, fora do navegador. */
            admEmail: '',
@@ -102,88 +261,195 @@ function _blank() {
 function _seed() {
   const db = _blank();
   db.demo = true;
-  db.interesse = {};
+  db.seedVer = SEED_VER;
 
-  db.tours = [
-    { id: "privativas", type: "walk", region: "dubai",
-      name: {"pt": "Experiências privativas", "en": "Private experiences"},
-      desc: {"pt": "Roteiros personalizados para viajantes individuais, casais, famílias e pequenos grupos que querem conhecer os Emirados de forma autêntica e exclusiva — com guia brasileira licenciada e acesso a lugares que não estão no roteiro comum.", "en": "Tailor-made itineraries for solo travellers, couples, families and small groups who want to see the Emirates authentically — with a licensed Brazilian guide and access to places outside the usual route."},
-      meeting: "No seu hotel em Dubai",
-      duration: "Sob medida", distance: '', effort: 'easy',
-      includes: {"pt": ["Guia brasileira licenciada nos Emirados", "Roteiro montado com você", "Transporte privativo", "Acompanhamento antes, durante e depois"], "en": ["Licensed Brazilian guide in the UAE", "Itinerary built with you", "Private transport", "Support before, during and after"]},
-      notIncludes: {"pt": ["Ingressos e refeições, quando não combinados"], "en": ["Tickets and meals, unless agreed"]},
-      stops: [],
-      photo: "arte/skyline.jpg", price: 0, priceMode: 'pp', min: 1, max: 12,
-      payPolicy: 'full', status: 'live', order: 1 },
-    { id: "imersoes", type: "day", region: "dubai",
-      name: {"pt": "Imersões empresariais", "en": "Business immersions"},
-      desc: {"pt": "Programas para empresários, executivos e delegações que querem entender mercados, tendências, inovação e oportunidades no Oriente Médio. Visitas técnicas, agenda de reuniões e leitura cultural de quem vive em Dubai desde 2010.", "en": "Programmes for entrepreneurs, executives and delegations who want to understand markets, trends, innovation and opportunities in the Middle East. Technical visits, meeting agenda and cultural guidance from someone living in Dubai since 2010."},
-      meeting: "A combinar, conforme a agenda",
-      duration: "De 1 a 5 dias", distance: '', effort: 'easy',
-      includes: {"pt": ["Agenda montada com o seu objetivo", "Visitas técnicas e reuniões", "Intérprete de contexto cultural", "Relatório da imersão"], "en": ["Agenda built around your goal", "Technical visits and meetings", "Cultural context interpreter", "Immersion report"]},
-      notIncludes: {"pt": ["Passagens e hospedagem"], "en": ["Flights and accommodation"]},
-      stops: [],
-      photo: "arte/reuniao.jpg", price: 0, priceMode: 'pp', min: 1, max: 12,
-      payPolicy: 'full', status: 'live', order: 2 },
-    { id: "eventos", type: "day", region: "dubai",
-      name: {"pt": "Eventos e lançamentos", "en": "Events and launches"},
-      desc: {"pt": "Planejamento e apoio para eventos corporativos, ativações de marca, lançamentos de produto e experiências VIP nos Emirados — da escolha do lugar aos fornecedores locais de confiança.", "en": "Planning and support for corporate events, brand activations, product launches and VIP experiences in the UAE — from choosing the venue to trusted local suppliers."},
-      meeting: "A combinar",
-      duration: "Conforme o projeto", distance: '', effort: 'easy',
-      includes: {"pt": ["Curadoria de local e fornecedores", "Produção no local", "Equipe bilíngue", "Apoio na chegada dos convidados"], "en": ["Venue and supplier curation", "On-site production", "Bilingual team", "Guest arrival support"]},
-      notIncludes: {"pt": ["Custos de fornecedores e locação"], "en": ["Supplier and venue costs"]},
-      stops: [],
-      photo: "arte/networking.jpg", price: 0, priceMode: 'pp', min: 1, max: 12,
-      payPolicy: 'full', status: 'live', order: 3 },
-    { id: "personalizadas", type: "walk", region: "oriente",
-      name: {"pt": "Experiências personalizadas", "en": "Bespoke experiences"},
-      desc: {"pt": "Programas sob medida para empresas, grupos, instituições e organizações com necessidades específicas: deserto, iate, arquitetura, cultura ou uma combinação que só existe para você.", "en": "Bespoke programmes for companies, groups and institutions with specific needs: desert, yacht, architecture, culture — or a combination that exists only for you."},
-      meeting: "A combinar",
-      duration: "Sob medida", distance: '', effort: 'easy',
-      includes: {"pt": ["Projeto desenhado do zero", "Rede de parceiros locais selecionados", "Um ponto de contato para tudo"], "en": ["Project designed from scratch", "Selected local partner network", "One contact for everything"]},
-      notIncludes: {"pt": ["Depende do que for combinado"], "en": ["Depends on what is agreed"]},
-      stops: [],
-      photo: "arte/deserto.jpg", price: 0, priceMode: 'pp', min: 1, max: 12,
-      payPolicy: 'full', status: 'live', order: 4 },
-  ];
-
-  db.rules = [];
-  db.coupons = [];
-
-  /* guias parceiros de exemplo (demonstração) — ela troca pelos dela */
-  db.guias = [
-    { id: 'g-ahmed', nome: 'Ahmed Al Mansoori', whats: '+971501234567', idiomas: 'Árabe, inglês',
-      espec: 'Deserto, safári e cultura local', cache: 0,
-      livres: [addDays(isoToday(), 2), addDays(isoToday(), 3), addDays(isoToday(), 6), addDays(isoToday(), 9)] },
-    { id: 'g-carol', nome: 'Carolina Reis', whats: '+971502223344', idiomas: 'Português, inglês, espanhol',
-      espec: 'City tour, compras e famílias', cache: 0,
-      livres: [addDays(isoToday(), 1), addDays(isoToday(), 2), addDays(isoToday(), 8), addDays(isoToday(), 12)] },
-    { id: 'g-rafa', nome: 'Rafael Antunes', whats: '+971505556677', idiomas: 'Português, inglês',
-      espec: 'Corporativo, visitas técnicas e Abu Dhabi', cache: 0,
-      livres: [addDays(isoToday(), 4), addDays(isoToday(), 5), addDays(isoToday(), 11)] },
-  ];
-  /* Reservas de exemplo: dão vida a Clientes, à ficha de cada um (com saldo
-     e cobrança), ao Dinheiro/Relatório e ao painel dos guias (escalados).
-     Só na demonstração — some quando ela ligar a nuvem e entra o real. */
-  const _bk = (tourId, dias, time, name, email, whats, insta, pax, total, recebido, guiaId, metodo) => {
-    const b = { id: uid(), code: bookCode(), tourId, date: addDays(isoToday(), dias), time,
-      name, email: email || '', whats: whats || '', insta: insta || '',
-      pax, total, coupon: null, discount: 0, policy: 'half',
-      consent: { ok: true, at: isoToday() }, payments: [], status: 'confirmed',
-      guiaId: guiaId || '', createdAt: new Date().toISOString(), origin: 'manual' };
-    if (recebido > 0) b.payments.push({ amount: Math.min(recebido, total), date: isoToday(),
-      method: metodo || 'transfer', kind: recebido >= total ? 'full' : 'deposit' });
-    return b;
+  /* A apresentação dela. Nada aqui foi inventado: sai do perfil e do brand
+     kit que ela mandou (24/09/2026). Ela reescreve em Ajustes quando quiser. */
+  db.settings.homeText = {
+    pt: 'Experiências privativas, imersões de negócios e eventos nos Emirados Árabes Unidos. Cada experiência é única porque cada história também é.',
+    en: 'Private experiences, business immersions and events in the United Arab Emirates. Every experience is unique because every story is too.',
+    es: 'Experiencias privadas, inmersiones de negocios y eventos en los Emiratos Árabes Unidos. Cada experiencia es única porque cada historia también lo es.',
   };
-  db.bookings = [
-    _bk('privativas', 4, '10:00', 'Sarah Whitfield', 'sarah.w@example.com', '+971501112233', 'sarahw', 2, 390, 195, 'g-ahmed', 'transfer'),
-    _bk('imersoes', 9, '09:00', 'James Carter', 'james.carter@example.com', '+447700900123', '', 4, 1200, 1200, 'g-ahmed', 'transfer'),
-    _bk('personalizadas', 14, '16:00', 'Lucía Gómez', 'lucia.gomez@example.com', '+34611223344', 'luciagomez', 2, 520, 0, 'g-carol', ''),
-  ];
-  db.settings.bio = {"pt": "Sou Milena Fernandes, a Milla. Moro em Dubai desde 2010 e sou guia brasileira licenciada nos Emirados Árabes Unidos.\n\nA Yalla Experiences nasceu da paixão por conectar culturas, pessoas e oportunidades. Mais do que uma empresa de turismo, desenvolvemos experiências planejadas para apresentar o melhor dos Emirados e do Oriente Médio de forma personalizada, humana e exclusiva.\n\nAo longo dos anos construí uma rede de parceiros locais e fornecedores selecionados que permite aos nossos clientes viver muito além dos roteiros tradicionais.", "en": "I am Milena Fernandes, Milla. I have lived in Dubai since 2010 and I am a Brazilian guide licensed in the United Arab Emirates.\n\nYalla Experiences was born from a passion for connecting cultures, people and opportunities. More than a tourism company, we design experiences that show the best of the Emirates and the Middle East in a personal, human and exclusive way.\n\nOver the years I have built a network of local partners and selected suppliers that lets our clients go far beyond the usual itineraries."};
-  db.settings.homeText = {"pt": "Experiências privativas, imersões de negócios e eventos nos Emirados Árabes Unidos. Cada experiência é única porque cada história também é.", "en": "Private experiences, business immersions and events in the United Arab Emirates. Every experience is unique because every story is too."};
+  db.settings.links = [];
   db.settings.photo = 'arte/milla-rosto.jpg';
   db.settings.homePhoto = '';   /* o fundo é a geometria da marca (marca.css) */
+  db.settings.bio = {
+    pt: 'Sou Milena Fernandes, a Milla. Moro em Dubai desde 2010 e sou guia brasileira licenciada nos Emirados Árabes Unidos.\n\n'
+      + 'A Yalla Experiences nasceu da paixão por conectar culturas, pessoas e oportunidades. Mais do que uma empresa de turismo, desenvolvemos experiências planejadas para apresentar o melhor dos Emirados e do Oriente Médio de forma personalizada, humana e exclusiva.\n\n'
+      + 'Ao longo dos anos construí uma rede de parceiros locais e fornecedores selecionados que permite aos nossos clientes viver muito além dos roteiros tradicionais.',
+    en: 'I am Milena Fernandes, Milla. I have lived in Dubai since 2010 and I am a Brazilian guide licensed in the United Arab Emirates.\n\n'
+      + 'Yalla Experiences was born from a passion for connecting cultures, people and opportunities. More than a tourism company, we design experiences that show the best of the Emirates and the Middle East in a personal, human and exclusive way.\n\n'
+      + 'Over the years I have built a network of local partners and selected suppliers that lets our clients go far beyond the usual itineraries.',
+    es: 'Soy Milena Fernandes, Milla. Vivo en Dubái desde 2010 y soy guía brasileña con licencia en los Emiratos Árabes Unidos.\n\n'
+      + 'Yalla Experiences nació de la pasión por conectar culturas, personas y oportunidades. Más que una empresa de turismo, diseñamos experiencias para mostrar lo mejor de los Emiratos y de Oriente Medio de forma personal, humana y exclusiva.\n\n'
+      + 'A lo largo de los años construí una red de socios locales y proveedores seleccionados que permite a nuestros clientes vivir mucho más allá de los itinerarios tradicionales.',
+  };
+
+  /* Sob consulta: tabela zerada = o app não inventa preço e manda o pedido
+     para o WhatsApp dela (o mesmo caminho do "consulte-nos" da base). */
+  const consulta = () => Array(20).fill(0);
+  const NOTA_CONSULTA = { pt: 'Sob consulta: cada experiência é montada para você.',
+                          en: 'On request: every experience is built around you.',
+                          es: 'A consultar: cada experiencia se arma para ti.' };
+  db.tours = [
+    { id: 'privativas', type: 'walk', region: 'dubai',
+      name: { pt: 'Experiências privativas', en: 'Private experiences', es: 'Experiencias privadas' },
+      desc: { pt: 'Roteiros personalizados para viajantes individuais, casais, famílias e pequenos grupos que querem conhecer os Emirados de forma autêntica e exclusiva — com guia brasileira licenciada e acesso a lugares que não estão no roteiro comum.',
+              en: 'Tailor-made itineraries for solo travellers, couples, families and small groups who want to see the Emirates authentically — with a licensed Brazilian guide and access to places outside the usual route.',
+              es: 'Itinerarios a medida para viajeros solos, parejas, familias y grupos pequeños que quieren conocer los Emiratos de forma auténtica y exclusiva, con guía brasileña con licencia y acceso a lugares fuera del recorrido habitual.' },
+      meeting: 'No seu hotel em Dubai', duration: 'Sob medida', distance: '', effort: 'easy',
+      includes: { pt: ['Guia brasileira licenciada nos Emirados', 'Roteiro montado com você', 'Transporte privativo', 'Acompanhamento antes, durante e depois'],
+                  en: ['Licensed Brazilian guide in the UAE', 'Itinerary built with you', 'Private transport', 'Support before, during and after'],
+                  es: ['Guía brasileña con licencia en los EAU', 'Itinerario armado contigo', 'Transporte privado', 'Acompañamiento antes, durante y después'] },
+      notIncludes: { pt: ['Ingressos e refeições, quando não combinados'], en: ['Tickets and meals, unless agreed'], es: ['Entradas y comidas, salvo acuerdo'] },
+      stops: [], photo: 'arte/skyline.jpg',
+      price: 0, priceMode: 'tabela', tabela: consulta(), priceNote: NOTA_CONSULTA,
+      min: 1, max: 20, payPolicy: 'full', status: 'live', order: 1 },
+    { id: 'imersoes', type: 'day', region: 'dubai',
+      name: { pt: 'Imersões empresariais', en: 'Business immersions', es: 'Inmersiones empresariales' },
+      desc: { pt: 'Programas para empresários, executivos e delegações que querem entender mercados, tendências, inovação e oportunidades no Oriente Médio. Visitas técnicas, agenda de reuniões e leitura cultural de quem vive em Dubai desde 2010.',
+              en: 'Programmes for entrepreneurs, executives and delegations who want to understand markets, trends, innovation and opportunities in the Middle East. Technical visits, meeting agenda and cultural guidance from someone living in Dubai since 2010.',
+              es: 'Programas para empresarios, ejecutivos y delegaciones que quieren entender mercados, tendencias, innovación y oportunidades en Oriente Medio. Visitas técnicas, agenda de reuniones y lectura cultural de quien vive en Dubái desde 2010.' },
+      meeting: 'A combinar, conforme a agenda', duration: 'De 1 a 5 dias', distance: '', effort: 'easy',
+      includes: { pt: ['Agenda montada com o seu objetivo', 'Visitas técnicas e reuniões', 'Intérprete de contexto cultural', 'Relatório da imersão'],
+                  en: ['Agenda built around your goal', 'Technical visits and meetings', 'Cultural context interpreter', 'Immersion report'],
+                  es: ['Agenda armada según tu objetivo', 'Visitas técnicas y reuniones', 'Intérprete de contexto cultural', 'Informe de la inmersión'] },
+      notIncludes: { pt: ['Passagens e hospedagem'], en: ['Flights and accommodation'], es: ['Pasajes y alojamiento'] },
+      stops: [], photo: 'arte/reuniao.jpg',
+      price: 0, priceMode: 'tabela', tabela: consulta(), priceNote: NOTA_CONSULTA,
+      min: 1, max: 20, payPolicy: 'full', status: 'live', order: 2 },
+    { id: 'eventos', type: 'day', region: 'dubai',
+      name: { pt: 'Eventos e lançamentos', en: 'Events and launches', es: 'Eventos y lanzamientos' },
+      desc: { pt: 'Planejamento e apoio para eventos corporativos, ativações de marca, lançamentos de produto e experiências VIP nos Emirados — da escolha do lugar aos fornecedores locais de confiança.',
+              en: 'Planning and support for corporate events, brand activations, product launches and VIP experiences in the UAE — from choosing the venue to trusted local suppliers.',
+              es: 'Planificación y apoyo para eventos corporativos, activaciones de marca, lanzamientos de producto y experiencias VIP en los Emiratos, desde la elección del lugar hasta proveedores locales de confianza.' },
+      meeting: 'A combinar', duration: 'Conforme o projeto', distance: '', effort: 'easy',
+      includes: { pt: ['Curadoria de local e fornecedores', 'Produção no local', 'Equipe bilíngue', 'Apoio na chegada dos convidados'],
+                  en: ['Venue and supplier curation', 'On-site production', 'Bilingual team', 'Guest arrival support'],
+                  es: ['Curaduría de lugar y proveedores', 'Producción en el lugar', 'Equipo bilingüe', 'Apoyo en la llegada de los invitados'] },
+      notIncludes: { pt: ['Custos de fornecedores e locação'], en: ['Supplier and venue costs'], es: ['Costos de proveedores y alquiler'] },
+      stops: [], photo: 'arte/networking.jpg',
+      price: 0, priceMode: 'tabela', tabela: consulta(), priceNote: NOTA_CONSULTA,
+      min: 1, max: 20, payPolicy: 'full', status: 'live', order: 3 },
+    { id: 'personalizadas', type: 'walk', region: 'oriente',
+      name: { pt: 'Experiências personalizadas', en: 'Bespoke experiences', es: 'Experiencias personalizadas' },
+      desc: { pt: 'Programas sob medida para empresas, grupos, instituições e organizações com necessidades específicas: deserto, iate, arquitetura, cultura ou uma combinação que só existe para você.',
+              en: 'Bespoke programmes for companies, groups and institutions with specific needs: desert, yacht, architecture, culture — or a combination that exists only for you.',
+              es: 'Programas a medida para empresas, grupos e instituciones con necesidades específicas: desierto, yate, arquitectura, cultura o una combinación que existe solo para ti.' },
+      meeting: 'A combinar', duration: 'Sob medida', distance: '', effort: 'easy',
+      includes: { pt: ['Projeto desenhado do zero', 'Rede de parceiros locais selecionados', 'Um ponto de contato para tudo'],
+                  en: ['Project designed from scratch', 'Selected local partner network', 'One contact for everything'],
+                  es: ['Proyecto diseñado desde cero', 'Red de socios locales seleccionados', 'Un solo contacto para todo'] },
+      notIncludes: { pt: ['Depende do que for combinado'], en: ['Depends on what is agreed'], es: ['Depende de lo acordado'] },
+      stops: [], photo: 'arte/deserto.jpg',
+      price: 0, priceMode: 'tabela', tabela: consulta(), priceNote: NOTA_CONSULTA,
+      min: 1, max: 20, payPolicy: 'full', status: 'live', order: 4 },
+  ];
+
+  /* PASSEIOS FIXOS DE EXEMPLO — em rascunho: o cliente não vê. Servem para
+     ela ver o orçamento se montando sozinho com preço e a operação viva.
+     Os preços são de exemplo; ela troca pelos dela (ou apaga). */
+  const EX = ' (exemplo)';
+  db.tours.push(
+    { id: 'safari-deserto', type: 'day', region: 'deserto',
+      name: { pt: 'Safári no deserto' + EX, en: 'Desert safari' + EX, es: 'Safari en el desierto' + EX },
+      desc: { pt: 'Exemplo de passeio fixo: troque pelos dados reais.', en: 'Fixed-tour example: replace with the real details.', es: 'Ejemplo de paseo fijo: cámbialo por los datos reales.' },
+      meeting: 'No seu hotel em Dubai', duration: '6 horas', distance: '', effort: 'easy',
+      includes: { pt: [], en: [] }, notIncludes: { pt: [], en: [] }, stops: [], photo: 'arte/deserto.jpg',
+      price: 350, priceMode: 'pp', min: 1, max: 20, payPolicy: 'split', status: 'draft', order: 10 },
+    { id: 'city-tour-dubai', type: 'walk', region: 'dubai',
+      name: { pt: 'City tour Dubai' + EX, en: 'Dubai city tour' + EX, es: 'City tour Dubái' + EX },
+      desc: { pt: 'Exemplo de passeio fixo: troque pelos dados reais.', en: 'Fixed-tour example: replace with the real details.', es: 'Ejemplo de paseo fijo: cámbialo por los datos reales.' },
+      meeting: 'No seu hotel em Dubai', duration: '5 horas', distance: '', effort: 'easy',
+      includes: { pt: [], en: [] }, notIncludes: { pt: [], en: [] }, stops: [], photo: 'arte/skyline.jpg',
+      price: 300, priceMode: 'pp', min: 1, max: 20, payPolicy: 'split', status: 'draft', order: 11 },
+    { id: 'abu-dhabi-dia', type: 'day', region: 'abudhabi',
+      name: { pt: 'Abu Dhabi em um dia' + EX, en: 'Abu Dhabi in one day' + EX, es: 'Abu Dabi en un día' + EX },
+      desc: { pt: 'Exemplo de passeio fixo com ingresso: troque pelos dados reais.', en: 'Fixed-tour example with a ticket: replace with the real details.', es: 'Ejemplo de paseo fijo con entrada: cámbialo por los datos reales.' },
+      meeting: 'No seu hotel em Dubai', duration: '10 horas', distance: '', effort: 'easy',
+      includes: { pt: [], en: [] }, notIncludes: { pt: [], en: [] }, stops: [], photo: 'arte/louvre.jpg',
+      ingressos: [{ nome: { pt: 'Museu (exemplo)', en: 'Museum (example)' }, gratisAte: 12, reduzido: 0, reduzidoAte: 0, inteiro: 63, guia: 0, noDia: false }],
+      price: 450, priceMode: 'pp', min: 1, max: 20, payPolicy: 'split', status: 'draft', order: 12 },
+    { id: 'iate-marina', type: 'walk', region: 'dubai',
+      name: { pt: 'Iate na Dubai Marina' + EX, en: 'Yacht at Dubai Marina' + EX, es: 'Yate en Dubai Marina' + EX },
+      desc: { pt: 'Exemplo de passeio por sessão (valor do barco, não por pessoa).', en: 'Per-session example (price per boat, not per person).', es: 'Ejemplo por sesión (precio por barco, no por persona).' },
+      meeting: 'Dubai Marina', duration: '2 horas', distance: '', effort: 'easy',
+      includes: { pt: [], en: [] }, notIncludes: { pt: [], en: [] }, stops: [], photo: 'arte/iate.jpg',
+      price: 1500, priceMode: 'session', min: 1, max: 12, payPolicy: 'split', status: 'draft', order: 13 },
+    { id: 'transfer-aeroporto', type: 'transfer', region: 'dubai',
+      name: { pt: 'Transfer aeroporto DXB ↔ hotel' + EX, en: 'DXB airport ↔ hotel transfer' + EX, es: 'Traslado aeropuerto DXB ↔ hotel' + EX },
+      desc: { pt: 'Exemplo de transfer por veículo: troque pela tabela real do seu parceiro.', en: 'Per-vehicle transfer example: replace with your partner’s real table.', es: 'Ejemplo de traslado por vehículo: cámbialo por la tabla real de tu socio.' },
+      meeting: 'No aeroporto ou no seu hotel', duration: 'Por trecho', distance: '', effort: 'easy',
+      includes: { pt: [], en: [] }, notIncludes: { pt: [], en: [] }, stops: [], photo: 'arte/skyline.jpg',
+      price: 150, priceMode: 'transfer',
+      transfer: { linhas: [
+        { pax: 2, veiculo: 'sedan',   malas: '2 malas grandes e 2 de mão', dia: 150, noite: 180, sinal: 50 },
+        { pax: 3, veiculo: 'sedan',   malas: '3 malas grandes e 3 de mão', dia: 170, noite: 200, sinal: 60 },
+        { pax: 4, veiculo: 'minivan', malas: '4 malas grandes e 4 de mão', dia: 200, noite: 240, sinal: 70 },
+        { pax: 5, veiculo: 'van',     malas: '5 malas grandes e 5 de mão', dia: 240, noite: 280, sinal: 80 },
+        { pax: 6, veiculo: 'van',     malas: '6 malas grandes e 6 de mão', dia: 260, noite: 300, sinal: 90 },
+        { pax: 7, veiculo: 'van',     malas: '7 malas grandes e 7 de mão', dia: 280, noite: 330, sinal: 100 },
+      ] },
+      min: 1, max: 7, payPolicy: 'sinal', status: 'draft', order: 14 },
+  );
+
+  db.rules = [];
+  /* Todo passeio no ar tem datas (o pedido sai para o WhatsApp dela). */
+  let nRegra = 0;
+  for (const x of db.tours) {
+    if (db.rules.some(r => r.tourId === x.id)) continue;
+    db.rules.push({ id: 'r' + (++nRegra), tourId: x.id, weekdays: [0, 1, 2, 3, 4, 5, 6],
+      time: x.type === 'transfer' ? '10:00' : x.type === 'day' ? '08:00' : '09:00',
+      capacity: 20, from: isoToday(), until: addDays(isoToday(), 180) });
+  }
+
+  db.coupons = [];
+
+  /* ---- clientes e reservas de exemplo (histórico para o Dashboard) ----
+     Nomes fictícios. Some quando ela ligar a nuvem / zerar os exemplos. */
+  const people = [
+    ['Sarah Whitfield',   'sarah.w@example.com',        '+971 50 111 2233',  'sarahw',      'instagram'],
+    ['James Carter',      'james.carter@example.com',   '+44 7700 900123',   '',            'site'],
+    ['Lucía Gómez',       'lucia.gomez@example.com',    '+34 611 223 344',   'luciagomez',  'instagram'],
+    ['Patrícia Menezes',  'patricia.menezes@email.com', '+55 11 98123 4455', 'pat.menezes', 'instagram'],
+    ['Rodrigo Tavares',   'rodrigo.tavares@email.com',  '+55 21 99654 1122', '',            'friend'],
+    ['Luciana Prado',     'luciana.prado@email.com',    '+55 31 98877 3344', 'lu.prado',    'whatsapp'],
+    ['Marcelo Yamada',    'm.yamada@email.com',         '+55 11 97744 2211', '',            'agency'],
+  ];
+  const plan = [
+    /* [pessoa, passeio, dias atrás, pax, quitado?] */
+    [3, 'safari-deserto', 44, 2, true], [4, 'city-tour-dubai', 37, 4, true],
+    [5, 'abu-dhabi-dia', 30, 2, true],  [6, 'iate-marina', 24, 8, true],
+    [0, 'city-tour-dubai', 17, 2, true], [1, 'safari-deserto', 11, 3, true],
+    [2, 'abu-dhabi-dia', 6, 2, true],   [3, 'iate-marina', 3, 6, true],
+    [4, 'safari-deserto', -6, 4, false], [5, 'city-tour-dubai', -12, 2, false],
+  ];
+  let n = 0;
+  for (const [pi, tourId, back, pax, settled] of plan) {
+    const [name, email, whats, insta, origin] = people[pi];
+    const x = db.tours.find(z => z.id === tourId);
+    const date = addDays(isoToday(), -back);
+    const rule = db.rules.find(r => r.tourId === tourId);
+    const time = rule ? rule.time : '10:00';
+    const total = x.priceMode === 'transfer' ? transferPreco(x, pax, 0, time)
+                : x.priceMode === 'tabela' ? tabelaPreco(x, pax)
+                : x.priceMode === 'session' ? x.price : x.price * pax;
+    const created = addDays(date, -(7 + (n % 9)));
+    const payments = [];
+    if (x.payPolicy === 'split') {
+      payments.push({ amount: Math.round(total / 2), date: created, method: 'pix', kind: 'deposit' });
+      if (settled) payments.push({ amount: total - Math.round(total / 2), date: addDays(date, -1), method: 'card', kind: 'balance' });
+    } else {
+      payments.push({ amount: total, date: created, method: 'card', kind: 'full' });
+    }
+    db.bookings.push({
+      id: 'demo' + (++n), code: PREFIXO + '-' + (2100 + n * 37 % 7800),
+      tourId, date, time, name, email, whats, insta, pax, total,
+      coupon: null, discount: 0, policy: x.payPolicy, payments,
+      consent: { ok: true, at: created + 'T10:00:00.000Z', src: 'checkout' },
+      status: 'confirmed', createdAt: created + 'T10:00:00.000Z', origin,
+    });
+  }
   return typeof traduzSemente === 'function' ? traduzSemente(db) : db;
 }
 
@@ -212,8 +478,26 @@ function fillSettings(s) {
 }
 
 let DB = null;
+/* Versao dos dados de DEMONSTRACAO. Sobe quando o catalogo de exemplo muda.
+
+   Sem isto, quem abriu o link uma vez fica para sempre com os dados daquele
+   dia: o navegador guarda a demonstracao e nunca mais olha o catalogo novo.
+   Aconteceu em 18/09/2026 — a v1.57 trouxe a tabela de transfer de 2026 e
+   os links de parceira, e quem tinha aberto a v1.56 continuava vendo o
+   transfer antigo (que nem funcionava mais) e nenhum link.
+
+   So vale para a DEMONSTRACAO e sem nuvem: dados de verdade nunca sao
+   trocados por exemplo. Os pedidos de roteiro feitos no aparelho ficam. */
+const SEED_VER = 5;   /* 5: ingressos por idade (18/09/2026) */
+
 function load() {
   try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
+  if (DB && DB.demo && !temNuvem() && (+DB.seedVer || 1) < SEED_VER) {
+    const pedidos = DB.pedidos || [];
+    DB = _seed();
+    DB.pedidos = pedidos;
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  }
   /* O app esta em producao. Aparelho novo (ou navegador limpo) tem que
      comecar VAZIO e receber o que esta na nuvem — nunca publicar um catalogo
      inventado por cima do dela. Antes isto semeava a demonstracao e o save()
@@ -232,6 +516,7 @@ function load() {
 function save() {
   localStorage.setItem(DB_KEY, JSON.stringify(DB));
   if (typeof cloudPushState === 'function') cloudPushState();
+  if (typeof itAgendar === 'function') itAgendar();
 }
 function resetDemo() { DB = _seed(); save(); }
 
@@ -338,34 +623,69 @@ const Bookings = {
   get(id) { return DB.bookings.find(b => b.id === id); },
   byCode(code) { return DB.bookings.find(b => b.code === code); },
 
-  create({ tourId, date, time, name, email, whats, insta, pax, coupon, policy, origin, consent }) {
+  create({ tourId, date, time, name, email, whats, insta, pax, coupon, policy, origin, consent, opcao, group, adultos, criancas, idades, veioPor, indicadoPor, nasc, compradorVai }) {
     const tour = Tours.get(tourId);
     /* Tem que ser o MESMO calculo que a tela mostrou. tour.price * pax ignora
        o preco escalonado (195 para as 3 primeiras, 225 depois) e gravava a
        reserva abaixo do que a pessoa acabou de ler. */
-    const base = Bookings.precoDe(tour, tourId, date, time, pax).total;
+    /* O veiculo tem que vir junto: sem ele, uma reserva de minivan as 22h
+       era gravada pelo valor do carro diurno. A tela mostrava 130 e o caixa
+       guardava 90, e so o extrato no fim do mes acusaria. */
+    const pr0 = Bookings.precoDe(tour, tourId, date, time, pax, { opcao });
+    const base = pr0.total;
     let discount = 0, couponCode = null;
     if (coupon) {
       const v = Coupons.validate(coupon, email);
       if (v.ok) { discount = Math.round(base * v.coupon.pct) / 100 * 1; discount = Math.round(base * v.coupon.pct / 100); couponCode = v.coupon.code; }
     }
-    const total = base - discount;
+    /* ingressos por idade: somados ao total, porque e ela quem compra */
+    const nAdultos = Number.isFinite(+adultos) && adultos !== undefined ? +adultos : pax;
+    const ing = ingressosDe(tour, nAdultos, idades || []);
+    const total = base - discount + ing.total;
     const b = {
       id: uid(), code: bookCode(), tourId, date, time,
       name, email, whats, insta: insta || '', pax, total,
       coupon: couponCode, discount, policy,
+      /* quem vem: adultos e menores de 18. O preco e pelo total; a divisao e
+         para ela saber quem e crianca (ingresso, cadeirinha, ritmo). */
+      adultos: Number.isFinite(+adultos) && adultos !== undefined ? +adultos : pax,
+      criancas: +criancas || 0,
+      idades: (idades || []).map(v => (v === '' || v == null) ? null : +v),
+      ingressos: ing.total || ing.totalDia ? { linhas: ing.linhas, total: ing.total, noDia: ing.noDia, totalDia: ing.totalDia } : null,
+      veiculo: pr0.veiculo || '', malas: pr0.malas || '',
+      /* Transfer: o que se paga antes e o SINAL da tabela dela, nao a metade.
+         O resto e no dia. */
+      sinal: tour && tour.priceMode === 'transfer' ? (pr0.sinal || 0) : 0,
+      /* QUEM MAIS VEM NO GRUPO.
+
+         A Ingrid pediu isto em audio: ate hoje ela so registra quem fez a
+         reserva, mas muita gente volta depois por indicacao de alguem que
+         VEIO JUNTO e nunca falou com ela. Sem os nomes do grupo, essa
+         pessoa nao existe na base dela e a indicacao se perde. */
+      group: Array.isArray(group) ? group.filter(g => g && g.nome).map(g => ({
+        nome: String(g.nome).trim(),
+        nasc: String(g.nasc || '').trim(),
+        whats: String(g.whats || '').trim(),
+      })) : [],
+      /* como conheceu (a coluna "veio por" da planilha dela) */
+      veioPor: veioPor || '', indicadoPor: String(indicadoPor || '').trim(),
+      /* quem compra pode nao ir (reservou para a mae): entao a data de
+         nascimento dele so vale para o ingresso se ele for */
+      nasc: String(nasc || '').trim(), compradorVai: compradorVai !== false,
       consent: consent ? { ok: true, at: new Date().toISOString(), src: 'checkout' } : { ok: false },
       payments: [], status: 'confirmed',
       createdAt: new Date().toISOString(), origin: origin || 'site',
       /* Em que idioma ele reservou. Sem isto o e-mail de recibo sai em
          portugues para um frances que leu a tela inteira em ingles. */
-      lang: (typeof LANG !== 'undefined' && LANG) || 'pt',
+      lang: (typeof LANG !== 'undefined' && (LANG === 'en' || LANG === 'es')) ? LANG : 'pt',
     };
     /* Aqui havia um pagamento inventado: toda reserva nascia marcada como paga
        no cartao. O painel, o caixa e os relatorios contavam dinheiro que nunca
        entrou. A reserva nasce sem pagamento nenhum — quem registra e o guia,
        quando o dinheiro cai de verdade. E aqui que o Stripe entra um dia. */
     DB.bookings.push(b);
+    /* o cadastro de quem reservou e de cada um do grupo (operacao.js) */
+    if (typeof cadastroDaReserva === 'function') cadastroDaReserva(b);
     if (couponCode) Coupons.consume(couponCode, email);
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
     if (typeof cloudPushBooking === 'function') cloudPushBooking(b);
@@ -391,7 +711,7 @@ const Bookings = {
     return b;
   },
 
-  criarManual({ tourId, date, time, name, whats, email, pax, total, recebido, metodo }) {
+  criarManual({ tourId, date, time, name, whats, email, pax, total, recebido, metodo, veioPor, indicadoPor }) {
     const b = {
       id: uid(), code: bookCode(), tourId, date, time,
       name, email: email || '', whats: whats || '', insta: '',
@@ -400,6 +720,7 @@ const Bookings = {
       consent: { ok: false },
       payments: [], status: 'confirmed',
       createdAt: new Date().toISOString(), origin: 'manual',
+      veioPor: veioPor || '', indicadoPor: String(indicadoPor || '').trim(),
     };
     const val = Math.max(0, Math.min(+recebido || 0, b.total));
     if (val > 0) {
@@ -407,6 +728,7 @@ const Bookings = {
                         kind: val >= b.total ? 'full' : 'deposit' });
     }
     DB.bookings.push(b);
+    if (typeof cadastroDaReserva === 'function') cadastroDaReserva(b);
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
     if (typeof cloudPushBooking === 'function') cloudPushBooking(b);
     return b;
@@ -417,10 +739,22 @@ const Bookings = {
      O guia vende as primeiras vagas de cada data mais barato: 195 para
      os 3 primeiros, 225 depois. O calculo e por DATA, nao por reserva —
      quem chega quando ja ha 2 vendidos leva 1 barato e o resto caro. */
-  precoDe(x, tourId, date, time, pax) {
+  precoDe(x, tourId, date, time, pax, opt) {
     const cheio = +x.price || 0;
     const tarde = +x.priceLate || 0;
     const vagasBaratas = +x.earlySeats || 0;
+    if (x.priceMode === 'transfer') {
+      const opcao = (opt && opt.opcao) || 0;
+      const l = transferLinha(x, pax, opcao);
+      const v = transferPreco(x, pax, opcao, time);
+      return { total: v, linhas: [{ qtd: 1, valor: v, fechado: true }],
+               veiculo: l ? l.veiculo : '', malas: l ? l.malas : '', sinal: l ? +l.sinal || 0 : 0,
+               noturno: transferNoturno(time), consultar: v === 0 };
+    }
+    if (x.priceMode === 'tabela') {
+      const v = tabelaPreco(x, pax);
+      return { total: v, linhas: [{ qtd: pax, valor: v, fechado: true }], consultar: v === 0 };
+    }
     if (x.priceMode === 'session') return { total: cheio, linhas: [{ qtd: 1, valor: cheio }] };
     if (!tarde || !vagasBaratas) return { total: cheio * pax, linhas: [{ qtd: pax, valor: cheio }] };
 
@@ -449,6 +783,8 @@ const Bookings = {
   /* Cada passeio tem seu prazo. O de Natal cobra o saldo 30 dias antes,
      nao na vespera — usar um numero fixo aqui cobraria tarde demais. */
   dueDate(b){
+    /* transfer: o sinal garante, o resto e no dia */
+    if (b.policy === 'sinal') return b.date;
     const x = Tours.get(b.tourId);
     const dias = (x && +x.balanceDays) || 1;
     return addDays(b.date, -dias);
@@ -471,7 +807,7 @@ const Bookings = {
       for (const p of b.payments) {
         if (p.date >= fromIso && p.date <= toIso) {
           rows.push({ date: p.date, client: b.name, tourId: b.tourId,
-                      kind: p.kind, method: p.method, amount: p.amount, code: b.code });
+                      kind: p.kind, method: p.method, amount: p.amount, code: b.code, conta: p.conta || '' });
         }
       }
     }
@@ -482,6 +818,42 @@ const Bookings = {
 
 load();
 
+/* ---------- pedidos de roteiro personalizado ----------
+   O que o cliente respondeu em "Monte seu roteiro". A entrega de verdade e
+   pelo WhatsApp dela (a mensagem sai pronta); isto aqui e a memoria, para
+   ela ver no painel quem pediu, quando, e se ja respondeu.
+
+   Com a nuvem ligada, o pedido de um cliente vive no aparelho DELE ate
+   existir uma tabela propria no Supabase — anotado na entrega. */
+const Roteiros = {
+  all() { return [...(DB.pedidos || [])].sort((a, b) => (b.criado || '').localeCompare(a.criado || '')); },
+  cria(r) {
+    const limpa = (v) => String(v || '').trim();
+    const ped = {
+      id: uid(), criado: new Date().toISOString(), respondido: false,
+      nome: limpa(r.nome), whats: limpa(r.whats), email: limpa(r.email),
+      ini: limpa(r.ini), fim: limpa(r.fim),
+      adultos: Math.max(1, +r.adultos || 1), criancas: Math.max(0, +r.criancas || 0), idades: limpa(r.idades),
+      onde: [...(r.onde || [])], ondeOutro: limpa(r.ondeOutro),
+      gosto: [...(r.gosto || [])], precisa: [...(r.precisa || [])], ritmo: r.ritmo || '',
+      obs: limpa(r.obs), modo: r.modo || '',
+      lang: (typeof LANG !== 'undefined' && (LANG === 'en' || LANG === 'es')) ? LANG : 'pt',
+    };
+    DB.pedidos = DB.pedidos || [];
+    DB.pedidos.push(ped);
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+    /* o cliente no site: o pedido vai para o banco e chega no celular dela */
+    if (typeof itPedidoPublico === 'function' && !(typeof isLoggedIn === 'function' && isLoggedIn())) itPedidoPublico('pedidos', ped);
+    return ped;
+  },
+  marca(id, respondido) {
+    const p = (DB.pedidos || []).find(x => x.id === id);
+    if (!p) return;
+    p.respondido = !!respondido;
+    save();
+  },
+};
+
 /* ---------- clientes (derivados das reservas) ---------- */
 const Clients = {
   all() {
@@ -489,7 +861,7 @@ const Clients = {
     for (const b of DB.bookings) {
       if (b.status === 'cancelled') continue;
       const key = (b.email || b.whats || b.name).toLowerCase();
-      const c = map.get(key) || { name: b.name, email: b.email, whats: b.whats, insta: b.insta,
+      const c = map.get(key) || { key, name: b.name, email: b.email, whats: b.whats, insta: b.insta,
                                   tours: 0, spent: 0, last: '', origins: new Set(), consent: false, consentAt: '' };
       c.tours += 1;
       c.spent += Bookings.paid(b);
@@ -498,29 +870,43 @@ const Clients = {
       if (b.consent && b.consent.ok) { c.consent = true; c.consentAt = b.consent.at; }
       if (!c.insta && b.insta) c.insta = b.insta;
       map.set(key, c);
+
+      /* QUEM VEIO JUNTO tambem e cliente.
+
+         A Ingrid explicou o porque: muita gente volta anos depois por
+         indicacao de alguem que estava NO GRUPO e nunca falou com ela. Se a
+         base so tem quem reservou, essa pessoa chega do nada e a indicacao
+         se perde. Aqui ela entra com o nome, a data de nascimento e por
+         quem veio.
+
+         Nao tem e-mail nem WhatsApp: a chave e o nome. Homonimo junta os
+         dois, e tudo bem — e melhor que nao existir. */
+      for (const g of (b.group || [])) {
+        /* Trim aqui tambem, e nao so em create(): reserva que chega da nuvem
+           nao passa por create, e um nome so com espacos viraria um cliente
+           sem nome na base dela. */
+        const gnome = String((g && g.nome) || '').trim();
+        if (!gnome) continue;
+        const gk = 'g:' + gnome.toLowerCase();
+        const gc = map.get(gk) || { key: gk, name: gnome, email: '', whats: '', insta: '',
+                                    nasc: String((g && g.nasc) || '').trim(), veioCom: b.name, acompanhante: true,
+                                    tours: 0, spent: 0, last: '', origins: new Set(),
+                                    consent: false, consentAt: '' };
+        gc.tours += 1;
+        if (b.date > gc.last) gc.last = b.date;
+        if (!gc.nasc && g.nasc) gc.nasc = String(g.nasc).trim();
+        if (b.origin) gc.origins.add(b.origin);
+        map.set(gk, gc);
+      }
     }
-    return [...map.values()].sort((a, b) => b.spent - a.spent);
+    /* Acompanhante nao gastou nada por si: ordenar so por gasto jogaria todos
+       para o fim da lista. Quem gastou vem primeiro; depois, os mais recentes. */
+    return [...map.values()].sort((a, b) =>
+      (b.spent - a.spent) || (b.last || '').localeCompare(a.last || ''));
   },
 };
 
 /* ---------- relatórios ---------- */
-/* conta uma visita ou um "quase reservou" — só no aparelho de quem olha;
-   no app de verdade isto sobe junto com o resto dos dados */
-const Interesse = {
-  conta(tourId, tipo) {
-    if (!tourId || (tipo !== 'visitas' && tipo !== 'quase')) return;
-    if (!DB.interesse) DB.interesse = {};
-    const i = DB.interesse[tourId] = DB.interesse[tourId] || {};
-    const c = i[tipo] = i[tipo] || {};
-    const hoje = isoToday();
-    c[hoje] = (+c[hoje] || 0) + 1;
-    /* guarda no máximo 120 dias por passeio, para não crescer sem fim */
-    const dias = Object.keys(c).sort();
-    if (dias.length > 120) for (const d of dias.slice(0, dias.length - 120)) delete c[d];
-    save();
-  },
-};
-
 const Reports = {
   /* receita por mês do ano corrente */
   byMonth(year) {
@@ -551,20 +937,6 @@ const Reports = {
       end = addDays(start, -1);
     }
     return out;
-  },
-  /* interesse por passeio: visitas, quem chegou a escolher data, reservas e conversão */
-  interesse(fromIso, toIso) {
-    const soma = (o) => Object.entries(o || {}).reduce((n, [d, v]) => n + (d >= fromIso && d <= toIso ? (+v || 0) : 0), 0);
-    const linhas = Tours.all().map(x => {
-      const i = (DB.interesse || {})[x.id] || {};
-      const bs = DB.bookings.filter(b => b.tourId === x.id && b.status !== 'cancelled' && b.date >= fromIso && b.date <= toIso);
-      const visitas = soma(i.visitas), quase = soma(i.quase), reservas = bs.length;
-      return { tour: x, visitas, quase, reservas,
-               pax: bs.reduce((n, b) => n + b.pax, 0),
-               receita: bs.reduce((n, b) => n + Bookings.paid(b), 0),
-               conv: visitas ? Math.round(reservas / visitas * 100) : 0 };
-    }).filter(r => r.visitas > 0 || r.reservas > 0);
-    return linhas.sort((a, b) => b.visitas - a.visitas || b.reservas - a.reservas);
   },
   /* desempenho por passeio no intervalo */
   byTour(fromIso, toIso) {

@@ -91,3 +91,46 @@
   background:radial-gradient(75% 55% at 50% 45%, transparent 35%, rgba(0,0,0,.72) 100%); }
 .hub-in{ position:relative; z-index:1; }
 .vcard{ backdrop-filter:blur(3px); }
+
+/* ---- o link do guia (guia-link.js) ---- */
+.gp .gpNav{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px}
+.gpGrade{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.gpDia{text-align:center;font:600 11px var(--f-ui);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;padding-bottom:4px}
+.gpCel{aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font:600 14px var(--f-ui);cursor:pointer;position:relative}
+.gpCel.on{background:var(--brand-primaria);color:#0B0B0B;border-color:transparent}
+.gpCel.parte{background:linear-gradient(135deg,var(--brand-primaria) 50%,var(--surface-2) 50%);color:#0B0B0B}
+.gpCel.gsvc{background:var(--surface-3);border-color:var(--brand-primaria);color:var(--brand-primaria)}
+.gpCel.gsvc::after{content:"";position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--brand-primaria)}
+.gpCel.gocup{background:var(--surface-3);color:var(--ink-3);text-decoration:line-through}
+.gpCel.sel{outline:2px solid var(--brand-oro);outline-offset:2px}
+.gpCel.off{opacity:.3;cursor:default}
+.gpLeg{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:10px;font-size:12px;color:var(--ink-3)}
+.gpLeg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid var(--line-2)}
+.gpLeg i.gl-on{background:var(--brand-primaria);border-color:transparent}
+.gpLeg i.gl-svc{background:var(--surface-3);border-color:var(--brand-primaria)}
+.gpLeg i.gl-ocup{background:var(--surface-3)}
+.gpTurnos{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:10px}
+.gpTurnos .chip.gsvc{opacity:.75;cursor:default}
+.gpTurnos .chip.gocup{text-decoration:line-through;opacity:.8}
+.gpCard{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;background:var(--surface-2)}
+.gpCardTop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gpCardTop b{font-size:15px}
+.gpTag{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:rgba(212,175,55,.2);color:var(--brand-primaria)}
+.gpMeta{font-size:13px;opacity:.85;margin-top:5px}
+.gpCli{font-size:14px;margin-top:8px}
+.gpContatos{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.gpBtn{display:inline-block;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid var(--line-2)}
+.gpBtn.wa{background:#25D366;color:#063;border-color:transparent}
+.gpBtn.ig{background:linear-gradient(45deg,#F58529,#DD2A7B,#8134AF);color:#fff;border-color:transparent}
+.gpBtn.em{background:var(--surface-3);color:inherit}
+
+/* a base da EmRoma tinge a capa de vinho: aqui é preto e dourado */
+.hub-bg::after{ background:linear-gradient(165deg, rgba(5,5,5,.35), rgba(20,16,8,.30)) !important; }
+/* a página do guia é de celular: no computador, uma coluna estreita */
+.wrap.gp{max-width:560px;margin-left:auto;margin-right:auto}
+.gpCel{padding:0 !important;min-width:0}
+
+/* documentos: o logo completo do brand kit */
+.doc-cab .doc-logo{height:64px;width:auto;display:block}
+/* o brand kit: Playfair só nas frases institucionais (a frase da capa, o "sobre") */
+.tagline, .vcard .tagline, .about-bio p:first-child{font-family:var(--f-serif)}

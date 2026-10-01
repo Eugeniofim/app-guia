@@ -18,7 +18,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
    O navegador bloqueia som antes de a pessoa tocar na tela; quando isso
    acontecer a gente simplesmente não toca, em vez de insistir. */
 function assinaturaSonora() {
-  if (localStorage.getItem('vi_som') === 'off') return;
+  if (localStorage.getItem('yalla_som') === 'off') return;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
   let ctx;
@@ -87,8 +87,8 @@ function assinaturaSonora() {
   if (!el) return;
   let morta = false;
   const kill = () => { if (!morta) { morta = true; el.remove(); } };
-  if (sessionStorage.getItem('vi_seen')) return kill();
-  sessionStorage.setItem('vi_seen', '1');
+  if (sessionStorage.getItem('yalla_seen')) return kill();
+  sessionStorage.setItem('yalla_seen', '1');
   el.addEventListener('pointerdown', kill);
   /* Antes eu cortava a abertura para 1,25s quando o aparelho pedia menos
      movimento — quem tem essa opcao ligada no iPhone nao via nada. O tempo
@@ -101,8 +101,18 @@ function assinaturaSonora() {
 
 /* ---------- contato (WhatsApp, mapa, agenda, vCard) ---------- */
 function waNum() { return (DB.settings.whats || '').replace(/\D/g, ''); }
+/* O link do WhatsApp.
+
+   O normal e ter o numero: dai da para mandar a mensagem ja escrita, e e o
+   que faz o cliente chegar dizendo "quero o Vaticano dia 12" em vez de "oi".
+   Quem so tem o link curto do proprio WhatsApp (wa.me/message/CODIGO) tambem
+   funciona — so que o link curto nao aceita texto pronto, entao ali o app
+   manda a pessoa sem a mensagem em vez de montar uma URL que nao abre. */
 function waLink(text, num) {
-  return 'https://wa.me/' + (num || waNum()) + (text ? '?text=' + encodeURIComponent(text) : '');
+  const g = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.guia) || {};
+  const n = num || waNum();
+  if (!n && g.whatsLink) return g.whatsLink;
+  return 'https://wa.me/' + n + (text ? '?text=' + encodeURIComponent(text) : '');
 }
 function mapLink(q) { return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q); }
 
@@ -128,9 +138,9 @@ function icsFor(b, x) {
   const dt = b.date.replace(/-/g, '') + 'T' + horaInicio(b.time).replace(':', '') + '00';
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//AppGuia//PT', 'BEGIN:VEVENT',
     'UID:' + b.code + '@app-guia', 'DTSTART:' + dt,
-    'SUMMARY:' + tl(x.name) + ' — ' + guiaNome(),
+    'SUMMARY:' + (x.name[LANG] || x.name.pt) + ' — ' + guiaNome(),
     'LOCATION:' + noIdioma(x.meeting).replace(/,/g, '\\,'),
-    'DESCRIPTION:' + t('xCodigo') + ' ' + b.code,
+    'DESCRIPTION:' + (LANG === 'pt' ? 'Código ' : 'Code ') + b.code,
     'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
   return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
 }
@@ -172,66 +182,88 @@ function toast(msg) {
 }
 
 /* ---------- tutorial de balões ---------- */
+/* O TUTORIAL.
+
+   Era um balao branco sem nenhuma marca: parecia pop-up de propaganda, e o
+   Eugenio avisou que dava medo de ser virus. Agora e AMARELO da marca, diz
+   "Dica do app" no topo, aponta com uma seta para o botao que explica, e o
+   botao explicado ganha um anel pulsando.
+
+   E pode FALAR. O botao "Ouvir" toca a narracao do passo (arquivos em
+   audio/, um por passo e idioma). Nunca toca sozinho de primeira — som que
+   comeca sem ninguem pedir e exatamente o que parece virus, e o celular
+   bloqueia de qualquer jeito. Depois que a pessoa toca "Ouvir" uma vez, os
+   proximos passos falam sozinhos (o toque em "Entendi" autoriza). */
 const Coach = {
-  steps: [], i: 0, el: null, keyFlag: '',
+  steps: [], i: 0, el: null, keyFlag: '', voz: false, som: null,
   start(steps, flag) {
     if (!DB.settings[flag]) return;
     this.steps = steps.filter(s => $(s.sel)); this.i = 0; this.keyFlag = flag;
     if (this.steps.length) this.show();
   },
+  /* a narracao so existe quando o cliente tem os arquivos (APP_CONFIG.narracao) */
+  audio(s) { return s.audio && typeof APP_CONFIG !== 'undefined' && APP_CONFIG.narracao ? `audio/tut-${s.audio}-${LANG === 'en' ? 'en' : 'pt'}.m4a` : ''; },
+  fala(s) {
+    this.cala();
+    const src = this.audio(s); if (!src) return;
+    try {
+      this.som = new Audio(src);
+      const bt = this.el && $('.coach-ouvir', this.el);
+      if (bt) bt.classList.add('tocando');
+      this.som.onended = () => { if (bt) bt.classList.remove('tocando'); };
+      this.som.play().catch(() => { if (bt) bt.classList.remove('tocando'); });
+    } catch (e) {}
+  },
+  cala() { if (this.som) { try { this.som.pause(); } catch (e) {} this.som = null; } },
   show() {
     this.hide();
     const s = this.steps[this.i]; const target = $(s.sel);
     if (!target) return this.next();
     target.scrollIntoView({ block: 'center', behavior: 'instant' });
+    const r = target.getBoundingClientRect();
     const b = document.createElement('div');
-    b.className = 'coach'; b.setAttribute('role', 'dialog');
-    b.innerHTML = `<span class="coach-tag">💡 ${t('tutTag')} · ${this.i + 1}/${this.steps.length}</span>
-      <div class="coach-txt">${esc(tl(s.txt))}</div>
+    b.className = 'coach';
+    b.setAttribute('role', 'dialog');
+    b.innerHTML = `<div class="coach-top"><span>💡 ${t('tutTitulo')}</span>
+        ${this.audio(s) ? `<button class="coach-ouvir" aria-label="${t('tutOuvir')}">🔊 ${t('tutOuvir')}</button>` : ''}</div>
+      <div class="coach-txt">${esc(s.txt[LANG] || s.txt.pt)}</div>
       <div class="coach-row">
         <button class="coach-skip">${t('tutSkip')}</button>
-        <button class="coach-next">${t('tutNext')} →</button>
-      </div>`;
-    const spot = document.createElement('div');
-    spot.className = 'coach-spot';
-    document.body.append(spot, b);
+        <span class="coach-n">${this.i + 1}/${this.steps.length}</span>
+        <button class="coach-next">${t('tutNext')}</button>
+      </div>
+      <i class="coach-seta" aria-hidden="true"></i>`;
+    document.body.appendChild(b);
+    const bw = Math.min(290, innerWidth - 20);
+    b.style.width = bw + 'px';
+    const abaixo = r.bottom + 14 + b.offsetHeight <= innerHeight;
+    const top = abaixo ? r.bottom + 14 : Math.max(10, r.top - b.offsetHeight - 14);
+    const left = Math.max(10, Math.min(innerWidth - bw - 10, r.left + r.width / 2 - bw / 2));
+    b.style.top = top + 'px';
+    b.style.left = left + 'px';
+    b.classList.add(abaixo ? 'seta-cima' : 'seta-baixo');
+    /* a seta aponta para o meio do botao, nao para o meio do balao */
+    const seta = $('.coach-seta', b);
+    seta.style.left = Math.max(16, Math.min(bw - 30, r.left + r.width / 2 - left - 8)) + 'px';
     target.classList.add('coach-hi');
-    this.el = b; this.spot = spot; this.hiEl = target;
-    this.posiciona();
+    this.el = b; this.hiEl = target;
     $('.coach-next', b).onclick = () => this.next();
     $('.coach-skip', b).onclick = () => this.stop(true);
-  },
-  /* Ao lado do item quando cabe (computador), senão embaixo ou em cima
-     (celular) — nunca por cima do item seguinte da lista. */
-  posiciona() {
-    const b = this.el, alvo = this.hiEl;
-    if (!b || !alvo) return;
-    const r = alvo.getBoundingClientRect(), bw = b.offsetWidth, bh = b.offsetHeight, m = 18;
-    Object.assign(this.spot.style, { top: (r.top - 6) + 'px', left: (r.left - 6) + 'px', width: (r.width + 12) + 'px', height: (r.height + 12) + 'px' });
-    let lado, top, left;
-    if (innerWidth >= 760 && r.right + m + bw + 10 <= innerWidth) { lado = 'direita'; left = r.right + m; top = r.top + r.height / 2 - bh / 2; }
-    else if (innerWidth >= 760 && r.left - m - bw >= 10) { lado = 'esquerda'; left = r.left - m - bw; top = r.top + r.height / 2 - bh / 2; }
-    else if (r.bottom + m + bh <= innerHeight - 10) { lado = 'baixo'; top = r.bottom + m; left = r.left + r.width / 2 - bw / 2; }
-    else { lado = 'cima'; top = r.top - m - bh; left = r.left + r.width / 2 - bw / 2; }
-    top = Math.max(10, Math.min(innerHeight - bh - 10, top));
-    left = Math.max(10, Math.min(innerWidth - bw - 10, left));
-    b.dataset.lado = lado;
-    const seta = (lado === 'baixo' || lado === 'cima') ? r.left + r.width / 2 - left : r.top + r.height / 2 - top;
-    b.style.setProperty('--seta', Math.max(22, Math.min((lado === 'baixo' || lado === 'cima' ? bw : bh) - 22, seta)) + 'px');
-    b.style.top = top + 'px'; b.style.left = left + 'px';
+    const ouvir = $('.coach-ouvir', b);
+    if (ouvir) ouvir.onclick = () => {
+      if (this.som && !this.som.paused) { this.cala(); ouvir.classList.remove('tocando'); return; }
+      this.voz = true; this.fala(s);
+    };
+    if (this.voz) this.fala(s);
   },
   next() { this.i++; if (this.i >= this.steps.length) return this.stop(true); this.show(); },
-  hide() { this.el?.remove(); this.spot?.remove(); this.el = this.spot = null; this.hiEl?.classList.remove('coach-hi'); },
+  hide() { this.cala(); this.el?.remove(); this.el = null; this.hiEl?.classList.remove('coach-hi'); },
   stop(done) {
     this.hide();
     if (this.keyFlag) { DB.settings[this.keyFlag] = false; save(); }
     if (done) toast(t('tutDone'));
   },
 };
-
-/* o balão acompanha o item quando a tela rola ou muda de tamanho */
-addEventListener('resize', () => Coach.el && Coach.posiciona());
-addEventListener('scroll', () => Coach.el && Coach.posiciona(), { passive: true });
 
 /* ---------- roteador ---------- */
 addEventListener('hashchange', route);
@@ -248,6 +280,7 @@ function route() {
   Coach.hide();
   const h = location.hash.slice(2) || '';
   const p = h.split('/');
+  if (p[0] !== 'adm' && typeof visualAplica === 'function') visualAplica(false);
   document.documentElement.lang = LANG === 'pt' ? 'pt-BR' : LANG;
   if (p[0] === 'novasenha') viewNewPass();
   else if (p[0] === 'login') viewLogin();
@@ -257,11 +290,14 @@ function route() {
   }
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
   else if (p[0] === 'about') viewAbout();
-  else if (p[0] === 'personalizar') viewPersonalizar();
+  else if (p[0] === 'avaliacoes') viewAvaliacoes();
+  else if (p[0] === 'roteiro') viewRoteiro();
+  else if (p[0] === 'pedido') viewPedido();
   else if (p[0] === 'tours') viewShowcase();
   else if (p[0] === 'tour')  viewTour(p[1]);
   else                       viewHub();
   document.body.classList.toggle('em-adm', p[0] === 'adm');
+  cestaBarra(p[0]);
   faixaAcimaDaBarra();
   scrollTo(0, 0);
 }
@@ -281,78 +317,288 @@ addEventListener('resize', faixaAcimaDaBarra);
 
 /* barra de idioma do cliente */
 function langBar(cls) {
-  /* no cabeçalho estreito do celular os seis botões não cabem: ali vira
-     uma lista suspensa compacta (o CSS escolhe qual dos dois aparece) */
-  return `<div class="langs ${cls || ''}">${LANGS.map(([c, sig, nome], i) =>
+  const NOMES = { pt: ['PT', 'Português'], en: ['EN', 'English'], es: ['ES', 'Español'] };
+  return `<div class="langs ${cls || ''}">${linguasCliente().map((c, i) =>
     (i ? '<span class="langsep" aria-hidden="true">|</span>' : '') +
-    `<button data-lang="${c}" class="${LANG === c ? 'on' : ''}" lang="${c}" aria-label="${nome}">${sig}</button>`).join('')}
-    <select class="langsel" aria-label="${t('xIdiomas')}">${LANGS.map(([c, sig, nome]) =>
-      `<option value="${c}" ${LANG === c ? 'selected' : ''}>${sig} · ${nome}</option>`).join('')}</select></div>`;
+    `<button data-lang="${c}" class="${LANG === c ? 'on' : ''}" lang="${c}" aria-label="${(NOMES[c] || [c, c])[1]}">${(NOMES[c] || [c.toUpperCase()])[0]}</button>`).join('')}</div>`;
 }
 function bindLang(root) {
   $$('[data-lang]', root).forEach(b => b.onclick = () => { setLang(b.dataset.lang); route(); });
-  $$('.langsel', root).forEach(s => s.onchange = () => { setLang(s.value); route(); });
 }
 
 /* =====================================================
    CLIENTE
 ===================================================== */
+/* A PRIMEIRA TELA — o "link na bio" dela.
+
+   Hoje o Instagram dela aponta para um Beacons com WhatsApp, transfer,
+   hotel, chip, seguro, YouTube e blog. Esta tela faz o mesmo papel, com
+   uma diferenca que vale o app inteiro: aqui o cliente RESERVA, ve o preco
+   do transfer na hora e pede o roteiro personalizado — no Beacons tudo
+   termina num "fale no WhatsApp". Os links de parceiros e as redes saem
+   dos Ajustes: ela troca sem precisar de nos. */
+const ICONE_YT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.2 3.6-6.2 3.6Z"/></svg>';
+const ICONE_FB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12Z"/></svg>';
+const ICONE_BLOG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>';
+
+function linkExterno(u) { return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
+
 function viewHub() {
+  const st = DB.settings;
+  const txt = (o) => (o && (o[LANG] || o.pt)) || '';
+  const redes = [
+    st.insta    ? { u: 'https://instagram.com/' + st.insta.replace(/^@/, ''), ic: ICONE_IG, n: 'Instagram', c: 'ig' } : null,
+    linkExterno(st.youtube)  ? { u: st.youtube,  ic: ICONE_YT,   n: 'YouTube',  c: 'yt' } : null,
+    linkExterno(st.blog)     ? { u: st.blog,     ic: ICONE_BLOG, n: 'Blog',     c: 'bl' } : null,
+    linkExterno(st.facebook) ? { u: st.facebook, ic: ICONE_FB,   n: 'Facebook', c: 'fb' } : null,
+  ].filter(Boolean);
+  const temTransfer = Tours.live().some(x => x.type === 'transfer');
+  const links = (st.links || []).filter(l => linkExterno(l.url) && txt(l.titulo));
+
   app.innerHTML = `
   <div class="hub">
-    <div class="hub-bg" style="background-image:url(${esc(DB.settings.homePhoto || 'home.jpg')})"></div>
+    <div class="hub-bg" style="background-image:url(${esc(st.homePhoto || 'home.jpg')})"></div>
     <div class="hub-in">
       <div class="vcard">
         <div class="hub-brand">${logoFull({ mark: 46, sub: esc(guiaBase()) })}</div>
-        <p class="tagline">${esc(noIdioma(DB.settings.homeText) || t('tagline'))}</p>
+        <p class="tagline">${esc(noIdioma(st.homeText) || t('tagline'))}</p>
+        ${redes.length ? `<div class="redes" aria-label="${t('hubRedes')}">${redes.map(r =>
+          `<a class="rede ${r.c}" href="${esc(r.u)}" target="_blank" rel="noopener" aria-label="${r.n}" title="${r.n}">${r.ic}</a>`).join('')}</div>` : ''}
         ${langBar('center')}
       </div>
       <button class="lk main" id="goTours">
         <span class="ic">📍</span><span><b>${t('seeTours')}</b><small>${t('seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
-      <button class="lk" id="goPers">
-        <span class="ic">✦</span><span><b>${t('persLink')}</b><small>${t('persLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      ${temTransfer ? `<button class="lk" id="goTransfer">
+        <span class="ic">🚘</span><span><b>${t('hubTransfer')}</b><small>${t('hubTransferSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>` : ''}
+      <button class="lk" id="goRoteiro">
+        <span class="ic">🗺️</span><span><b>${t('hubRoteiro')}</b><small>${t('hubRoteiroSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
       <button class="lk" id="goAbout">
-        <span class="ic"><img id="hubFace" src="${esc(DB.settings.photo || 'guia.jpg')}" alt=""
+        <span class="ic"><img id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt=""
           style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
-      <a class="lk" href="https://instagram.com/${esc(DB.settings.insta)}" target="_blank" rel="noopener"><span class="ic ig">${ICONE_IG}</span><span><b>Instagram</b><small>@${esc(DB.settings.insta)}</small></span><span class="go" aria-hidden="true">→</span></a>
-      <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b></span><span class="go" aria-hidden="true">→</span></a>
-      ${typeof temNuvem === 'function' && !temNuvem()
-        /* DEMONSTRACAO: a porta do painel é o que o prospect veio ver — o
-           botão discreto passava batido (22/09/2026) */
-        ? `<p class="adm-dica">${t('admDica')}<span class="adm-seta" aria-hidden="true">↓</span></p>
-           <button class="adm-entry demo" id="admEntry">✦ ${t('admDemoTit')} →</button>`
-        : `<button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>`}
+      ${typeof Avaliacoes !== 'undefined' && (Avaliacoes.all().length || linkExterno(st.linkAvaliacao) || DB.demo) ? `<button class="lk" id="goAval">
+        <span class="ic">⭐</span><span><b>${t('hubAval')}</b><small>${Avaliacoes.media() ? `${String(Avaliacoes.media()).replace('.', ',')} ★ · ${Avaliacoes.all().length} ${Avaliacoes.all().length === 1 ? L3('avaliação', 'review', 'reseña') : L3('avaliações', 'reviews', 'reseñas')}` : t('hubAvalSub')}</small></span><span class="go" aria-hidden="true">→</span>
+      </button>` : ''}
+      <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b><small>${t('hubWhatsSub')}</small></span><span class="go" aria-hidden="true">→</span></a>
+      ${links.length ? `<p class="hubsec">${t('hubViagem')}</p>
+      ${links.map(l => `<a class="lk parc" href="${esc(l.url)}" target="_blank" rel="noopener sponsored">
+        <span class="ic">${esc(l.icone || '🔗')}</span><span><b>${esc(txt(l.titulo))}</b>${txt(l.sub) ? `<small>${esc(txt(l.sub))}</small>` : ''}</span><span class="go" aria-hidden="true">↗</span></a>`).join('')}` : ''}
+      <button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>
     </div>
   </div>`;
   bindLang(app);
-  $('#goTours').onclick = () => go('/tours');
+  $('#goTours').onclick = () => { viewShowcase._f = 'all'; go('/tours'); };
+  if ($('#goTransfer')) $('#goTransfer').onclick = () => { viewShowcase._f = 'transfer'; go('/tours'); };
+  $('#goRoteiro').onclick = () => go('/roteiro');
   fallbackPhoto($('#hubFace'), '☺');
-  $('#goPers').onclick = () => go('/personalizar');
   $('#goAbout').onclick = () => go('/about');
+  if ($('#goAval')) $('#goAval').onclick = () => go('/avaliacoes');
   $('#admEntry').onclick = () => go('/adm/today');
-  $$('[data-demo]').forEach(b => b.onclick = () => toast(t('xProtoBotao')));
   Coach.start([
-    { sel: '#goTours',  txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.', fr: 'Votre client commence ici : toutes les visites avec les vraies dates.', it: 'Il vostro cliente parte da qui: tutti i tour con le date reali.', de: 'Ihr Gast startet hier: alle Touren mit echten Terminen.', es: 'Tu cliente empieza aquí: todos los tours con fechas reales.' } },
-    { sel: '#admEntry', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.', fr: 'Et voici VOTRE porte, ' + guiaNome() + ' — le panneau où vous gérez tout.', it: 'E questa è la VOSTRA porta, ' + guiaNome() + ' — il pannello dove controllate tutto.', de: 'Und das ist IHRE Tür, ' + guiaNome() + ' — das Panel, in dem Sie alles steuern.', es: 'Y esta es TU puerta, ' + guiaNome() + ' — el panel donde controlas todo.' } },
+    { sel: '#goTours',  audio: 'hub-1', txt: { pt: 'Seu cliente começa aqui: toca e vê todos os passeios com datas reais.', en: 'Your guest starts here: all tours with live dates.' } },
+    { sel: '#admEntry', audio: 'hub-2', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.' } },
   ], 'tutorialClient');
+}
+
+/* MONTE SEU ROTEIRO — o passeio personalizado.
+
+   Ela disse no audio que o personalizado "nao tem como colocar no
+   aplicativo" e que faz a parte. Certo: o app nao monta o roteiro. O que
+   ele faz e a parte chata — perguntar datas, quantas pessoas, idades, o
+   que a pessoa gosta — e entregar TUDO de uma vez no WhatsApp dela, ja
+   organizado. Ela para de arrancar informacao a conta-gotas e comeca a
+   conversa sabendo o que propor.
+
+   O pedido tambem fica guardado no painel (Reservas → Pedidos de roteiro). */
+/* as opcoes do questionario sao do cliente (conteudo.js): [codigo, pt, en, es] */
+const _RT = (typeof CONTEUDO !== 'undefined' && CONTEUDO.roteiro) || {};
+const ROTEIRO_ONDE = _RT.onde || [];
+const ROTEIRO_GOSTO = _RT.gosto || [];
+const ROTEIRO_PRECISA = _RT.precisa || [];
+const ROTEIRO_MODO = _RT.modo || [];
+const ROTEIRO_RITMO = [['calmo', 'Tranquilo', 'Relaxed', 'Tranquilo'], ['medio', 'Equilibrado', 'Balanced', 'Equilibrado'], ['intenso', 'Ver tudo que der', 'See as much as possible', 'Ver todo lo posible']];
+/* o rotulo da opcao no idioma: [codigo, pt, en, es] */
+const opcaoNome = (o, l) => (l || LANG) === 'en' ? o[2] : (l || LANG) === 'es' ? (o[3] || o[2]) : o[1];
+
+/* A mensagem que chega no WhatsApp dela: uma ficha, nao um "oi". Sai no
+   idioma de quem pediu, com as datas por extenso. */
+function msgRoteiro(ped) {
+  const l = ped.lang === 'en' ? 'en' : ped.lang === 'es' ? 'es' : 'pt';
+  const T = (pt, en, es) => l === 'en' ? en : l === 'es' ? es : pt;
+  const nome = (lista, v) => { const o = lista.find(z => z[0] === v); return o ? opcaoNome(o, l) : v; };
+  const d = (iso) => iso ? fmtDate(iso) : '';
+  const L = [];
+  L.push(T('Olá, ' + guiaNome() + '! Quero montar uma experiência sob medida:', 'Hi ' + guiaNome() + '! I would like a tailor-made experience:', '¡Hola, ' + guiaNome() + '! Quiero armar una experiencia a medida:'));
+  L.push('');
+  if (ped.modo) L.push(T('🧭 Como: ', '🧭 How: ', '🧭 Cómo: ') + nome(ROTEIRO_MODO, ped.modo));
+  if (ped.ini || ped.fim) L.push(T('🗓 Datas: ', '🗓 Dates: ', '🗓 Fechas: ') + [d(ped.ini), d(ped.fim)].filter(Boolean).join(' → '));
+  const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
+  L.push(T('👥 Grupo: ', '👥 Group: ', '👥 Grupo: ')
+    + plural(ped.adultos, T('adulto', 'adult', 'adulto'), T('adultos', 'adults', 'adultos'))
+    + (ped.criancas ? ', ' + plural(ped.criancas, T('criança', 'child', 'niño'), T('crianças', 'children', 'niños'))
+      + (ped.idades ? ' (' + ped.idades + ')' : '') : ''));
+  const onde = ped.onde.map(v => nome(ROTEIRO_ONDE, v)).concat(ped.ondeOutro ? [ped.ondeOutro] : []);
+  if (onde.length) L.push(T('📍 Onde: ', '📍 Where: ', '📍 Dónde: ') + onde.join(', '));
+  if (ped.gosto.length) L.push(T('❤️ Gosta de: ', '❤️ Likes: ', '❤️ Le gusta: ') + ped.gosto.map(v => nome(ROTEIRO_GOSTO, v)).join(', '));
+  if (ped.ritmo) L.push(T('⏱ Ritmo: ', '⏱ Pace: ', '⏱ Ritmo: ') + nome(ROTEIRO_RITMO, ped.ritmo));
+  if (ped.precisa.length) L.push(T('🧳 Precisa de: ', '🧳 Needs: ', '🧳 Necesita: ') + ped.precisa.map(v => nome(ROTEIRO_PRECISA, v)).join(', '));
+  if (ped.obs) { L.push(''); L.push(ped.obs); }
+  L.push('');
+  L.push('— ' + ped.nome + (ped.email ? ' · ' + ped.email : '') + (ped.whats ? ' · ' + ped.whats : ''));
+  return L.join('\n');
+}
+
+function viewRoteiro() {
+  const R = viewRoteiro._s = viewRoteiro._s || { onde: [], gosto: [], precisa: [], ritmo: 'medio', adultos: 2, criancas: 0 };
+  const nm = (o) => opcaoNome(o);
+  const chips = (grupo, lista) => lista.map(o =>
+    `<button type="button" class="chip ${R[grupo].includes(o[0]) ? 'on' : ''}" data-g="${grupo}" data-v="${o[0]}">${esc(nm(o))}</button>`).join('');
+  app.innerHTML = `
+  <header class="topbar">
+    <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
+    <span class="tbrand">${logoMark(24, 'var(--brand-assinatura)')}<b>${esc(guiaNome())}</b></span>
+    ${langBar('right')}
+  </header>
+  <main class="wrap roteiro">
+    <h1 class="pageh">${t('rtTit')}</h1>
+    <p class="rtintro">${t('rtIntro')}</p>
+
+    <section class="rtbloco"><h3>${L3('Como você quer conhecer?', 'How do you want to explore?', '¿Cómo quieres conocer?')}</h3>
+      <div class="chips">${ROTEIRO_MODO.map(o => `<button type="button" class="chip ${R.modo === o[0] ? 'on' : ''}" data-modo="${o[0]}">${esc(nm(o))}</button>`).join('')}</div>
+      ${R.modo === 'consultoria' ? `<small class="why">${L3('Você passeia sozinho, com um roteiro feito por uma especialista para você: o que ver, onde comer, os melhores horários e o que evitar.', 'You explore on your own, with a route made by a specialist for you: what to see, where to eat, the best times and what to skip.', 'Paseas por tu cuenta, con una ruta hecha por una especialista para ti: qué ver, dónde comer, los mejores horarios y qué evitar.')}</small>` : ''}
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtQuando')}</h3>
+      <div class="frow">
+        <label class="fld">${t('rtChega')}<input type="date" id="rtIni" value="${esc(R.ini || '')}"></label>
+        <label class="fld">${t('rtSai')}<input type="date" id="rtFim" value="${esc(R.fim || '')}"></label>
+      </div>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtQuem')}</h3>
+      <div class="paxrow"><span><b>${t('adultsLbl')}</b><small>${t('adultsSub')}</small></span>
+        <div class="pm"><button type="button" data-rc="adultos" data-d="-1">−</button><span>${R.adultos}</span><button type="button" data-rc="adultos" data-d="1">+</button></div></div>
+      <div class="paxrow"><span><b>${t('kidsLbl')}</b><small>${t('kidsSub')}</small></span>
+        <div class="pm"><button type="button" data-rc="criancas" data-d="-1">−</button><span>${R.criancas}</span><button type="button" data-rc="criancas" data-d="1">+</button></div></div>
+      ${R.criancas ? `<label class="fld">${t('rtIdades')}<input id="rtIdades" value="${esc(R.idades || '')}" placeholder="${t('rtIdadesPh')}"></label>` : ''}
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtOnde')}</h3><small class="why">${t('rtVarios')}</small>
+      <div class="chips">${chips('onde', ROTEIRO_ONDE)}</div>
+      <label class="fld">${t('rtOndeOutro')}<input id="rtOndeOutro" value="${esc(R.ondeOutro || '')}"></label>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtGosto')}</h3><small class="why">${t('rtVarios')}</small>
+      <div class="chips">${chips('gosto', ROTEIRO_GOSTO)}</div>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtRitmo')}</h3>
+      <div class="chips">${ROTEIRO_RITMO.map(o => `<button type="button" class="chip ${R.ritmo === o[0] ? 'on' : ''}" data-ritmo="${o[0]}">${esc(nm(o))}</button>`).join('')}</div>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtPrecisa')}</h3><small class="why">${t('rtVarios')}</small>
+      <div class="chips">${chips('precisa', ROTEIRO_PRECISA)}</div>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtConte')}</h3>
+      <label class="fld"><textarea id="rtObs" rows="4" placeholder="${t('rtContePh')}">${esc(R.obs || '')}</textarea></label>
+    </section>
+
+    <section class="rtbloco"><h3>${t('rtVoce')}</h3>
+      <label class="fld">${t('fullName')}<input id="rtNome" autocomplete="name" value="${esc(R.nome || '')}"></label>
+      <label class="fld">${t('whatsLbl')}<input id="rtWhats" placeholder="+55 11 …" value="${esc(R.whats || '')}"></label>
+      <label class="fld">${t('email')}<input id="rtEmail" type="email" autocomplete="email" value="${esc(R.email || '')}"></label>
+    </section>
+
+    <button class="cta" id="rtEnviar">${ICONE_WA_BTN} ${t('rtEnviar')}</button>
+    <p class="fine">${t('rtFine')}</p>
+  </main>`;
+  bindLang(app);
+  /* guarda o que ja foi digitado antes de redesenhar: ninguem perde texto
+     por ter tocado num chip */
+  const guarda = () => {
+    R.ini = $('#rtIni').value; R.fim = $('#rtFim').value;
+    R.idades = $('#rtIdades') ? $('#rtIdades').value : (R.idades || '');
+    R.ondeOutro = $('#rtOndeOutro').value; R.obs = $('#rtObs').value;
+    R.nome = $('#rtNome').value; R.whats = $('#rtWhats').value; R.email = $('#rtEmail').value;
+  };
+  $('#bk').onclick = () => go('/');
+  $$('[data-g]').forEach(b => b.onclick = () => {
+    guarda();
+    const g = R[b.dataset.g], v = b.dataset.v, i = g.indexOf(v);
+    if (i >= 0) g.splice(i, 1); else g.push(v);
+    viewRoteiro();
+  });
+  $$('[data-ritmo]').forEach(b => b.onclick = () => { guarda(); R.ritmo = b.dataset.ritmo; viewRoteiro(); });
+  $$('[data-modo]').forEach(b => b.onclick = () => { guarda(); R.modo = R.modo === b.dataset.modo ? '' : b.dataset.modo; viewRoteiro(); });
+  $$('[data-rc]').forEach(b => b.onclick = () => {
+    guarda();
+    const k = b.dataset.rc, min = k === 'adultos' ? 1 : 0;
+    R[k] = Math.max(min, Math.min(40, R[k] + +b.dataset.d));
+    viewRoteiro();
+  });
+  $('#rtEnviar').onclick = () => {
+    guarda();
+    if (!R.nome.trim() || !R.whats.trim()) return toast(t('rtFalta'));
+    const ped = Roteiros.cria(R);
+    window.open(waLink(msgRoteiro(ped)), '_blank');
+    viewRoteiro._s = null;
+    app.innerHTML = `<main class="wrap roteiro fim">
+      <div class="okc">✓</div>
+      <h2 class="okh">${t('rtOk')}</h2>
+      <p class="hint center">${t('rtOkSub')}</p>
+      <a class="cta" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="${waLink(msgRoteiro(ped))}">${ICONE_WA_BTN} ${t('rtReenviar')}</a>
+      <button class="cta soft" id="rtVolta">${t('seeTours')}</button>
+    </main>`;
+    $('#rtVolta').onclick = () => go('/tours');
+  };
 }
 
 /* --- quem sou eu ---
    Vem antes do preço de propósito: quem confia na pessoa
    aceita melhor o valor. A foto e o texto saem dos Ajustes. */
+/* AVALIACOES — so as de verdade, que ela cola no painel (Ajustes) */
+function viewAvaliacoes() {
+  const st = DB.settings, l = Avaliacoes.all(), m = Avaliacoes.media(), en = LANG === 'en';
+  const estrelas = (n) => `<span class="av-est" aria-label="${n} ${en ? 'of 5 stars' : 'de 5 estrelas'}">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`;
+  const deixar = linkExterno(st.linkAvaliacao), verTodas = linkExterno(st.linkAvaliacoesVer) || deixar;
+  app.innerHTML = `
+  <header class="topbar">
+    <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
+    <span class="tbrand">${logoMark(24, 'var(--brand-assinatura)')}<b>${esc(guiaNome())}</b></span>
+    ${langBar('right')}
+  </header>
+  <main class="wrap av-pag">
+    <h1>⭐ ${t('hubAval')}</h1>
+    ${m ? `<div class="av-media"><b>${String(m).replace('.', ',')}</b>${estrelas(Math.round(m))}<small>${l.length} ${en ? (l.length === 1 ? 'review' : 'reviews') : (l.length === 1 ? 'avaliação' : 'avaliações')}</small></div>` : ''}
+    ${l.length ? l.map(a => `<article class="av-card">
+        <div class="av-top"><b>${esc(a.nome)}</b>${a.cidade ? `<small>${esc(a.cidade)}</small>` : ''}${estrelas(a.nota)}</div>
+        <p>${esc(a.texto).replace(/\n/g, '<br>')}</p>
+        <small class="av-pe">${[a.passeio, a.data ? new Date(a.data + 'T12:00:00').toLocaleDateString(en ? 'en-GB' : 'pt-BR', { month: 'long', year: 'numeric' }) : '', a.fonte].filter(Boolean).map(esc).join(' · ')}</small>
+      </article>`).join('') : `<p class="empty">${en ? 'Reviews from our guests will appear here soon.' : 'Em breve as avaliações dos clientes aparecem aqui.'}</p>
+      ${DB.demo ? '<p class="why">No painel › Ajustes › <b>Avaliações do site</b> você cola as avaliações de verdade (do Google, do WhatsApp) e o link para deixar uma avaliação.</p>' : ''}`}
+    <div class="av-bts">
+      ${deixar ? `<a class="cta" href="${esc(deixar)}" target="_blank" rel="noopener">⭐ ${en ? 'Leave a review' : 'Deixar a minha avaliação'}</a>` : ''}
+      ${verTodas && verTodas !== deixar ? `<a class="lk-mini" href="${esc(verTodas)}" target="_blank" rel="noopener">${en ? 'See all on Google' : 'Ver todas no Google'} ↗</a>` : ''}
+    </div>
+  </main>`;
+  bindLang(app);
+  $('#bk').onclick = () => go('/');
+}
+
 function viewAbout() {
   const st = DB.settings;
-  const bio = (st.bio && tl(st.bio)) || '';
+  const bio = (st.bio && (st.bio[LANG] || st.bio.pt)) || '';
   const paras = bio.split(/\n\s*\n/).filter(Boolean);
   const nTours = Tours.live().length;
 
   app.innerHTML = `
   <header class="topbar">
     <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
-    <span class="tbrand">${logoMark(24, 'var(--brand-amarelo)')}<b>${esc(guiaNome())}</b></span>
+    <span class="tbrand">${logoMark(24, 'var(--brand-assinatura)')}<b>${esc(guiaNome())}</b></span>
     ${langBar('right')}
   </header>
   <main class="wrap about">
@@ -371,8 +617,8 @@ function viewAbout() {
 
     <div class="ab-facts">
       <div><small>${t('aboutBased')}</small><b>${esc(st.base || '')}</b></div>
-      <div><small>${t('xIdiomas')}</small><b>${t('aboutLangs')}</b></div>
-      <div><small>${t('xPasseios')}</small><b>${nTours}</b></div>
+      <div><small>${LANG === 'pt' ? 'Idiomas' : 'Languages'}</small><b>${t('aboutLangs')}</b></div>
+      <div><small>${LANG === 'pt' ? 'Passeios' : 'Tours'}</small><b>${nTours}</b></div>
     </div>
 
     <div class="ab-cta">
@@ -387,7 +633,9 @@ function viewAbout() {
   </main>`;
   bindLang(app);
   /* sem foto ainda: em vez de um ícone quebrado, diz onde ela põe a dela */
-  fallbackPhoto($('#abImg'), `<div class="ab-photo none">${t('xSuaFoto')}</div>`);
+  fallbackPhoto($('#abImg'), `<div class="ab-photo none">${LANG === 'pt'
+    ? 'Sua foto entra aqui.<br>Ajustes → Sua foto e sua história.'
+    : 'Your photo goes here.<br>Settings → Your photo and your story.'}</div>`);
   $('#bk').onclick = () => go('/');
   $('#abTours').onclick = () => go('/tours');
 }
@@ -401,145 +649,220 @@ function fallbackPhoto(img, html) {
   if (img.complete && img.naturalWidth === 0) swap();
 }
 
-const TYPE_LABEL = { day: 'fDay', walk: 'fWalk', photo: 'fPhoto', session: 'tSession', bike: 'fBike' };
+const TYPE_LABEL = { day: 'fDay', walk: 'fWalk', photo: 'fPhoto', session: 'tSession', bike: 'fBike',
+                     transfer: 'fTransfer', papal: 'fPapal', trem: 'fTrem', conexao: 'fConexao', barco: 'fBarco' };
 
-/* Experiência sob medida não tem tabela: preço 0 vira "sob consulta" e a
-   reserva sai do app para a conversa (Yalla Experiences, 24/09/2026). */
-const semPreco = (x) => !(+x.price > 0);
-const precoTxt = (x) => semPreco(x) ? t('sobConsulta') : eur(x.price);
-
-const PERS_GOSTO = [
-  ['deserto',     'Deserto e safári',              'Desert & safari'],
-  ['arquitetura', 'Arquitetura e skyline',         'Architecture & skyline'],
-  ['cultura',     'Cultura e história local',      'Culture & local history'],
-  ['gastronomia', 'Gastronomia',                   'Food & dining'],
-  ['iate',        'Iate e praia',                  'Yacht & beach'],
-  ['compras',     'Compras',                       'Shopping'],
-  ['negocios',    'Negócios e networking',         'Business & networking'],
-  ['familia',     'Programas com crianças',        'With children'],
-  ['fotos',       'Ensaio de fotos',               'Photo session'],
-  ['abudhabi',    'Abu Dhabi',                     'Abu Dhabi'],
-];
-const PERS_PRECISA = [
-  ['aeroporto', 'Buscar no aeroporto',                 'Airport pick-up'],
-  ['transfer',  'Transfers durante a viagem',          'Transfers during the trip'],
-  ['motorista', 'Carro com motorista',                 'Car with driver'],
-  ['reservas',  'Reserva de restaurante e ingressos',  'Restaurant & ticket bookings'],
-  ['integral',  'Acompanhamento o dia inteiro',        'Full-day companion'],
-  ['hotel',     'Indicação de hotel',                  'Hotel recommendation'],
-  ['visto',     'Orientação de visto e chegada',       'Visa & arrival guidance'],
-  ['evento',    'Evento ou reunião de negócios',       'Event or business meeting'],
-  ['volta',     'Levar de volta ao aeroporto',         'Airport drop-off'],
-];
-
-function viewPersonalizar() {
-  const P = viewPersonalizar._p = viewPersonalizar._p
-    || { nome: '', ini: '', fim: '', adultos: 2, criancas: 0, gosto: [], precisa: [], obs: '' };
-  const chip = (grupo, lista) => lista.map(([cod, pt, en]) =>
-    `<button class="pchip ${P[grupo].includes(cod) ? 'on' : ''}" data-g="${grupo}" data-v="${cod}">${LANG === 'en' ? en : pt}</button>`).join('');
-
-  app.innerHTML = `
-  <header class="topbar">
-    <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
-    <span class="tbrand">${logoMark(24, 'var(--brand-amarelo)')}<b>${esc(guiaNome())}</b></span>
-    ${langBar('right')}
-  </header>
-  <main class="wrap pers">
-    <h1 class="pageh">${t('persTit')}</h1>
-    <p class="desc lead">${t('persIntro')}</p>
-
-    <section class="card pbloco">
-      <span class="seclabel">${t('persQuem')}</span>
-      <label class="fld">${t('persNome')}<input id="pNome" value="${esc(P.nome)}" placeholder="${t('persNomePh')}"></label>
-      <div class="frow">
-        <label class="fld">${t('persIni')}<input id="pIni" type="date" value="${P.ini}"></label>
-        <label class="fld">${t('persFim')}<input id="pFim" type="date" value="${P.fim}"></label>
-      </div>
-      <div class="frow">
-        <label class="fld">${t('persAd')}<input id="pAd" type="number" min="1" max="40" value="${P.adultos}"></label>
-        <label class="fld">${t('persCri')}<input id="pCri" type="number" min="0" max="20" value="${P.criancas}"></label>
-      </div>
-    </section>
-
-    <section class="card pbloco">
-      <span class="seclabel">${t('persGosto')}</span>
-      <div class="pchips">${chip('gosto', PERS_GOSTO)}</div>
-    </section>
-
-    <section class="card pbloco">
-      <span class="seclabel">${t('persPrecisa')}</span>
-      <p class="why">${t('persPrecisaWhy')}</p>
-      <div class="pchips">${chip('precisa', PERS_PRECISA)}</div>
-    </section>
-
-    <section class="card pbloco">
-      <span class="seclabel">${t('persObs')}</span>
-      <textarea id="pObs" rows="3" placeholder="${t('persObsPh')}">${esc(P.obs)}</textarea>
-    </section>
-
-    <button class="cta" id="pEnviar">${t('persEnviar')}</button>
-    <p class="why center">${t('persRodape')}</p>
-  </main>`;
-  bindLang(app);
-  $('#bk').onclick = () => go('/');
-  const guarda = () => {
-    P.nome = $('#pNome').value.trim(); P.ini = $('#pIni').value; P.fim = $('#pFim').value;
-    P.adultos = +$('#pAd').value || 1; P.criancas = +$('#pCri').value || 0; P.obs = $('#pObs').value.trim();
-  };
-  $$('.pchip').forEach(b => b.onclick = () => {
-    guarda();
-    const g = P[b.dataset.g], i = g.indexOf(b.dataset.v);
-    i < 0 ? g.push(b.dataset.v) : g.splice(i, 1);
-    viewPersonalizar();
-  });
-  $('#pEnviar').onclick = () => {
-    guarda();
-    const nome = (a, l) => a.map(c => (l.find(z => z[0] === c) || [])[LANG === 'en' ? 2 : 1]).filter(Boolean).join(', ');
-    const dia = (d) => d ? fmtDate(d) : '';
-    const L = [t('persMsgOi', { nome: P.nome || '' })];
-    if (P.ini || P.fim) L.push('🗓 ' + [dia(P.ini), dia(P.fim)].filter(Boolean).join(' → '));
-    L.push('👥 ' + t('persMsgQuem', { a: P.adultos, c: P.criancas }));
-    if (P.gosto.length) L.push('❤️ ' + nome(P.gosto, PERS_GOSTO));
-    if (P.precisa.length) L.push('✅ ' + nome(P.precisa, PERS_PRECISA));
-    if (P.obs) L.push('📝 ' + P.obs);
-    const texto = L.join('\n');
-    try {
-      DB.pedidos = DB.pedidos || [];
-      DB.pedidos.unshift({ id: 'p' + Date.now(), criadoEm: new Date().toISOString(), ...P });
-      save();
-    } catch (e) {}
-    window.open(waLink(texto), '_blank', 'noopener');
-    toast(t('persEnviado'));
-  };
+/* Como o valor se anuncia. Tres modos: por pessoa, por sessao, e a tabela
+   por numero de pessoas — nesta ultima o cartao mostra o MENOR valor da
+   tabela com "a partir de", porque um valor de grupo sem o "a partir de"
+   parece caro para quem viaja em dois. */
+/* o rotulo do tipo: o cliente pode renomear no config (a Yalla chama de
+   "Experiência" e "Corporativo" o que a base chama de "a pé" e "dia inteiro") */
+function tipoLabel(type) {
+  const c = (typeof GUIA_CFG !== 'undefined' && GUIA_CFG.tipos) || {};
+  return c[type] ? tl(c[type]) : t(TYPE_LABEL[type] || 'fWalk');
 }
+/* "sob consulta": sem preço na tabela, o app não inventa um "a partir de 0" */
+function ehSobConsulta(x) { return x.priceMode !== 'session' && x.priceMode !== 'pp' && !(precoVitrine(x) > 0); }
+function precoVitrine(x) {
+  if (x.priceMode === 'transfer') return transferMenor(x) || +x.price || 0;
+  return x.priceMode === 'tabela' ? (tabelaMenor(x) || +x.price || 0) : +x.price || 0;
+}
+function unidadePreco(x) {
+  if (x.priceMode === 'transfer') return t('perTrip');
+  if (x.priceMode === 'tabela')   return t('perGroup');
+  if (x.priceMode === 'session')  return t('perSession');
+  return t('perPerson');
+}
+
+/* QUEM MAIS VEM NO GRUPO.
+
+   Pedido direto da Ingrid, em audio: hoje ela so registra quem fez a
+   reserva. Mas muita gente volta depois por indicacao de alguem que veio
+   JUNTO e nunca falou com ela — e essa pessoa nao existe na base. Com os
+   nomes aqui, ela passa a saber de onde cada cliente chegou.
+
+   Nada e obrigatorio: um campo em branco nao impede a reserva. */
+function grupoLinha() {
+  return `<div class="grow">
+    <input class="gnome" placeholder="${t('grpName')}" autocomplete="off">
+    <input class="gnasc" placeholder="${t('grpBirth')}" inputmode="numeric" maxlength="10" autocomplete="off">
+  </div>`;
+}
+function grupoHtml(quantos) {
+  const n = Math.max(0, quantos);
+  return `<div class="grupo">
+    <b>${t('grpTitle')}</b>
+    <small class="why">${t('grpWhy')}</small>
+    <div id="grpRows">${Array.from({ length: n }, grupoLinha).join('')}</div>
+    <button type="button" class="mini wide" id="grpAdd">${t('grpAdd')}</button>
+  </div>`;
+}
+function lerGrupo() {
+  return $$('.grow').map(r => ({
+    nome: (r.querySelector('.gnome') || {}).value || '',
+    nasc: (r.querySelector('.gnasc') || {}).value || '',
+  })).map(g => ({ nome: g.nome.trim(), nasc: g.nasc.trim() })).filter(g => g.nome);
+}
+
+/* A TABELA DE PRECOS NAO APARECE MAIS NA PAGINA DO PASSEIO.
+
+   Pedido da Ingrid (18/09/2026): "prefiro que eles vejam somente na hora que
+   preenchem quantas pessoas sao e quantos adultos e criancas". O cliente ve
+   o "a partir de" no cartao e o valor exato do grupo DELE na reserva. */
+
+/* --- quantas pessoas: adultos e criancas ---
+   Ela decide, por passeio, se aceita menores de 18 e se ha idade minima.
+   O preco continua pela quantidade TOTAL (e assim que a tabela dela e); a
+   separacao serve para ela saber quem vem — ingresso, cadeirinha, ritmo. */
+function aceitaCriancas(x) { return x.criancas !== false; }
+
+function tetoPessoas(x, S) {
+  if (x.priceMode === 'tabela')   return Math.min(tabelaAte(x) || x.max, x.max, S.cap || x.max);
+  if (x.priceMode === 'transfer') return Math.min(transferAte(x) || 20, S.cap || 20);
+  return Math.min(x.max, S.cap || x.max);
+}
+
+function pessoasHtml(x, S) {
+  const cri = aceitaCriancas(x);
+  const linha = (k, lbl, sub, v) => `<div class="paxrow">
+      <span><b>${lbl}</b>${sub ? `<small>${sub}</small>` : ''}</span>
+      <div class="pm"><button data-cnt="${k}" data-d="-1" aria-label="−">−</button><span>${v}</span><button data-cnt="${k}" data-d="1" aria-label="+">+</button></div>
+    </div>`;
+  return `<div class="pessoas">
+    ${linha('a', cri ? t('adultsLbl') : t('peopleLbl'), cri ? t('adultsSub') : '', S.adultos)}
+    ${cri ? linha('c', t('kidsLbl'), t('kidsSub'), S.criancas) : ''}
+    ${cri && S.criancas ? `<div class="idades">
+      <small>${t((x.ingressos || []).length ? 'idadesPorque' : 'idadesTit')}</small>
+      <div class="idrow">${Array.from({ length: S.criancas }, (_, i) => `
+        <label class="idsel"><span>${t('criancaN', { n: i + 1 })}</span>
+          <select data-idade="${i}" aria-label="${t('criancaN', { n: i + 1 })}">
+            <option value="">${t('idadePh')}</option>
+            ${Array.from({ length: 18 }, (_, k) => `<option value="${k}" ${String(S.idades[i]) === String(k) ? 'selected' : ''}>${k === 0 ? t('menos1') : k + ' ' + (k === 1 ? t('ano') : t('anos'))}</option>`).join('')}
+          </select></label>`).join('')}</div>
+    </div>` : ''}
+    ${!cri ? `<p class="why">${t('noKids')}</p>` : (+x.idadeMin ? `<p class="why">${t('minAge', { n: +x.idadeMin })}</p>` : '')}
+  </div>`;
+}
+
+/* As linhas dos ingressos no resumo da reserva: quanto, por que, e o aviso
+   de que o valor e o minimo (o PDF dela diz que pode subir conforme a
+   disponibilidade). */
+function ingressosResumo(x, S, ing) {
+  if (!(x.ingressos || []).length) return '';
+  const falta = S.criancas && Array.from({ length: S.criancas }, (_, i) => S.idades[i]).some(v => v === '' || v === undefined || v === null);
+  if (falta) return `<p class="why ingfalta">🎟️ ${t('idadesFalta')}</p>`;
+  const nome = (o) => (o && (o[LANG] || o.pt)) || '';
+  const det = (l) => Object.keys(l.porValor).map(Number).sort((a, b) => b - a)
+    .map(v => v === 0 ? t('ingGratis', { n: l.porValor[v] }) : l.porValor[v] + ' × ' + eur(v)).join(' · ')
+    + (l.guia ? ' · ' + t('ingGuia', { v: eur(l.guia) }) : '');
+  return `<div class="ingbox">
+    ${ing.linhas.map(l => `<div class="quebra"><span>🎟️ ${esc(nome(l.nome))}<small>${det(l)}</small></span><b>${eur(l.valor)}</b></div>`).join('')}
+    ${ing.noDia.map(l => `<div class="quebra dia"><span>${esc(nome(l.nome))}<small>${t('ingNoDia')} · ${det(l)}</small></span><b>${eur(l.valor)}</b></div>`).join('')}
+    <p class="why">${t('ingAviso')}</p>
+  </div>`;
+}
+
+function ligaPessoas(x, S, root) {
+  $$('[data-idade]', root).forEach(sel => sel.onchange = () => {
+    S.idades[+sel.dataset.idade] = sel.value === '' ? '' : +sel.value;
+    renderBook();
+  });
+  $$('[data-cnt]', root).forEach(b => b.onclick = () => {
+    const d = +b.dataset.d, k = b.dataset.cnt;
+    let ad = S.adultos, cr = S.criancas;
+    if (k === 'a') ad = Math.max(1, ad + d); else cr = Math.max(0, cr + d);
+    const teto = tetoPessoas(x, S);
+    if (ad + cr > teto) return toast(t(x.priceMode === 'tabela' || x.priceMode === 'transfer' ? 'bigGroup' : 'maxNote', { n: teto }));
+    S.adultos = ad; S.criancas = cr; S.pax = ad + cr;
+    S.idades = (S.idades || []).slice(0, cr);
+    S.opcao = 0; S.discount = 0; S.coupon = null;
+    renderBook();
+  });
+}
+
+/* --- o transfer: as duas opcoes de veiculo da quantidade escolhida --- */
+function transferEscolhaHtml(x, S) {
+  const ops = transferOpcoes(x, S.pax);
+  if (!ops.length) return `<p class="why">${t('bigGroup', { n: transferAte(x) })}</p>`;
+  const noite = transferNoturno(S.time);
+  return `<div class="trfpick">
+      <b>${t('trfPick')}</b>
+      <small class="why">${t('trfPickWhy')}</small>
+      <div class="trfopts">${ops.map((o, i) => `
+        <button class="trfopt ${S.opcao === i ? 'on' : ''}" data-o="${i}">
+          <b>${esc(o.veiculo)}</b>
+          <small>${esc(o.malas)}</small>
+          <span>${eur(noite ? o.noite : o.dia)}</span>
+        </button>`).join('')}</div>
+    </div>
+    <div class="trfcentro">
+      <b>${t('trfCentroQ')}</b>
+      <small class="why">${t('trfCentroWhy')}</small>
+      <div class="trfsn">
+        <button class="popt ${S.noCentro === true ? 'on' : ''}" data-centro="sim"><b>${t('trfCentroSim')}</b></button>
+        <button class="popt ${S.noCentro === false ? 'on' : ''}" data-centro="nao"><b>${t('trfCentroNao')}</b></button>
+      </div>
+    </div>`;
+}
+
+/* Quando o app NAO da o preco sozinho e manda falar com ela:
+   - transfer com hotel fora do centro ou mais de uma parada (a tabela dela
+     diz, com todas as letras: "nao passar o valor, iremos fazer o orcamento");
+   - grupo maior do que a tabela responde. */
+function precisaOrcamento(x, S, pr) {
+  if (x.priceMode === 'transfer') return S.noCentro === false || !!pr.consultar;
+  return x.priceMode === 'tabela' && !!pr.consultar;
+}
+
+function msgOrcamento(x, S) {
+  const nome = x.name[LANG] || x.name.pt;
+  const quem = S.criancas ? t('orcQuemCri', { a: S.adultos, c: S.criancas }) : t('orcQuem', { n: S.pax });
+  const partes = [t('orcOi'), nome, S.date ? fmtDate(S.date) + (S.time ? ' · ' + S.time : '') : '', quem];
+  if (x.priceMode === 'transfer' && S.noCentro === false) partes.push(t('orcForaCentro'));
+  return partes.filter(Boolean).join('\n');
+}
+
+/* ordem dos filtros da vitrine; so aparece o tipo que o guia realmente vende */
+const ORDEM_TIPOS = ['walk', 'day', 'barco', 'transfer', 'papal', 'trem', 'conexao', 'photo', 'session', 'bike'];
 
 function viewShowcase() {
   const tours = Tours.live();
   const filter = viewShowcase._f || 'all';
-  const list = filter === 'all' ? tours : tours.filter(x => x.type === filter || (filter === 'photo' && x.type === 'photo'));
+  /* Onde (cidade/regiao) e O que (tipo). As regioes sao as que ela
+     cadastrou nos Ajustes; so aparecem as que tem passeio publicado. */
+  const onde = viewShowcase._r || 'all';
+  const regs = regioes().filter(([c]) => tours.some(x => x.region === c));
+  const list = tours.filter(x => (filter === 'all' || x.type === filter) && (onde === 'all' || x.region === onde));
   app.innerHTML = `
   <header class="topbar">
     <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
-    <span class="tbrand">${logoMark(24, 'var(--brand-amarelo)')}<b>${esc(guiaNome())}</b></span>
+    <span class="tbrand">${logoMark(24, 'var(--brand-assinatura)')}<b>${esc(guiaNome())}</b></span>
     ${langBar('right')}
   </header>
   <main class="wrap">
     <h1 class="pageh">${t('chooseTour')}</h1>
+    ${regs.length > 1 ? `<div class="chips onde" id="ondeF">
+      <button class="chip ${onde === 'all' ? 'on' : ''}" data-r="all">${t('ondeTodos')}</button>
+      ${regs.map(([c]) => `<button class="chip ${onde === c ? 'on' : ''}" data-r="${esc(c)}">📍 ${esc(regiaoLabel(c))}</button>`).join('')}
+    </div>` : ''}
     <div class="chips" id="filters">
-      ${['all', ...['day', 'walk', 'photo', 'bike'].filter(f => Tours.live().some(x => x.type === f))].map(f =>
-        `<button class="chip ${filter === f ? 'on' : ''}" data-f="${f}">${t(f === 'all' ? 'fAll' : TYPE_LABEL[f])}</button>`).join('')}
+      ${['all', ...ORDEM_TIPOS.filter(f => tours.some(x => x.type === f))].map(f =>
+        `<button class="chip ${filter === f ? 'on' : ''}" data-f="${f}">${f === 'all' ? t('fAll') : tipoLabel(f)}</button>`).join('')}
     </div>
     <div class="cards" id="tourCards">
       ${list.length ? list.map(x => `
         <button class="tourcard" data-id="${x.id}">
           <span class="ph" style="background-image:url(${esc(x.photo)})">
-            <span class="tbadge">${t(TYPE_LABEL[x.type] || 'fWalk')}</span>
+            <span class="tbadge">${esc(tipoLabel(x.type))}</span>
           </span>
           <span class="bd">
-            <b>${esc(tl(x.name))}</b>
-            <small class="meta">${regiaoLabel(x.region)} · ${t('upTo')} ${x.max} ${t('people')}</small>
+            <b>${esc(x.name[LANG] || x.name.pt)}</b>
+            ${x.tagline && (x.tagline[LANG] || x.tagline.pt) ? `<small class="ctag">${esc(x.tagline[LANG] || x.tagline.pt)}</small>` : ''}
+            <small class="meta">${regiaoLabel(x.region)}${x.duration && x.duration !== '—' ? ' · ' + esc(x.duration) : ''}${(x.stops || []).length ? ' · ' + t('nParadas', { n: x.stops.length }) : ''}</small>
             <span class="cardfoot">
-              <span class="pr">${semPreco(x) ? t('sobConsulta') : `${x.priceLate && x.earlySeats && x.priceMode !== 'session' ? `<u>${t('fromPrice')}</u> ` : ''}${eur(x.price)}<i>${x.priceMode === 'session' ? t('perSession') : t('perPerson')}</i>`}</span>
+              ${ehSobConsulta(x) ? `<span class="pr">${t('sobConsulta')}</span>` : `<span class="pr">${x.priceMode === 'tabela' || x.priceMode === 'transfer' || (x.priceLate && x.earlySeats && x.priceMode !== 'session') ? `<u>${t('fromPrice')}</u> ` : ''}${eur(precoVitrine(x))}
+                <i>${unidadePreco(x)}</i></span>`}
               <span class="cgo" aria-hidden="true">→</span>
             </span>
           </span>
@@ -550,6 +873,7 @@ function viewShowcase() {
   bindLang(app);
   $('#bk').onclick = () => go('/');
   $$('#filters .chip').forEach(c => c.onclick = () => { viewShowcase._f = c.dataset.f; viewShowcase(); });
+  $$('#ondeF .chip').forEach(c => c.onclick = () => { viewShowcase._r = c.dataset.r; viewShowcase(); });
   $$('.tourcard').forEach(c => c.onclick = () => go('/tour/' + c.dataset.id));
 }
 
@@ -566,7 +890,7 @@ function fxResumo() {
   const taxa = (typeof fxTaxa === 'function') && fxTaxa();
   if (!taxa) return t('fxSemCotacao');
   const ex = (DB.tours[0] && +DB.tours[0].price) || 195;
-  return t('fxResumo', { taxa: taxa.toFixed(2).replace('.', ','), eur: eur(ex), brl: brl(emReais(ex)) })
+  return t('fxResumo', { moeda: moedaSigla(), taxa: taxa.toFixed(2).replace('.', ','), eur: eur(ex), brl: brl(emReais(ex)) })
        + (typeof fxVencida === 'function' && fxVencida() ? ' · ' + t('fxVelha') : '');
 }
 
@@ -583,10 +907,10 @@ function linhaReais(eur) {
 /* Claro, escuro, ou seguindo o aparelho. Guardado no proprio aparelho:
    e preferencia de quem olha, nao dado do negocio. */
 function temaAtual() {
-  try { return localStorage.getItem('vi_tema') || 'auto'; } catch (e) { return 'auto'; }
+  try { return localStorage.getItem('yalla_tema') || 'auto'; } catch (e) { return 'auto'; }
 }
 function aplicaTema(v) {
-  try { if (v === 'auto') localStorage.removeItem('vi_tema'); else localStorage.setItem('vi_tema', v); } catch (e) {}
+  try { if (v === 'auto') localStorage.removeItem('yalla_tema'); else localStorage.setItem('yalla_tema', v); } catch (e) {}
   const raiz = document.documentElement;
   if (v === 'auto') raiz.removeAttribute('data-theme');
   else raiz.setAttribute('data-theme', v);
@@ -595,35 +919,44 @@ function aplicaTema(v) {
 function noIdioma(a) {
   if (!a) return '';
   if (typeof a === 'string') return a;
-  return tl(a) || a.en || '';
+  return a[LANG] || a.pt || a.en || '';
 }
 
+/* A politica de cancelamento e DELA: sem texto no passeio (ou nos Ajustes),
+   o app nao promete nada — o "gratis ate 48h" da base virou opcao, nao padrao
+   (APP_CONFIG.cancelamentoPadrao). */
 function cancelaTxt(x) {
-  const c = x.cancel && tl(x.cancel);
-  return c || t('freeCancel');
+  const c = x.cancel && (x.cancel[LANG] || x.cancel.pt);
+  if (c) return c;
+  return (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cancelamentoPadrao) ? t('freeCancel') : '';
 }
 
 function viewTour(id) {
   const x = Tours.get(id);
   if (!x) return go('/tours');
-  Interesse.conta(x.id, 'visitas');   /* quantas vezes abriram este passeio */
-  const S = viewTour._s = { tour: x, date: null, time: null, cap: 0, pax: x.priceMode === 'session' ? 1 : 2, step: 1, coupon: null, discount: 0, policy: x.payPolicy === 'split' ? 'split' : 'full' };
+  const S = viewTour._s = { tour: x, date: null, time: null, cap: 0, pax: x.priceMode === 'session' ? 1 : 2, adultos: x.priceMode === 'session' ? 1 : 2, criancas: 0, idades: [], opcao: 0, noCentro: null, step: 1, coupon: null, discount: 0, policy: x.payPolicy === 'split' ? 'split' : 'full' };
 
+  /* quantas vezes abriram este passeio (o relatorio de cliques e conversao).
+     Quem mexe no painel nao conta: so visitante. */
+  if (typeof Interesse !== 'undefined' && !(typeof isLoggedIn === 'function' && isLoggedIn()) && !sessionStorage.getItem('yalla_viu_' + x.id)) {
+    try { sessionStorage.setItem('yalla_viu_' + x.id, '1'); } catch (e) {}
+    Interesse.conta(x.id, 'visitas');
+  }
   const stops = Array.isArray(x.stops) ? x.stops : [];
-  const L = a => (a && tl(a)) || '';
-  const lista = a => (Array.isArray(a) ? a : (a && tl(a)) || []);
+  const L = a => (a && (a[LANG] || a.pt)) || '';
+  const lista = a => (Array.isArray(a) ? a : (a && (a[LANG] || a.pt)) || []);
 
   app.innerHTML = `
   <header class="topbar onhero"><button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
-    <span class="tbrand">${logoMark(22, 'var(--brand-amarelo)')}<b>${esc(guiaNome())}</b></span>${langBar('right')}</header>
+    <span class="tbrand">${logoMark(22, 'var(--brand-assinatura)')}<b>${esc(guiaNome())}</b></span>${langBar('right')}</header>
   <!-- CAPA: como a primeira pagina do PDF dela — imagem cheia, titulo por cima -->
   <div class="tourhero" style="background-image:url(${esc(x.photo)})">
     <div class="thveil"></div>
     <div class="thin">
-      <h1>${esc(tl(x.name))}</h1>
-      ${x.tagline && tl(x.tagline)
-        ? `<p class="thsub">${esc(tl(x.tagline))}</p>` : ''}
-      <span class="badge onhero">${esc(cancelaTxt(x))}</span>
+      <h1>${esc(x.name[LANG] || x.name.pt)}</h1>
+      ${x.tagline && (x.tagline[LANG] || x.tagline.pt)
+        ? `<p class="thsub">${esc(x.tagline[LANG] || x.tagline.pt)}</p>` : ''}
+      ${cancelaTxt(x) ? `<span class="badge onhero">${esc(cancelaTxt(x))}</span>` : ''}
     </div>
   </div>
 
@@ -633,10 +966,14 @@ function viewTour(id) {
       <!-- O PROGRAMA -->
       <div class="sec">
         <span class="seclabel">${t('secProgram')}</span>
-        <p class="desc lead">${esc(tl(x.desc))}</p>
+        <p class="desc lead">${esc(x.desc[LANG] || x.desc.pt)}</p>
       </div>
 
       ${stops.length ? `
+      <div class="stophead">
+        <span class="seclabel">${t('secStops')}</span>
+        <small>${t('secStopsSub', { n: stops.length, d: esc(x.duration || '') })}</small>
+      </div>
       <ol class="stopgrid">
         ${stops.map((p, i) => `
           <li class="stopcardc">
@@ -687,34 +1024,31 @@ function viewTour(id) {
         <span class="seclabel">${t('secPrice')}</span>
         <div class="pricebox">
           <div class="pbmain">
-            <b>${precoTxt(x)}</b>
-            ${semPreco(x) ? `<small>${t('sobConsultaSub')}</small>` : `<small>${x.priceMode === 'session' ? t('perSession') : t('perPerson')}</small>
-            ${linhaReais(x.price)}`}
+            ${ehSobConsulta(x) ? `<b>${t('sobConsulta')}</b>${x.priceNote ? `<small>${esc(tl(x.priceNote))}</small>` : ''}` : `<b>${x.priceMode === 'tabela' ? `<u class="fromlbl">${t('fromPrice')}</u> ` : ''}${eur(precoVitrine(x))}</b>
+            <small>${unidadePreco(x)}</small>
+            ${linhaReais(precoVitrine(x))}`}
+            ${(x.ingressos || []).length ? `<p class="pbing">🎟️ ${t('ingPagina')}</p>` : ''}
             ${x.priceLate && x.earlySeats && x.priceMode !== 'session'
               ? `<span class="pbearly">${t('earlyNote', { n: x.earlySeats, v: eur(x.priceLate) })}</span>` : ''}
           </div>
           <div class="pbterms">
-            <p>${esc(cancelaTxt(x))}</p>
-            ${x.priceNote && tl(x.priceNote)
-              ? `<small>${esc(tl(x.priceNote))}</small>` : ''}
+            ${cancelaTxt(x) ? `<p>${esc(cancelaTxt(x))}</p>` : ''}
+            ${x.priceNote && (x.priceNote[LANG] || x.priceNote.pt) && !ehSobConsulta(x)
+              ? `<small>${esc(x.priceNote[LANG] || x.priceNote.pt)}</small>` : ''}
           </div>
         </div>
       </div>
 
-      ${x.closing && tl(x.closing) ? `
+      ${x.closing && (x.closing[LANG] || x.closing.pt) ? `
       <div class="closing">
-        <p>${esc(tl(x.closing))}</p>
+        <p>${esc(x.closing[LANG] || x.closing.pt)}</p>
       </div>` : ''}
     </section>
-    ${semPreco(x) ? `<aside class="book"><div class="sobcons">
-      <b>${t('sobConsultaTit')}</b>
-      <p>${t('sobConsultaTxt')}</p>
-      <a class="cta" href="${waLink(t('waSobConsulta', { tour: tl(x.name) }))}" target="_blank" rel="noopener">${t('waFalar')}</a>
-    </div></aside>` : `<aside class="book" id="book"></aside>`}
+    <aside class="book" id="book"></aside>
   </main>`;
   bindLang(app);
   $('#bk').onclick = () => go('/tours');
-  if (!semPreco(x)) renderBook();
+  renderBook();
 }
 
 /* ---- o trajeto ----
@@ -727,7 +1061,7 @@ const MODO_TXT  = { day: 'mapWhyDrive', bike: 'mapWhyBike' };
 function miniMap(stops, x) {
   const pts = stops.filter(p => p.place || (p.lat && p.lng));
   if (pts.length < 2) return '';
-  const L = a => (a && tl(a)) || '';
+  const L = a => (a && (a[LANG] || a.pt)) || '';
   /* endereço digitado pelo guia vale mais que coordenada: o Maps resolve e mostra o nome */
   const q = p => encodeURIComponent(p.place || (p.lat + ',' + p.lng));
   const gmaps = 'https://www.google.com/maps/dir/?api=1'
@@ -820,7 +1154,8 @@ async function viewPago(codigo) {
 
 function comoPagar(b, x) {
   const st = DB.settings || {};
-  const agora = b.policy === 'split' ? Math.round(b.total / 2) : b.total;
+  const agora = b.policy === 'sinal' && b.sinal ? b.sinal
+              : b.policy === 'split' ? Math.round(b.total / 2) : b.total;
   const saldo = b.total - agora;
   const linha = (rot, valor, dono) => `
     <div class="payline">
@@ -858,12 +1193,15 @@ function comoPagar(b, x) {
 
   const meios = blocoCartao + blocoPix
               + (st.pixKey && !codigoPix ? linha(t('pixLbl'), st.pixKey, st.pixName) : '')
-              + (st.iban ? linha(t('ibanLbl'), st.iban, st.ibanName) : '');
+              + (st.iban ? linha(t('ibanLbl'), st.iban, st.ibanName) : '')
+              + (linkExterno(st.wiseLink) ? `<div class="payline"><small>${t('wiseLbl')}</small>
+                  <a class="cta sm" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="${esc(st.wiseLink)}">${t('wiseAbrir')}</a></div>` : '')
+              + (st.dinheiroNoDia ? `<p class="why">💵 ${t('cashLbl')}</p>` : '');
   return `
   <div class="paybox">
     <h3>${t('howPay')}</h3>
     <p class="paynow"><small>${t('howPayNow')}</small><b>${eur(agora)}</b></p>
-    ${saldo > 0 ? `<p class="due">${prazoSaldo(b, saldo)}</p>` : ''}
+    ${saldo > 0 ? `<p class="due">${b.policy === 'sinal' ? t('trfRestoDia', { v: eur(saldo) }) : prazoSaldo(b, saldo)}</p>` : ''}
     ${meios || `<p class="why">${t('howPayNone')}</p>`}
     ${st.payNote ? `<p class="why">${esc(st.payNote)}</p>` : ''}
     ${meios ? `<p class="why">${t('payProof')}</p>` : ''}
@@ -874,7 +1212,7 @@ function renderBook() {
   const S = viewTour._s, x = S.tour, book = $('#book');
   /* Precos vem de Bookings.precoDe: ele sabe quantas vagas baratas restam
      naquela data e divide as pessoas entre os dois valores. */
-  const pr = Bookings.precoDe(x, x.id, S.date, S.time, S.pax);
+  const pr = Bookings.precoDe(x, x.id, S.date, S.time, S.pax, { opcao: S.opcao });
   /* Preco escalonado: 195 para as 3 primeiras da data, 225 depois.
      Enquanto sobra vaga barata, o valor em destaque e 195 e a nota explica.
      Quando as 3 acabam, anunciar "195, depois 225" vira propaganda enganosa —
@@ -882,14 +1220,23 @@ function renderBook() {
   const escalonado = !!(x.priceLate && x.earlySeats) && x.priceMode !== 'session';
   const sobramBaratas = !S.date || !escalonado || (pr.baratasRestantes ?? x.earlySeats) > 0;
   const valorEmDestaque = escalonado && !sobramBaratas ? +x.priceLate : +x.price;
-  const priceLine = x.priceMode === 'session'
+  const priceLine = x.priceMode === 'transfer'
+    ? `${eur(pr.total || precoVitrine(x))} <small>${t('perTrip')}</small>`
+      + (pr.noturno ? `<em class="pearly">${t('trfNightOn')}</em>` : '')
+    : x.priceMode === 'tabela' && ehSobConsulta(x)
+    ? `${t('sobConsulta')}`
+    : x.priceMode === 'tabela'
+    ? `<u class="fromlbl">${t('fromPrice')}</u> ${eur(precoVitrine(x))} <small>${t('perGroup')}</small>`
+    : x.priceMode === 'session'
     ? `${eur(x.price)} <small>${t('perSession')}</small>`
     : `${eur(valorEmDestaque)} <small>${t('perPerson')}</small>`
       + (escalonado && sobramBaratas
           ? `<em class="pearly">${t('earlyNote', { n: x.earlySeats, v: eur(x.priceLate) })}</em>` : '')
       + linhaReais(valorEmDestaque);
   const base = pr.total;
-  const total = base - S.discount;
+  /* ingressos por idade, somados — e ela quem compra, com antecedencia */
+  const ing = ingressosDe(x, S.adultos, S.idades);
+  const total = base - S.discount + ing.total;
 
   if (S.step === 1) {
     const today = isoToday();
@@ -909,7 +1256,7 @@ function renderBook() {
       : `<div class="nodates">
           <p>${t('noDatesYet')}</p>
           <a class="cta sm wide" target="_blank" rel="noopener"
-             href="${waLink(t('waAskDates', { tour: tl(x.name) }))}">${t('askDatesBtn')}</a>
+             href="${waLink(t('waAskDates', { tour: x.name[LANG] || x.name.pt }))}">${t('askDatesBtn')}</a>
         </div>`}`;
     $$('.dcell', book).forEach(b => b.onclick = () => { S.date = b.dataset.d; S.time = null; renderBook(); });
     $$('[data-t]', book).forEach(b => b.onclick = () => {
@@ -917,7 +1264,7 @@ function renderBook() {
       $$('[data-t]', book).forEach(z => z.classList.remove('on')); b.classList.add('on');
       $('#next1').disabled = false;
     });
-    $('#next1')?.addEventListener('click', () => { Interesse.conta(x.id, 'quase'); S.step = 2; renderBook(); });
+    $('#next1')?.addEventListener('click', () => { S.step = 2; renderBook(); });
 
     function timesHtml(list) {
       return `<p class="hint">${t('pickTime')}</p><div class="times">` + list.map(d => {
@@ -932,16 +1279,20 @@ function renderBook() {
   if (S.step === 2) {
     book.innerHTML = `
       <div class="bhead"><span class="bprice">${priceLine}</span></div>
-      <div class="bstep">${t('step2')}</div>
-      <div class="paxrow ${x.priceMode === 'session' ? 'hide' : ''}">
-        <b>${t('peopleLbl')}</b>
-        <div class="pm"><button id="mn">−</button><span id="pax">${S.pax}</span><button id="pl">+</button></div>
-      </div>
+      <div class="bstep">${t(x.priceMode === 'transfer' ? 'step2trf' : 'step2')}</div>
+      ${x.priceMode === 'session' ? '' : pessoasHtml(x, S)}
+      ${x.priceMode === 'transfer' ? transferEscolhaHtml(x, S) : ''}
       <div class="sums">
         <div><span>${fmtDate(S.date)} · ${S.time}</span></div>
         ${S.discount ? `<div><span>${t('couponOk', { c: S.coupon })}</span><b>−${eur(S.discount)}</b></div>` : ''}
-        ${(pr.linhas && pr.linhas.length > 1) ? pr.linhas.map(l =>
+        ${x.priceMode === 'transfer'
+          ? `<div class="quebra"><span>${esc(pr.veiculo || '')} · ${pr.noturno ? t('trfNight') : t('trfDay')}</span><b>${eur(pr.total)}</b></div>`
+            + (pr.sinal ? `<div class="quebra"><span>${t('trfSinalLbl')}</span><b>${eur(pr.sinal)}</b></div>` : '')
+          : x.priceMode === 'tabela'
+          ? `<div class="quebra"><span>${t('closedPrice', { n: S.pax })}</span><b>${eur(pr.total)}</b></div>`
+          : (pr.linhas && pr.linhas.length > 1) ? pr.linhas.map(l =>
           `<div class="quebra"><span>${t('linhaPreco', { qtd: l.qtd, valor: eur(l.valor) })}</span><b>${eur(l.qtd * l.valor)}</b></div>`).join('') : ''}
+        ${ingressosResumo(x, S, ing)}
         <div class="tot"><span>${t('total')}</span><b>${eur(total)}</b></div>
         ${linhaReais(total)}
         ${(x.min > 1 && S.pax < x.min) ? `<p class="why">${t('minAviso', { n: x.min })}</p>` : ''}
@@ -950,29 +1301,51 @@ function renderBook() {
         <div class="crow"><input id="cin" placeholder="VOLTA10"><button class="mini" id="capply">OK</button></div>
         <p class="cbad" id="cbad"></p>
       </details>
-      <button class="cta" id="next2">${t('cont')}</button>
+      <button class="cta" id="next2" ${x.priceMode === 'transfer' && S.noCentro === null ? 'disabled' : ''}>${precisaOrcamento(x, S, pr) ? t('bigGroupBtn') : t('cont')}</button>
+      <button class="cta soft" id="toCesta">＋ ${L3('Juntar com outros serviços num pedido só', 'Add to one request with other services', 'Juntar con otros servicios en un solo pedido')}</button>
       <button class="linkbtn" id="back1" aria-label="${t('back')}">← ${t('back')}</button>`;
+    /* O cliente que quer varias coisas (transfer, Vaticano, Florenca...) junta
+       tudo e manda UM pedido — chega para ela em Sob consulta e no WhatsApp. */
+    $('#toCesta').onclick = () => {
+      cestaAdd({ tourId: x.id, nome: x.name[LANG] || x.name.pt, data: S.date, hora: S.time, pax: S.pax,
+                 opcao: S.opcao || 0, valor: pr.consultar ? 0 : total });
+      toast(L3('Acrescentado ao seu pedido', 'Added to your request', 'Agregado a tu pedido'));
+      go('/tours');
+    };
     /* Antes o piso era x.min (3 nos passeios dela): apertar "menos" com 2
        pessoas SUBIA para 3, e um casal nao conseguia reservar de jeito nenhum.
        O minimo dela e a regra de saida, nao o tamanho minimo de uma reserva. */
-    $('#mn').onclick = () => {
-      if (S.pax <= 1) return;
-      S.pax = S.pax - 1; S.discount = 0; S.coupon = null; renderBook();
-    };
-    $('#pl').onclick = () => {
-      if (S.pax >= Math.min(x.max, S.cap || x.max)) return toast(t('maxNote', { n: x.max }));
-      S.pax++; S.discount = 0; S.coupon = null; renderBook();
-    };
+    ligaPessoas(x, S, book);
+    $$('.trfopt', book).forEach(b => b.onclick = () => {
+      S.opcao = +b.dataset.o; S.discount = 0; S.coupon = null; renderBook();
+    });
+    $$('[data-centro]', book).forEach(b => b.onclick = () => {
+      S.noCentro = b.dataset.centro === 'sim'; renderBook();
+    });
     $('#capply').onclick = () => {
       const v = Coupons.validate($('#cin').value, null);
       if (v.ok) { S.coupon = v.coupon.code; S.discount = Math.round(base * v.coupon.pct / 100); renderBook(); }
       else $('#cbad').textContent = t('couponBad');
     };
-    $('#next2').onclick = () => { S.step = 3; renderBook(); };
+    $('#next2').onclick = () => {
+      if ((x.ingressos || []).length && S.criancas &&
+          Array.from({ length: S.criancas }, (_, i) => S.idades[i]).some(v => v === '' || v === undefined || v === null)) {
+        return toast(t('idadesFalta'));
+      }
+      if (precisaOrcamento(x, S, pr)) {
+        return window.open(waLink(msgOrcamento(x, S)), '_blank');
+      }
+      if (x.priceMode === 'tabela' && pr.consultar) {
+        return window.open(waLink(t('waAskDates', { tour: x.name[LANG] || x.name.pt })), '_blank');
+      }
+      S.step = 3; renderBook();
+    };
     $('#back1').onclick = () => { S.step = 1; renderBook(); };
   }
 
   if (S.step === 3) {
+    /* chegou a preencher os dados: "quase reservou" (uma vez por visita) */
+    if (typeof Interesse !== 'undefined' && !S.contouQuase) { S.contouQuase = true; Interesse.conta(x.id, 'quase'); }
     const half = Math.round(total / 2);
     const splitAllowed = x.payPolicy === 'split';
     book.innerHTML = `
@@ -981,15 +1354,20 @@ function renderBook() {
       <label class="fld">${t('email')}<input id="fE" type="email" autocomplete="email"></label>
       <label class="fld">${t('whatsLbl')}<input id="fW" placeholder="+33 6 …"><small class="why">${t('whyWhats')}</small></label>
       <label class="fld">${t('instaLbl')}<input id="fI" placeholder="@"></label>
+      ${participantesHtml(x, S)}
       <label class="optin"><input type="checkbox" id="fOptin">
         <span><b>${t('consentLbl')}</b><small>${t('consentWhy')}</small></span></label>
+      ${x.priceMode === 'transfer' && pr.sinal ? `
+      <p class="sinalnote">${t('trfSinalNota', { s: eur(pr.sinal), r: eur(Math.max(0, total - pr.sinal)) })}</p>` : ''}
       ${splitAllowed ? `
       <div class="payopts">
         <button class="popt ${S.policy === 'full' ? 'on' : ''}" data-p="full"><b>${t('payFull')}</b><small>${t('payFullSub')} · ${eur(total)}</small></button>
         <button class="popt ${S.policy === 'split' ? 'on' : ''}" data-p="split"><b>${t('paySplit')}</b><small>${t('paySplitSub', { half: eur(half), d: (+x.balanceDays || 1) })}</small></button>
       </div>` : ''}
-      <button class="cta" id="payBtn">${S.policy === 'split' && splitAllowed ? t('payNowBtn', { v: eur(half) }) : t('payBtn', { v: eur(total) })}</button>
-      <p class="fine">${cancelaTxt(x)} · ${t('noHidden')}</p>
+      <button class="cta" id="payBtn">${x.priceMode === 'transfer' && pr.sinal ? t('payNowBtn', { v: eur(pr.sinal) }) : S.policy === 'split' && splitAllowed ? t('payNowBtn', { v: eur(half) }) : t('payBtn', { v: eur(total) })}</button>
+      <p class="fine">${[cancelaTxt(x), t('noHidden')].filter(Boolean).join(' · ')}</p>
+      ${DB.settings.termos && (DB.settings.termos[LANG] || DB.settings.termos.pt) ? `<details class="termos-ck"><summary>${L3('Ao pagar você aceita os termos e condições', 'By paying you accept the terms and conditions', 'Al pagar aceptas los términos y condiciones')}</summary>
+        <p>${esc(DB.settings.termos[LANG] || DB.settings.termos.pt).replace(/\n/g, '<br>')}</p></details>` : ''}
       <p class="fine demo">${t('payAfter')}</p>
       <button class="linkbtn" id="back2" aria-label="${t('back')}">← ${t('back')}</button>`;
     $$('.popt', book).forEach(b => b.onclick = () => {
@@ -998,19 +1376,26 @@ function renderBook() {
       $$('.popt', book).forEach(z => z.classList.toggle('on', z === b));
       $('#payBtn').textContent = S.policy === 'split' ? t('payNowBtn', { v: eur(half) }) : t('payBtn', { v: eur(total) });
     });
+    /* quem vai: uma linha por pessoa; "eu tambem vou" tira ou poe uma linha
+       sem redesenhar (quem ja digitou nao perde nada) */
+    ligaParticipantes(book, S);
     $('#back2').onclick = () => { S.step = 2; renderBook(); };
     $('#payBtn').onclick = () => {
       const name = $('#fN').value.trim(), email = $('#fE').value.trim(), whats = $('#fW').value.trim();
-      if (!name || !email || !whats) return toast(t('xPreencha'));
+      if (!name || !email || !whats) return toast(LANG === 'pt' ? 'Preencha nome, e-mail e WhatsApp.' : 'Fill in name, email and WhatsApp.');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { $('#fE').focus(); return toast(t('badEmail')); }
+      const part = lerParticipantes(x);
+      if (part.erro) return toast(part.erro);
       if (Cal.seatsLeft(x.id, S.date, S.time, S.cap || x.max) < S.pax) { S.step = 1; S.time = null; renderBook(); return toast(t('lastSpotGone')); }
       const btn = $('#payBtn'); btn.disabled = true; btn.textContent = t('confirming');
       setTimeout(() => {
         S.booking = Bookings.create({
           tourId: x.id, date: S.date, time: S.time, name, email, whats,
           insta: $('#fI').value.trim(), pax: S.pax, coupon: S.coupon,
-          consent: $('#fOptin').checked,
-          policy: splitAllowed ? S.policy : 'full', origin: 'site',
+          consent: $('#fOptin').checked, opcao: S.opcao, group: part.grupo,
+          nasc: part.nasc, compradorVai: part.vai, veioPor: part.veioPor, indicadoPor: part.indicadoPor,
+          adultos: S.adultos, criancas: S.criancas, idades: S.idades.slice(0, S.criancas),
+          policy: (x.priceMode === 'transfer' && pr.sinal) ? 'sinal' : splitAllowed ? S.policy : 'full', origin: 'site',
         });
         S.step = 4; renderBook();
       }, 900);
@@ -1029,7 +1414,7 @@ function renderBook() {
       </div>
       ${comoPagar(b, x)}
       <a class="cta" style="text-decoration:none;text-align:center" target="_blank" rel="noopener"
-         href="${waLink(t('waBookingMsg', { code: b.code, tour: tl(x.name), when: fmtDate(b.date) + ' ' + b.time, name: b.name }))}">✆ ${t('waSendBooking')}</a>
+         href="${waLink(t('waBookingMsg', { code: b.code, tour: x.name[LANG] || x.name.pt, when: fmtDate(b.date) + ' ' + b.time, name: b.name }))}">✆ ${t('waSendBooking')}</a>
       <div class="okrow">
         <a class="mini" href="${icsFor(b, x)}" download="${esc(b.code)}.ics">${t('addCal')}</a>
         <a class="mini" target="_blank" rel="noopener" href="${mapLink(noIdioma(x.meeting))}">${t('seeMap')}</a>
@@ -1047,19 +1432,18 @@ function renderBook() {
 /* =====================================================
    ADM
 ===================================================== */
-const ADM_TABS = [
-  ['today',    'admToday'],
-  ['agenda',   'admAgenda'],
-  ['tarefas',  'admTarefas'],
-  ['tours',    'admTours'],
-  ['bookings', 'admBookings'],
-  ['money',    'admMoney'],
-  ['reports',  'admReports'],
-  ['clients',  'admClients'],
-  ['coupons',  'admCoupons'],
-  ['look',     'temaTit'],
-  ['settings', 'admSettings'],
+/* A ordem do dia dela (reuniao de 28/09/2026): o que acontece hoje, o que
+   chegou pedindo orcamento, quem faz, e so depois o resto. */
+/* O menu em grupos (como o TI ARTES): cada grupo tem um título e as abas.
+   A Planilha (o CRM dela, a planilha mais importante) fica SEMPRE no menu. */
+const ADM_GROUPS = [
+  { h: 'O dia a dia',           tabs: [['today', 'admToday'], ['agenda', 'admAgenda'], ['tarefas', 'admTarefas']] },
+  { h: 'Orçamentos e clientes', tabs: [['planilha', 'admPlanilha'], ['pipeline', 'admPipeline'], ['consulta', 'admConsulta'], ['clients', 'admClients'], ['bookings', 'admBookings']] },
+  { h: 'Operação',              tabs: [['guias', 'admGuias'], ['transfer', 'admTransfer'], ['tours', 'admTours'], ['precos', 'admPrecos'], ['voucher', 'admVoucher']] },
+  { h: 'Dinheiro',              tabs: [['money', 'admMoney'], ['reports', 'admReports'], ['coupons', 'admCoupons']] },
+  { h: 'O app',                 tabs: [['look', 'temaTit'], ['settings', 'admSettings']] },
 ];
+const ADM_TABS = ADM_GROUPS.flatMap(g => g.tabs);
 
 /* ---- aviso de painel destravado ----
    Desde que as reservas passaram a ser privadas, quem não está logada
@@ -1070,17 +1454,10 @@ function noAuthBanner() {
      quem esta olhando, e nao existe conta para criar. O aviso vermelho de
      "qualquer um entra no seu painel" assustaria o prospect a toa, e o botao
      levaria a uma tela de login sem banco atras. */
-  if (typeof temNuvem === 'function' && !temNuvem()) {
-    /* o aviso inteiro ocupava a primeira tela de cada aba: completo só em
-       "Hoje", nas outras uma linha (21/09/2026) */
-    const h = location.hash.replace(/^#\/?/, '');
-    if (h && h !== 'adm' && h !== 'adm/today') return `<div class="demolinha">👋 ${t('demoLinha')}</div>`;
-    return `<div class="alert nolog demo">
-      <b>👋 ${t('demoTit')}</b>
-      <p>${t('demoTxt')}</p>
-      <p><b>${t('demoTxt2')}</b></p>
-    </div>`;
-  }
+  /* 29/09: e o app de verdade, para a entrega — sem a faixa de demonstracao
+     no painel. (Sem banco ainda, cada aparelho guarda o seu: isso aparece no
+     botao 📁 Google Drive, em "Nuvem".) */
+  if (typeof temNuvem === 'function' && !temNuvem()) return '';
   if (typeof isLoggedIn === 'function' && isLoggedIn()) return '';
   return `<div class="alert bad nolog">
     <b>⚠ ${t('nlTitle')}</b>
@@ -1101,22 +1478,30 @@ function onCloudRejected() {
 }
 
 function admShell(tab, inner) {
+  /* reserva que chegou do site ganha o cadastro; e a sincronia por linha
+     (nuvem-itens.js) liga na primeira tela do painel com ela logada */
+  if (typeof cadastroEmDia === 'function') cadastroEmDia();
+  if (typeof itLigar === 'function') itLigar(() => { if (isBusyEditing()) pendingSync = true; else route(); });
+  if (typeof visualAplica === 'function') visualAplica(true);
   app.innerHTML = `
   <div class="adm">
     <aside class="rail">
       <div class="brand">${logoFull({ mark: 26, sub: 'ADM' })}</div>
-      <nav>${ADM_TABS.map(([id, k]) =>
-        `<button class="nb ${tab === id ? 'on' : ''}" data-tab="${id}" id="nb-${id}">${t(k)}</button>`).join('')}</nav>
+      <button class="nb nb-ia" id="nbAssist" type="button">⚡ Assistente</button>
+      <nav>${ADM_GROUPS.map(g =>
+        `<div class="nav-grp">${g.h ? `<div class="nav-h">${g.h}</div>` : ''}${g.tabs.map(([id, k]) =>
+          `<button class="nb ${tab === id ? 'on' : ''}" data-tab="${id}" id="nb-${id}">${t(k)}</button>`).join('')}</div>`).join('')}</nav>
       <div class="railfoot">
         <button class="nb ghost" id="viewSite">👁 ${t('viewSite')}</button>
         <button class="nb ghost" id="exitAdm">← ${t('exit')}</button>
       </div>
     </aside>
-    <main class="stage" id="stage">${noAuthBanner()}${inner}</main>
+    <main class="stage" id="stage">${noAuthBanner()}${typeof atalhosHtml === 'function' ? atalhosHtml() : ''}${inner}</main>
   </div>`;
   const nab = $('#goProtect');
   if (nab) nab.onclick = () => go('/login');
   $$('.nb[data-tab]').forEach(b => b.onclick = () => go('/adm/' + b.dataset.tab));
+  if ($('#nbAssist')) $('#nbAssist').onclick = () => { try { if (typeof iaAbre === 'function') iaAbre(); } catch (e) {} };
   $('#viewSite').onclick = () => go('/');
   $('#exitAdm').onclick = async () => {
     if (isLoggedIn()) { await authSignOut(); toast(t('loginOut')); }
@@ -1125,57 +1510,42 @@ function admShell(tab, inner) {
 }
 
 function viewAdm(tab, arg) {
-  if (tab === 'today')    admToday();
+  if (tab === 'today')    admToday(arg);
+  else if (tab === 'pipeline') admPipeline();
+  else if (tab === 'guias')    admGuias(arg);
+  else if (tab === 'planilha') admConsulta(undefined, 'planilha');
+  else if (tab === 'transfer') admTransfer();
+  else if (tab === 'precos')   admPrecos(arg);
+  else if (tab === 'consulta') admConsulta(arg);
+  else if (tab === 'tarefas')  admTarefas(arg);
+  else if (tab === 'voucher' && arg) opDocVoucher(arg);
+  else if (tab === 'voucher')  admVoucher();
+  else if (tab === 'orcdoc')   opDocOrc(arg);
+  else if (tab === 'clients' && arg) admFicha(arg);
   else if (tab === 'tours' && arg) admTourEdit(arg);
   else if (tab === 'tours')    admTours();
   else if (tab === 'bookings') admBookings();
   else if (tab === 'money')    admMoney();
   else if (tab === 'agenda')   admAgenda();
-  else if (tab === 'tarefas')  admTarefas();
   else if (tab === 'reports')  admReports();
-  else if (tab === 'clients' && arg) admFichaCliente(decodeURIComponent(arg));   /* ficha do cliente (ficha.js) */
   else if (tab === 'clients')  admClients();
-  else if (tab === 'coupons')  admCoupons();
+  else if (tab === 'coupons')  admParcerias();
   else if (tab === 'look')     admAparencia();
   else if (tab === 'settings') admSettings();
   else admToday();
 }
 
-/* ---- Hoje ---- */
-function admToday() {
+/* ---- Hoje ----
+   O painel da emergencia (operacao-telas.js): cliente, voo, quem faz, quanto
+   paga no dia e para quem. Aqui fica so o convite de criar senha. */
+function admToday(arg) {
   if (temNuvem() && !DB.settings.authRequired && !isLoggedIn() && !admToday._asked) {
     admToday._asked = true;
     setTimeout(() => {
       if (confirm(t('protectWhy') + '\n\n' + t('protectNow') + '?')) go('/login');
     }, 900);
   }
-  const today = isoToday();
-  const deps = Tours.all().flatMap(x =>
-    Cal.departures(x.id, today, today).map(d => ({ ...d, tour: x })));
-  const late = Bookings.all().filter(b => b.status === 'confirmed' && Bookings.due(b) > 0 && Bookings.dueDate(b) < today);
-  const dueTomorrow = Bookings.all().filter(b => b.status === 'confirmed' && Bookings.due(b) > 0 && Bookings.dueDate(b) === today);
-  admShell('today', `
-    <h1 class="pageh">${t('goodMorning')}</h1>
-    ${late.length ? `<div class="alert bad">⚠ ${late.length} ${t('xAtrasados')} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} <button class="mini" id="goLate">${t('admBookings')} →</button></div>` : ''}
-    ${dueTomorrow.length ? `<div class="alert warn">${dueTomorrow.length} ${t('xSaldosHoje')}</div>` : ''}
-    <section class="card">
-      <h3>${t('admToday')}</h3>
-      ${deps.length ? deps.map(d => {
-        const left = Cal.seatsLeft(d.tourId, d.date, d.time, d.capacity);
-        return `<div class="deprow"><b class="mono">${d.time}</b><span>${esc(tl(d.tour.name))}</span><span class="pill ${left === 0 ? 'ok' : 'n'}">${d.capacity - left}/${d.capacity}</span></div>`;
-      }).join('') : `<p class="empty">${t('noDepToday')}</p>`}
-    </section>
-    ${(typeof Tarefas!=='undefined' && Tarefas.deHoje().length) ? `<section class="card">
-      <h3>${LANG==='pt'?'Suas tarefas de hoje':'Your tasks for today'}</h3>
-      ${Tarefas.deHoje().map(x=>`<div class="deprow"><span>${esc(x.titulo)}</span>${x.hora?`<b class="mono">${x.hora}</b>`:''}</div>`).join('')}
-    </section>` : ''}`);
-  $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
-  Coach.start([
-    { sel: '#nb-tours',    txt: { pt: 'Aqui você cria e edita seus passeios — quantos quiser, com o calendário de cada um.', en: 'Create and edit your tours here — as many as you want, each with its own calendar.', fr: 'Créez et modifiez vos visites ici — autant que vous voulez, chacune avec son calendrier.', it: 'Qui create e modificate i vostri tour — quanti volete, ognuno con il suo calendario.', de: 'Hier legen Sie Ihre Touren an und bearbeiten sie — so viele Sie wollen, jede mit eigenem Kalender.', es: 'Aquí creas y editas tus tours — los que quieras, cada uno con su calendario.' } },
-    { sel: '#nb-bookings', txt: { pt: 'Cada reserva aparece aqui: quem pagou tudo, quem pagou o sinal, quem atrasou.', en: 'Every booking lands here: paid in full, deposit only, or late.', fr: 'Chaque réservation arrive ici : payée en entier, acompte seulement ou en retard.', it: 'Ogni prenotazione arriva qui: pagata tutta, solo acconto o in ritardo.', de: 'Jede Buchung landet hier: voll bezahlt, nur Anzahlung oder überfällig.', es: 'Cada reserva llega aquí: pagada entera, solo anticipo o atrasada.' } },
-    { sel: '#nb-money',    txt: { pt: 'O extrato que vai para o contador: cliente, serviço, valor, forma e data de pagamento.', en: 'The statement for your accountant: guest, service, amount, method and date.', fr: 'Le relevé pour votre comptable : client, service, montant, moyen et date de paiement.', it: 'L’estratto per il commercialista: cliente, servizio, importo, metodo e data di pagamento.', de: 'Die Übersicht für Ihre Steuerberatung: Gast, Leistung, Betrag, Zahlungsart und Datum.', es: 'El extracto para tu contable: cliente, servicio, importe, forma y fecha de pago.' } },
-    { sel: '#viewSite',    txt: { pt: 'A qualquer momento, veja o site exatamente como o cliente vê.', en: 'At any time, see the site exactly as your guest does.', fr: 'À tout moment, voyez le site exactement comme votre client le voit.', it: 'In qualsiasi momento, vedete il sito esattamente come lo vede il cliente.', de: 'Sehen Sie die Website jederzeit genau so, wie Ihr Gast sie sieht.', es: 'En cualquier momento, ve el sitio exactamente como lo ve tu cliente.' } },
-  ], 'tutorialAdm');
+  admHoje(arg);
 }
 
 /* ---- Passeios ---- */
@@ -1190,7 +1560,7 @@ function admTours() {
       return `<div class="trow">
         <span class="ph sm" style="background-image:url(${esc(x.photo)})"></span>
         <div class="tinfo"><b>${esc(x.name.pt)}</b>
-          <small>${t(TYPE_LABEL[x.type] || 'fWalk')} · ${eur(x.price)} ${x.priceMode === 'session' ? t('perSession') : t('perPerson')} · ${regiaoLabel(x.region)}</small></div>
+          <small>${esc(tipoLabel(x.type))} · ${ehSobConsulta(x) ? t('sobConsulta') : eur(x.price)} ${x.priceMode === 'session' ? t('perSession') : t('perPerson')} · ${regiaoLabel(x.region)}</small></div>
         <span class="pill ${cls}">${t(k)}</span>
         <div class="tacts">
           <button class="mini" data-edit="${x.id}">${t('edit')}</button>
@@ -1227,6 +1597,59 @@ function linhas(obj, lang) {
   return Array.isArray(a) ? a.join('\n') : '';
 }
 
+/* Linha da tabela de transfer no painel. Ela edita a tabela de 2026 como
+   esta no PDF dela: quantas pessoas, veiculo, malas, dia, noite, sinal.
+   Duas linhas com o mesmo numero de pessoas = as duas opcoes de veiculo. */
+function trfLinhaEd(l) {
+  const v = (k) => l[k] === undefined || l[k] === null ? '' : esc(String(l[k]));
+  return `<tr>
+    <td><input class="tp" type="number" min="1" max="40" value="${v('pax')}" aria-label="${t('edTrfPax')}"></td>
+    <td><input class="tv" value="${v('veiculo')}" placeholder="carro" aria-label="${t('edTrfVeic')}"></td>
+    <td><input class="tm" value="${v('malas')}" placeholder="2 malas médias e 2 bordo" aria-label="${t('edTrfMalas')}"></td>
+    <td><input class="td" type="number" min="0" value="${v('dia')}" aria-label="${t('trfDay')}"></td>
+    <td><input class="tn" type="number" min="0" value="${v('noite')}" aria-label="${t('trfNight')}"></td>
+    <td><input class="ts" type="number" min="0" value="${v('sinal')}" aria-label="${t('edTrfSinal')}"></td>
+    <td><button type="button" class="mini ico" data-trfdel aria-label="${t('edRemove')}">×</button></td>
+  </tr>`;
+}
+/* Ingresso de um passeio, como no PDF dela: "€25 por adulto, €15 ate 19
+   anos, gratuito ate 7 anos" vira gratis ate 6, reduzido €15 ate 18,
+   inteiro €25. O ingresso da guia (Sao Pedro: "+ €7 da guia") e cobrado uma
+   vez. "Pago no dia" fica fora do total (os fones). */
+function ingLinhaEd(g) {
+  const v = (x) => x === undefined || x === null ? '' : esc(String(x));
+  return `<tr>
+    <td><input class="in" value="${v(g.nome && g.nome.pt)}" placeholder="Museu (ingresso)" aria-label="${t('edIngNome')}"></td>
+    <td><input class="ig" type="number" min="0" max="99" value="${v(g.gratisAte)}" placeholder="—" aria-label="${t('edIngGratis')}"></td>
+    <td><input class="ir" type="number" min="0" step="0.5" value="${v(g.reduzido)}" placeholder="—" aria-label="${t('edIngRed')}"></td>
+    <td><input class="ira" type="number" min="0" max="99" value="${v(g.reduzidoAte)}" placeholder="—" aria-label="${t('edIngRedAte')}"></td>
+    <td><input class="ii" type="number" min="0" step="0.5" value="${v(g.inteiro)}" aria-label="${t('edIngInteiro')}"></td>
+    <td><input class="igu" type="number" min="0" step="0.5" value="${v(g.guia)}" placeholder="—" aria-label="${t('edIngGuia')}"></td>
+    <td style="text-align:center"><input class="idia" type="checkbox" ${g.noDia ? 'checked' : ''} aria-label="${t('edIngDia')}"></td>
+    <td><button type="button" class="mini ico" data-ingdel aria-label="${t('edRemove')}">×</button></td>
+  </tr>`;
+}
+function lerIngLinhas() {
+  const num = (v) => v === '' ? null : +v;
+  return $$('#ingRows tr').map(tr => {
+    const q = (c) => (tr.querySelector('.' + c) || {}).value ?? '';
+    const nome = String(q('in')).trim();
+    return { nome: { pt: nome, en: nome }, gratisAte: num(q('ig')), reduzido: +q('ir') || 0,
+             reduzidoAte: num(q('ira')), inteiro: +q('ii') || 0, guia: +q('igu') || 0,
+             noDia: !!(tr.querySelector('.idia') || {}).checked };
+  }).filter(g => g.nome.pt && (g.inteiro > 0 || g.reduzido > 0));
+}
+
+function lerTrfLinhas() {
+  return $$('#trfRows tr').map(tr => {
+    const q = (c) => (tr.querySelector('.' + c) || {}).value || '';
+    return { pax: +q('tp') || 0, veiculo: q('tv').trim(), malas: q('tm').trim(),
+             dia: +q('td') || 0, noite: +q('tn') || 0, sinal: +q('ts') || 0 };
+  }).filter(l => l.pax > 0 && (l.dia > 0 || l.noite > 0))
+    /* na ordem da tabela: por pessoas, e o veiculo menor primeiro */
+    .sort((a, b) => a.pax - b.pax || a.dia - b.dia);
+}
+
 function admTourEdit(id) {
   const isNew = id === 'new';
   const x = isNew
@@ -1242,7 +1665,7 @@ function admTourEdit(id) {
     <h1 class="pageh">${isNew ? t('newTour').replace('+ ', '') : esc(x.name.pt)}</h1>
     <div class="formgrid">
       <section class="card">
-        <label class="fld">${t('tType')}<select id="fType">${selOpts([['day','tDay'],['walk','tWalk'],['photo','tPhotoT'],['session','tSession'],['bike','tBike']], x.type)}</select></label>
+        <label class="fld">${t('tType')}<select id="fType">${selOpts([['walk','tWalk'],['day','tDay'],['transfer','tTransfer'],['papal','tPapal'],['trem','tTrem'],['conexao','tConexao'],['barco','tBarco'],['photo','tPhotoT'],['session','tSession'],['bike','tBike']], x.type)}</select></label>
         <label class="fld">${t('tRegion')}<select id="fRegion">${regiaoOpts(x.region)}</select></label>
         <label class="fld">${t('tName')}<input id="fNamePt" value="${esc(x.name.pt)}"></label>
         <label class="optin enswitch"><input type="checkbox" id="verEn">
@@ -1254,6 +1677,9 @@ function admTourEdit(id) {
         <label class="fld campo-en">${t('tDescEn')}<textarea id="fDescEn">${esc(x.desc.en)}</textarea></label>
         <label class="fld">${t('tMeeting')}<input id="fMeetPt" value="${esc(noIdioma(x.meeting))}"></label>
         <label class="fld campo-en">${t('tMeeting')} (EN)<input id="fMeetEn" value="${esc((x.meeting && x.meeting.en) || '')}"></label>
+        ${typeof Pontos !== 'undefined' && Pontos.all().length ? `<div class="fld tp-pontos">Pontos de encontro deste passeio <small class="why">marque os que valem; o ◉ é o normal. No voucher você escolhe o de cada cliente. (A lista fica em Ajustes.)</small>
+          ${Pontos.all().map(p => `<label class="tp-ponto"><input type="checkbox" data-tpponto="${esc(p.id)}" ${(x.pontos || []).includes(p.id) ? 'checked' : ''}><span>${esc(p.nome)}</span>
+            <input type="radio" name="tpPadrao" value="${esc(p.id)}" ${x.pontoPadrao === p.id ? 'checked' : ''} aria-label="ponto normal"></label>`).join('')}</div>` : ''}
         <div class="fld">${t('tPhoto')}
           <div class="photopick">
             <span class="pprev" id="pPrev" style="background-image:url(${esc(x.photo || '')})">${x.photo ? '' : '<i>+</i>'}</span>
@@ -1268,8 +1694,40 @@ function admTourEdit(id) {
         <h3>${t('edMoney')}</h3>
         <div class="frow">
           <label class="fld">${t('tPrice')}<input id="fPrice" type="number" value="${x.price}"></label>
-          <label class="fld">${t('tPriceMode')}<select id="fMode">${selOpts([['pp','perPerson'],['session','perSession']], x.priceMode)}</select></label>
+          <label class="fld">${t('tPriceMode')}<select id="fMode">${selOpts([['pp','perPerson'],['session','perSession'],['tabela','perTable'],['transfer','perTransfer']], x.priceMode)}</select></label>
         </div>
+
+        <div id="tabWrap" class="${x.priceMode === 'tabela' ? '' : 'hide'}">
+          <div class="rulesep"></div>
+          <b>${t('edTable')}</b>
+          <p class="why">${t('edTableWhy')}</p>
+          <div class="ptabedit">
+            ${Array.from({ length: TABELA_MAX }, (_, i) => `
+              <label class="fld sm"><span>${t('edTablePax', { n: i + 1 })}</span>
+                <input class="ftab" data-i="${i}" type="number" min="0" inputmode="numeric"
+                       value="${(x.tabela && +x.tabela[i]) || ''}"></label>`).join('')}
+          </div>
+        </div>
+
+        <div id="trfWrap" class="${x.priceMode === 'transfer' ? '' : 'hide'}">
+          <div class="rulesep"></div>
+          <b>${t('edTrf')}</b>
+          <p class="why">${t('edTrfWhy')}</p>
+          <div class="trfedit-wrap"><table class="trfedit">
+            <thead><tr><th>${t('edTrfPax')}</th><th>${t('edTrfVeic')}</th><th>${t('edTrfMalas')}</th><th>${t('trfDay')}</th><th>${t('trfNight')}</th><th>${t('edTrfSinal')}</th><th></th></tr></thead>
+            <tbody id="trfRows">${((x.transfer && x.transfer.linhas) || []).map(trfLinhaEd).join('')}</tbody>
+          </table></div>
+          <button type="button" class="mini" id="trfAdd">${t('edTrfAdd')}</button>
+        </div>
+
+        <div class="rulesep"></div>
+        <b>${t('edIng')}</b>
+        <p class="why">${t('edIngWhy')}</p>
+        <div class="trfedit-wrap"><table class="trfedit ingedit">
+          <thead><tr><th>${t('edIngNome')}</th><th>${t('edIngGratis')}</th><th>${t('edIngRed')}</th><th>${t('edIngRedAte')}</th><th>${t('edIngInteiro')}</th><th>${t('edIngGuia')}</th><th>${t('edIngDia')}</th><th></th></tr></thead>
+          <tbody id="ingRows">${(x.ingressos || []).map(ingLinhaEd).join('')}</tbody>
+        </table></div>
+        <button type="button" class="mini" id="ingAdd">${t('edIngAdd')}</button>
 
         <div class="rulesep"></div>
         <b>${t('edEarly')}</b>
@@ -1287,15 +1745,20 @@ function admTourEdit(id) {
           <label class="fld">${t('tMin')}<input id="fMin" type="number" value="${x.min}"><small class="why">${t('edMinWhy')}</small></label>
           <label class="fld">${t('tMax')}<input id="fMax" type="number" value="${x.max}"></label>
         </div>
+        <label class="optin"><input type="checkbox" id="fKids" ${x.criancas === false ? '' : 'checked'}>
+          <span><b>${t('edKids')}</b><small>${t('edKidsWhy')}</small></span></label>
+        <label class="fld">${t('edIdadeMin')}<input id="fIdadeMin" type="number" min="0" max="99" value="${+x.idadeMin || ''}" placeholder="—"><small class="why">${t('edIdadeMinWhy')}</small></label>
 
         <div class="rulesep"></div>
         <b>${t('edTerms')}</b>
         <div class="frow">
-          <label class="fld">${t('tPay')}<select id="fPay">${selOpts([['full','tPayFull'],['split','tPaySplit']], x.payPolicy)}</select></label>
+          <label class="fld">${t('tPay')}<select id="fPay">${selOpts([['full','tPayFull'],['split','tPaySplit'],['sinal','tPaySinal']], x.payPolicy)}</select></label>
           <label class="fld">${t('edBalanceDays')}<input id="fBalDays" type="number" min="0" value="${x.balanceDays || 1}"><small class="why">${t('edBalanceWhy')}</small></label>
         </div>
         <label class="fld">${t('edCancel')}<input id="fCancelPt" value="${esc((x.cancel && x.cancel.pt) || '')}" placeholder="Cancelamento gratis ate 48h antes"><small class="why">${t('edCancelWhy')}</small></label>
         <label class="fld campo-en">${t('edCancel')} (EN)<input id="fCancelEn" value="${esc((x.cancel && x.cancel.en) || '')}"></label>
+        <label class="fld">${LANG === 'en' ? 'Tips for the voucher' : 'Dicas para o voucher'}<textarea id="fDicasPt" rows="3" placeholder="${LANG === 'en' ? 'What the guest needs on the day: dress code, where to meet...' : 'O que o cliente precisa saber no dia: como se vestir, onde encontrar, o que levar...'}">${esc((x.dicas && x.dicas.pt) || '')}</textarea></label>
+        <label class="fld campo-en">${LANG === 'en' ? 'Tips for the voucher' : 'Dicas para o voucher'} (EN)<textarea id="fDicasEn" rows="3">${esc((x.dicas && x.dicas.en) || '')}</textarea></label>
         <div class="btnrow">
           <button class="cta sm" id="savePub">${t('savePub')}</button>
           <button class="mini" id="saveDraft">${t('saveDraft')}</button>
@@ -1448,6 +1911,18 @@ function admTourEdit(id) {
   $('#addStop').onclick = () => { stops.push({ t: '', place: '', n: { pt: '', en: '' }, d: { pt: '', en: '' }, ph: '' }); drawStops(); };
 
   let newPhoto = null;
+  $('#fMode').onchange = (e) => {
+    $('#trfWrap').classList.toggle('hide', e.target.value !== 'transfer');
+    $('#tabWrap').classList.toggle('hide', e.target.value !== 'tabela');
+  };
+  $('#ingAdd').onclick = () => $('#ingRows').insertAdjacentHTML('beforeend', ingLinhaEd({}));
+  $('#ingRows').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ingdel]'); if (b) b.closest('tr').remove();
+  });
+  $('#trfAdd').onclick = () => $('#trfRows').insertAdjacentHTML('beforeend', trfLinhaEd({}));
+  $('#trfRows').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-trfdel]'); if (b) b.closest('tr').remove();
+  });
   $('#fPhoto').onchange = async (e) => {
     const f = e.target.files[0]; if (!f) return;
     try {
@@ -1477,7 +1952,13 @@ function admTourEdit(id) {
       name: { pt: $('#fNamePt').value.trim(), en: $('#fNameEn').value.trim() || $('#fNamePt').value.trim() },
       desc: { pt: $('#fDescPt').value.trim(), en: $('#fDescEn').value.trim() || $('#fDescPt').value.trim() },
       meeting: par('#fMeetPt', '#fMeetEn'),
+      pontos: $$('[data-tpponto]').filter(el => el.checked).map(el => el.dataset.tpponto),
+      pontoPadrao: ($('input[name="tpPadrao"]:checked') || {}).value || '',
       price: +$('#fPrice').value || 0, priceMode: $('#fMode').value,
+      tabela: $$('.ftab').sort((p, q) => +p.dataset.i - +q.dataset.i).map(el => +el.value || 0),
+      transfer: { linhas: lerTrfLinhas() },
+      ingressos: lerIngLinhas(),
+      criancas: $('#fKids').checked, idadeMin: Math.max(0, +$('#fIdadeMin').value || 0),
       min: +$('#fMin').value || 1, max: +$('#fMax').value || 1,
       payPolicy: $('#fPay').value,
       /* guarda qual portugues gerou o ingles atual: se nao mudar,
@@ -1488,6 +1969,7 @@ function admTourEdit(id) {
       tagline:   par('#fTagPt', '#fTagEn'),
       priceNote: par('#fPNotePt', '#fPNoteEn'),
       cancel:    par('#fCancelPt', '#fCancelEn'),
+      dicas:     par('#fDicasPt', '#fDicasEn'),
       closing:   par('#fClosePt', '#fCloseEn'),
       earlySeats: +$('#fEarlyN').value || 0,
       priceLate:  +$('#fLate').value || 0,
@@ -1513,7 +1995,11 @@ function admTourEdit(id) {
     if (!data.name.pt) problems.push(['fNamePt', t('vName')]);
     if (!data.desc.pt) problems.push(['fDescPt', t('vDesc')]);
     if (!data.meeting.pt) problems.push(['fMeetPt', t('vMeet')]);
-    if (!(data.price > 0)) problems.push(['fPrice', t('vPrice')]);
+    if (data.priceMode === 'transfer') {
+      if (!(data.transfer && data.transfer.linhas || []).length) problems.push(['fMode', t('vTrf')]);
+    } else if (data.priceMode === 'tabela') {
+      if (!(data.tabela || []).some(v => +v > 0)) problems.push(['fMode', t('vTable')]);
+    } else if (!(data.price > 0)) problems.push(['fPrice', t('vPrice')]);
     if (data.min > data.max) problems.push(['fMin', t('vMinMax')]);
     $$('.fld .err').forEach(e => e.remove());
     $$('.fld input, .fld textarea').forEach(e => e.classList.remove('invalid'));
@@ -1586,7 +2072,7 @@ function admTourEdit(id) {
     if (!(await traduzAntesDeSalvar())) return;
     const data = collect('live');
     if (!validate(data)) return;
-    if (!data.name.pt) return toast(t('xNomePasseio'));
+    if (!data.name.pt) return toast(LANG === 'pt' ? 'Dê um nome ao passeio.' : 'Give the tour a name.');
     if (isNew) { const nt = Tours.create(data); toast(t('published')); go('/adm/tours/' + nt.id); }
     else { Tours.update(x.id, data); toast(t('published')); go('/adm/tours'); }
   };
@@ -1606,7 +2092,7 @@ function admTourEdit(id) {
       b.classList.toggle('on', wds.has(w));
     });
     $('#addRule').onclick = () => {
-      if (!wds.size) return toast(t('xDiasSemana'));
+      if (!wds.size) return toast(LANG === 'pt' ? 'Escolha os dias da semana.' : 'Pick the weekdays.');
       Cal.addRule({ tourId: x.id, weekdays: [...wds], time: $('#rTime').value, capacity: +$('#rCap').value || x.max, from: $('#rFrom').value, until: $('#rUntil').value });
       drawRules(); toast('✓');
     };
@@ -1655,16 +2141,38 @@ function situacaoPgto(b, hoje) {
   };
 }
 
+/* Os pedidos de "Monte seu roteiro", no topo das reservas: e trabalho a
+   fazer, e novo fica em cima. */
+function pedidosHtml() {
+  const ps = Roteiros.all();
+  const novos = ps.filter(p => !p.respondido).length;
+  const d = (iso) => iso ? fmtDate(iso) : '';
+  return `<details class="card pedidos" ${novos ? 'open' : ''}>
+    <summary><b>🗺️ ${t('pdTit')}</b>${novos ? ` <span class="pill warn">${novos} ${t('pdNovo').toLowerCase()}</span>` : ''}</summary>
+    ${ps.length ? ps.map(p => `<div class="pedido ${p.respondido ? 'resp' : ''}">
+      <div class="pdtop"><b>${esc(p.nome)}</b>
+        <span class="pill ${p.respondido ? 'ok' : 'warn'}">${p.respondido ? t('pdResp') : t('pdNovo')}</span></div>
+      <small>${[d(p.ini), d(p.fim)].filter(Boolean).join(' → ') || '—'} · ${p.adultos} ${t('adultsLbl').toLowerCase()}${p.criancas ? ' + ' + p.criancas + ' ' + t('kidsLbl').toLowerCase() : ''}</small>
+      <pre class="pdmsg">${esc(msgRoteiro(p))}</pre>
+      <div class="tacts">
+        ${p.whats ? `<a class="mini cta-ish" target="_blank" rel="noopener" href="${waLink(t('waHi', { name: p.nome.split(' ')[0], tour: '', when: '' }), p.whats.replace(/\D/g, ''))}">${t('pdAbrir')}</a>` : ''}
+        <button class="mini" data-pdm="${esc(p.id)}" data-v="${p.respondido ? '0' : '1'}">${p.respondido ? t('pdDesmarca') : t('pdMarca')}</button>
+      </div>
+    </div>`).join('') : `<p class="why">${t('pdVazio')}</p>`}
+  </details>`;
+}
+
 function admBookings() {
   const list = Bookings.all();
   const today = isoToday();
   admShell('bookings', `
     <h1 class="pageh">${t('admBookings')}</h1>
+    ${pedidosHtml()}
     <details class="card novares">
       <summary><b>${t('novaResTit')}</b><small class="why">${t('novaResSub')}</small></summary>
       <div class="frow">
         <label class="fld">${t('nrPasseio')}<select id="nrTour">${Tours.all().map(tt =>
-          `<option value="${esc(tt.id)}">${esc(tl(tt.name))}</option>`).join('')}</select></label>
+          `<option value="${esc(tt.id)}">${esc(tt.name[LANG] || tt.name.pt)}</option>`).join('')}</select></label>
         <label class="fld">${t('nrPessoas')}<input id="nrPax" type="number" min="1" value="2"></label>
       </div>
       <div class="frow">
@@ -1703,7 +2211,7 @@ function admBookings() {
         ? `<button class="mini strong" data-conf="${esc(b.id)}">${t('confCliente')}</button>`
         : (b.clienteConfirmado ? `<span class="mini done">${t('confClienteFeito')}</span>` : '');
       const first = b.name.split(' ')[0];
-      const tourName = x ? tl(x.name) : '';
+      const tourName = x ? (x.name[LANG] || x.name.pt) : '';
       const waText = (b.status !== 'cancelled' && due > 0)
         ? t('waCharge', { name: first, v: eur(due), tour: tourName, when: fmtDate(b.date) })
         : t('waHi', { name: first, tour: tourName, when: fmtDate(b.date) + ' ' + b.time });
@@ -1714,14 +2222,24 @@ function admBookings() {
         : (b.email
             ? `<a class="mini cta-ish" href="mailto:${esc(b.email)}?subject=${encodeURIComponent(tourName)}&body=${encodeURIComponent(waText)}">${t('askPayMail')}</a>`
             : '');
+      /* O grupo aparece aqui porque e aqui que ela olha na vespera do
+         passeio: quem vem, e a data de nascimento para os ingressos. */
+      const grupo = (b.group && b.group.length)
+        ? `<small class="grpline"><b>${t('grpInBooking')}:</b> ` +
+          b.group.map(g => esc(g.nome) + (g.nasc ? ' (' + esc(g.nasc) + ')' : '')).join(' · ') + '</small>'
+        : '';
+      const veic = b.veiculo ? ' · ' + esc(b.veiculo) : '';
       return `<div class="trow">
         <div class="tinfo"><b>${esc(b.name)}</b>
-          <small>${esc(x ? x.name.pt : '?')} · ${fmtDate(b.date)} ${esc(b.time)} · ${esc(b.pax)}p · <span class="mono">${esc(b.code)}</span></small></div>
+          <small>${esc(x ? x.name.pt : '?')} · ${fmtDate(b.date)} ${esc(b.time)} · ${esc(b.pax)}p${veic} · <span class="mono">${esc(b.code)}</span></small>${grupo}</div>
         <b class="mono">${eur(b.total)}</b>${pill}
         <div class="tacts" id="ta-${esc(b.id)}">${cobrar}${act}${conf}</div>
       </div>`;
     }).join('')}</div>`
     : `<div class="emptybox"><p>${t('emptyBookings')}</p></div>`}`);
+  $$('[data-pdm]').forEach(b => b.onclick = () => {
+    Roteiros.marca(b.dataset.pdm, b.dataset.v === '1'); admBookings();
+  });
   /* ---- lancamento manual ---- */
   const nrRecalcula = () => {
     const tt = Tours.get($('#nrTour').value);
@@ -1796,74 +2314,14 @@ function formaPg(m) { return METODO[m] ? t(METODO[m]) : (m || '—'); }
 /* Para onde o dinheiro caiu. Pix e conta brasileira e nao entra na
    contabilidade francesa; todo o resto entra na conta europeia dela.
    Regra unica e visivel — se um dia surgir outro meio brasileiro, muda aqui. */
-const PGTO_BRASIL = ['pix'];
+const PGTO_BRASIL = (typeof CONTEUDO !== 'undefined' && CONTEUDO.metodosBrasil) || ['pix'];
 function destinoPgto(metodo) {
   return PGTO_BRASIL.includes(String(metodo || '').toLowerCase()) ? 'brasil' : 'europa';
 }
 
-function admMoney() {
-  const mode = admMoney._m || 'month';
-  const today = isoToday();
-  const from = mode === 'week' ? addDays(today, -7) : today.slice(0, 8) + '01';
-  const rows = Bookings.statement(from, today);
-  const total = rows.reduce((s, r) => s + r.amount, 0);
-  const KIND = { full: 'kindFull', deposit: 'kindDep', balance: 'kindBal' };
-  const cols = t('stCols');
-  const europa = rows.filter(r => destinoPgto(r.method) === 'europa');
-  const brasil = rows.filter(r => destinoPgto(r.method) === 'brasil');
-  const soma = (a) => a.reduce((s, r) => s + r.amount, 0);
-
-  const tabela = (lista, vazio) => lista.length
-    ? `<table class="tbl"><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-       <tbody>${lista.map(r => {
-         const x = Tours.get(r.tourId);
-         return `<tr><td class="mono">${r.date}</td><td>${esc(r.client)}</td>
-           <td>${esc(x ? tl(x.name) : '?')}</td>
-           <td>${t(KIND[r.kind])}</td><td>${formaPg(r.method)}</td>
-           <td class="mono right">${eur(r.amount)}</td></tr>`;
-       }).join('')}</tbody>
-       <tfoot><tr><td colspan="5"><b>${t('received')}</b></td>
-         <td class="mono right"><b>${eur(soma(lista))}</b></td></tr></tfoot></table>`
-    : `<p class="empty">${vazio}</p>`;
-  admShell('money', `
-    <div class="pagehead"><h1 class="pageh">${t('stTitle')}</h1>
-      <div class="chips">
-        <button class="chip ${mode === 'week' ? 'on' : ''}" id="mW">${t('thisWeek')}</button>
-        <button class="chip ${mode === 'month' ? 'on' : ''}" id="mM">${t('thisMonth')}</button>
-        <button class="mini" id="dlCont">${t('exCsvCont')}</button>
-        <button class="mini" id="dlCsv">${t('exCsvTudo')}</button>
-        <button class="mini" id="prn">${t('print')}</button>
-      </div></div>
-    <p class="why">${t('exRegra')}</p>
-    <section class="card">
-      <span class="seclabel">${t('exEuropa')}</span>
-      ${tabela(europa, t('exNadaEuro'))}
-    </section>
-    <section class="card">
-      <span class="seclabel">${t('exBrasil')}</span>
-      ${tabela(brasil, t('exNadaBr'))}
-    </section>
-    ${rows.length ? `<section class="card totalgeral">
-      <span>${t('exTotalGeral')}</span><b class="mono">${eur(total)}</b>
-    </section>` : ''}`);
-  $('#mW').onclick = () => { admMoney._m = 'week'; admMoney(); };
-  $('#mM').onclick = () => { admMoney._m = 'month'; admMoney(); };
-  $('#prn').onclick = () => print();
-  /* O contador francês recebe só o que caiu na conta europeia. */
-  const baixaCsv = (lista, nome) => {
-    const csv = [cols.join(';')].concat(lista.map(r => {
-      const x = Tours.get(r.tourId);
-      return [r.date, r.client, x ? tl(x.name) : '',
-              t(KIND[r.kind]), formaPg(r.method), r.amount].join(';');
-    })).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = nome; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  };
-  $('#dlCont').onclick = () => baixaCsv(europa, 'extrato-contador-' + from + '-a-' + today + '.csv');
-  $('#dlCsv').onclick  = () => baixaCsv(rows,   'extrato-completo-' + from + '-a-' + today + '.csv');
-}
+/* Contabilidade por conta (operacao-telas.js): cada conta sabe de que lado
+   fica, e cada contador recebe so o dele. */
+function admMoney() { admContabilidade(); }
 
 /* ---- Cupons ---- */
 function admCoupons() {
@@ -1896,6 +2354,37 @@ function admCoupons() {
 /* ---- Ajustes ---- */
 /* Aparencia ganhou tela propria na barra lateral: estava enterrada dentro
    de Ajustes, junto com coisas que nao tem nada a ver. */
+/* Linhas editaveis da Aparencia: os links de parceiros da primeira tela e
+   as cidades/regioes da vitrine. */
+function linkEd(l) {
+  const v = (x) => esc(x || '');
+  return `<div class="edrow" data-id="${v(l.id)}">
+    <div class="frow">
+      <label class="fld sm">${t('apIcone')}<input class="li" value="${v(l.icone)}" placeholder="🏨" maxlength="4"></label>
+      <label class="fld">${t('apTitulo')}<input class="lt" value="${v(l.titulo && l.titulo.pt)}"></label>
+      <button type="button" class="mini ico danger" data-del aria-label="${t('edRemove')}">✕</button>
+    </div>
+    <label class="fld">${t('apSub')}<input class="ls" value="${v(l.sub && l.sub.pt)}"></label>
+    <label class="fld">Link<input class="lu" value="${v(l.url)}" placeholder="https://…"></label>
+    <div class="frow">
+      <label class="fld">${t('apTitulo')} (EN)<input class="lte" value="${v(l.titulo && l.titulo.en)}"></label>
+      <label class="fld">${t('apSub')} (EN)<input class="lse" value="${v(l.sub && l.sub.en)}"></label>
+    </div>
+  </div>`;
+}
+function regEd(r) {
+  const v = (x) => esc(x || '');
+  const usados = r[0] ? Tours.all().filter(x => x.region === r[0]).length : 0;
+  return `<div class="edrow" data-cod="${v(r[0])}">
+    <div class="frow">
+      <label class="fld">${t('apRegNome')}<input class="rp" value="${v(r[1])}" placeholder="Abu Dhabi"></label>
+      <label class="fld">${t('apRegNome')} (EN)<input class="re" value="${v(r[2])}" placeholder="Florence"></label>
+      ${usados ? `<small class="why regn">${usados} ${t('apRegUsos')}</small>`
+               : `<button type="button" class="mini ico danger" data-del aria-label="${t('edRemove')}">✕</button>`}
+    </div>
+  </div>`;
+}
+
 function admAparencia() {
   const opcao = (v, k, desc) => `
     <button class="lookcard ${temaAtual() === v ? 'on' : ''}" data-tema="${v}">
@@ -1911,7 +2400,63 @@ function admAparencia() {
         ${opcao('light', 'temaClaro',  t('temaClaroSub'))}
         ${opcao('dark',  'temaEscuro', t('temaEscuroSub'))}
       </div>
-    </section>`);
+    </section>
+
+    <section class="card">
+      <h3>${t('apRedes')}</h3>
+      <p class="why">${t('apRedesWhy')}</p>
+      <div class="frow">
+        <label class="fld">Instagram<input id="apInsta" value="${esc(DB.settings.insta || '')}" placeholder="yalla_experiences"></label>
+        <label class="fld">YouTube<input id="apYt" value="${esc(DB.settings.youtube || '')}" placeholder="https://youtube.com/…"></label>
+      </div>
+      <div class="frow">
+        <label class="fld">Blog / site<input id="apBlog" value="${esc(DB.settings.blog || '')}" placeholder="https://…"></label>
+        <label class="fld">Facebook<input id="apFb" value="${esc(DB.settings.facebook || '')}" placeholder="https://facebook.com/…"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>${t('apLinks')}</h3>
+      <p class="why">${t('apLinksWhy')}</p>
+      <div id="apLinkRows">${(DB.settings.links || []).map(linkEd).join('')}</div>
+      <button type="button" class="mini" id="apLinkAdd">${t('apLinkAdd')}</button>
+    </section>
+
+    <section class="card">
+      <h3>${t('apRegs')}</h3>
+      <p class="why">${t('apRegsWhy')}</p>
+      <div id="apRegRows">${regioes().map(regEd).join('')}</div>
+      <button type="button" class="mini" id="apRegAdd">${t('apRegAdd')}</button>
+    </section>
+
+    <button class="cta" id="apSalvar">${t('apSalvar')}</button>`);
+  $('#apLinkAdd').onclick = () => $('#apLinkRows').insertAdjacentHTML('beforeend', linkEd({}));
+  $('#apRegAdd').onclick  = () => $('#apRegRows').insertAdjacentHTML('beforeend', regEd([]));
+  [$('#apLinkRows'), $('#apRegRows')].forEach(box => box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-del]'); if (b) b.closest('.edrow').remove();
+  }));
+  $('#apSalvar').onclick = () => {
+    const st = DB.settings;
+    st.insta = $('#apInsta').value.trim().replace(/^@/, '');
+    st.youtube = $('#apYt').value.trim(); st.blog = $('#apBlog').value.trim(); st.facebook = $('#apFb').value.trim();
+    st.links = $$('#apLinkRows .edrow').map(r => {
+      const q = (c) => (r.querySelector('.' + c) || {}).value || '';
+      return { id: r.dataset.id || uid(), icone: q('li').trim() || '🔗', url: q('lu').trim(),
+               titulo: { pt: q('lt').trim(), en: q('lte').trim() || q('lt').trim() },
+               sub: { pt: q('ls').trim(), en: q('lse').trim() || q('ls').trim() } };
+    }).filter(l => l.url && l.titulo.pt);
+    /* regioes: o codigo nasce do nome e NAO muda depois — e ele que liga o
+       passeio a regiao. Trocar o nome de "Roma" nao pode soltar 14 passeios. */
+    const usados = new Set();
+    st.regioes = $$('#apRegRows .edrow').map(r => {
+      const pt = (r.querySelector('.rp') || {}).value.trim(), en = (r.querySelector('.re') || {}).value.trim();
+      let c = r.dataset.cod || pt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      while (c && usados.has(c)) c += '-2';
+      usados.add(c);
+      return [c, pt, en || pt];
+    }).filter(r => r[0] && r[1]);
+    save(); toast(t('apSalvo')); admAparencia();
+  };
   $$('[data-tema]').forEach(b => b.onclick = () => {
     aplicaTema(b.dataset.tema);
     $$('[data-tema]').forEach(z => z.classList.toggle('on', z === b));
@@ -1958,6 +2503,7 @@ function cartaoEmail(qual) {
 function admSettings() {
   admShell('settings', `
     <h1 class="pageh">${t('admSettings')}</h1>
+    ${typeof visualHtml === 'function' ? visualHtml() : ''}
     <section class="card">
       <h3>${t('language')}</h3>
       ${langBar()}
@@ -2012,6 +2558,9 @@ function admSettings() {
         <label class="fld">${t('admIban')}<input id="pgIban" value="${esc(DB.settings.iban || '')}" placeholder="FR76 …"></label>
         <label class="fld">${t('admIbanName')}<input id="pgIbanName" value="${esc(DB.settings.ibanName || '')}" placeholder="Nome como no banco"></label>
       </div>
+      <label class="fld">${t('admWise')}<input id="pgWise" value="${esc(DB.settings.wiseLink || '')}" placeholder="https://wise.com/pay/…"><small class="why">${t('admWiseHelp')}</small></label>
+      <label class="optin"><input type="checkbox" id="pgCash" ${DB.settings.dinheiroNoDia ? 'checked' : ''}>
+        <span><b>${t('admCash')}</b><small>${t('admCashHelp')}</small></span></label>
       <label class="fld">${t('admPayNote')}<textarea id="pgNote" rows="3">${esc(DB.settings.payNote || '')}</textarea></label>
       <div class="rulesep"></div>
       <label class="optin"><input type="checkbox" id="pgCard" ${DB.settings.stripeAtivo ? 'checked' : ''}>
@@ -2026,6 +2575,7 @@ function admSettings() {
       </div>
       <button class="cta sm" id="pgSave">${t('saveBtn')}</button>
     </section>
+    ${opAjustesHtml()}
     <section class="card">
       <h3>${t('admAviso')}</h3>
       <p class="why">${t('admAvisoHelp')}</p>
@@ -2086,7 +2636,7 @@ function admSettings() {
       <h3>${t('sndTitle')}</h3>
       <p class="why">${t('sndWhy')}</p>
       <div class="btnrow">
-        <button class="mini" id="sndToggle">${localStorage.getItem('vi_som') === 'off' ? '🔇 ' + t('sndOff') : '🔔 ' + t('sndOn')}</button>
+        <button class="mini" id="sndToggle">${localStorage.getItem('yalla_som') === 'off' ? '🔇 ' + t('sndOff') : '🔔 ' + t('sndOn')}</button>
         <button class="mini" id="sndTest">${t('sndTest')}</button>
       </div>
     </section>
@@ -2097,8 +2647,8 @@ function admSettings() {
     <section class="card">
       <h3>${t('bkpTit')}</h3>
       <p class="why">${t('bkpHelp')}</p>
-      <p class="why">${(() => { const d = localStorage.getItem('vi_bkp_em');
-        return d ? t('bkpUltimo', { d: new Date(+d).toLocaleString(locale()) }) : t('bkpNunca'); })()}</p>
+      <p class="why">${(() => { const d = localStorage.getItem('yalla_bkp_em');
+        return d ? t('bkpUltimo', { d: new Date(+d).toLocaleString(LANG === 'pt' ? 'pt-BR' : 'en-GB') }) : t('bkpNunca'); })()}</p>
       <div class="btnrow">
         <button class="cta sm" id="bkpTudo">${t('bkpTudo')}</button>
         <button class="mini" id="bkpCli">${t('bkpClientes')}</button>
@@ -2154,27 +2704,22 @@ function admSettings() {
     a.href = URL.createObjectURL(new Blob(['\ufeff' + conteudo], { type: tipo }));
     a.download = nome; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    try { localStorage.setItem('vi_bkp_em', String(Date.now())); } catch (e) {}
+    try { localStorage.setItem('yalla_bkp_em', String(Date.now())); } catch (e) {}
   };
   const hojeArq = () => new Date().toISOString().slice(0, 10);
 
   $('#bkpTudo').onclick = () => {
     if (!DB.bookings.length && !DB.tours.length) return toast(t('bkpVazio'));
-    const pacote = {
-      salvoEm: new Date().toISOString(),
-      versao: 'vi-backup-1',
-      passeios: DB.tours, regras: DB.rules, datas: DB.departures,
-      bloqueios: DB.blocks, cupons: DB.coupons,
-      configuracoes: DB.settings, reservas: DB.bookings,
-    };
-    baixaArquivo(JSON.stringify(pacote, null, 2), 'backup-' + hojeArq() + '.json', 'application/json');
+    const pacote = pacoteBackup();   /* operacao.js: tudo, inclusive guias, orcamentos e tarefas */
+    baixaArquivo(JSON.stringify(pacote, null, 2), Backup.nome(hojeArq()), 'application/json');
+    Backup.marca('download', Backup.nome(hojeArq()));
     toast(t('bkpFeito'));
   };
 
   $('#bkpCli').onclick = () => {
     if (!DB.bookings.length) return toast(t('bkpVazio'));
     const cols = ['Codigo','Nome','Email','WhatsApp','Instagram','Passeio','Data','Horario',
-                  'Pessoas','Total EUR','Pago EUR','Falta EUR','Situacao','Consentimento','Criada em'];
+                  'Pessoas','Total ' + moedaCodigo(),'Pago ' + moedaCodigo(),'Falta ' + moedaCodigo(),'Situacao','Consentimento','Criada em'];
     const esc2 = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     const linhas = Bookings.all().map(b => {
       const x = Tours.get(b.tourId);
@@ -2198,8 +2743,8 @@ function admSettings() {
       await Promise.all(chaves.map(k => caches.delete(k)));
     } catch (e) {}
     try {
-      localStorage.removeItem('vi_db_v1');
-      localStorage.removeItem('vi_queue_v1');
+      localStorage.removeItem(DB_KEY);
+      localStorage.removeItem('yalla_queue_v1');
       localStorage.removeItem('vi_migr_naNuvem');
     } catch (e) {}
     location.reload();
@@ -2211,6 +2756,8 @@ function admSettings() {
     DB.settings.pixCity  = $('#pgPixCity').value.trim();
     DB.settings.iban     = $('#pgIban').value.trim();
     DB.settings.ibanName = $('#pgIbanName').value.trim();
+    DB.settings.wiseLink = linkExterno($('#pgWise').value.trim());
+    DB.settings.dinheiroNoDia = $('#pgCash').checked;
     DB.settings.payNote  = $('#pgNote').value.trim();
     DB.settings.stripeAtivo   = $('#pgCard').checked;
     DB.settings.exibirCotacao = $('#pgFx').checked;
@@ -2265,12 +2812,12 @@ function admSettings() {
     } else toast(t('installIos'));
   };
   $('#sndToggle').onclick = () => {
-    const off = localStorage.getItem('vi_som') === 'off';
-    localStorage.setItem('vi_som', off ? 'on' : 'off');
+    const off = localStorage.getItem('yalla_som') === 'off';
+    localStorage.setItem('yalla_som', off ? 'on' : 'off');
     admSettings();
   };
   $('#sndTest').onclick = () => {
-    if (localStorage.getItem('vi_som') === 'off') return toast(t('sndOff'));
+    if (localStorage.getItem('yalla_som') === 'off') return toast(t('sndOff'));
     /* o clique já é o toque que o navegador exige, então aqui costuma tocar */
     const antes = Date.now();
     assinaturaSonora();
@@ -2281,6 +2828,7 @@ function admSettings() {
     go('/adm/today');
   };
   $('#reset').onclick = () => { if (confirm(t('resetWarn'))) { resetDemo(); route(); } };
+  opAjustesLiga();
 }
 
 /* ---------- link vindo do e-mail ----------
@@ -2333,11 +2881,13 @@ function admAgenda() {
       lista.push({ date: b.date, time: b.time, capacity: cap, tour: x, left, booked: cap - left, pastOnly: true });
     });
 
-  const sel = admAgenda._d && byDay[admAgenda._d] ? admAgenda._d
-            : (Object.keys(byDay).sort()[0] || isoToday());
-  /* nomes de dia e mês no idioma escolhido, direto do navegador (5/1/2026 é segunda) */
-  const WD = [5, 6, 7, 8, 9, 10, 11].map(d => new Date(2026, 0, d).toLocaleDateString(locale(), { weekday: 'short' }).replace('.', ''));
-  const MN = [...Array(12)].map((_, m) => new Date(2026, m, 1).toLocaleDateString(locale(), { month: 'long' }));
+  /* o dia escolhido vale mesmo sem passeio: pode ter so tarefa */
+  const sel = admAgenda._d && admAgenda._d.slice(0, 7) === cur ? admAgenda._d
+            : cur === isoToday().slice(0, 7) ? isoToday() : (Object.keys(byDay).sort()[0] || isoToday());
+  const WD = LANG === 'pt' ? ['seg','ter','qua','qui','sex','sáb','dom'] : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const MN = LANG === 'pt'
+    ? ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+    : ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
   let cells = '';
   for (let i = 0; i < startWd; i++) cells += '<span class="agc empty"></span>';
@@ -2347,8 +2897,9 @@ function admAgenda() {
     const isToday = iso === isoToday();
     const dots = list.slice(0, 4).map(x =>
       `<i class="${x.left === 0 ? 'full' : x.left <= 2 ? 'low' : ''}"></i>`).join('');
+    const nTf = Tarefas.doDia(iso).filter(t => t.tipo === 'tarefa' && !t.feita).length;
     cells += `<button class="agc ${list.length ? 'has' : ''} ${iso === sel ? 'on' : ''} ${isToday ? 'today' : ''}" data-d="${iso}">
-      <b>${d}</b>${list.length ? `<span class="agdots">${dots}</span>` : ''}</button>`;
+      <b>${d}</b>${list.length ? `<span class="agdots">${dots}</span>` : ''}${nTf ? `<span class="ag-tf" title="${nTf} tarefa(s)">✓${nTf > 1 ? nTf : ''}</span>` : ''}</button>`;
   }
 
   const selList = (byDay[sel] || []).sort((a, b) => a.time.localeCompare(b.time));
@@ -2373,14 +2924,26 @@ function admAgenda() {
           const bs = DB.bookings.filter(b => b.tourId === d.tour.id && b.date === d.date
                                         && b.time === d.time && b.status !== 'cancelled');
           return `<div class="deprow">
-            <div class="tinfo"><b>${d.time} · ${esc(tl(d.tour.name))}</b>
+            <div class="tinfo"><b>${d.time} · ${esc(d.tour.name[LANG] || d.tour.name.pt)}</b>
               <small>${t('agBooked', { n: d.booked })} · ${t('agFree', { n: d.left })}</small></div>
             ${bs.length ? `<div class="paxlist">${bs.map(b =>
               `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(b.name.split(' ')[0])} ×${b.pax}</span>`).join('')}</div>` : ''}
           </div>`;
         }).join('') : `<p class="empty">${t('agNoDep')}</p>`}
+        <div class="ag-tarefas"><span class="op-lbl">Tarefas do dia</span>
+          ${tfMiniHtml(Tarefas.doDia(sel).filter(tt => tt.tipo === 'tarefa'), isoToday(), 'Nenhuma tarefa neste dia.')}
+          <div class="frow"><label class="fld grow"><input id="agTf" placeholder="Nova tarefa para ${fmtDate(sel)}"></label><button class="mini strong" id="agTfAdd">+ tarefa</button></div>
+          <a class="mini" href="#/adm/today/${sel}">ver o dia completo (clientes, guias, pagamentos)</a>
+        </div>
       </section>
     </div>`);
+  tfLigaMini(() => admAgenda());
+  $('#agTfAdd').onclick = () => {
+    const v = $('#agTf').value.trim(); if (!v) return $('#agTf').focus();
+    const p = lerPrazo(v, sel);
+    Tarefas.cria({ texto: v, prazo: sel, hora: p.hora });
+    admAgenda._d = sel; admAgenda();
+  };
 
   const shift = (n) => {
     const d = new Date(Y, M - 1 + n, 1);
@@ -2395,131 +2958,9 @@ function admAgenda() {
 /* =====================================================
    RELATÓRIOS — como foi o período
 ===================================================== */
-/* o relatório em uma frase: o que o guia faria com esses números */
-function lerInteresse(linhas) {
-  if (!linhas.length) return '';
-  const avisos = [];
-  const maisVisto = linhas[0];
-  const vendeu = linhas.filter(r => r.reservas > 0).sort((a, b) => b.receita - a.receita)[0];
-  const vitrine = linhas.filter(r => r.visitas >= 10 && r.reservas === 0)[0];
-  const melhorConv = linhas.filter(r => r.visitas >= 5).sort((a, b) => b.conv - a.conv)[0];
-  if (maisVisto) avisos.push(t('rpIntVisto', { tour: tl(maisVisto.tour.name), n: maisVisto.visitas }));
-  if (vendeu) avisos.push(t('rpIntVende', { tour: tl(vendeu.tour.name), v: eur(vendeu.receita) }));
-  if (melhorConv && melhorConv.conv > 0) avisos.push(t('rpIntConv', { tour: tl(melhorConv.tour.name), p: melhorConv.conv }));
-  if (vitrine) avisos.push(t('rpIntVitrine', { tour: tl(vitrine.tour.name), n: vitrine.visitas }));
-  return `<ul class="lerel">${avisos.map(a => `<li>${a}</li>`).join('')}</ul>`;
-}
-function admReports() {
-  const mode = admReports._m || 'month';
-  const today = isoToday();
-  const from = mode === 'week' ? addDays(today, -7) : today.slice(0, 8) + '01';
-  const T = Reports.totals(from, today);
-  const tours = Reports.byTour(from, today);
-  const origins = Reports.byOrigin(from, today);
-  const inter = Reports.interesse(from, today);
-  const series = mode === 'week' ? Reports.byWeek(8)
-    : Reports.byMonth(+today.slice(0, 4)).map((v, i) => ({
-        label: new Date(2026, i, 1).toLocaleDateString(locale(), { month: 'short' }).replace('.', ''),
-        value: v }));
-  const OLBL = { site: 'oSite', instagram: 'oInsta', whatsapp: 'oWhats', agency: 'oAgency', friend: 'oFriend' };
-
-  admShell('reports', `
-    <div class="pagehead"><h1 class="pageh">${t('rpTitle')}</h1>
-      <div class="chips">
-        <button class="chip ${mode === 'week' ? 'on' : ''}" id="rW">${t('thisWeek')}</button>
-        <button class="chip ${mode === 'month' ? 'on' : ''}" id="rM">${t('thisMonth')}</button>
-      </div></div>
-
-    <div class="kpis">
-      <div class="kpi"><small>${t('rpRevenue')}</small><b>${eur(T.revenue)}</b></div>
-      <div class="kpi"><small>${t('rpDeps')}</small><b>${T.deps}</b></div>
-      <div class="kpi"><small>${t('rpPax')}</small><b>${T.pax}</b></div>
-      <div class="kpi"><small>${t('rpTicket')}</small><b>${eur(T.ticket)}</b></div>
-      <div class="kpi ${T.due > 0 ? 'warn' : ''}"><small>${t('rpDue')}</small><b>${eur(T.due)}</b></div>
-    </div>
-
-    <section class="card">
-      <h3>${mode === 'week' ? t('rpByWeek') : t('rpByMonth')}</h3>
-      <div class="chartbox"><canvas id="repChart"></canvas></div>
-    </section>
-
-    <section class="card">
-      <h3>${t('rpInt')}</h3>
-      <p class="why">${t('rpIntHelp')}</p>
-      ${inter.length ? `<table class="tbl"><thead><tr>${t('rpIntCols').map((c, i) => `<th${i ? ' class="right"' : ''}>${c}</th>`).join('')}</tr></thead>
-        <tbody>${inter.map(r => `<tr>
-          <td>${esc(tl(r.tour.name))}</td>
-          <td class="mono right">${r.visitas}</td>
-          <td class="mono right">${r.quase}</td>
-          <td class="mono right">${r.reservas}</td>
-          <td class="right"><span class="conv ${r.conv >= 10 ? 'boa' : r.conv >= 4 ? 'media' : 'baixa'}">${r.conv}%</span></td>
-          <td class="mono right">${eur(r.receita)}</td></tr>`).join('')}</tbody></table>
-        ${lerInteresse(inter)}`
-      : `<p class="empty">${t('rpEmpty')}</p>`}
-    </section>
-
-    <div class="two-col">
-      <section class="card">
-        <h3>${t('rpByTour')}</h3>
-        ${tours.length ? `<table class="tbl"><thead><tr>${t('rpTourCols').map(c => `<th>${c}</th>`).join('')}</tr></thead>
-        <tbody>${tours.map(r => `<tr>
-          <td>${esc(tl(r.tour.name))}</td>
-          <td class="mono">${r.departures}</td><td class="mono">${r.pax}</td>
-          <td><span class="occ"><i style="width:${Math.min(100, r.occupancy)}%"></i></span> ${r.occupancy}%</td>
-          <td class="mono right">${eur(r.revenue)}</td></tr>`).join('')}</tbody></table>`
-        : `<p class="empty">${t('rpEmpty')}</p>`}
-      </section>
-      <section class="card">
-        <h3>${t('rpOrigin')}</h3>
-        <p class="why">${t('rpOriginHelp')}</p>
-        ${origins.length ? origins.map(o => `<div class="orow">
-          <span class="onm">${t(OLBL[o.origin] || 'oSite')}</span>
-          <span class="obar"><i style="width:${o.pct}%"></i></span>
-          <span class="mono">${o.pct}%</span></div>`).join('')
-        : `<p class="empty">${t('rpEmpty')}</p>`}
-      </section>
-    </div>`);
-
-  $('#rW').onclick = () => { admReports._m = 'week'; admReports(); };
-  $('#rM').onclick = () => { admReports._m = 'month'; admReports(); };
-  drawBars($('#repChart'), series, mode === 'week' ? series.length - 1 : +today.slice(5, 7) - 1);
-}
-
-/* gráfico de barras — sem biblioteca, nas cores da marca */
-function drawBars(cv, series, hi) {
-  if (!cv) return;
-  const draw = () => {
-    const r = cv.getBoundingClientRect(); if (!r.width) return;
-    const dpr = Math.min(2, devicePixelRatio || 1);
-    cv.width = r.width * dpr; cv.height = r.height * dpr;
-    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-    const W = r.width, H = r.height, pL = 8, pR = 8, pT = 20, pB = 26;
-    const w = W - pL - pR, h = H - pT - pB;
-    const max = Math.max(1, ...series.map(s => s.value)) * 1.15;
-    c.clearRect(0, 0, W, H);
-    c.strokeStyle = css('--line'); c.lineWidth = 1; c.setLineDash([3, 4]);
-    for (let i = 0; i <= 3; i++) { const y = pT + h * (i / 3); c.beginPath(); c.moveTo(pL, y); c.lineTo(W - pR, y); c.stroke(); }
-    c.setLineDash([]);
-    const n = series.length, gap = w / n * 0.36, bw = w / n - gap;
-    const last = (hi === undefined ? n - 1 : hi);
-    series.forEach((s, i) => {
-      const bh = (s.value / max) * h, x = pL + i * (bw + gap) + gap / 2, y = pT + h - bh;
-      c.fillStyle = i === last ? css('--brand-amarelo') : css('--accent');
-      c.globalAlpha = i === last ? 1 : 0.85;
-      c.beginPath(); c.roundRect(x, y, bw, Math.max(bh, 1), [4, 4, 0, 0]); c.fill();
-      c.globalAlpha = 1;
-      c.fillStyle = css('--ink-3'); c.font = '10px ui-monospace, monospace'; c.textAlign = 'center';
-      c.fillText(s.label, x + bw / 2, pT + h + 9);
-      if (i === last && s.value > 0) {
-        c.fillStyle = css('--ink'); c.font = '600 12px system-ui';
-        c.fillText('€ ' + Math.round(s.value), x + bw / 2, y - 7);
-      }
-    });
-    c.textAlign = 'left';
-  };
-  draw(); setTimeout(draw, 60);
-}
+/* O painel de numeros (operacao-telas.js): marcadores com comparacao,
+   graficos com dica e tabela, e as frases do que os numeros dizem. */
+function admReports() { admRelatorios(); }
 
 /* =====================================================
    CLIENTES — a base que nasce sozinha
@@ -2533,51 +2974,9 @@ const ICO = {
   insta: '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1.9" y="1.9" width="12.2" height="12.2" rx="3.6"/><circle cx="8" cy="8" r="2.9"/><circle cx="11.6" cy="4.4" r=".95" fill="currentColor" stroke="none"/></svg>',
 };
 
-function admClients() {
-  const all = Clients.all();
-  const onlyOptIn = admClients._f === 'optin';
-  const list = onlyOptIn ? all.filter(c => c.consent) : all;
-  const canMail = all.filter(c => c.consent).length;
-  const total = all.reduce((s, c) => s + c.spent, 0);
-  const cols = t('clCols');
-  admShell('clients', `
-    <div class="pagehead"><h1 class="pageh">${t('clTitle')}</h1>
-      <div class="chips">
-        <span class="chip on">${t('clTotal', { n: all.length, v: eur(total) })}</span>
-        <button class="chip ${onlyOptIn ? '' : 'on'}" id="clAll">${t('clAll')}</button>
-        <button class="chip ${onlyOptIn ? 'on' : ''}" id="clOpt">${t('clOnlyOptIn', { n: canMail })} · ${canMail}</button>
-        <button class="mini" id="clCsv">${t('clDlCsv')}</button>
-      </div></div>
-    <section class="card">
-      ${list.length ? `<table class="tbl"><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-      <tbody>${list.map(c => `<tr class="cli" data-cli="${esc((c.email || c.whats || c.name).toLowerCase())}" title="abrir a ficha">
-        <td><b>${esc(c.name)}</b><br><small class="mono">${esc(c.email || '')}</small><br><a class="mini" href="#/adm/clients/${encodeURIComponent((c.email || c.whats || c.name).toLowerCase())}">ficha →</a></td>
-        <td>${c.tours > 1 ? `<span class="pill ok">${t('clRepeat', { n: c.tours })}</span>`
-                          : `<span class="pill">${t('clNew')}</span>`}
-          <br><span class="pill ${c.consent ? 'ok' : ''}" title="${c.consentAt ? c.consentAt.slice(0,10) : ''}">${c.consent ? '✓ ' + t('consentYes') : t('consentNo')}</span></td>
-        <td class="mono right">${eur(c.spent)}</td>
-        <td class="mono">${c.last ? fmtDate(c.last) : '—'}</td>
-        <td class="tacts">
-          ${c.whats ? `<a class="ico-btn wa" target="_blank" rel="noopener"
-            href="${waLink(t('waHi', { name: c.name.split(' ')[0], tour: '', when: '' }), c.whats.replace(/\D/g, ''))}"
-            aria-label="WhatsApp — ${esc(c.name)}" title="WhatsApp">${ICO.whats}<span>WhatsApp</span></a>` : ''}
-          ${c.email ? `<a class="ico-btn ml" href="mailto:${esc(c.email)}" aria-label="E-mail — ${esc(c.name)}" title="${esc(c.email)}">${ICO.mail}<span>E-mail</span></a>` : ''}
-          ${c.insta ? `<a class="ico-btn ig" target="_blank" rel="noopener" href="https://instagram.com/${esc(c.insta.replace(/^@/, ''))}" aria-label="Instagram — ${esc(c.name)}" title="@${esc(c.insta.replace(/^@/, ''))}">${ICO.insta}<span>Instagram</span></a>` : ''}
-        </td></tr>`).join('')}</tbody></table>`
-      : `<p class="empty">${t('clEmpty')}</p>`}
-    </section>`);
-  if (typeof ligarFichas === 'function') ligarFichas();
-  $('#clAll').onclick = () => { admClients._f = 'all'; admClients(); };
-  $('#clOpt').onclick = () => { admClients._f = 'optin'; admClients(); };
-  $('#clCsv').onclick = () => {
-    const csv = [cols.join(';')].concat(list.map(c =>
-      [c.name, c.email, c.whats, c.insta || '', c.tours, c.spent, c.last,
-       c.consent ? 'sim ' + (c.consentAt || '').slice(0, 10) : 'nao'].join(';'))).join('\n');
-    const a2 = document.createElement('a');
-    a2.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
-    a2.download = 'clientes.csv'; a2.click();
-  };
-}
+/* Clientes: o dashboard e a ficha estao em operacao-telas.js (cadastro
+   guardado, veio por, indicacao, quem viaja junto). */
+function admClients() { admClientes(); }
 
 
 /* =====================================================
@@ -2589,7 +2988,7 @@ function viewNewPass() {
   app.innerHTML = `
   <div class="loginwrap">
     <div class="logincard">
-      <div class="loginlogo">${logoMark(46, 'var(--brand-amarelo)')}</div>
+      <div class="loginlogo">${logoMark(46, 'var(--brand-assinatura)')}</div>
       <h1>${t('npTitle')}</h1>
       <p class="why center">${t('npSub')}</p>
       <label class="fld">${t('npNew')}
@@ -2628,7 +3027,7 @@ function viewLogin(mode) {
   app.innerHTML = `
   <div class="loginwrap">
     <div class="logincard">
-      <div class="loginlogo">${logoMark(46, 'var(--brand-amarelo)')}</div>
+      <div class="loginlogo">${logoMark(46, 'var(--brand-assinatura)')}</div>
       <h1>${t('loginTitle')}</h1>
       <p class="why center">${m === 'up' ? t('protectWhy') : t('loginSub')}</p>
       <label class="fld">${t('loginEmail')}
@@ -2699,7 +3098,7 @@ function viewLogin(mode) {
     busy(false);
 
     DB.settings.authRequired = true;
-    localStorage.setItem('vi_db_v1', JSON.stringify(DB));   /* grava aqui, sem empurrar */
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));   /* grava aqui, sem empurrar */
     toast(t('loginHi'));
     go('/adm/today');
   };
@@ -2731,6 +3130,7 @@ function isBusyEditing() {
   const S = viewTour._s;
   if (h.startsWith('#/tour/') && S && (S.step > 1 || S.date || S.time)) return true;
   if (/^#\/adm\/tours\//.test(h)) return true;                      // editando passeio
+  if (/^#\/adm\/consulta\/./.test(h)) return true;                  // montando orcamento
   const ae = document.activeElement;
   if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true; // digitando
   return false;
@@ -2752,12 +3152,33 @@ cloudStart((r) => {
   if (r.bootstrap || r.semMudanca || r.segurando || r.vazio) return;
   if (r.fresh && r.fresh.length && location.hash.startsWith('#/adm')) {
     const b = r.fresh[r.fresh.length - 1];
-    toast('🎉 ' + t('xNovaReserva') + ': ' + b.name + ' · ' + eur(b.total));
+    toast((LANG === 'pt' ? '🎉 Nova reserva: ' : '🎉 New booking: ') + b.name + ' · ' + eur(b.total));
   }
   /* re-render seguro: nunca por cima de trabalho em andamento */
   if (isBusyEditing()) { pendingSync = true; return; }
 route();
 });
+
+
+/* FAIXA DE DEMONSTRACAO — enquanto nao ha banco.
+
+   O link e publico e traz os precos reais dela com um botao de reservar.
+   Sem banco, a reserva nao chega a ninguem. Quem cair aqui por acaso tem
+   que saber disso antes de achar que reservou. Some sozinha quando o
+   config.js ganhar o banco. */
+(function faixaDemo() {
+  if (typeof temNuvem === 'function' && temNuvem()) return;
+  const poe = () => {
+    if (document.getElementById('demoFaixa')) return;
+    const el = document.createElement('div');
+    el.id = 'demoFaixa'; el.className = 'protobar';
+    el.innerHTML = LANG === 'en'
+      ? '<b>Preview</b> — this app is being set up. Bookings made here are not real yet.'
+      : '<b>Demonstração</b> — o app está sendo preparado. Reservas feitas aqui ainda não são reais.';
+    document.body.appendChild(el);
+  };
+  if (document.body) poe(); else addEventListener('DOMContentLoaded', poe);
+})();
 
 /* PRIMEIRO DESENHO DA TELA — no FIM do arquivo, de proposito.
 
