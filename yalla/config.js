@@ -30,6 +30,8 @@ var APP_CONFIG = {
   clienteCofre: 'yalla',
   /* o assistente vem no pacote dela (orçamento de 01/10/2026): sem selo de "extra" */
   assistenteIncluido: true,
+  /* ela contratou o atendimento automático: a aba Atendimento aparece no menu */
+  atendimento: true,
   /* enquanto o Instagram DELA não é ligado, o cartão mostra o robô de
      demonstração da Ti Artes, para ela ver funcionando de verdade */
   agenteInstagram: 'estudio_ti_artes',

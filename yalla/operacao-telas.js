@@ -27,6 +27,12 @@ function docLogo() {
 const L = (pt, en, es) => (LANG === 'en' ? en : LANG === 'es' ? (es || en) : pt);
 /* quem recebe o restante (conteudo.js): no dia, a quem faz (EmRoma) ou a ela */
 const _restoNoDia = () => !(typeof CONTEUDO !== 'undefined' && CONTEUDO.restoNoDiaPadrao === false);
+/* os pedidos aos parceiros (aba Parceiros) de um serviço, em etiquetas: ficha e cartão */
+function pedForPills(b) {
+  if (typeof PedidosFor === 'undefined') return '';
+  return PedidosFor.daReserva(b).map(p => { const f = Fornecedores.get(p.fornecedorId), st = (PED_FOR_ST.find(x => x[0] === p.status) || [p.status, p.status])[1];
+    return `<a class="pill ${p.status === 'confirmado' ? 'ok' : 'warn'}" href="#/adm/parceiros" title="${esc(f ? f.nome : 'parceiro')}">${fornTipo(p.tipo)[1]} ${esc(p.desc || fornTipo(p.tipo)[2])}${f ? ' · ' + esc(f.nome) : ''} · ${esc(st)}${p.ref ? ' · nº ' + esc(p.ref) : ''}</a>`; }).join(' ');
+}
 function restoTexto() { return _restoNoDia() ? 'é pago no dia, a quem faz cada serviço' : 'é pago a ' + guiaNegocio() + ' até a data combinada'; }
 function restoRotulo() { return _restoNoDia() ? 'No dia, a quem faz cada serviço' : 'Restante, até a data combinada'; }
 const OP_ICO = { transfer: '🚐', walk: '🏛️', day: '🚗', papal: '⛪', conexao: '🚢', trem: '🚆' };
@@ -100,11 +106,13 @@ function opCardServico(b, o) {
 
   const presLinha = pres
     ? `<span>👤 ${papel === 'motorista' ? 'Motorista' : 'Guia'}: <b>${esc(pres.nome)}</b>
-        ${pres.whats ? `<a class="mini wa-mini" target="_blank" rel="noopener" href="${waLink(opMsgPrestador(b), opNum(pres.whats))}">💬 mandar o serviço</a>` : ''}</span>`
+        ${pres.whats ? `<a class="mini wa-mini" target="_blank" rel="noopener" href="${waLink(opMsgPrestador(b), opNum(pres.whats))}">💬 mandar o serviço</a>` : ''}
+        <a class="mini" href="#/adm/servico/${esc(b.id)}" title="a ordem de serviço completa, para imprimir ou salvar em PDF">📄 PDF</a></span>`
     : (b.status !== 'cancelled' ? `<span class="svc-alerta">⚠ Sem ${papel} — <a href="#/adm/guias/servico:${esc(b.id)}">achar ${papel === 'motorista' ? 'motorista' : 'guia'}</a></span>` : '');
   const part = participantesDe(b);
   const grupo = `<span>👥 ${part.map(p => esc(opPrimeiro(p.nome)) + (idadeDe(p.nasc, b.date) != null && idadeDe(p.nasc, b.date) < 18 ? ` <small>(${idadeDe(p.nasc, b.date)})</small>` : '')).join(', ') || 'ninguém cadastrado'}${part.length < b.pax ? ` <span class="pill warn">faltam ${b.pax - part.length} nome(s)</span>` : ''}</span>`
-    + (Op.precisaIngresso(b) ? (b.ingressosOk ? ' <span class="pill ok">🎟 ingressos comprados</span>' : ' <span class="pill warn">🎟 comprar ingressos</span>') : '')
+    + (Op.precisaIngresso(b) && !PedidosFor.daReserva(b).some(p => p.tipo === 'ingressos') ? (b.ingressosOk ? ' <span class="pill ok">🎟 ingressos comprados</span>' : ' <span class="pill warn">🎟 comprar ingressos</span>') : '')
+    + (PedidosFor.daReserva(b).length ? ' ' + pedForPills(b) : '')
     + ((b.links || []).length ? `<span>${b.links.map(l => `<a class="mini" target="_blank" rel="noopener" href="${esc(l.url)}">🔗 ${esc(l.nome)}</a>`).join(' ')}</span>` : '');
   const trajeto = (b.origem || b.destino) ? `<span>📍 ${esc(b.origem || '?')}${b.destino ? ' → ' + esc(b.destino) : ''}</span>` : '';
   const cliWa = b.whats ? `<a class="mini" target="_blank" rel="noopener" href="${waLink(t('waHi', { name: opPrimeiro(b.name), tour: opNomeServ(b), when: fmtDate(b.date) + ' ' + b.time }), opNum(b.whats))}">WhatsApp</a>` : '';
@@ -410,6 +418,7 @@ function admGuias(arg) {
         ${doDia.map(b => `<option value="${esc(b.id)}" ${S.servico === b.id ? 'selected' : ''}>${esc(b.time)} · ${esc(opNomeServ(b))} · ${esc(b.name)} (${b.pax}p)${b.prestadorId ? ' — com ' + esc(opPrimeiro((Equipe.get(b.prestadorId) || {}).nome)) : ' — sem ' + opPapel(b)}</option>`).join('')}</select></label>
       ${serv && serv.prestadorId ? `<div class="alert">✓ ${esc(opNomeServ(serv))} já está com <b>${esc((Equipe.get(serv.prestadorId) || {}).nome || '')}</b>
         <a class="mini cta-ish" target="_blank" rel="noopener" href="${waLink(opMsgPrestador(serv), opNum((Equipe.get(serv.prestadorId) || {}).whats))}">💬 mandar o serviço</a>
+        <a class="mini" href="#/adm/servico/${esc(serv.id)}">📄 PDF do serviço</a>
         <button class="mini ghost" data-desescala="1">tirar</button></div>` : ''}
 
       <div class="gl-grupo"><span class="op-lbl">Livres · por preferência</span>${r.livres.length ? ordem(r.livres, 0) : '<p class="why">Ninguém confirmou ainda.</p>'}</div>
@@ -443,7 +452,7 @@ function admGuias(arg) {
       </div>
       <div class="frow">
         <label class="fld">Cidades que atende<input id="geCid" value="${esc(ed ? (ed.cidades || []).join(', ') : (S.cidade || baseNome()))}" placeholder="Dubai, Abu Dhabi"></label>
-        <label class="fld">Idiomas<input id="geIdi" value="${esc(ed ? ed.idiomas : '')}" placeholder="português, italiano"></label>
+        <label class="fld">Idiomas<input id="geIdi" value="${esc(ed ? ed.idiomas : '')}" placeholder="português, inglês, árabe"></label>
       </div>
       <label class="fld">Observação<input id="geObs" value="${esc(ed ? ed.obs : '')}" placeholder="ex.: ótima com crianças, não faz deserto"></label>
       <div class="btnrow"><button class="cta sm" id="geSalva">${ed ? 'Salvar' : 'Cadastrar'}</button>${ed ? '<button class="mini" id="geCancela">cancelar</button>' : ''}</div>
@@ -581,7 +590,7 @@ function admFicha(arg) {
       <td><b>${esc(nomeDoServico(b))}</b>${b.voo ? `<br><small>✈ ${esc(b.voo)}</small>` : ''}${b.origem || b.destino ? `<br><small>📍 ${esc([b.origem, b.destino].filter(Boolean).join(' → '))}</small>` : ''}
         <div class="fc-quem">👥 ${part.length ? part.map(p => `${p.clienteId ? `<a href="${fichaHref({ id: p.clienteId })}">` : '<span>'}${esc(opPrimeiro(p.nome))}${idadeDe(p.nasc) != null ? ` <small>(${idadeDe(p.nasc)})</small>` : ''}${p.clienteId ? '</a>' : '</span>'}`).join(', ') : '<span class="why">ninguém cadastrado</span>'}
           ${part.length < b.pax ? `<span class="pill warn">faltam ${b.pax - part.length} nome(s)</span>` : ''}</div>
-        <div class="fc-links">${Op.precisaIngresso(b) ? (b.ingressosOk ? '<span class="pill ok">🎟 ingressos comprados</span>' : '<span class="pill warn">🎟 comprar ingressos</span>') : ''}
+        <div class="fc-links">${Op.precisaIngresso(b) && !PedidosFor.daReserva(b).some(p => p.tipo === 'ingressos') ? (b.ingressosOk ? '<span class="pill ok">🎟 ingressos comprados</span>' : '<span class="pill warn">🎟 comprar ingressos</span>') : ''} ${pedForPills(b)}
           ${(b.links || []).map(l => `<a class="mini" target="_blank" rel="noopener" href="${esc(l.url)}">🔗 ${esc(l.nome)}</a>`).join('')}</div></td>
       <td class="mono right">${eur(b.total)}</td><td class="mono right">${eur(pago)}</td>
       <td class="mono right">${nd.valor ? eur(nd.valor) + (nd.para === 'prestador' ? '<br><small>no dia</small>' : '<br><small>a você</small>') : '✓'}</td>
@@ -637,7 +646,7 @@ function admFicha(arg) {
         <button class="cta sm" id="fvSalva">Salvar</button></div>
 
       <h3 style="margin-top:16px">Serviços ${prox.length ? '· próximos' : ''}</h3>
-      ${prox.length ? `<div class="fc-tab-wrap"><table class="tbl fc-tab"><thead><tr><th>Data</th><th>Hora</th><th>Serviço · quem vai · ingressos e links</th><th class="right">Total</th><th class="right">Sinal/pago</th><th class="right">Pagar no dia</th><th>Guia</th><th></th></tr></thead>
+      ${prox.length ? `<div class="fc-tab-wrap"><table class="tbl fc-tab"><thead><tr><th>Data</th><th>Hora</th><th>Serviço · quem vai · ingressos e links</th><th class="right">Total</th><th class="right">Sinal/pago</th><th class="right">${_restoNoDia() ? 'Pagar no dia' : 'Falta pagar'}</th><th>Guia</th><th></th></tr></thead>
         <tbody>${prox.map(linhaServ).join('')}</tbody>
         <tfoot><tr><td colspan="3"><b>Total da viagem</b></td><td class="mono right"><b>${eur(somaTot)}</b></td><td class="mono right"><b>${eur(somaPago)}</b></td><td class="mono right"><b>${eur(somaDia)}</b></td><td colspan="2"></td></tr></tfoot></table></div>` : '<p class="why">Nenhum serviço marcado.</p>'}
       ${passadas.length ? `<details><summary class="why">Passeios anteriores · ${passadas.length}</summary><div class="fc-tab-wrap"><table class="tbl fc-tab"><tbody>${passadas.map(linhaServ).join('')}</tbody></table></div></details>` : ''}
@@ -678,6 +687,23 @@ function admFicha(arg) {
           <p class="why">No Google Drive: <b>${esc(guiaNegocio())} › Clientes › ${esc(drvNome(c.nome))}</b></p>
           <label class="mini fc-arq-add">+ guardar um arquivo<input type="file" id="fcArq" accept="image/*,application/pdf" hidden></label>
         </section>
+        ${(() => {
+          /* de quem é o cliente + a comissão de cada serviço (paga ou não) */
+          const comPar = ativas.map(b => ({ b, p: Parceiros.daReserva(b) })).filter(x => x.p);
+          const semLigar = c.parceiroId ? ativas.filter(b => !Parceiros.daReserva(b)) : [];
+          if (!comPar.length && !semLigar.length) return '';
+          const devida = comPar.reduce((s, x) => s + Parceiros.comissaoDe(x.b), 0);
+          const paga = comPar.reduce((s, x) => s + ((Parceiros.pagaDaReserva(x.b) || {}).valor || 0), 0);
+          return `<section class="card fc-com"><h3>Comissão <small class="why">de quem é este cliente</small></h3>
+            ${comPar.map(({ b, p }) => { const pg = Parceiros.pagaDaReserva(b); return `<div class="deprow">
+              <span><b>${esc(p.nome)}</b> · ${+p.comissao || 0}% · ${esc(opNomeServ(b))} · ${opCurta(b.date)}</span>
+              <span class="mono">${eur(Parceiros.comissaoDe(b))}</span>
+              ${pg ? `<span class="pill ok">paga ${opCurta(pg.data)}</span><button class="mini" data-compaga="${esc(b.id)}|0">desfazer</button>`
+                   : `<button class="mini strong" data-compaga="${esc(b.id)}|1">marcar paga</button>`}</div>`; }).join('')}
+            ${semLigar.length && par ? `<p class="why">${semLigar.length} serviço(s) deste cliente ainda não estão ligados a ${esc(par.nome)}. <button class="mini" id="fcLigaPar">ligar a ${esc(par.nome)}</button></p>` : ''}
+            ${comPar.length ? `<p class="why">Comissão deste cliente: <b>${eur(devida)}</b> · paga ${eur(paga)} · falta <b>${eur(Math.max(0, devida - paga))}</b></p>` : ''}
+          </section>`;
+        })()}
         <section class="card"><h3>Pedidos e orçamentos</h3>
           ${orcamentos.map(o => `<div class="deprow"><a href="#/adm/consulta/${esc(o.id)}">${esc(o.num)}</a><span>${o.itens.length} itens · ${eur(Orc.total(o))}</span>${opOrcPill(o)}</div>`).join('')}
           ${pedidos.map(p => `<div class="deprow"><span>🗺️ Monte seu roteiro · ${p.ini ? opCurta(p.ini) : ''}</span><span class="pill ${p.respondido ? 'ok' : 'warn'}">${p.respondido ? 'respondido' : 'novo'}</span></div>`).join('')}
@@ -687,6 +713,8 @@ function admFicha(arg) {
     </div>`);
   const re = () => admFicha(arg);
   opLigaCards(re); tfLigaMini(re);
+  $$('[data-compaga]').forEach(b => b.onclick = () => { const [id, v] = b.dataset.compaga.split('|'); Parceiros.pagaReserva(id, v === '1'); toast(v === '1' ? 'Comissão marcada como paga' : 'Desfeito'); re(); });
+  if ($('#fcLigaPar')) $('#fcLigaPar').onclick = () => { for (const b of ativas) if (!Parceiros.daReserva(b)) { b.parceiroId = c.parceiroId; _opSaveBooking(b); } toast('Ligado ao parceiro'); re(); };
   $('#fcArq').onchange = (e) => { const f = e.target.files[0]; if (!f) return; Arquivos.guarda({ blob: f, nome: `${isoToday()} ${f.name}`, tipo: /comprov|pix|recibo/i.test(f.name) ? 'comprovante' : 'documento', clienteId: c.id, clienteNome: c.nome }); toast('Arquivo guardado'); re(); };
   $('#fvSalva').onclick = () => { Cadastro.salva(c.id, { viagem: { hotel: $('#fvHotel').value.trim(), chegada: $('#fvCheg').value.trim(), partida: $('#fvPart').value.trim(), bagagem: $('#fvBag').value.trim() } }); toast('Viagem salva'); re(); };
   $('#fcSalvaCad').onclick = () => {
@@ -861,6 +889,10 @@ function admContabilidade() {
   /* o que ainda falta repassar a guias/motoristas (acertos não marcados) */
   const aRepassar = ac.filter(a => a.custo && !a.acertado && a.saldo > 0).reduce((s, a) => s + a.saldo, 0);
   const seuCaixa = soma(br) + soma(eu);
+  const saidas = saidasDoPeriodo(de, ate), totSai = saidas.reduce((s2, x) => s2 + x.valor, 0);
+  const liquido = Math.round((seuCaixa - totSai) * 100) / 100;
+  const margens = margensDoPeriodo(de, ate);
+  const SAI_TIPO = { servico: '👤 Guia/motorista', parceiro: '🤝 Parceiro', comissao: '💸 Comissão', despesa: '🧾 Despesa' };
   const tabela = (lista, vazio) => lista.length ? `<table class="tbl"><thead><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th>Tipo</th><th>Conta</th><th class="right">Valor</th></tr></thead>
     <tbody>${lista.map(r => `<tr><td class="mono">${r.date}</td><td>${esc(r.client)}</td><td>${esc(opNomeServ(r))}</td><td>${KIND[r.kind] || r.kind}</td>
       <td>${esc(r.conta ? Contas.nome(r.conta) : formaPg(r.method))}</td><td class="mono right">${eur(r.amount)}</td></tr>`).join('')}</tbody>
@@ -880,6 +912,9 @@ function admContabilidade() {
       <div class="kpi kpi-forte"><small>Seu caixa (${esc(ladoNome('brasil'))} + ${esc(ladoNome('europa'))})</small><b>${eur(seuCaixa)}</b><em>${rows.filter(r => r.lado !== 'prestador').length} pagamento(s)</em></div>
       <div class="kpi"><small>🇧🇷 Brasil</small><b>${eur(soma(br))}</b></div>
       <div class="kpi"><small>${ladoBandeira('europa')} ${esc(ladoNome('europa'))}</small><b>${eur(soma(eu))}</b></div>
+      <div class="kpi"><small>Saídas</small><b>${eur(totSai)}</b><em>${saidas.length} lançamento(s)</em></div>
+      <div class="kpi kpi-forte"><small>Líquido do caixa</small><b class="${liquido < 0 ? 'kpi-warn' : ''}">${eur(liquido)}</b><em>o que entrou − o que saiu no período</em></div>
+      <div class="kpi"><small>Margem dos serviços</small><b>${eur(margens.reduce((s2, m) => s2 + m.margem, 0))}</b><em>dos ${margens.length} serviço(s) do período</em></div>
       <div class="kpi"><small>A repassar a guias/motoristas</small><b class="${aRepassar > 0 ? 'kpi-warn' : ''}">${eur(aRepassar)}</b><em>${aRepassar > 0 ? 'ainda não acertado' : 'tudo em dia'}</em></div>
       <div class="kpi"><small>Pago na mão às guias no dia</small><b>${eur(soma(pr))}</b><em>fora do seu caixa</em></div>
     </div>
@@ -896,7 +931,28 @@ function admContabilidade() {
     </section>
     <section class="card">
       <div class="pagehead"><span class="seclabel" style="flex:1">🇧🇷 Para o contador do Brasil</span><button class="mini" id="csvBr">baixar planilha (CSV)</button></div>
-      ${tabela(br, 'Nada entrou nas contas brasileiras no período.')}
+      ${tabela(br, 'Nada entrou nas contas — ' + ladoNome('brasil') + ' — no período.')}
+    </section>
+    <section class="card">
+      <div class="pagehead"><h3 style="margin:0;flex:1">Tudo que sai</h3><button class="mini" id="csvSai">baixar saídas (CSV)</button></div>
+      ${saidas.length ? `<table class="tbl"><thead><tr><th>Data</th><th>Tipo</th><th>O quê</th><th class="right">Valor</th><th></th></tr></thead><tbody>
+        ${saidas.map(x => `<tr><td class="mono">${opCurta(x.data)}</td><td>${SAI_TIPO[x.tipo] || x.tipo}</td><td>${esc(x.desc)}</td><td class="mono right">${eur(x.valor)}</td>
+          <td>${x.tipo === 'despesa' ? `<button class="mini danger" data-dsrm="${esc(x.id)}" aria-label="tirar">✕</button>` : ''}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td colspan="3"><b>Total que sai</b></td><td class="mono right"><b>${eur(totSai)}</b></td><td></td></tr></tfoot></table>` : '<p class="empty">Nada saiu no período.</p>'}
+      <div class="frow ds-add">
+        <label class="fld sm">Data<input type="date" id="dsData" value="${hoje}"></label>
+        <label class="fld grow">Despesa<input id="dsDesc" placeholder="ex.: licença de guia, anúncio no Instagram, combustível"></label>
+        <label class="fld sm">Valor (${moedaSigla()})<input id="dsVal" type="number" min="0" step="0.01"></label>
+        <label class="fld sm">Tipo<select id="dsCat">${DESP_CAT.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></label>
+        <button class="cta sm" id="dsAdd">+ lançar</button>
+      </div>
+      <p class="why">O custo de guia/motorista vem do campo "custo" de cada serviço; o dos parceiros, da aba Parceiros; a comissão, de Indicações e cupons. Aqui você lança o que não é de um serviço.</p>
+    </section>
+    <section class="card">
+      <h3>Margem por serviço <small class="why">o que o cliente paga − o que sai por ele</small></h3>
+      ${margens.length ? `<table class="tbl"><thead><tr><th>Dia</th><th>Serviço · cliente</th><th class="right">Cliente paga</th><th class="right">Custos</th><th class="right">Fica com você</th></tr></thead><tbody>
+        ${margens.map(m => `<tr><td class="mono">${opCurta(m.b.date)}</td><td>${esc(opNomeServ(m.b))} · ${esc(m.b.name)}</td><td class="mono right">${eur(m.receita)}</td><td class="mono right">${eur(m.custo)}</td><td class="mono right"><b>${eur(m.margem)}</b></td></tr>`).join('')}
+      </tbody><tfoot><tr><td colspan="2"><b>Total</b></td><td class="mono right"><b>${eur(margens.reduce((s2, m) => s2 + m.receita, 0))}</b></td><td class="mono right"><b>${eur(margens.reduce((s2, m) => s2 + m.custo, 0))}</b></td><td class="mono right"><b>${eur(margens.reduce((s2, m) => s2 + m.margem, 0))}</b></td></tr></tfoot></table>` : '<p class="empty">Nenhum serviço no período.</p>'}
     </section>
     <section class="card">
       <h3>Acerto com guias e motoristas</h3>
@@ -916,7 +972,10 @@ function admContabilidade() {
   $('#ctAno').onclick = () => { S.modo = ''; S.ano = !S.ano; admContabilidade(); };
   $('#ctVer') && ($('#ctVer').onclick = () => { const d1 = $('#ctDe').value, d2 = $('#ctAte').value; if (!d1 || !d2 || d1 > d2) return toast('Escolha as duas datas (de ≤ até)'); S.modo = 'custom'; S.de = d1; S.ate = d2; admContabilidade(); });
   $('#ctPrint').onclick = () => print();
-  const cab = ['Data', 'Cliente', 'Serviço', 'Tipo', 'Conta', 'Lado', 'Valor (EUR)', 'Código'];
+  $('#dsAdd').onclick = () => { const r = Despesas.salva({ data: $('#dsData').value, desc: $('#dsDesc').value, valor: $('#dsVal').value, categoria: $('#dsCat').value }); if (r.erro) return toast(r.erro); toast('Despesa lançada'); admContabilidade(); };
+  $$('[data-dsrm]').forEach(b => b.onclick = () => { if (confirm('Tirar esta despesa?')) { Despesas.remove(b.dataset.dsrm); admContabilidade(); } });
+  $('#csvSai').onclick = () => opBaixa(`saidas-${de}-a-${ate}.csv`, [['Data', 'Tipo', 'O quê', 'Valor (' + moedaCodigo() + ')'], ...saidas.map(x => [x.data, SAI_TIPO[x.tipo] || x.tipo, x.desc, String(x.valor).replace('.', ',')])]);
+  const cab = ['Data', 'Cliente', 'Serviço', 'Tipo', 'Conta', 'Lado', 'Valor (' + moedaCodigo() + ')', 'Código'];
   const lin = (l) => l.map(r => [r.date, r.client, opNomeServ(r), KIND[r.kind] || r.kind, r.conta ? Contas.nome(r.conta) : formaPg(r.method), r.lado, String(r.amount).replace('.', ','), r.code]);
   $('#csvEu').onclick = () => opBaixa(`contador-${ladoNome('europa').toLowerCase().replace(/\s+/g, '-')}-${de}-a-${ate}.csv`, [cab, ...lin(eu)]);
   $('#csvBr').onclick = () => opBaixa(`contador-brasil-${de}-a-${ate}.csv`, [cab, ...lin(br)]);
@@ -1596,6 +1655,53 @@ function admVoucher() {
     ta.onchange = () => { voucherSalvaBloco(ta.dataset.bl, ta.value); toast('Bloco salvo'); };
   });
 }
+/* o que a reserva já tem além do básico: ingressos (status e links), os links
+   (ingresso em PDF, comprovante, mapa) e o que foi reservado com parceiros.
+   'cliente' = só o que interessa a ele; 'guia' = tudo, com status e números. */
+function docExtrasReserva(b, para) {
+  const ing = Op.precisaIngresso(b), links = (b.links || []).filter(l => /^https?:\/\//i.test(l.url || ''));
+  const peds = PedidosFor.daReserva(b).filter(p => para === 'guia' || p.status === 'confirmado');
+  if (!ing && !links.length && !peds.length) return '';
+  return `<div class="doc-extras">
+    ${ing ? `<p><b>🎟 Ingressos:</b> ${b.ingressosOk ? 'comprados ✓' : (para === 'guia' ? '<b>ainda a comprar</b>' : 'estamos comprando — chegam antes do passeio')}</p>` : ''}
+    ${links.length ? `<p><b>🔗 Seus links:</b></p><ul class="vch-ul">${links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.nome || 'link')}</a></li>`).join('')}</ul>` : ''}
+    ${peds.length ? `<p><b>🤝 ${para === 'guia' ? 'Com parceiros' : 'Já reservado para você'}:</b></p><ul class="vch-ul">${peds.map(p => { const f = Fornecedores.get(p.fornecedorId);
+      return `<li>${fornTipo(p.tipo)[1]} ${esc(p.desc || fornTipo(p.tipo)[2])}${f ? ' — ' + esc(f.nome) : ''}${p.ref ? ' · nº ' + esc(p.ref) : ''}${para === 'guia' ? ' · <i>' + esc(PED_FOR_ST.find(x => x[0] === p.status)[1]) + '</i>' : ''}</li>`; }).join('')}</ul>` : ''}
+  </div>`;
+}
+/* A ORDEM DE SERVIÇO DO GUIA — pedido da Milla (01/10/2026): "quando passeio
+   estiver confirmado, Yalla envia para o guia um PDF completo com todas as infos
+   do cliente e passeio, ingressos, transfer". Abre como página para imprimir ou
+   salvar em PDF; o botão do WhatsApp manda o resumo em texto junto. */
+function opDocServico(id) {
+  const b = Bookings.get(id);
+  if (!b) return go('/adm/today');
+  const x = Tours.get(b.tourId), pres = b.prestadorId ? Equipe.get(b.prestadorId) : null;
+  const nd = Op.noDia(b), pt = pontoDoServico(b);
+  const quem = participantesDe(b);
+  const corpo = `
+    <div class="doc-grande"><small>Serviço</small><b class="mono">${esc(b.code)}</b></div>
+    <h2>${esc(opNomeServ(b))}</h2>
+    <dl class="doc-dl">
+      <dt>Quando</dt><dd>${fmtDate(b.date)} às ${esc(b.time)}${x && x.duration ? ' · ' + esc(x.duration) : ''}</dd>
+      <dt>${opPapel(b) === 'motorista' ? 'Motorista' : 'Guia'}</dt><dd>${pres ? esc(pres.nome) : '<b>ainda sem ninguém escalado</b>'}</dd>
+      <dt>Cliente</dt><dd><b>${esc(b.name)}</b>${b.whats ? ` · <a href="https://wa.me/${opNum(b.whats)}">${esc(b.whats)}</a>` : ''}${b.email ? ` · ${esc(b.email)}` : ''}${b.insta ? ` · @${esc(String(b.insta).replace(/^@/, ''))}` : ''}</dd>
+      <dt>Quem vai</dt><dd>${quem.map(q => `${esc(q.nome)}${idadeDe(q.nasc) != null ? ' (' + idadeDe(q.nasc) + ')' : ''}`).join(', ') || esc(b.name)} · ${b.pax} ${b.pax > 1 ? 'pessoas' : 'pessoa'}</dd>
+      ${b.veiculo ? `<dt>Veículo</dt><dd>${esc(b.veiculo)}${b.malas ? ' · ' + esc(b.malas) : ''}</dd>` : ''}
+      ${b.voo ? `<dt>Voo</dt><dd>${esc(b.voo)}</dd>` : ''}
+      <dt>Encontro</dt><dd>${pt ? `${esc(pt.nome)}${pt.endereco ? `<br><small>${esc(pt.endereco)}</small>` : ''}${pt.instrucoes ? `<br><small>${esc(pt.instrucoes)}</small>` : ''}` : esc(b.origem || noIdioma(x && x.meeting) || 'combinar')}</dd>
+      ${b.destino ? `<dt>Levar para</dt><dd>${esc(b.destino)}</dd>` : ''}
+      ${b.obsOp ? `<dt>Observação</dt><dd>${esc(b.obsOp)}</dd>` : ''}
+      ${(b.viagem || (Cadastro.get(b.clienteId) || {}).viagem || {}).hotel ? `<dt>Hotel</dt><dd>${esc((b.viagem || (Cadastro.get(b.clienteId) || {}).viagem).hotel)}</dd>` : ''}
+    </dl>
+    <div class="doc-pag ${nd.valor > 0 && nd.para === 'prestador' ? 'falta' : 'ok'}">
+      ${nd.valor > 0 && nd.para === 'prestador' ? `<b>Receber do cliente no dia: ${eur(nd.valor)}.</b>` : `<b>Nada a receber do cliente no dia.</b>`}
+      ${+b.custo > 0 ? `<small>Seu valor pelo serviço: ${eur(b.custo)}</small>` : ''}
+    </div>
+    ${docExtrasReserva(b, 'guia')}
+    ${typeof dicasDo === 'function' && dicasDo(b) ? `<div class="vch-bloco"><h4 class="vch-h">DICAS PARA O DIA</h4><p>${esc(dicasDo(b))}</p></div>` : ''}`;
+  opDoc('Ordem de serviço', corpo, pres && pres.whats ? `<a class="mini cta-ish" target="_blank" rel="noopener" href="${waLink(opMsgPrestador(b), opNum(pres.whats))}">💬 mandar ao ${opPapel(b) === 'motorista' ? 'motorista' : 'guia'}</a>` : '');
+}
 function opDocVoucher(id) {
   const b = Bookings.get(id);
   if (!b) return go('/adm/today');
@@ -1623,6 +1729,7 @@ function opDocVoucher(id) {
         : `<b>Falta pagar ${eur(nd.valor)} até ${fmtDate(Bookings.dueDate(b))}.</b><small>Já pago: ${eur(pago)} de ${eur(b.total)}</small>`)
         : `<b>✓ Tudo pago.</b><small>Não há nada a pagar no dia.</small>`}
     </div>
+    ${docExtrasReserva(b, 'cliente')}
     ${voucherBlocosDe(b).map(k => { const txt = voucherBlocoTxt(k); return txt ? `<div class="vch-bloco">${vchFmt(txt)}</div>` : ''; }).join('')}`;
   /* o ponto de encontro: ela escolhe o deste cliente (so aparece aqui, nao no PDF) */
   const opcoes = Pontos.doPasseio(b.tourId), atual = pontoDoServico(b);
@@ -2002,7 +2109,7 @@ function admRelatorios() {
   if (rec.prest) frases.push(`${rpEur(rec.prest)} foram pagos no dia direto às guias e motoristas — não contam como entrada sua.`);
 
   admShell('reports', `
-    <div class="pagehead"><h1 class="pageh">Relatórios</h1>
+    <div class="pagehead"><h1 class="pageh">Dashboard</h1>
       <div class="chips">${[['semana', '7 dias'], ['mes', 'Este mês'], ['90', '90 dias'], ['ano', 'Este ano']].map(([v, l]) =>
         `<button class="chip ${S.p === v ? 'on' : ''}" data-rp="${v}">${l}</button>`).join('')}</div></div>
     <div class="per-datas"><span class="per-lbl">Ou escolha o período:</span><input type="date" id="rpDe" value="${esc(S.de || '')}" aria-label="de"><span>até</span><input type="date" id="rpAte" value="${esc(S.ate || '')}" aria-label="até"><button class="mini ${S.p === 'custom' ? 'strong' : ''}" id="rpVer">ver</button></div>
@@ -2110,7 +2217,12 @@ function admRelatorios() {
   const topCli = compr.map(c => ({ c, r: Cadastro.resumo(c) })).filter(x => x.r.gasto).sort((a, b) => b.r.gasto - a.r.gasto).slice(0, 6);
   const parcs = Parceiros.all().map(p => ({ p, c: Parceiros.conta(p) })).filter(x => x.c.reservas);
   const extra = document.createElement('div');
-  extra.innerHTML = `<section class="card"><h3>Cliques e conversão por passeio</h3>
+  const canais = Interesse.porCanal(P.de, P.ate);
+  extra.innerHTML = `${canais.length ? `<section class="card"><h3>De onde vêm os cliques <small class="why">por canal</small></h3>
+      <p class="why">O link da bio e o robô mandam o endereço com o canal (<code>?de=instagram</code>, <code>?de=whatsapp</code>…). Conversão = reservas e pedidos ÷ aberturas.</p>
+      <table class="tbl"><thead><tr><th>Canal</th><th class="right">Abriram</th><th class="right">Quase</th><th class="right">Reservas</th><th class="right">Pedidos</th><th class="right">Conversão</th></tr></thead><tbody>
+      ${canais.map(r => `<tr><td>${esc(r.nome)}</td><td class="mono right">${r.visitas}</td><td class="mono right">${r.quase}</td><td class="mono right">${r.reservas}</td><td class="mono right">${r.pedidos}</td><td class="mono right">${r.conv == null ? '—' : pc(r.conv)}</td></tr>`).join('')}
+      </tbody></table></section>` : ''}<section class="card"><h3>Cliques e conversão por passeio</h3>
       <p class="why">Quantas vezes abriram cada passeio no app, quantos chegaram a preencher os dados ("quase reservaram") e quantos reservaram — pelo site ou pelo WhatsApp. ${temNuvem() ? '' : 'Na demonstração os números são de exemplo; com o banco ligado, contam os visitantes de verdade.'}</p>
       <div class="rp-mini"><div><b>${vt}</b><small>aberturas de passeio</small></div><div><b>${qt}</b><small>quase reservaram</small></div><div><b>${vt ? pc(fun.reduce((s2, r) => s2 + r.reservas, 0) / vt) : '—'}</b><small>viraram reserva${st ? ` (${st} pelo site)` : ''}</small></div></div>
       ${fun.length ? `<div class="fun-tab-wrap"><table class="tbl"><thead><tr><th>Passeio</th><th class="right">Abriram</th><th class="right">Quase</th><th class="right">Reservas</th><th class="right">Conversão</th><th>Funil</th></tr></thead><tbody>
@@ -2699,7 +2811,7 @@ function admParcerias() {
   const ed = S.ed ? Parceiros.get(S.ed) : null;
   const avulsos = DB.coupons.filter(c => !c.parceiroId);
   admShell('coupons', `
-    <div class="pagehead"><h1 class="pageh">Cupons e parcerias</h1></div>
+    <div class="pagehead"><h1 class="pageh">Indicações e cupons</h1><span class="why">quem traz cliente para você (agência, influencer, indicação) e a comissão de cada um</span></div>
     <div class="rp-tiles">
       ${rpTile('Parceiros', String(ps.length), '', '', 'influencers, agências e parceiros')}
       ${rpTile('Reservas por parceiros', String(tot('reservas')), '', '', `${tot('clientes')} clientes trazidos`)}
@@ -2968,7 +3080,7 @@ function admTransfer() {
     <div class="pagehead"><h1 class="pageh">🚐 Transfer</h1>
       <div class="chips"><a class="cta sm" href="${esc(cfg.url)}" target="_blank" rel="noopener">Abrir a ${esc(cfg.nome)} ↗</a></div></div>
     <section class="card tr-como"><h3>Como pedir o transfer ao ${esc(cfg.nome)} <small class="why">— só transfers de ${esc(baseNome())}</small></h3>
-      <ol class="bkp-passos"><li>Toque em <b>📋 Copiar os dados</b> — sai pronto, em italiano, do jeito que eles leem.</li>
+      <ol class="bkp-passos"><li>Toque em <b>📋 Copiar os dados</b> — sai pronto, ${(((typeof CONTEUDO !== 'undefined' && CONTEUDO.transfer) || {}).idioma === 'en') ? 'em inglês' : 'na língua deles'}, do jeito que eles leem.</li>
         <li>Toque em <b>Abrir a ${esc(cfg.nome)}</b>, entre com o seu login de cliente e cole no pedido.</li>
         <li>Volte aqui, escreva o <b>nº da reserva deles</b> e toque em <b>✓ Pedido feito</b>.</li></ol>
       <p class="why">Com o contato técnico da ${esc(cfg.nome)}, o app passa a mandar o pedido sozinho.</p></section>
@@ -3038,10 +3150,165 @@ function avAjustesLiga() {
 }
 
 /* =====================================================
+   PARCEIROS — o "one stop shop" dela (pedido de 01/10/2026)
+   Transfer, ingressos, hotel e o que mais o cliente precisar: quem são os
+   parceiros, e o que foi pedido a cada um em cada reserva.
+===================================================== */
+function admParceiros() {
+  const S = admParceiros._s = admParceiros._s || { tipo: '', ed: '', ver: 'abertos' };
+  const hoje = isoToday();
+  const todos = PedidosFor.todos({ deData: addDays(hoje, -30) });
+  const abertos = todos.filter(x => x.p.status !== 'confirmado' && x.b.date >= addDays(hoje, -1));
+  const lista = S.ver === 'abertos' ? abertos : todos;
+  const ed = S.ed ? Fornecedores.get(S.ed) : null;
+  const prox = DB.bookings.filter(b => b.status !== 'cancelled' && b.date >= hoje).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const optTipo = (sel) => FORN_TIPOS.map(([k, ic, n]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${ic} ${n}</option>`).join('');
+  const optForn = (sel, tipo) => '<option value="">— escolha —</option>' + Fornecedores.all().filter(f => !tipo || f.tipo === tipo || f.id === sel)
+    .map(f => `<option value="${esc(f.id)}" ${sel === f.id ? 'selected' : ''}>${fornTipo(f.tipo)[1]} ${esc(f.nome)}</option>`).join('');
+  const linha = ({ b, p, f }) => `<div class="pf-row pf-${p.status}">
+      <div class="pf-top"><b>${fornTipo(p.tipo)[1]} ${esc(p.desc || fornTipo(p.tipo)[2])}</b>
+        <span class="pill ${p.status === 'confirmado' ? 'ok' : p.status === 'pedido' ? '' : 'warn'}">${PED_FOR_ST.find(x => x[0] === p.status)[1]}</span></div>
+      <div class="why"><a href="${opFicha(b)}">${esc(b.name)}</a> · ${esc(opNomeServ(b))} · ${opCurta(b.date)}${b.time ? ' ' + esc(b.time) : ''}${f ? ' · com <b>' + esc(f.nome) + '</b>' : ' · <b>sem parceiro</b>'}${p.custo ? ' · custo ' + eur(p.custo) : ''}${p.ref ? ' · nº ' + esc(p.ref) : ''}</div>
+      <div class="tacts">
+        ${f && f.whats ? `<a class="mini cta-ish" target="_blank" rel="noopener" href="${waLink(msgFornecedor(b, p), opNum(f.whats))}">💬 pedir no WhatsApp</a>` : ''}
+        ${f && f.email && !f.whats ? `<a class="mini" href="mailto:${esc(f.email)}?subject=${encodeURIComponent(guiaNegocio() + ' — ' + (p.desc || ''))}&body=${encodeURIComponent(msgFornecedor(b, p))}">✉ pedir por e-mail</a>` : ''}
+        <select class="mini" data-pfst="${esc(b.id)}|${esc(p.id)}">${PED_FOR_ST.map(([k, n]) => `<option value="${k}" ${p.status === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
+        <input class="mini pf-ref" data-pfref="${esc(b.id)}|${esc(p.id)}" value="${esc(p.ref || '')}" placeholder="nº da reserva deles">
+        <button class="mini danger" data-pfrm="${esc(b.id)}|${esc(p.id)}" aria-label="tirar">✕</button>
+      </div></div>`;
+  admShell('parceiros', `
+    <div class="pagehead"><h1 class="pageh">Parceiros</h1><span class="why">o seu one stop shop: transfer, ingressos, hotel — com quem você confia</span></div>
+
+    <section class="card">
+      <div class="pagehead"><h3 style="margin:0;flex:1">Pedidos aos parceiros</h3>
+        <div class="chips"><button class="chip ${S.ver === 'abertos' ? 'on' : ''}" data-pfver="abertos">em aberto · ${abertos.length}</button><button class="chip ${S.ver === 'todos' ? 'on' : ''}" data-pfver="todos">todos</button></div></div>
+      ${lista.length ? lista.map(linha).join('') : `<p class="empty">${S.ver === 'abertos' ? 'Nada esperando parceiro. 🎉' : 'Nenhum pedido ainda.'}</p>`}
+    </section>
+
+    <section class="card">
+      <h3>+ Novo pedido a um parceiro</h3>
+      <div class="frow">
+        <label class="fld grow">Reserva<select id="pfRes"><option value="">— escolha a reserva —</option>${prox.map(b => `<option value="${esc(b.id)}">${opCurta(b.date)} · ${esc(b.name)} · ${esc(opNomeServ(b))}</option>`).join('')}</select></label>
+        <label class="fld">O quê<select id="pfTipo">${optTipo('ingressos')}</select></label>
+      </div>
+      <div class="frow">
+        <label class="fld grow">Parceiro<select id="pfForn">${optForn('', '')}</select></label>
+        <label class="fld">Custo (${moedaSigla()})<input id="pfCusto" type="number" min="0" placeholder="0"></label>
+      </div>
+      <label class="fld">Descrição<input id="pfDesc" placeholder="ex.: 3 ingressos para o museu · 2 noites, quarto família · transfer DXB → hotel"></label>
+      <button class="cta sm" id="pfCria">Criar pedido</button>
+    </section>
+
+    <section class="card">
+      <h3>${ed ? 'Editar parceiro' : '+ Cadastrar parceiro'}</h3>
+      <div class="frow">
+        <label class="fld grow">Nome<input id="fnNome" value="${esc(ed ? ed.nome : '')}" placeholder="ex.: Omar Transfers"></label>
+        <label class="fld">Tipo<select id="fnTipo">${optTipo(ed ? ed.tipo : 'transfer')}</select></label>
+      </div>
+      <div class="frow">
+        <label class="fld">WhatsApp<input id="fnWa" value="${esc(ed ? ed.whats : '')}" placeholder="+971 …"></label>
+        <label class="fld">E-mail<input id="fnEm" value="${esc(ed ? ed.email : '')}"></label>
+        <label class="fld sm">Comissão que você recebe (%)<input id="fnCom" type="number" min="0" max="100" value="${ed ? ed.comissao : ''}" placeholder="0"></label>
+      </div>
+      <label class="fld">Site / link<input id="fnSite" value="${esc(ed ? ed.site : '')}" placeholder="https://…"></label>
+      <label class="fld">Observação<input id="fnObs" value="${esc(ed ? ed.obs : '')}" placeholder="ex.: pedir até 18h do dia anterior"></label>
+      <div class="btnrow"><button class="cta sm" id="fnSalva">${ed ? 'Salvar' : 'Cadastrar'}</button>${ed ? '<button class="mini" id="fnCancela">cancelar</button>' : ''}</div>
+    </section>
+
+    ${FORN_TIPOS.map(([k, ic, n]) => { const fs = Fornecedores.all(k); if (!fs.length) return ''; return `<section class="card">
+      <h3>${ic} ${n} <small class="why">${fs.length}</small></h3>
+      ${fs.map(f => { const pend = todos.filter(x => x.f && x.f.id === f.id && x.p.status !== 'confirmado').length; return `<div class="gl-row">
+        <div class="gl-nome"><b>${esc(f.nome)}</b><small>${[f.whats, f.email, f.comissao ? 'comissão ' + f.comissao + '%' : '', f.obs].filter(Boolean).map(esc).join(' · ')}${pend ? ` · <b>${pend} pedido(s) em aberto</b>` : ''}</small></div>
+        <div class="tacts">${f.whats ? `<a class="mini" target="_blank" rel="noopener" href="${waLink('Olá, ' + f.nome + '!', opNum(f.whats))}">💬</a>` : ''}${linkExterno(f.site) ? `<a class="mini" target="_blank" rel="noopener" href="${esc(f.site)}">↗</a>` : ''}
+          <button class="mini" data-fned="${esc(f.id)}">editar</button><button class="mini danger" data-fnrm="${esc(f.id)}">remover</button></div></div>`; }).join('')}
+    </section>`; }).join('') || '<section class="card"><p class="why">Nenhum parceiro cadastrado ainda. Comece pelo transfer e pelos ingressos.</p></section>'}`);
+  const re = () => admParceiros();
+  $$('[data-pfver]').forEach(b => b.onclick = () => { S.ver = b.dataset.pfver; re(); });
+  $$('[data-pfst]').forEach(sel => sel.onchange = () => { const [bid, id] = sel.dataset.pfst.split('|'); PedidosFor.muda(bid, id, { status: sel.value }); toast('Atualizado'); re(); });
+  $$('[data-pfref]').forEach(inp => inp.onchange = () => { const [bid, id] = inp.dataset.pfref.split('|'); PedidosFor.muda(bid, id, { ref: inp.value }); toast('Número salvo'); });
+  $$('[data-pfrm]').forEach(b => b.onclick = () => { const [bid, id] = b.dataset.pfrm.split('|'); if (confirm('Tirar este pedido?')) { PedidosFor.remove(bid, id); re(); } });
+  $('#pfTipo').onchange = () => { $('#pfForn').innerHTML = optForn('', $('#pfTipo').value); };
+  $('#pfForn').innerHTML = optForn('', $('#pfTipo').value);
+  $('#pfCria').onclick = () => {
+    const bid = $('#pfRes').value; if (!bid) return toast('Escolha a reserva');
+    const r = PedidosFor.cria(bid, { tipo: $('#pfTipo').value, fornecedorId: $('#pfForn').value, desc: $('#pfDesc').value, custo: $('#pfCusto').value });
+    if (r.erro) return toast(r.erro); toast('Pedido criado'); re();
+  };
+  $('#fnSalva').onclick = () => {
+    const r = Fornecedores.salva({ id: S.ed || '', nome: $('#fnNome').value, tipo: $('#fnTipo').value, whats: $('#fnWa').value, email: $('#fnEm').value,
+      comissao: $('#fnCom').value, site: $('#fnSite').value, obs: $('#fnObs').value });
+    if (r.erro) return toast(r.erro); S.ed = ''; toast('Parceiro salvo'); re();
+  };
+  if ($('#fnCancela')) $('#fnCancela').onclick = () => { S.ed = ''; re(); };
+  $$('[data-fned]').forEach(b => b.onclick = () => { S.ed = b.dataset.fned; re(); setTimeout(() => $('#fnNome').scrollIntoView({ block: 'center' }), 30); });
+  $$('[data-fnrm]').forEach(b => b.onclick = () => { const f = Fornecedores.get(b.dataset.fnrm); if (f && confirm(`Remover ${f.nome}? Os pedidos já feitos continuam nas reservas.`)) { Fornecedores.remove(f.id); re(); } });
+}
+
+/* =====================================================
    PIPELINE — o funil (kanban) dos pedidos, como no TI ARTES.
    Colunas = as etapas do CRM; cada cartão é um pedido. Toca para abrir.
 ===================================================== */
+/* O Pipeline com as etapas dela: cada pedido (orçamento, reserva ou pedido do
+   "Monte a sua experiência") cai na etapa pelo que já aconteceu, e o cartão diz
+   o próximo passo. Um pedido com vários serviços fica na etapa do mais atrasado. */
+function admPipelinePasso() {
+  const hoje = isoToday();
+  const ordem = PIPE_ETAPAS.map(e => e[0]);
+  const linhas = crmLinhas(hoje).filter(r => r.tipo !== 'reserva' || r.b.date >= addDays(hoje, -30) || r.etapa === 'avaliar');
+  for (const p of (DB.pedidos || [])) if (!p.respondido && !p.orcamentoId)
+    linhas.push({ tipo: 'pedido', id: p.id, pedido: 'ped:' + p.id, nome: p.nome, dataServ: p.ini || '', servico: 'Monte a sua experiência', totalPedido: 0, veio: 'App' });
+  /* um cartão por CLIENTE e por VIAGEM: os serviços da mesma pessoa com
+     menos de 10 dias entre um e outro são a mesma viagem */
+  const viagemDe = new Map();
+  const porCli = {};
+  for (const r of linhas) if (r.tipo === 'reserva') { const k = r.b.clienteId || chaveCliente(r.b); (porCli[k] = porCli[k] || []).push(r); }
+  for (const [k, rs] of Object.entries(porCli)) {
+    rs.sort((a, b) => a.b.date.localeCompare(b.b.date));
+    let n = 0, ult = '';
+    for (const r of rs) { if (ult && r.b.date > addDays(ult, 10)) n++; ult = r.b.date; viagemDe.set(r, 'cli:' + k + ':' + n); }
+  }
+  const ped = new Map();
+  for (const r of linhas) {
+    const e = etapaPasso(r, hoje);
+    r.pedido = viagemDe.get(r) || r.pedido;
+    let p = ped.get(r.pedido); if (!p) { p = { pedido: r.pedido, r, linhas: [], etapas: [] }; ped.set(r.pedido, p); }
+    p.linhas.push(r); p.etapas.push(e);
+  }
+  for (const p of ped.values()) {
+    const vivas = p.etapas.filter(e => e !== 'perdido');
+    p.etapa = !vivas.length ? 'perdido' : vivas.includes('viagem') ? 'viagem' : vivas.sort((a, b) => ordem.indexOf(a) - ordem.indexOf(b))[0];
+    p.r = p.linhas[p.etapas.indexOf(p.etapa)] || p.r;
+  }
+  const todos = [...ped.values()];
+  const soma = (ps) => ps.reduce((s, p) => s + (p.r.totalPedido || p.linhas.reduce((s2, x) => s2 + (x.clientePaga || 0), 0)), 0);
+  const card = (p) => {
+    const r = p.r, tot = r.totalPedido || p.linhas.reduce((s2, x) => s2 + (x.clientePaga || 0), 0);
+    const alvo = r.tipo === 'orcamento' ? '#/adm/consulta/' + r.o.id : r.tipo === 'pedido' ? '#/adm/consulta' : '#/adm/clients/' + encodeURIComponent('c:' + (r.b.clienteId || ''));
+    const serv = p.linhas.length === 1 ? esc(p.linhas[0].servico) : p.linhas.length + ' serviços';
+    const passo = proximoPassoPipe(r, p.etapa, hoje);
+    return `<a class="pl-card pl-e-${p.etapa}" href="${alvo}">
+      <b class="pl-nome">${esc(r.nome || 'Sem nome')}</b>
+      <span class="pl-serv">${serv}${r.dataServ ? ` · ${crmData(r.dataServ)}` : ''}</span>
+      ${passo ? `<span class="pl-passo">→ ${esc(passo)}</span>` : ''}
+      <span class="pl-pe"><b class="mono">${tot ? eur(tot) : '—'}</b>${r.veio ? `<small>${esc(r.veio)}</small>` : ''}</span>
+    </a>`;
+  };
+  admShell('pipeline', `
+    <div class="pagehead"><h1 class="pageh">Pipeline</h1>
+      <div class="chips"><a class="mini" href="#/adm/consulta">ver em lista</a><button class="mini strong" id="plNovo">+ novo orçamento</button></div></div>
+    <p class="why">O passo a passo de cada cliente. Ninguém precisa arrastar: o cartão anda sozinho quando o sinal entra, os ingressos e o transfer são comprados, o guia é escalado e chega o dia.</p>
+    <div class="pl-board">
+      ${PIPE_ETAPAS.map(([e, nome, sub]) => { const ps = todos.filter(p => p.etapa === e); if (e === 'perdido' && !ps.length) return ''; return `<section class="pl-col pl-col-${e}">
+        <header class="pl-cab"><b>${esc(nome)}</b><span class="pl-n">${ps.length}</span></header>
+        ${sub ? `<div class="pl-sub">${esc(sub)}</div>` : ''}
+        ${soma(ps) ? `<div class="pl-soma">${eur(soma(ps))}</div>` : ''}
+        <div class="pl-cards">${ps.map(card).join('') || '<p class="pl-vazio">vazio</p>'}</div>
+      </section>`; }).join('')}
+    </div>`);
+  $('#plNovo') && ($('#plNovo').onclick = () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho' }); go('/adm/consulta/' + o.id); });
+}
 function admPipeline() {
+  if (PIPE_ETAPAS) return admPipelinePasso();
   const hoje = isoToday();
   const COLS = [['aberto', 'Em aberto'], ['confirmado', 'Confirmado'], ['avaliar', '⭐ Avaliar'], ['finalizado', '💚 Finalizado'], ['perdido', 'Perdido']];
   const ped = new Map();

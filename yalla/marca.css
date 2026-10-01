@@ -134,3 +134,33 @@
 .doc-cab .doc-logo{height:64px;width:auto;display:block}
 /* o brand kit: Playfair só nas frases institucionais (a frase da capa, o "sobre") */
 .tagline, .vcard .tagline, .about-bio p:first-child{font-family:var(--f-serif)}
+
+/* ---- a capa como o Linktree dela (01/10/2026) ---- */
+.rede.tt{background:#000;color:#fff;border:1px solid rgba(255,255,255,.18)}
+.lk.destaque .ic.play{background:linear-gradient(135deg,var(--brand-primaria),#E6C55C);color:#0B0B0B}
+.lk.destaque .ic.play svg{width:18px;height:18px}
+.lk .ic svg{width:20px;height:20px}
+/* "Quem já foi": os depoimentos de verdade, em trilho que desliza (como a Dulcineia) */
+.depos{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 6px;scrollbar-width:none}
+.depos::-webkit-scrollbar{display:none}
+.depo{flex:0 0 82%;max-width:320px;scroll-snap-align:start;margin:0;padding:16px 16px 14px;border-radius:18px;
+  border:1px solid color-mix(in srgb, var(--brand-primaria) 25%, transparent);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--brand-primaria) 7%, var(--surface)), var(--surface));
+  display:flex;flex-direction:column;gap:10px}
+.depo blockquote{margin:0;flex:1;font:italic 400 16px/1.4 var(--f-serif);color:var(--ink)}
+.depo figcaption{display:flex;align-items:baseline;gap:8px;font-size:13px;color:var(--ink-2)}
+.depo figcaption small{color:var(--ink-3)}
+
+/* documentos: ingressos, links e parceiros */
+.doc-extras{margin:14px 0;padding:12px 14px;border:1px solid var(--line);border-radius:12px}
+.doc-extras p{margin:4px 0}
+
+/* ONE STOP SHOP na capa: transfer, ingressos, hotel e motorista num lugar só */
+.oss{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.oss-i{display:flex;align-items:center;gap:10px;min-width:0;padding:12px 14px;border-radius:14px;cursor:pointer;text-align:left;
+  border:1px solid color-mix(in srgb, var(--brand-primaria) 30%, transparent);
+  background:color-mix(in srgb, var(--brand-primaria) 6%, var(--surface));color:var(--ink);font:inherit}
+.oss-i:hover{border-color:var(--brand-primaria)}
+.oss-i b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.oss-ic{font-size:20px;line-height:1}
+.oss-sub{margin:6px 2px 4px;font-size:12.5px;color:var(--ink-3);text-align:center}

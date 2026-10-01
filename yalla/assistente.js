@@ -576,7 +576,7 @@ function iaLeitura(nome, i) {
   if (nome === 'ver_ajustes') {
     const st = DB.settings || {};
     return { nome: st.admName || '', negocio: st.negocio || '', cidade: st.base || '', bio: st.bio || '', texto_home: st.homeText || '',
-      whats: st.whats || '', insta: st.insta || '', moeda: 'euro' };
+      whats: st.whats || '', insta: st.insta || '', moeda: typeof moedaCodigo === 'function' ? moedaCodigo() : 'euro' };
   }
   if (nome === 'ver_ensino') {
     const e = typeof ensino === 'function' ? ensino() : null;
@@ -1029,7 +1029,7 @@ Anúncio (Meta): objetivo, público, verba diária e duração com o porquê em 
 ## Formato
 Responda em ${lingua}, curto. Texto para copiar vem pronto, sem comentário em volta. Negrito com parcimônia; nada de tabelas.` },
     { type: 'text', text: `## SITUAÇÃO AGORA (atualizada a cada mensagem)\n${iaAgora()}` },
-    { type: 'text', text: `${linhaHoje()} Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é a demonstração pública do app: quem conversa é um guia conhecendo o produto, e os passeios e reservas são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
+    { type: 'text', text: `${linhaHoje()} Moeda: ${typeof moedaCodigo === 'function' ? moedaCodigo() : 'euro'}.` + (iaModo() === 'vivo' ? ' Isto é a demonstração pública do app: quem conversa é um guia conhecendo o produto, e os passeios e reservas são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
       (mem.length ? '\n\n## Memória (o que o guia ensinou)\n' + mem.map(x => `- [${x.id}] ${x.texto}`).join('\n') : '') },
   ];
 }

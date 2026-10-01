@@ -702,12 +702,12 @@ function _pareceDemo() {
 /* apaga o que é de exemplo; guarda catálogo, preços, pontos e os ajustes dela */
 function zerarExemplos() {
   DB.bookings = []; DB.clientes = []; DB.equipe = []; DB.disp = [];
-  DB.parceiros = []; DB.coupons = []; DB.tarefas = []; DB.orcamentos = [];
-  DB.pedidos = []; DB.fichas = {}; DB.interesse = {}; DB.lembretesVistos = {};
+  DB.parceiros = []; DB.coupons = []; DB.tarefas = []; DB.orcamentos = []; DB.fornecedores = []; DB.despesas = [];
+  DB.pedidos = []; DB.fichas = {}; DB.interesse = {}; DB.interesseCanal = {}; DB.lembretesVistos = {};
   if (Array.isArray(DB.arquivos)) DB.arquivos = [];
   if (DB.settings) DB.settings.avaliacoes = [];
   /* marca para não semear a demonstração de novo */
-  DB.opSeed = OP_SEED; DB.interesseSeed = 1; DB.parceirosSeed = 1; DB.tarefasSeed = 1;
+  DB.opSeed = OP_SEED; DB.interesseSeed = 1; DB.canaisSeed = 1; DB.parceirosSeed = 1; DB.tarefasSeed = 1; DB.fornecedoresSeed = 1;
   DB.cadastroFeito = 1; DB.resetFeito = RESET_VER;
   _opSave();
   return { ok: true };
@@ -734,6 +734,7 @@ function opGarante() {
      catálogo: entram mesmo no app zerado */
   if (demo && !DB.pontosSeed) { opSemeiaPontos(); DB.pontosSeed = 1; }
   if (demo && !limpo && !DB.interesseSeed) { opSemeiaInteresse(); DB.interesseSeed = 1; }
+  if (demo && !limpo && !DB.canaisSeed) { opSemeiaCanais(); DB.canaisSeed = 1; }
   if (demo && !limpo && (+DB.opSeed || 0) < OP_SEED) {
     opSemeiaDemo();
     DB.opSeed = OP_SEED;
@@ -744,6 +745,8 @@ function opGarante() {
     DB.cadastroFeito = 1;
   }
   if (demo && !limpo && !DB.parceirosSeed) { opSemeiaParceiros(); DB.parceirosSeed = 1; }
+  DB.fornecedores = DB.fornecedores || [];
+  if (demo && !limpo && !DB.fornecedoresSeed) { opSemeiaFornecedores(); DB.fornecedoresSeed = 1; }
   /* tarefas de exemplo so uma vez, e so na demonstracao */
   if (demo && !limpo && !DB.tarefasSeed && typeof opSemeiaTarefas === 'function') {
     opSemeiaTarefas();
@@ -1014,8 +1017,10 @@ function proximoPasso(t, resultado) {
     return { etapa: 'aguardar', texto: `Aguardar resposta de ${alvo}`, detalhe: 'Depois de: ' + t.texto, prazo: addDays(hoje, 2), chave: 'resp:' + (t.clienteKey || t.whats || t.pessoaId || t.id), tentativa: t.tentativa };
   if (t.etapa === 'cobrar')
     return { etapa: 'aguardar', texto: `Aguardar o pagamento de ${alvo}`, prazo: addDays(hoje, 2), fechaQuando: 'pago', chave: 'pago:' + (t.bookingId || t.clienteKey), tentativa: t.tentativa };
+  /* orçamento: o lembrete cai no dia 3 e no dia 7 depois do envio (R3 da
+     Milla: no Instagram, depois de 24 h, só ela pode mandar — o app avisa) */
   if (t.etapa === 'orcamento')
-    return { etapa: 'aguardar', texto: `Aguardar a resposta de ${alvo} sobre o orçamento`, prazo: addDays(hoje, 2), fechaQuando: 'orc-decidido', chave: 'orc:' + t.orcId, tentativa: t.tentativa };
+    return { etapa: 'aguardar', texto: `Aguardar a resposta de ${alvo} sobre o orçamento`, prazo: addDays(hoje, (+t.tentativa || 1) >= 2 ? 4 : 3), fechaQuando: 'orc-decidido', chave: 'orc:' + t.orcId, tentativa: t.tentativa };
   if (t.etapa === 'guia')
     return { etapa: 'aguardar', texto: `Aguardar a resposta de ${alvo}`, prazo: hoje, fechaQuando: t.liga && t.liga.data ? 'guia-respondeu' : '', liga: t.liga, chave: 'guia:' + t.pessoaId + ':' + ((t.liga && t.liga.data) || ''), tentativa: t.tentativa };
   if (t.etapa === 'escalar')
@@ -1046,7 +1051,7 @@ function proximoPasso(t, resultado) {
 const Espera = {
   orcamento(o) {
     return Tarefas.garante({ etapa: 'aguardar', texto: `Aguardar a resposta de ${(o.cliente.nome || 'o cliente').split(' ')[0]} sobre o orçamento ${o.num}`,
-      prazo: addDays(isoToday(), 2), fechaQuando: 'orc-decidido', orcId: o.id, clienteNome: o.cliente.nome, whats: o.cliente.whats,
+      prazo: addDays(isoToday(), 3), fechaQuando: 'orc-decidido', orcId: o.id, clienteNome: o.cliente.nome, whats: o.cliente.whats,
       clienteKey: o.clienteKey || '', chave: 'orc:' + o.id, origem: 'app' });
   },
   guia(p, data, turno, b) {
@@ -1132,6 +1137,17 @@ function icsTarefa(t) {
     'BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(t.texto), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR');
   return linhas.join('\r\n');
 }
+function opSemeiaCanais() {
+  const hoje = isoToday(), peso = { instagram: 9, whatsapp: 5, tiktok: 3, direto: 2 };
+  DB.interesseCanal = {};
+  for (const [k, p] of Object.entries(peso)) {
+    const v = {}, q = {};
+    for (let d = 0; d < 60; d++) { const dia = addDays(hoje, -d), n = Math.round(p * (0.5 + ((d * 5 + p) % 7) / 8)); if (n) v[dia] = n; if ((d + p) % 4 === 0) q[dia] = Math.max(1, Math.round(n / 4)); }
+    DB.interesseCanal[k] = { visitas: v, quase: q };
+  }
+  const can = ['instagram', 'instagram', 'whatsapp', 'tiktok', 'instagram', 'whatsapp', 'direto'];
+  DB.bookings.forEach((b, i) => { if (!b.canal) b.canal = can[i % can.length]; });
+}
 function opSemeiaInteresse() {
   const I = ((typeof CONTEUDO !== 'undefined' ? CONTEUDO : {}).demo || {}).interesse || { ids: [], peso: [] };
   const hoje = isoToday();
@@ -1173,6 +1189,15 @@ function opSemeiaParceiros() {
       if (quem && c) { c.veioPor = 'indicacao'; c.indicadoPor = quem.id; c.indicadoNome = quem.nome; }
     }
     if (quem) { quem.nasc = quem.nasc || addDays(isoToday(), 5).slice(5).split('-').reverse().join('/') + '/1984'; quem.pais = ind.pais || ''; }
+  }
+}
+function opSemeiaFornecedores() {
+  const D = (typeof CONTEUDO !== 'undefined' ? CONTEUDO : {}).demo || {};
+  const ids = {};
+  for (const f of D.fornecedores || []) { const r = Fornecedores.salva(f); if (!r.erro) ids[f.chave || f.nome] = r.id; }
+  for (const p of D.pedidosFor || []) {
+    const b = DB.bookings.find(z => z.name === p.cliente && (!p.tourId || z.tourId === p.tourId)); if (!b) continue;
+    PedidosFor.cria(b.id, { fornecedorId: ids[p.fornecedor] || '', tipo: p.tipo, desc: p.desc, custo: p.custo, status: p.status });
   }
 }
 function opSemeiaTarefas() {
@@ -1420,8 +1445,148 @@ const Parceiros = {
     const clientes = new Set(bs.map(b => b.clienteId || chaveCliente(b))).size;
     return { reservas: bs.length, clientes, faturado, devida, paga, saldo: Math.round((devida - paga) * 100) / 100 };
   },
-  paga(id, valor, data) { const p = Parceiros.get(id); if (!p || !(+valor > 0)) return null; p.pagamentos = p.pagamentos || []; p.pagamentos.push({ valor: +valor, data: data || isoToday() }); _opSave(); return p; },
+  paga(id, valor, data, ref) { const p = Parceiros.get(id); if (!p || !(+valor > 0)) return null; p.pagamentos = p.pagamentos || []; p.pagamentos.push({ id: uid(), valor: +valor, data: data || isoToday(), ref: ref || '' }); _opSave(); return p; },
+  /* o parceiro de UMA reserva (a mesma regra de reservas(): ligado ou pelo cupom) */
+  daReserva(b) {
+    if (b.parceiroId) return Parceiros.get(b.parceiroId);
+    const cup = String(b.coupon || '').toUpperCase();
+    return cup ? Parceiros.all().find(p => p.cupom && p.cupom === cup) || null : null;
+  },
+  comissaoDe(b) { const p = Parceiros.daReserva(b); return p ? Math.round((+b.total || 0) * (+p.comissao || 0)) / 100 : 0; },
+  /* "dentro de cada cliente… a parte da comissão, se já pagou ou não" (Milla, 01/10):
+     a comissão de UMA reserva marcada como paga entra nos pagamentos do parceiro
+     (com a referência da reserva), e desmarcar tira — a conta do parceiro bate sempre */
+  pagaReserva(bookingId, pagar) {
+    const b = Bookings.get(bookingId), p = b && Parceiros.daReserva(b); if (!p) return null;
+    p.pagamentos = (p.pagamentos || []).filter(x => x.ref !== b.id);
+    if (pagar) p.pagamentos.push({ id: uid(), valor: Parceiros.comissaoDe(b), data: isoToday(), ref: b.id });
+    _opSave(); return Parceiros.pagaDaReserva(b);
+  },
+  pagaDaReserva(b) { const p = Parceiros.daReserva(b); return p ? (p.pagamentos || []).find(x => x.ref === b.id) || null : null; },
 };
+
+/* ---------- PARCEIROS (fornecedores) — o "one stop shop" ----------
+   Pedido da Milla (01/10/2026): "CRIAR ABA PARCEIROS — dentro vai ter
+   TRANSFER / compra de ingressos.. hotel /// ONE STOP SHOP". O cliente
+   resolve tudo com ela; ela compra de quem confia. Aqui ficam:
+     DB.fornecedores [{id, nome, tipo, whats, email, site, comissao, obs}]
+     Booking.pedidosFor [{id, fornecedorId, tipo, desc, custo, status, ref, em}]
+   status: 'apedir' -> 'pedido' -> 'confirmado'. O custo entra nas saídas da
+   Contabilidade; o pedido pendente segura a reserva na etapa certa do Pipeline.
+   (Os parceiros que TRAZEM cliente — agência, influencer — continuam em
+   Cupons e indicações.) */
+const FORN_TIPOS = [['transfer', '🚘', 'Transfer'], ['ingressos', '🎟', 'Ingressos'], ['hotel', '🏨', 'Hotel'],
+                    ['passeio', '🧭', 'Passeios e guias'], ['restaurante', '🍽', 'Restaurantes'], ['outro', '🔗', 'Outros']];
+const PED_FOR_ST = [['apedir', 'a pedir'], ['pedido', 'pedido, esperando'], ['confirmado', 'confirmado']];
+const fornTipo = (t) => FORN_TIPOS.find(x => x[0] === t) || FORN_TIPOS[FORN_TIPOS.length - 1];
+const Fornecedores = {
+  all(tipo) { const l = DB.fornecedores || []; return tipo ? l.filter(f => f.tipo === tipo) : l; },
+  get(id) { return (DB.fornecedores || []).find(f => f.id === id) || null; },
+  salva(d) {
+    const nome = String(d.nome || '').trim(); if (!nome) return { erro: 'falta o nome do parceiro' };
+    DB.fornecedores = DB.fornecedores || [];
+    const dados = { nome, tipo: FORN_TIPOS.some(x => x[0] === d.tipo) ? d.tipo : 'outro', whats: String(d.whats || '').trim(),
+      email: String(d.email || '').trim(), site: String(d.site || '').trim(), comissao: Math.max(0, Math.min(100, +d.comissao || 0)), obs: String(d.obs || '').trim() };
+    let f = d.id && Fornecedores.get(d.id);
+    if (f) Object.assign(f, dados); else { f = { id: uid(), ...dados }; DB.fornecedores.push(f); }
+    _opSave(); return f;
+  },
+  remove(id) { DB.fornecedores = (DB.fornecedores || []).filter(f => f.id !== id); _opSave(); },
+};
+const PedidosFor = {
+  daReserva(b) { return (b && b.pedidosFor) || []; },
+  /* todos os pedidos de reservas ativas, do serviço mais próximo ao mais longe */
+  todos({ deData } = {}) {
+    const out = [];
+    for (const b of DB.bookings) {
+      if (b.status === 'cancelled' || (deData && b.date < deData)) continue;
+      for (const p of PedidosFor.daReserva(b)) out.push({ b, p, f: Fornecedores.get(p.fornecedorId) });
+    }
+    return out.sort((x, y) => (x.b.date + (x.b.time || '')).localeCompare(y.b.date + (y.b.time || '')));
+  },
+  cria(bookingId, d) {
+    const b = Bookings.get(bookingId); if (!b) return { erro: 'reserva não encontrada' };
+    const f = d.fornecedorId ? Fornecedores.get(d.fornecedorId) : null;
+    const p = { id: uid(), fornecedorId: f ? f.id : '', tipo: d.tipo || (f ? f.tipo : 'outro'), desc: String(d.desc || '').trim(),
+      custo: Math.max(0, +d.custo || 0), status: PED_FOR_ST.some(x => x[0] === d.status) ? d.status : 'apedir', ref: String(d.ref || '').trim(), em: isoToday() };
+    b.pedidosFor = [...PedidosFor.daReserva(b), p]; _opSaveBooking(b); return p;
+  },
+  muda(bookingId, id, patch) {
+    const b = Bookings.get(bookingId); const p = PedidosFor.daReserva(b).find(x => x.id === id); if (!p) return null;
+    if (patch.status && PED_FOR_ST.some(x => x[0] === patch.status)) p.status = patch.status;
+    /* ingresso confirmado pelo parceiro = ingressos comprados na reserva */
+    if (p.tipo === 'ingressos') b.ingressosOk = p.status === 'confirmado' ? (b.ingressosOk || isoToday()) : '';
+    if (patch.ref !== undefined) p.ref = String(patch.ref || '').trim();
+    if (patch.custo !== undefined) p.custo = Math.max(0, +patch.custo || 0);
+    if (patch.desc !== undefined) p.desc = String(patch.desc || '').trim();
+    if (patch.fornecedorId !== undefined) p.fornecedorId = patch.fornecedorId;
+    _opSaveBooking(b); return p;
+  },
+  remove(bookingId, id) { const b = Bookings.get(bookingId); if (!b) return; b.pedidosFor = PedidosFor.daReserva(b).filter(x => x.id !== id); _opSaveBooking(b); },
+  pendentes(b) { return PedidosFor.daReserva(b).filter(p => p.status !== 'confirmado'); },
+  custo(b) { return PedidosFor.daReserva(b).reduce((s, p) => s + (+p.custo || 0), 0); },
+};
+/* a mensagem pronta para o parceiro (na língua do conteudo.js: em Dubai, inglês) */
+function msgFornecedor(b, p) {
+  const en = ((typeof CONTEUDO !== 'undefined' && CONTEUDO.transfer && CONTEUDO.transfer.idioma) || 'pt') === 'en';
+  const d = b.date ? b.date.slice(8, 10) + '/' + b.date.slice(5, 7) + '/' + b.date.slice(0, 4) : '';
+  const L = en
+    ? [`Hello! Request from ${guiaNegocio()}:`, `• ${p.desc || nomeDoServico(b)}`, `• Date: ${d}${b.time ? ' · ' + b.time : ''}`, `• Guest: ${b.name} · ${b.pax || 1} pax`,
+       b.voo ? `• Flight: ${b.voo}` : '', b.destino ? `• Hotel/destination: ${b.destino}` : '', `• Ref.: ${b.code || b.id}`, 'Please confirm availability and price. Thank you!']
+    : [`Olá! Pedido da ${guiaNegocio()}:`, `• ${p.desc || nomeDoServico(b)}`, `• Data: ${d}${b.time ? ' · ' + b.time : ''}`, `• Cliente: ${b.name} · ${b.pax || 1} pessoa(s)`,
+       b.voo ? `• Voo: ${b.voo}` : '', b.destino ? `• Hotel/destino: ${b.destino}` : '', `• Ref.: ${b.code || b.id}`, 'Pode confirmar disponibilidade e valor? Obrigada!'];
+  return L.filter(Boolean).join('\n');
+}
+/* o que ainda falta comprar/pedir para esta reserva (ingressos, transfer, parceiros) */
+function pendenciasCompra(b) {
+  const l = [];
+  if (Op.precisaIngresso(b) && !b.ingressosOk && !PedidosFor.daReserva(b).some(p => p.tipo === 'ingressos')) l.push('comprar ingressos');
+  if (typeof ehTransfer === 'function' && ehTransfer(b) && !b.ncc && !PedidosFor.daReserva(b).some(p => p.tipo === 'transfer')) l.push('pedir o transfer');
+  for (const p of PedidosFor.pendentes(b)) l.push((p.status === 'apedir' ? 'pedir ' : 'confirmar ') + (fornTipo(p.tipo)[2].toLowerCase()) + (Fornecedores.get(p.fornecedorId) ? ' (' + Fornecedores.get(p.fornecedorId).nome + ')' : ''));
+  return l;
+}
+
+/* ---------- SAÍDAS E LÍQUIDO (pedido da Milla, 01/10/2026: "MELHORAR A
+   CONTABILIDADE do app: tudo que entra, tudo que sai, líquido") ----------
+   Saem: o custo de quem fez o serviço (guia/motorista), o custo dos pedidos aos
+   parceiros (ingressos, transfer, hotel), as comissões pagas a quem indicou e as
+   despesas avulsas (DB.despesas). Entradas = os pagamentos recebidos no período;
+   saídas = os custos dos serviços DO período (pela data do serviço) + despesas
+   e comissões pela data em que foram pagas. */
+const DESP_CAT = [['operacao', 'Operação'], ['marketing', 'Marketing'], ['licenca', 'Licenças e taxas'], ['transporte', 'Transporte'], ['outros', 'Outros']];
+const Despesas = {
+  all() { return [...(DB.despesas || [])].sort((a, b) => String(b.data).localeCompare(String(a.data))); },
+  salva(d) {
+    const desc = String(d.desc || '').trim(), valor = Math.round((+d.valor || 0) * 100) / 100;
+    if (!desc || !(valor > 0)) return { erro: 'falta a descrição ou o valor' };
+    DB.despesas = DB.despesas || [];
+    const x = { id: d.id || uid(), data: d.data || isoToday(), desc, valor, categoria: DESP_CAT.some(c => c[0] === d.categoria) ? d.categoria : 'outros', conta: d.conta || '' };
+    const k = DB.despesas.findIndex(y => y.id === x.id); if (k >= 0) DB.despesas[k] = x; else DB.despesas.push(x);
+    _opSave(); return x;
+  },
+  remove(id) { DB.despesas = (DB.despesas || []).filter(x => x.id !== id); _opSave(); },
+};
+function saidasDoPeriodo(de, ate) {
+  const L = [];
+  for (const b of DB.bookings) {
+    if (b.status === 'cancelled' || b.date < de || b.date > ate) continue;
+    if (+b.custo > 0) L.push({ data: b.date, tipo: 'servico', desc: `${(b.prestadorId && Equipe.get(b.prestadorId) || {}).nome || 'Guia/motorista'} — ${nomeDoServico(b)} · ${b.name}`, valor: +b.custo, b });
+    for (const p of PedidosFor.daReserva(b)) if (+p.custo > 0)
+      L.push({ data: b.date, tipo: 'parceiro', desc: `${(Fornecedores.get(p.fornecedorId) || {}).nome || 'Parceiro'} — ${p.desc || fornTipo(p.tipo)[2]} · ${b.name}`, valor: +p.custo, b });
+  }
+  for (const par of DB.parceiros || []) for (const pg of par.pagamentos || [])
+    if (pg.data >= de && pg.data <= ate) L.push({ data: pg.data, tipo: 'comissao', desc: `Comissão — ${par.nome}`, valor: +pg.valor || 0 });
+  for (const d of DB.despesas || []) if (d.data >= de && d.data <= ate)
+    L.push({ data: d.data, tipo: 'despesa', desc: d.desc, valor: d.valor, id: d.id, categoria: d.categoria });
+  return L.sort((a, b) => String(a.data).localeCompare(String(b.data)));
+}
+/* a margem de cada serviço do período: o que o cliente paga − o que sai por ele */
+function margensDoPeriodo(de, ate) {
+  return DB.bookings.filter(b => b.status !== 'cancelled' && b.date >= de && b.date <= ate).map(b => {
+    const custo = (+b.custo || 0) + PedidosFor.custo(b) + (typeof Parceiros !== 'undefined' && Parceiros.comissaoDe ? Parceiros.comissaoDe(b) : 0);
+    return { b, receita: +b.total || 0, custo, margem: (+b.total || 0) - custo };
+  }).sort((a, b) => a.b.date.localeCompare(b.b.date));
+}
 
 /* ---------- idade, servico escrito, comprovante, interesse ---------- */
 /* "12/03/1985" ou "1985-03-12" -> anos completos hoje */
@@ -1459,7 +1624,23 @@ const Interesse = {
     const i = DB.interesse[tourId] = DB.interesse[tourId] || {}, c = i[tipo] = i[tipo] || {}, h = isoToday();
     c[h] = (+c[h] || 0) + 1;
     const dias = Object.keys(c).sort(); if (dias.length > 180) for (const d of dias.slice(0, dias.length - 180)) delete c[d];
+    /* e por canal (de onde a pessoa veio) */
+    const can = (typeof canalAtual === 'function') ? canalAtual() : 'direto';
+    const ic = DB.interesseCanal = DB.interesseCanal || {}, cc = (ic[can] = ic[can] || {}), ct = (cc[tipo] = cc[tipo] || {});
+    ct[h] = (+ct[h] || 0) + 1;
     _opSave();
+  },
+  /* por canal: aberturas, "quase", reservas e pedidos no período, conversão */
+  porCanal(de, ate) {
+    const ic = DB.interesseCanal || {};
+    const soma = (o) => Object.entries(o || {}).reduce((n, [d, v]) => n + (d >= de && d <= ate ? (+v || 0) : 0), 0);
+    const no = (x) => String(x || '').slice(0, 10);
+    return CANAIS.map(([k, nome]) => {
+      const visitas = soma((ic[k] || {}).visitas), quase = soma((ic[k] || {}).quase);
+      const reservas = DB.bookings.filter(b => b.status !== 'cancelled' && (b.canal || '') === k && no(b.createdAt) >= de && no(b.createdAt) <= ate).length;
+      const pedidos = (DB.pedidos || []).filter(p => (p.canal || '') === k && no(p.criado) >= de && no(p.criado) <= ate).length;
+      return { canal: k, nome, visitas, quase, reservas, pedidos, conv: visitas ? (reservas + pedidos) / visitas : null };
+    }).filter(r => r.visitas || r.reservas || r.pedidos);
   },
   soma(tourId, tipo, de, ate) { const c = ((DB.interesse || {})[tourId] || {})[tipo] || {}; return Object.entries(c).reduce((n, [d, v]) => n + (d >= de && d <= ate ? (+v || 0) : 0), 0); },
   /* por passeio: visitas, quase reservaram, reservas feitas no periodo, conversao.
@@ -1778,6 +1959,33 @@ function crmLinhas(hoje) {
   }
   return out.sort((a, b2) => String(a.dataServ || '9999').localeCompare(String(b2.dataServ || '9999')) || String(a.hora).localeCompare(String(b2.hora)));
 }
+/* ---------- o passo a passo (Pipeline com as etapas do conteudo.js) ---------- */
+const PIPE_ETAPAS = (typeof CONTEUDO !== 'undefined' && CONTEUDO.pipeline) || null;
+function etapaPasso(r, hoje) {
+  hoje = hoje || isoToday();
+  if (r.tipo === 'pedido') return 'contato';
+  if (r.tipo === 'orcamento') return r.status === 'perdido' ? 'perdido' : r.status === 'enviado' ? 'orcamento' : 'contato';
+  const b = r.b;
+  if (b.status === 'cancelled' || r.etapa === 'perdido') return 'perdido';
+  if (b.date < hoje) return 'posvenda';
+  if (b.date === hoje) return 'viagem';
+  if (!(Bookings.paid(b) > 0)) return 'orcamento';
+  if (pendenciasCompra(b).length) return 'confirmado';
+  if (!b.prestadorId) return 'compras';
+  return 'guia';
+}
+function proximoPassoPipe(r, etapa, hoje) {
+  hoje = hoje || isoToday();
+  if (etapa === 'contato') return r.tipo === 'pedido' ? 'responder e montar o orçamento' : 'montar e mandar o orçamento';
+  if (etapa === 'orcamento') return r.tipo === 'orcamento' ? 'aguardar a resposta (lembrete no dia 3 e no dia 7)' : 'aguardar o sinal';
+  if (etapa === 'confirmado') return pendenciasCompra(r.b).join(' · ');
+  if (etapa === 'compras') return 'escalar ' + (typeof opPapel === 'function' ? opPapel(r.b) : 'o guia');
+  if (etapa === 'guia') return 'mandar o voucher ao cliente e o serviço ao ' + (typeof opPapel === 'function' ? opPapel(r.b) : 'guia');
+  if (etapa === 'viagem') return 'acompanhar o dia';
+  if (etapa === 'posvenda') return r.etapa === 'finalizado' ? 'finalizado 💚' : 'pedir a avaliação';
+  return r.motivo || '';
+}
+
 /* ---------- A PLANILHA QUE ELA PREENCHE ----------
    Cada celula da aba Planilha grava direto no registro de verdade: a linha de
    orcamento grava no orcamento (e no servico dele), a linha de reserva grava
@@ -2154,7 +2362,7 @@ if (typeof STR !== 'undefined') {
   admTransfer: { pt: 'Transfer', en: 'Transfers' },
     admTarefas:  { pt: 'Tarefas', en: 'Tasks' },
     admClients:  { pt: 'Clientes', en: 'Clients' },
-    admCoupons:  { pt: 'Cupons e parcerias', en: 'Coupons & partners' },
+    admCoupons:  { pt: 'Indicações e cupons', en: 'Referrals & coupons' },
     admMoney:    { pt: 'Contabilidade', en: 'Accounting' },
   });
 }

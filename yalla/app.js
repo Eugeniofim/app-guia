@@ -341,6 +341,8 @@ const ICONE_YT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="curren
 const ICONE_FB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12Z"/></svg>';
 const ICONE_BLOG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>';
 
+const ICONE_TT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.5a6 6 0 0 0-.8-.1 5.9 5.9 0 1 0 5.9 5.9V9a7.5 7.5 0 0 0 4.4 1.4V7.1a4.3 4.3 0 0 1-3.3-1.3Z"/></svg>';
+const ICONE_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>';
 function linkExterno(u) { return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
 
 function viewHub() {
@@ -348,12 +350,28 @@ function viewHub() {
   const txt = (o) => (o && (o[LANG] || o.pt)) || '';
   const redes = [
     st.insta    ? { u: 'https://instagram.com/' + st.insta.replace(/^@/, ''), ic: ICONE_IG, n: 'Instagram', c: 'ig' } : null,
+    st.insta2   ? { u: 'https://instagram.com/' + st.insta2.replace(/^@/, ''), ic: ICONE_IG, n: 'Instagram @' + st.insta2.replace(/^@/, ''), c: 'ig' } : null,
+    linkExterno(st.tiktok)   ? { u: st.tiktok,   ic: ICONE_TT,   n: 'TikTok',   c: 'tt' } : null,
     linkExterno(st.youtube)  ? { u: st.youtube,  ic: ICONE_YT,   n: 'YouTube',  c: 'yt' } : null,
     linkExterno(st.blog)     ? { u: st.blog,     ic: ICONE_BLOG, n: 'Blog',     c: 'bl' } : null,
     linkExterno(st.facebook) ? { u: st.facebook, ic: ICONE_FB,   n: 'Facebook', c: 'fb' } : null,
   ].filter(Boolean);
   const temTransfer = Tours.live().some(x => x.type === 'transfer');
   const links = (st.links || []).filter(l => linkExterno(l.url) && txt(l.titulo));
+  /* o vídeo em destaque do Linktree dela */
+  const dest = st.destaque && linkExterno(st.destaque.url) && txt(st.destaque.titulo) ? st.destaque : null;
+  /* "Quem já foi" (como a capa da Dulcineia): os depoimentos de verdade que ela
+     colou, e o destaque de feedback do Instagram. Nada inventado: sem
+     depoimento e sem link, o bloco não aparece. */
+  const depo = (typeof Avaliacoes !== 'undefined') ? Avaliacoes.all().slice(0, 4) : [];
+  const fbIg = linkExterno(st.feedbackIg) ? st.feedbackIg : '';
+  /* ONE STOP SHOP (pedido da Milla, 01/10/2026): transfer, ingressos, hotel e
+     motorista num lugar só. Cada um abre o "Monte seu roteiro" já marcado
+     com o que a pessoa precisa (o transfer, se houver catálogo, abre a tabela). */
+  const precisaIds = ((typeof CONTEUDO !== 'undefined' && CONTEUDO.roteiro && CONTEUDO.roteiro.precisa) || []).map(x => x[0]);
+  const oss = [['transfer', '🚘', 'Transfer', 'Transfer', 'Traslado'], ['ingressos', '🎟', 'Ingressos', 'Tickets', 'Entradas'],
+               ['hotel', '🏨', 'Hotel', 'Hotel', 'Hotel'], ['motorista', '🚙', 'Motorista', 'Private driver', 'Chofer']].filter(o => precisaIds.includes(o[0]));
+  const mesAno = (iso) => { try { return new Date(iso + 'T12:00:00').toLocaleDateString(locale ? locale() : 'pt-BR', { month: 'short', year: 'numeric' }); } catch (e) { return ''; } };
 
   app.innerHTML = `
   <div class="hub">
@@ -375,14 +393,24 @@ function viewHub() {
       <button class="lk" id="goRoteiro">
         <span class="ic">🗺️</span><span><b>${t('hubRoteiro')}</b><small>${t('hubRoteiroSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
+      ${oss.length >= 3 ? `<p class="hubsec">${t('hubOss')}</p>
+      <div class="oss">${oss.map(o => `<button class="oss-i" data-oss="${o[0]}"><span class="oss-ic" aria-hidden="true">${o[1]}</span><b>${L3(o[2], o[3], o[4])}</b></button>`).join('')}</div>
+      <p class="oss-sub">${t('hubOssSub')}</p>` : ''}
+      ${dest ? `<a class="lk destaque" href="${esc(dest.url)}" target="_blank" rel="noopener">
+        <span class="ic play">${ICONE_PLAY}</span><span><b>${esc(txt(dest.titulo))}</b>${txt(dest.sub) ? `<small>${esc(txt(dest.sub))}</small>` : ''}</span><span class="go" aria-hidden="true">↗</span></a>` : ''}
       <button class="lk" id="goAbout">
         <span class="ic"><img id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt=""
           style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
-      ${typeof Avaliacoes !== 'undefined' && (Avaliacoes.all().length || linkExterno(st.linkAvaliacao) || DB.demo) ? `<button class="lk" id="goAval">
+      ${typeof Avaliacoes !== 'undefined' && (Avaliacoes.all().length > 4 || linkExterno(st.linkAvaliacao)) ? `<button class="lk" id="goAval">
         <span class="ic">⭐</span><span><b>${t('hubAval')}</b><small>${Avaliacoes.media() ? `${String(Avaliacoes.media()).replace('.', ',')} ★ · ${Avaliacoes.all().length} ${Avaliacoes.all().length === 1 ? L3('avaliação', 'review', 'reseña') : L3('avaliações', 'reviews', 'reseñas')}` : t('hubAvalSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>` : ''}
       <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b><small>${t('hubWhatsSub')}</small></span><span class="go" aria-hidden="true">→</span></a>
+      ${depo.length || fbIg ? `<p class="hubsec">${t('hubQuemFoi')}</p>
+      ${depo.length ? `<div class="depos">${depo.map(a => `<figure class="depo"><blockquote>“${esc(a.texto)}”</blockquote>
+        <figcaption><b>${esc(a.nome)}</b>${a.data ? ` <small>${esc(mesAno(a.data))}</small>` : ''}</figcaption></figure>`).join('')}</div>` : ''}
+      ${fbIg ? `<a class="lk parc" href="${esc(fbIg)}" target="_blank" rel="noopener">
+        <span class="ic">${ICONE_IG}</span><span><b>${t('hubFbIg')}</b><small>${t('hubFbIgSub')}</small></span><span class="go" aria-hidden="true">↗</span></a>` : ''}` : ''}
       ${links.length ? `<p class="hubsec">${t('hubViagem')}</p>
       ${links.map(l => `<a class="lk parc" href="${esc(l.url)}" target="_blank" rel="noopener sponsored">
         <span class="ic">${esc(l.icone || '🔗')}</span><span><b>${esc(txt(l.titulo))}</b>${txt(l.sub) ? `<small>${esc(txt(l.sub))}</small>` : ''}</span><span class="go" aria-hidden="true">↗</span></a>`).join('')}` : ''}
@@ -393,6 +421,13 @@ function viewHub() {
   $('#goTours').onclick = () => { viewShowcase._f = 'all'; go('/tours'); };
   if ($('#goTransfer')) $('#goTransfer').onclick = () => { viewShowcase._f = 'transfer'; go('/tours'); };
   $('#goRoteiro').onclick = () => go('/roteiro');
+  $$('[data-oss]').forEach(b => b.onclick = () => {
+    const k = b.dataset.oss;
+    if (k === 'transfer' && temTransfer) { viewShowcase._f = 'transfer'; go('/tours'); return; }
+    const R = viewRoteiro._s = viewRoteiro._s || { onde: [], gosto: [], precisa: [], ritmo: 'medio', adultos: 2, criancas: 0 };
+    if (!R.precisa.includes(k)) R.precisa.push(k);
+    go('/roteiro');
+  });
   fallbackPhoto($('#hubFace'), '☺');
   $('#goAbout').onclick = () => go('/about');
   if ($('#goAval')) $('#goAval').onclick = () => go('/avaliacoes');
@@ -1439,7 +1474,10 @@ function renderBook() {
 const ADM_GROUPS = [
   { h: 'O dia a dia',           tabs: [['today', 'admToday'], ['agenda', 'admAgenda'], ['tarefas', 'admTarefas']] },
   { h: 'Orçamentos e clientes', tabs: [['planilha', 'admPlanilha'], ['pipeline', 'admPipeline'], ['consulta', 'admConsulta'], ['clients', 'admClients'], ['bookings', 'admBookings']] },
-  { h: 'Operação',              tabs: [['guias', 'admGuias'], ['transfer', 'admTransfer'], ['tours', 'admTours'], ['precos', 'admPrecos'], ['voucher', 'admVoucher']] },
+  /* o atendimento automático (WhatsApp e Instagram) e a tela de ensinar o agente:
+     só no app de quem contratou (APP_CONFIG.atendimento) */
+  ...((typeof APP_CONFIG !== 'undefined' && APP_CONFIG.atendimento) ? [{ h: 'Atendimento', tabs: [['inbox', 'admInbox']] }] : []),
+  { h: 'Operação',              tabs: [['guias', 'admGuias'], ['parceiros', 'admParceiros'], ['transfer', 'admTransfer'], ['tours', 'admTours'], ['precos', 'admPrecos'], ['voucher', 'admVoucher']] },
   { h: 'Dinheiro',              tabs: [['money', 'admMoney'], ['reports', 'admReports'], ['coupons', 'admCoupons']] },
   { h: 'O app',                 tabs: [['look', 'temaTit'], ['settings', 'admSettings']] },
 ];
@@ -1512,6 +1550,7 @@ function admShell(tab, inner) {
 function viewAdm(tab, arg) {
   if (tab === 'today')    admToday(arg);
   else if (tab === 'pipeline') admPipeline();
+  else if (tab === 'parceiros') admParceiros();
   else if (tab === 'guias')    admGuias(arg);
   else if (tab === 'planilha') admConsulta(undefined, 'planilha');
   else if (tab === 'transfer') admTransfer();
@@ -1521,6 +1560,7 @@ function viewAdm(tab, arg) {
   else if (tab === 'voucher' && arg) opDocVoucher(arg);
   else if (tab === 'voucher')  admVoucher();
   else if (tab === 'orcdoc')   opDocOrc(arg);
+  else if (tab === 'servico' && arg) opDocServico(arg);
   else if (tab === 'clients' && arg) admFicha(arg);
   else if (tab === 'tours' && arg) admTourEdit(arg);
   else if (tab === 'tours')    admTours();
@@ -2410,6 +2450,15 @@ function admAparencia() {
         <label class="fld">YouTube<input id="apYt" value="${esc(DB.settings.youtube || '')}" placeholder="https://youtube.com/…"></label>
       </div>
       <div class="frow">
+        <label class="fld">Instagram 2<input id="apInsta2" value="${esc(DB.settings.insta2 || '')}" placeholder="dubaitourbymilla"></label>
+        <label class="fld">TikTok<input id="apTt" value="${esc(DB.settings.tiktok || '')}" placeholder="https://tiktok.com/@…"></label>
+      </div>
+      <div class="frow">
+        <label class="fld">${t('apDestaque')}<input id="apDestUrl" value="${esc((DB.settings.destaque || {}).url || '')}" placeholder="https://youtube.com/shorts/…"></label>
+        <label class="fld">${t('apDestaqueTit')}<input id="apDestTit" value="${esc(noIdioma((DB.settings.destaque || {}).titulo) || '')}"></label>
+      </div>
+      <label class="fld">${t('apFbIg')}<input id="apFbIg" value="${esc(DB.settings.feedbackIg || '')}" placeholder="https://www.instagram.com/stories/highlights/…"></label>
+      <div class="frow">
         <label class="fld">Blog / site<input id="apBlog" value="${esc(DB.settings.blog || '')}" placeholder="https://…"></label>
         <label class="fld">Facebook<input id="apFb" value="${esc(DB.settings.facebook || '')}" placeholder="https://facebook.com/…"></label>
       </div>
@@ -2439,6 +2488,10 @@ function admAparencia() {
     const st = DB.settings;
     st.insta = $('#apInsta').value.trim().replace(/^@/, '');
     st.youtube = $('#apYt').value.trim(); st.blog = $('#apBlog').value.trim(); st.facebook = $('#apFb').value.trim();
+    st.insta2 = $('#apInsta2').value.trim().replace(/^@/, ''); st.tiktok = $('#apTt').value.trim();
+    st.feedbackIg = $('#apFbIg').value.trim();
+    { const u = $('#apDestUrl').value.trim(), tt = $('#apDestTit').value.trim(), d = st.destaque || {};
+      st.destaque = u ? Object.assign({}, d, { url: u, titulo: Object.assign({}, d.titulo || {}, { pt: tt || (d.titulo || {}).pt || '' }) }) : null; }
     st.links = $$('#apLinkRows .edrow').map(r => {
       const q = (c) => (r.querySelector('.' + c) || {}).value || '';
       return { id: r.dataset.id || uid(), icone: q('li').trim() || '🔗', url: q('lu').trim(),

@@ -604,6 +604,8 @@ const STR_ES = {
 
 /* o que era da EmRoma e na Yalla tem outro texto */
 const STR_YALLA = {
+ "seeTours": { "pt": "Ver experiências", "en": "See the experiences", "es": "Ver experiencias" },
+ "seeToursSub": { "pt": "Privativas, corporativas e sob medida", "en": "Private, corporate and bespoke", "es": "Privadas, corporativas y a medida" },
  "hubRoteiro": {
   "pt": "Monte a sua experiência",
   "en": "Build your experience"
@@ -622,4 +624,8 @@ const STR_YALLA = {
 Object.assign(STR_ES, { hubAval: 'Reseñas', hubAvalSub: 'Lo que dicen los clientes', tutTitulo: 'Consejo de la app', tutOuvir: 'Escuchar' });
 
 for (const k in STR_YALLA) if (STR[k]) Object.assign(STR[k], STR_YALLA[k]);
-for (const k in STR_ES) if (STR[k]) STR[k].es = STR_ES[k];
+for (const k in STR_ES) if (STR[k] && !(STR_YALLA[k] && STR_YALLA[k].es)) STR[k].es = STR_ES[k];
+
+/* o app.js já desenhou a primeira tela antes deste arquivo carregar:
+   quem abriu em espanhol vê a tela de novo, já traduzida */
+if (typeof LANG !== 'undefined' && LANG === 'es' && typeof route === 'function') route();

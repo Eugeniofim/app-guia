@@ -87,7 +87,7 @@ function ingServ(b) {
     paga_no_dia: nd.valor ? `${eur(nd.valor)} ${nd.para === 'prestador' ? 'para quem faz o serviço' : 'para ' + guiaNome()}` : 'nada',
     obs: b.obsOp || '', situacao: b.status === 'cancelled' ? 'cancelada' : 'confirmada' };
 }
-const ING_ABAS = ['today', 'planilha', 'pipeline', 'consulta', 'tarefas', 'guias', 'transfer', 'agenda', 'bookings', 'clients', 'money', 'tours', 'precos', 'voucher', 'reports', 'coupons', 'look', 'settings'];
+const ING_ABAS = ['today', 'planilha', 'pipeline', 'consulta', 'tarefas', 'guias', 'parceiros', 'transfer', 'agenda', 'bookings', 'clients', 'money', 'tours', 'precos', 'voucher', 'reports', 'coupons', 'look', 'settings'];
 const ING_TURNOS = ['manha', 'tarde', 'noite', 'dia'];
 
 /* ---------- 2. as ferramentas das abas dela ---------- */
@@ -109,12 +109,15 @@ const ING_FERRAMENTAS = [
   { name: 'ver_clientes', description: 'Clientes cadastrados: veio por, indicado por, passeios, quanto pagou, quanto deve, próximo serviço. Filtro opcional.', input_schema: obj({ filtro: { type: 'string', enum: ['todos', 'compraram', 'vieram_junto', 'com_servico', 'devem', 'voltaram', 'aniversario_mes'] }, veio_por: S_() }) },
   { name: 'ver_crm', description: 'A PLANILHA dela (aba Planilha / CRM), com TODAS as colunas: data do pagamento, veio por, agência/indicação/influencer, WhatsApp, nome, data serviço, hora, PAX, serviço, obs, cliente paga, custo (ela paga), cidade, parceiro, total, sinal, forma de pagamento, em real, comissões, status, motivo da perda, repescagens e resultados, nome do arquivo e links. Filtre por etapa, cliente ou mês.', input_schema: obj({ etapa: { type: 'string', enum: ['aberto', 'confirmado', 'avaliar', 'finalizado', 'perdido', 'todos'] }, cliente: S_('nome, WhatsApp ou agência'), mes: S_('AAAA-MM do serviço') }) },
   { name: 'ver_painel', description: 'O painel do CRM: em aberto, confirmados, falta receber, taxa de fechamento, motivo que mais perde, comissões a pagar e a lista "precisa de você" (repescar, mandar orçamento, cobrar sinal, pedir avaliação).', input_schema: obj({ mes: S_('AAAA-MM (opcional)') }) },
-  { name: 'ver_transfers', description: 'Aba Transfer: os transfers de ' + baseNome() + ' de hoje em diante (os que o parceiro de transfer faz), se já foram pedidos lá (e o número deles) e os dados prontos para colar; e, à parte, os de fora de Roma (outro fornecedor).', input_schema: obj({ so_falta: { type: 'boolean' } }) },
+  { name: 'ver_transfers', description: 'Aba Transfer: os transfers de ' + baseNome() + ' de hoje em diante (os que o parceiro de transfer faz), se já foram pedidos lá (e o número deles) e os dados prontos para colar; e, à parte, os de fora de ' + baseNome() + ' (outro fornecedor).', input_schema: obj({ so_falta: { type: 'boolean' } }) },
   { name: 'ver_arquivos', description: 'Arquivos guardados (comprovantes e documentos), por cliente ou todos, e onde estão no Google Drive.', input_schema: obj({ cliente: S_() }) },
   { name: 'ver_avaliacoes', description: 'As avaliações que estão no site (menu ⭐ Avaliações), a média e os links do Google.', input_schema: obj() },
   { name: 'procurar', description: 'Procura uma palavra em TUDO do app: clientes, planilha/reservas, orçamentos, tarefas e anotações, guias e motoristas, parceiros, transfers, arquivos e avaliações. Use quando não souber em que aba está.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'ver_tudo', description: 'Visão geral do app inteiro de uma vez: quantos clientes, reservas, orçamentos, tarefas, guias, parceiros, transfers, arquivos, avaliações; dinheiro do mês; o que está pendente em cada aba.', input_schema: obj() },
   { name: 'ver_parceiros', description: 'Influencers, agências e parceiros com cupom: reservas trazidas, faturado, comissão devida, paga e a pagar.', input_schema: obj() },
+  { name: 'ver_fornecedores', description: 'Aba Parceiros: os fornecedores dela (transfer, ingressos, hotel, passeios, restaurantes) com contato e comissão, e TODOS os pedidos feitos a eles por reserva (a pedir, pedido esperando, confirmado), com custo e a mensagem pronta para mandar.', input_schema: obj({ so_pendentes: { type: 'boolean' } }) },
+  { name: 'ver_saidas', description: 'Tudo que SAI no período (custo de guia/motorista, pedidos aos parceiros, comissões pagas, despesas avulsas), o total, o líquido do caixa (entrou − saiu) e a margem de cada serviço.', input_schema: obj({ de: S_('AAAA-MM-DD'), ate: S_('AAAA-MM-DD') }) },
+  { name: 'ver_passo_a_passo', description: 'O Pipeline passo a passo: cada cliente/viagem em que etapa está (contato, orçamento, confirmado, compras, guia, viagem, pós-venda) e o PRÓXIMO PASSO que falta.', input_schema: obj({ etapa: S_('filtra por etapa (opcional)') }) },
   { name: 'abrir_aba', description: 'Leva ela até uma tela do app (e, se quiser, a um item).', input_schema: obj({ aba: { type: 'string', enum: ING_ABAS }, item: S_('id do orçamento, código da reserva ou chave do cliente (opcional)') }, ['aba']) },
   /* gravar */
   { name: 'anotar_tarefa', description: 'Cria tarefa (com dia e hora se houver; entende "amanhã 9h" no texto). Mandar mensagem/cobrar/orçamento já vêm com o passo seguinte ("aguardar resposta").', input_schema: obj({ texto: S_(), dia: S_('AAAA-MM-DD'), hora: S_('HH:MM'), cliente: S_(), detalhe: S_() }, ['texto']) },
@@ -132,7 +135,7 @@ const ING_FERRAMENTAS = [
   { name: 'criar_orcamento', description: 'Cria orçamento sob consulta com vários serviços. Para transfer, guia ou bate-e-volta use preco_ref (de ver_precos): valor, SINAL e custo entram certos da Tabela de preços. passeio_id (de ver_passeios) para o catálogo de passeios. Para MUDAR um orçamento que já existe use editar_orcamento — não crie outro.', input_schema: obj({ cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_('ex.: 2 adultos + 1 bebê (bebê conta como pessoa)'), bagagem: S_('ex.: 2 malas 23kg + 1 de bordo + carrinho de bebê'), itens: { type: 'array', items: obj({ preco_ref: S_('ref de ver_precos — traz valor, sinal e custo da tabela'), passeio_id: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_() }) }, sinal_pct: N_(), obs: S_() }, ['cliente']) },
   { name: 'ler_conversa', description: 'Lê uma conversa colada do WhatsApp/Instagram/e-mail e monta o rascunho do orçamento + a anotação com o resumo. Nunca responde o cliente.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'mudar_orcamento', description: 'Muda situação, validade ou % de sinal de um orçamento.', input_schema: obj({ numero: S_(), situacao: { type: 'string', enum: ['rascunho', 'enviado', 'perdido'] }, validade: S_(), sinal_pct: N_() }, ['numero']) },
-  { name: 'ver_precos', description: 'LÊ a Tabela de preços dela (as abas de preço dela: Transfer, Guias, Passeios com motorista). Acha a linha certa por número de pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão (+10%) e noturno, com um ref para usar em preco_ref. Sem filtro, lista as tabelas e seções.', input_schema: obj({ tabela: { type: 'string', enum: ['transfer', 'transfer-roma-5', 'guia', 'bv'] }, pessoas: { type: 'integer', description: 'quantas pessoas (bebê e criança contam)' }, texto: S_('filtra por seção/veículo/duração: aeroporto, civitavecchia, termini, outlet, roma antiga, vaticano, walking, carro, minivan, van, 3 horas, 4 horas…') }) },
+  { name: 'ver_precos', description: 'LÊ a Tabela de preços dela (as abas de preço dela: Transfer, Guias, Passeios com motorista). Acha a linha certa por número de pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, acréscimo de cartão e noturno (se ela cobrar), com um ref para usar em preco_ref. Sem filtro, lista as tabelas e seções.', input_schema: obj({ tabela: { type: 'string', enum: (typeof Precos !== 'undefined' ? Precos.all().map(t => t.id) : ['transfer']) }, pessoas: { type: 'integer', description: 'quantas pessoas (bebê e criança contam)' }, texto: S_('filtra por seção/veículo/duração: aeroporto, hotel, carro, van, 4 horas, 8 horas…') }) },
   { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar'] }, item: S_('qual serviço: 1, 2… ou pedaço da descrição (para mudar/tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
   { name: 'fechar_orcamento', description: 'O cliente fechou: cada serviço do catálogo vira reserva com o sinal; registra o sinal na conta se já caiu.', input_schema: obj({ numero: S_(), sinal_recebido: { type: 'boolean' }, conta: S_() }, ['numero', 'sinal_recebido']) },
   { name: 'ajustar_termos', description: 'Termos e condições do orçamento e o número de plantão do voucher.', input_schema: obj({ termos: S_(), plantao: S_() }) },
@@ -149,6 +152,10 @@ const ING_FERRAMENTAS = [
   { name: 'avaliacao_pedida', description: 'Registra que ela já pediu a avaliação ao cliente (o serviço vai para Finalizado). A mensagem ela manda pelo botão do CRM.', input_schema: obj({ codigo: S_() }, ['codigo']) },
   { name: 'cadastrar_parceiro', description: 'Cadastra ou muda um influencer/agência/parceiro com cupom, desconto e comissão.', input_schema: obj({ nome: S_(), tipo: { type: 'string', enum: TIPOS_PARCEIRO.map(t => t[0]) }, contato: S_(), cupom: S_(), desconto: N_(), comissao: N_() }, ['nome']) },
   { name: 'comissao_paga', description: 'Registra comissão paga a um parceiro.', input_schema: obj({ parceiro: S_(), valor: N_() }, ['parceiro', 'valor']) },
+  { name: 'cadastrar_fornecedor', description: 'Cadastra ou muda um parceiro fornecedor (transfer, ingressos, hotel, passeio, restaurante): contato e comissão que ele paga a ela.', input_schema: obj({ nome: S_(), tipo: { type: 'string', enum: FORN_TIPOS.map(t => t[0]) }, whats: S_(), email: S_(), site: S_(), comissao: N_('% que o parceiro paga a ela'), obs: S_() }, ['nome']) },
+  { name: 'pedir_ao_parceiro', description: 'Registra um pedido a um parceiro para uma reserva (ingresso, transfer, hotel…) com custo, e devolve a mensagem pronta (na língua do parceiro) para ela mandar. Ingresso confirmado marca os ingressos da reserva como comprados.', input_schema: obj({ codigo: S_('código da reserva'), parceiro: S_('nome do fornecedor (de ver_fornecedores) — opcional'), tipo: { type: 'string', enum: FORN_TIPOS.map(t => t[0]) }, descricao: S_('o que foi pedido'), custo: N_('quanto ela paga ao parceiro'), situacao: { type: 'string', enum: PED_FOR_ST.map(x => x[0]) } }, ['codigo']) },
+  { name: 'pedido_parceiro', description: 'Muda um pedido já feito a parceiro: situação (pedido, confirmado), número de confirmação, custo.', input_schema: obj({ codigo: S_('código da reserva'), pedido: S_('pedaço da descrição ou do parceiro; vazio = o único da reserva'), situacao: { type: 'string', enum: PED_FOR_ST.map(x => x[0]) }, confirmacao: S_('número/ref. do parceiro'), custo: N_() }, ['codigo']) },
+  { name: 'lancar_despesa', description: 'Lança uma despesa avulsa na Contabilidade (licença, anúncio, gasolina, taxa…): entra em "Tudo que sai" e no líquido.', input_schema: obj({ descricao: S_(), valor: N_(), data: S_('AAAA-MM-DD (padrão hoje)'), categoria: { type: 'string', enum: DESP_CAT.map(c => c[0]) }, conta: S_('de qual conta saiu (opcional)') }, ['descricao', 'valor']) },
   { name: 'mudar_tabela', description: 'Muda a tabela de preço por número de pessoas de um passeio (preço do grupo).', input_schema: obj({ passeio_id: S_(), de_pessoas: { type: 'integer' }, ate_pessoas: { type: 'integer' }, valor: N_() }, ['passeio_id', 'de_pessoas', 'valor']) },
 ];
 IA_FERRAMENTAS.push(...ING_FERRAMENTAS);
@@ -248,7 +255,7 @@ const ING_LER = {
     const l = todas.slice(0, 150);
     const sem = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== '' && v !== 0 && v != null && !(Array.isArray(v) && !v.length)));
     return l.length ? { linhas: l.map(r => sem({ data_pagamento: r.dataPago ? r.dataPedido : '', data_pedido: r.dataPago ? '' : r.dataPedido, veio_por: r.veio, agencia_indicacao_influencer: r.indicou, whats: r.whats, nome: r.nomePlan || r.nome,
-      data_servico: r.dataServ, hora: r.hora, pax: r.pax, servico: r.servico, obs: r.obs, cliente_paga: r.clientePaga, ingrid_paga: r.ingridPaga, cidade: r.cidade, parceiro: r.parceiro,
+      data_servico: r.dataServ, hora: r.hora, pax: r.pax, servico: r.servico, obs: r.obs, cliente_paga: r.clientePaga, custo_voce_paga: r.ingridPaga, cidade: r.cidade, parceiro: r.parceiro,
       total_pedido: r.totalPedido, sinal: r.sinal, forma_pagamento: r.forma, em_real: r.emReal, comissao_vendor: r.comVendor, comissao_indicacao: r.comIndic, status: crmStatusTxt(r), motivo_perda: r.motivo,
       repescagens: (r.repescagens || []).map(x => `${x.n}ª ${x.data || '?'} → ${x.resultado}`), nome_do_arquivo: r.arquivo, links: (r.links || []).map(x => x.nome + ': ' + x.url),
       numero: r.o ? r.o.num : '', codigo: r.b ? r.b.code : '' })), ...(todas.length > l.length ? { aviso: `mostrando 150 de ${todas.length} — filtre por cliente ou mês` } : {}) } : 'nada com esse filtro';
@@ -305,6 +312,35 @@ const ING_LER = {
       avaliacoes: { no_site: Avaliacoes.all().length, media: Avaliacoes.media() },
       passeios_no_site: Tours.live().length, backup: Backup.ultimo().em || 'nunca',
     };
+  },
+  ver_fornecedores(i) {
+    const hoje = hojeIso(), stTxt = (k) => (PED_FOR_ST.find(x => x[0] === k) || [k, k])[1];
+    const peds = PedidosFor.todos({ deData: addDays(hoje, -7) }).filter(x => !i.so_pendentes || x.p.status !== 'confirmado');
+    return {
+      fornecedores: Fornecedores.all().map(f => ({ nome: f.nome, tipo: fornTipo(f.tipo)[2], whats: f.whats || undefined, email: f.email || undefined, site: f.site || undefined, comissao_pct: f.comissao || undefined, obs: f.obs || undefined })),
+      pedidos: peds.map(({ b, p, f }) => ({ reserva: b.code, dia: b.date, cliente: b.name, servico: nomeDoServico(b), parceiro: f ? f.nome : '(sem parceiro escolhido)', tipo: fornTipo(p.tipo)[2], o_que: p.desc || undefined,
+        situacao: stTxt(p.status), confirmacao: p.ref || undefined, custo: p.custo || 0, mensagem_pronta: p.status === 'apedir' ? msgFornecedor(b, p) : undefined })),
+      falta_comprar: DB.bookings.filter(b => b.status !== 'cancelled' && b.date >= hoje).map(b => ({ reserva: b.code, dia: b.date, cliente: b.name, falta: pendenciasCompra(b) })).filter(x => x.falta.length),
+    };
+  },
+  ver_saidas(i) {
+    const hoje = hojeIso(), de = isoOk(i.de) ? i.de : hoje.slice(0, 8) + '01', ate = isoOk(i.ate) ? i.ate : hoje;
+    const sai = saidasDoPeriodo(de, ate), tot = sai.reduce((s2, x) => s2 + (+x.valor || 0), 0);
+    /* a mesma conta da tela Contabilidade: os dois lados do caixa dela (o que a guia recebeu na mão fica fora) */
+    const entrou = extratoContas(de, ate).filter(r => r.lado === 'brasil' || r.lado === 'europa').reduce((s2, r) => s2 + (+r.amount || 0), 0);
+    const mg = margensDoPeriodo(de, ate);
+    return { periodo: { de, ate }, entrou: eur(entrou), saiu: eur(tot), liquido_do_caixa: eur(entrou - tot),
+      saidas: sai.map(x => ({ dia: x.data, tipo: x.tipo, o_que: x.desc, valor: eur(x.valor) })),
+      margem_dos_servicos: mg.map(m => ({ reserva: m.b.code, dia: m.b.date, servico: nomeDoServico(m.b), cliente: m.b.name, cliente_paga: eur(m.receita), sai: eur(m.custo), margem: eur(m.margem) })) };
+  },
+  ver_passo_a_passo(i) {
+    if (!PIPE_ETAPAS) return E_('o passo a passo não está ligado neste app');
+    const hoje = hojeIso(), nomeE = (k) => (PIPE_ETAPAS.find(e => e[0] === k) || [k, k])[1];
+    const linhas = crmLinhas(hoje).filter(r => r.tipo !== 'reserva' || r.b.date >= addDays(hoje, -30) || r.etapa === 'avaliar');
+    for (const p of (DB.pedidos || [])) if (!p.respondido && !p.orcamentoId) linhas.push({ tipo: 'pedido', nome: p.nome, dataServ: p.ini || '', servico: 'Monte a sua experiência' });
+    const l = linhas.map(r => { const e = etapaPasso(r, hoje); return { cliente: r.nome, servico: r.servico, dia: r.dataServ || undefined, codigo: r.b ? r.b.code : undefined, numero: r.o ? r.o.num : undefined, etapa: nomeE(e), proximo_passo: proximoPassoPipe(r, e, hoje) || undefined, _e: e }; })
+      .filter(x => !i.etapa || ingN(x.etapa).includes(ingN(i.etapa)) || ingN(x._e).includes(ingN(i.etapa))).map(({ _e, ...x }) => x);
+    return l.length ? l : 'nada nessa etapa';
   },
   ver_parceiros() { const l = Parceiros.all().map(p => ({ nome: p.nome, tipo: p.tipo, cupom: p.cupom, desconto: p.desconto, comissao_pct: p.comissao, ...Parceiros.conta(p) })); return l.length ? l : 'nenhum parceiro'; },
   ver_contas() { return Contas.all().map(c => ({ conta: c.id, nome: c.nome, lado: c.pais })).concat([{ conta: CONTA_PRESTADOR, nome: 'pago na mão da guia/motorista', lado: 'fora do caixa dela' }]); },
@@ -626,6 +662,43 @@ const ING_PLANO = {
     if (!(+i.valor > 0)) return E_('valor maior que zero');
     return { titulo: 'Comissão paga', assumiu: [], linhas: [['Parceiro', p.nome], ['Valor', eur(+i.valor)], ['Ainda a pagar', eur(Math.max(0, Parceiros.conta(p).saldo - +i.valor))]], fazer: () => { Parceiros.paga(p.id, +i.valor); return { ok: true }; } };
   },
+  cadastrar_fornecedor(i) {
+    const ja = Fornecedores.all().find(f => ingN(f.nome) === ingN(i.nome));
+    const d = Object.fromEntries(Object.entries({ nome: i.nome, tipo: i.tipo, whats: i.whats, email: i.email, site: i.site, comissao: i.comissao, obs: i.obs }).filter(([, v]) => v !== undefined));
+    return { titulo: ja ? 'Mudar parceiro' : 'Cadastrar parceiro', assumiu: [], linhas: [['Nome', i.nome], ['Tipo', fornTipo(i.tipo || (ja && ja.tipo) || 'outro')[2]], ...(i.whats ? [['WhatsApp', i.whats]] : []), ...(i.comissao != null ? [['Comissão para você', i.comissao + '%']] : [])],
+      fazer: () => { const r = Fornecedores.salva({ ...(ja || {}), ...d }); return r.erro ? { erro: r.erro } : { ok: true }; } };
+  },
+  pedir_ao_parceiro(i) {
+    const rb = ingAchaReserva(i.codigo); if (!rb.b) return rb;
+    let f = null;
+    if (i.parceiro) { const l = Fornecedores.all().filter(x => ingN(x.nome).includes(ingN(i.parceiro))); if (l.length > 1) return { erro: 'mais de um parceiro com esse nome — pergunte qual', opcoes: l.map(x => x.nome) }; f = l[0] || null; if (!f) return E_('parceiro não cadastrado — use ver_fornecedores ou cadastrar_fornecedor'); }
+    const tipo = i.tipo || (f ? f.tipo : 'outro'), b = rb.b;
+    const prev = { desc: String(i.descricao || '').trim(), tipo };
+    return { titulo: 'Pedido ao parceiro', assumiu: f ? [] : ['sem parceiro escolhido (dá para escolher depois na aba Parceiros)'],
+      linhas: [['Reserva', `${b.code} · ${b.name} · ${b.date}`], ['Parceiro', f ? f.nome : '—'], ['O quê', prev.desc || fornTipo(tipo)[2]], ['Custo', eur(+i.custo || 0)], ['Situação', (PED_FOR_ST.find(x => x[0] === (i.situacao || 'apedir')) || [])[1] || 'a pedir']],
+      fazer: () => { const p = PedidosFor.cria(b.id, { fornecedorId: f ? f.id : '', tipo, desc: prev.desc, custo: +i.custo || 0, status: i.situacao || 'apedir' });
+        if (p.erro) return { erro: p.erro };
+        if (p.status === 'confirmado') PedidosFor.muda(b.id, p.id, { status: 'confirmado' });
+        return { ok: true, mensagem_para_o_parceiro: msgFornecedor(b, p), whats_do_parceiro: f && f.whats ? f.whats : undefined }; } };
+  },
+  pedido_parceiro(i) {
+    const rb = ingAchaReserva(i.codigo); if (!rb.b) return rb;
+    const todos = PedidosFor.daReserva(rb.b);
+    const l = i.pedido ? todos.filter(p => ingN([p.desc, fornTipo(p.tipo)[2], (Fornecedores.get(p.fornecedorId) || {}).nome].join(' ')).includes(ingN(i.pedido))) : todos;
+    if (!l.length) return E_('nenhum pedido a parceiro nessa reserva — use pedir_ao_parceiro');
+    if (l.length > 1) return { erro: 'mais de um pedido nessa reserva — diga qual', opcoes: l.map(p => p.desc || fornTipo(p.tipo)[2]) };
+    const p = l[0], patch = {};
+    if (i.situacao) patch.status = i.situacao; if (i.confirmacao !== undefined) patch.ref = i.confirmacao; if (i.custo !== undefined) patch.custo = +i.custo;
+    return { titulo: 'Mudar pedido ao parceiro', assumiu: [], linhas: [['Reserva', `${rb.b.code} · ${rb.b.name}`], ['Pedido', p.desc || fornTipo(p.tipo)[2]],
+        ...(patch.status ? [['Situação', (PED_FOR_ST.find(x => x[0] === patch.status) || [])[1]]] : []), ...(patch.ref ? [['Confirmação', patch.ref]] : []), ...(patch.custo !== undefined ? [['Custo', eur(patch.custo)]] : [])],
+      fazer: () => { PedidosFor.muda(rb.b.id, p.id, patch); return { ok: true }; } };
+  },
+  lancar_despesa(i) {
+    const v = +i.valor; if (!(v > 0)) return E_('valor maior que zero');
+    const cat = DESP_CAT.find(c => c[0] === i.categoria) || DESP_CAT[DESP_CAT.length - 1];
+    return { titulo: 'Lançar despesa', assumiu: isoOk(i.data) ? [] : ['data de hoje'], linhas: [['O quê', i.descricao], ['Valor', eur(v)], ['Dia', isoOk(i.data) ? i.data : hojeIso()], ['Categoria', cat[1]]],
+      fazer: () => { const r = Despesas.salva({ desc: i.descricao, valor: v, data: isoOk(i.data) ? i.data : hojeIso(), categoria: cat[0], conta: i.conta || '' }); return r.erro ? { erro: r.erro } : { ok: true }; } };
+  },
   mudar_tabela(i) {
     const x = Tours.get(i.passeio_id); if (!x) return E_('passeio não encontrado — use ver_passeios');
     if (x.priceMode !== 'tabela') return E_('este passeio não tem tabela por pessoas' + (x.priceMode === 'transfer' ? ' (transfer tem tabela própria: Meus passeios)' : ' — use mudar_preco'));
@@ -703,11 +776,13 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Clientes e ficha: ver_clientes (dashboard, filtros), ver_ficha (tudo de um cliente: viagem, serviços com quem vai, ingressos, links, histórico), cadastrar_cliente, mudar_cliente, anotar_cliente
 - CRM (a planilha dela, dentro de Clientes): ver_crm (etapas aberto/confirmado/avaliar/finalizado/perdido), marcar_perdido, avaliacao_pedida
 - Quem vai no passeio (ingressos nominais): quem_vai, ingressos_comprados, link_servico
-- Cupons e parcerias: ver_parceiros, cadastrar_parceiro, comissao_paga, ver_cupons, criar_cupom
-- Contabilidade: ver_contabilidade, ver_contas, registrar_pagamento (a CONTA decide o lado do caixa; "prestador" = pago na mão da guia, fora do caixa dela)
+- Indicações e cupons (quem traz cliente: agência, influencer): ver_parceiros, cadastrar_parceiro, comissao_paga, ver_cupons, criar_cupom
+- Parceiros (fornecedores: transfer, ingressos, hotel) e os pedidos a eles: ver_fornecedores, cadastrar_fornecedor, pedir_ao_parceiro (devolve a mensagem pronta), pedido_parceiro (confirmado, nº de confirmação)
+- Pipeline passo a passo (em que etapa está cada cliente e o que falta): ver_passo_a_passo
+- Contabilidade: ver_contabilidade (o que entrou), ver_saidas (tudo que sai, líquido e margem), lancar_despesa, ver_contas, registrar_pagamento (a CONTA decide o lado do caixa; "prestador" = pago na mão da guia, fora do caixa dela)
 - Arquivos e Google Drive: registrar_pagamento com anexo (comprovante), arquivar (outro documento). Tudo fica na ficha do cliente e na pasta ${guiaNegocio()} › Clientes › nome do cliente no Google Drive.
 - Meus passeios: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, mudar_tabela (preço por número de pessoas), adicionar_horario, remover_horario
-- Relatórios: ver_relatorio
+- Dashboard: ver_relatorio
 - Cupons: ver_cupons, criar_cupom, apagar_cupom · Bloqueios: bloquear_datas, liberar_datas
 - Ajustes: ver_ajustes, alterar_ajustes, ajustar_termos (termos do orçamento e plantão do voucher), ver_backup, fazer_backup
 - Qualquer tela: abrir_aba — nunca diga "faça na aba X" sem antes tentar a ferramenta; se não houver, abra a aba e diga o que tocar.
@@ -737,7 +812,7 @@ Chame a ferramenta direto: o app mostra o cartão "confirma?". Se ela cancelar, 
 ## Formato
 Português do Brasil, curto. Texto para ela copiar vem pronto. Negrito com parcimônia; nada de tabelas.` },
     { type: 'text', text: `## SITUAÇÃO AGORA (atualizada a cada mensagem)\n${iaAgora()}` },
-    { type: 'text', text: `${linhaHoje()} Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é o protótipo em teste: os clientes, guias e valores são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
+    { type: 'text', text: `${linhaHoje()} Moeda: ${typeof moedaCodigo === 'function' ? moedaCodigo() : 'euro'}.` + (iaModo() === 'vivo' ? ' Isto é o protótipo em teste: os clientes, guias e valores são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
       (mem.length ? '\n\n## Memória (o que ela ensinou)\n' + mem.map(x => `- [${x.id}] ${x.texto}`).join('\n') : '') },
   ];
 };

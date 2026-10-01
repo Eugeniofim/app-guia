@@ -11,6 +11,25 @@
    veria os passeios de um dentro do outro. */
 const DB_KEY = 'yalla_db_v2';
 
+/* ---------- de onde a pessoa veio (R4, perguntas da Milla de 01/10/2026) ----------
+   O robô do WhatsApp/Instagram e a bio mandam o link com ?de=whatsapp,
+   ?de=instagram, ?de=tiktok… A primeira página da visita guarda o canal; a
+   visita, o "quase reservou", a reserva e o pedido levam o canal junto, e o
+   Dashboard mostra a conversão por canal. Sem ?de= = "direto". */
+const CANAIS = [['instagram', 'Instagram'], ['whatsapp', 'WhatsApp'], ['tiktok', 'TikTok'], ['youtube', 'YouTube'], ['google', 'Google'], ['site', 'Site'], ['direto', 'Direto / outro']];
+function canalAtual() {
+  try {
+    const q = new URLSearchParams(location.search);
+    let c = String(q.get('de') || q.get('utm_source') || '').toLowerCase().trim();
+    if (c) { c = c.startsWith('insta') || c === 'ig' ? 'instagram' : c.startsWith('wa') || c.startsWith('whats') ? 'whatsapp' : c.startsWith('tik') ? 'tiktok' : c.startsWith('yt') || c.startsWith('you') ? 'youtube' : c;
+             if (!CANAIS.some(x => x[0] === c)) c = 'direto'; sessionStorage.setItem('yalla_canal', c); return c; }
+    return sessionStorage.getItem('yalla_canal') || 'direto';
+  } catch (e) { return 'direto'; }
+}
+const canalNome = (c) => (CANAIS.find(x => x[0] === c) || [c, c || 'Direto'])[1];
+/* grava o canal já na chegada: o ?de= some quando a pessoa reabre o app */
+if (typeof location !== 'undefined' && typeof sessionStorage !== 'undefined') canalAtual();
+
 /* ---------- modelo ----------
 Tour       {id, type, region, name:{pt,en}, desc:{pt,en}, meeting, photo,
             price, priceMode:'pp'|'session'|'tabela', tabela:[20 valores], min, max,
@@ -271,6 +290,15 @@ function _seed() {
     es: 'Experiencias privadas, inmersiones de negocios y eventos en los Emiratos Árabes Unidos. Cada experiencia es única porque cada historia también lo es.',
   };
   db.settings.links = [];
+  /* as redes e o vídeo do Linktree dela (linktr.ee/yallaexperiences, 01/10/2026) */
+  db.settings.insta2 = 'dubaitourbymilla';
+  db.settings.tiktok = 'https://www.tiktok.com/@dubaitourbymilla';
+  db.settings.youtube = 'https://www.youtube.com/@dubaitourbymilla';
+  db.settings.destaque = { url: 'https://youtube.com/shorts/DY2FT7ia17k',
+    titulo: { pt: 'Dubai como você nunca viu', en: 'Dubai like you have never seen it', es: 'Dubái como nunca la viste' },
+    sub: { pt: 'Venha viver essa experiência com a Yalla Experiences', en: 'Come live this experience with Yalla Experiences', es: 'Ven a vivir esta experiencia con Yalla Experiences' } };
+  /* o destaque FEEDBACK do Instagram dela (vídeos de clientes) */
+  db.settings.feedbackIg = 'https://www.instagram.com/stories/highlights/18113434283494470/';
   db.settings.photo = 'arte/milla-rosto.jpg';
   db.settings.homePhoto = '';   /* o fundo é a geometria da marca (marca.css) */
   db.settings.bio = {
@@ -675,6 +703,8 @@ const Bookings = {
       consent: consent ? { ok: true, at: new Date().toISOString(), src: 'checkout' } : { ok: false },
       payments: [], status: 'confirmed',
       createdAt: new Date().toISOString(), origin: origin || 'site',
+      /* de que canal a pessoa chegou (link com ?de=instagram, ?de=whatsapp…) */
+      canal: (typeof canalAtual === 'function') ? canalAtual() : '',
       /* Em que idioma ele reservou. Sem isto o e-mail de recibo sai em
          portugues para um frances que leu a tela inteira em ingles. */
       lang: (typeof LANG !== 'undefined' && (LANG === 'en' || LANG === 'es')) ? LANG : 'pt',
@@ -838,6 +868,7 @@ const Roteiros = {
       gosto: [...(r.gosto || [])], precisa: [...(r.precisa || [])], ritmo: r.ritmo || '',
       obs: limpa(r.obs), modo: r.modo || '',
       lang: (typeof LANG !== 'undefined' && (LANG === 'en' || LANG === 'es')) ? LANG : 'pt',
+      canal: (typeof canalAtual === 'function') ? canalAtual() : '',
     };
     DB.pedidos = DB.pedidos || [];
     DB.pedidos.push(ped);

@@ -109,6 +109,21 @@ const CONTEUDO = {
     gostoLivre: { negocios: 'Agenda de negócios / visitas técnicas', gastronomia: 'Experiência gastronômica' },
   },
 
+  /* ---------- o Pipeline: o passo a passo de cada cliente ----------
+     Pedido dela (01/10/2026): "pipeline com status do andamento com cliente…
+     monitora o passo a passo do estágio". As etapas andam SOZINHAS pelo que
+     acontece no app (sinal pago, ingressos/transfer/parceiros, guia, o dia). */
+  pipeline: [
+    ['contato',   'Contato',            'pedido chegou'],
+    ['orcamento', 'Orçamento enviado',  'esperando o sinal'],
+    ['confirmado','Confirmado',         'sinal pago — falta comprar ou pedir'],
+    ['compras',   'Ingressos e transfer', 'tudo comprado — falta o guia'],
+    ['guia',      'Guia escalado',      'pronto para o dia'],
+    ['viagem',    'Viagem',             'acontecendo'],
+    ['posvenda',  'Pós-venda',          'avaliação e indicação'],
+    ['perdido',   'Não fechou',         ''],
+  ],
+
   /* ---------- textos-base (ela revisa em Ajustes) ---------- */
   termos: `MODELO — revise e troque pelos seus termos em Ajustes → Termos e condições.
 
@@ -221,7 +236,7 @@ YALLA EXPERIENCES · Travel. Connect. Ascend.
       { quem: ['Mariana Costa', 'mari.costa@email.com', '+55 11 99876 5501'], tourId: 'abu-dhabi-dia', d: 2, time: '08:00', pax: 3,
         sinalPago: 'plat-pix', pres: 'op-g3' },
       { quem: ['Grupo Inova (empresa)', 'viagens@inova.example.com', '+55 11 3333 4405'], tourId: 'iate-marina', d: 3, time: '17:00', pax: 8,
-        pagoTudo: 'conta-dubai', restoPara: 'ingrid', custo: 900, obsOp: 'Empresa: já pagou tudo. A Yalla acerta com o parceiro do barco.' },
+        pagoTudo: 'conta-dubai', restoPara: 'ingrid', obsOp: 'Empresa: já pagou tudo. A Yalla acerta com o parceiro do barco.' },
     ],
     /* respostas das guias para amanhã de manhã */
     disp: [['op-g1', 'ocupada', 'já tem grupo'], ['op-g3', 'livre', 'até 13h'], ['op-g4', 'livre', '']],
@@ -251,6 +266,18 @@ YALLA EXPERIENCES · Travel. Connect. Ascend.
         cliente: 'Grupo Inova (empresa)', veioPor: 'agencia' },
       { nome: 'Carol pelo Mundo (exemplo)', tipo: 'influencer', contato: '@carolpelomundo', cupom: 'CAROL10', desconto: 10, comissao: 8,
         cliente: 'Família Rocha', veioPor: 'influencer' },
+    ],
+    /* os parceiros-fornecedores (aba Parceiros) — exemplos */
+    fornecedores: [
+      { chave: 'transfer', nome: 'Omar Transfers (exemplo)', tipo: 'transfer', whats: '+971 55 100 3001', comissao: 0, obs: 'Sedan, minivan e van. Pedir até 18h do dia anterior.' },
+      { chave: 'ingressos', nome: 'Ingressos Dubai (exemplo)', tipo: 'ingressos', whats: '+971 50 400 1000', comissao: 5, obs: 'Museus, Burj Khalifa, parques.' },
+      { chave: 'hotel', nome: 'Hotel parceiro Downtown (exemplo)', tipo: 'hotel', email: 'reservas@hotel.example.com', comissao: 10 },
+      { chave: 'barco', nome: 'Marina Yachts (exemplo)', tipo: 'passeio', whats: '+971 52 300 2000', comissao: 0 },
+    ],
+    pedidosFor: [
+      { cliente: 'Mariana Costa', tourId: 'abu-dhabi-dia', fornecedor: 'ingressos', tipo: 'ingressos', desc: 'Louvre Abu Dhabi tickets — 3 guests', custo: 189, status: 'apedir' },
+      { cliente: 'Grupo Inova (empresa)', tourId: 'iate-marina', fornecedor: 'barco', tipo: 'passeio', desc: 'Yacht 2h — 8 guests', custo: 900, status: 'confirmado' },
+      { cliente: 'Família Rocha', tourId: 'safari-deserto', fornecedor: 'hotel', tipo: 'hotel', desc: '2 nights, family room', custo: 0, status: 'pedido' },
     ],
     indicacoes: { quem: 'Patrícia Menezes', indicou: ['Roberto Farias', 'Mariana Costa'], pais: 'Brasil (São Paulo)' },
     tarefas: (hoje, ctx) => [
