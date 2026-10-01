@@ -2,6 +2,7 @@
 'use strict';
 
 const STR = {
+  admTarefas:  { pt: 'Tarefas', en: 'Tasks', fr: 'Tâches', it: 'Attività', de: 'Aufgaben', es: 'Tareas' },
   /* hub */
   role:        { pt: '{negocio} · {base}', en: '{negocio} · {base}' },
   tagline:     { pt: 'Passeios guiados em português. Grupos pequenos, no seu ritmo.', en: 'Guided tours in Portuguese. Small groups, at your pace.' },

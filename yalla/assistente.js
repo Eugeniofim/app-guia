@@ -519,6 +519,15 @@ const IA_FERRAMENTAS = [
   { name: 'ensinar_agente', description: 'Treina o agente do WhatsApp/Instagram: tom, respostas prontas (pergunta e resposta), o que nunca dizer, quando passar a conversa para o guia.',
     input_schema: obj({ tom: { type: 'string', enum: ['simp', 'formal', 'leve', 'direto'] }, detalhe: S_(), respostas: { type: 'array', items: obj({ pergunta: S_(), resposta: S_() }, ['pergunta', 'resposta']) },
       nunca: S_(), passar: { type: 'array', items: { type: 'string', enum: ['hReclama', 'hDesconto', 'hGrupo', 'hEspecial'] } } }) },
+  { name: 'ver_tarefas', description: 'Lê as tarefas e notas dela: o que está pra fazer, o que está agendado (com data), as notas soltas e o contato guardado em cada uma.', input_schema: obj() },
+  { name: 'anotar_tarefa', description: 'Anota algo pra ELA fazer. Com data, vira compromisso e aparece em Hoje. Sem data, fica em "Pra fazer". Use quando ela disser "anota pra mim...", "preciso...", "lembra de...".',
+    input_schema: obj({ titulo: S_(), nota: S_('detalhes, se houver'), prioridade: { type: 'string', enum: ['alta', 'media', 'baixa'] }, data: S_('AAAA-MM-DD, só se tiver dia'), hora: S_('HH:MM'), cliente: S_('nome/contato de quem é, se for sobre alguém') }, ['titulo']) },
+  { name: 'anotar_nota', description: 'Guarda uma anotação livre: uma ideia, um recado, ou o CONTATO de um cliente ("anota o cadastro dessa pessoa"). Não é uma tarefa a fazer. Pode ganhar data depois e virar compromisso.',
+    input_schema: obj({ titulo: S_('o resumo da nota'), nota: S_('o conteúdo'), cliente: S_('nome e contato, se for cadastro de cliente') }, ['titulo']) },
+  { name: 'concluir_tarefa', description: 'Marca uma tarefa como feita (id de ver_tarefas).', input_schema: obj({ tarefa_id: S_() }, ['tarefa_id']) },
+  { name: 'mudar_tarefa', description: 'Muda uma tarefa ou nota: texto, prioridade, agendar (pôr data) ou tirar da agenda (data vazia). id de ver_tarefas.',
+    input_schema: obj({ tarefa_id: S_(), titulo: S_(), nota: S_(), prioridade: { type: 'string', enum: ['alta', 'media', 'baixa'] }, data: S_('AAAA-MM-DD, ou "sem" pra tirar da agenda'), hora: S_() }, ['tarefa_id']) },
+  { name: 'apagar_tarefa', description: 'Apaga uma tarefa ou nota (id de ver_tarefas).', input_schema: obj({ tarefa_id: S_() }, ['tarefa_id']) },
   { name: 'guardar_memoria', description: 'Guarda uma regra ou preferência que vale para sempre.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'apagar_memoria', description: 'Apaga um item da memória.', input_schema: obj({ memoria_id: S_() }, ['memoria_id']) },
 ];
@@ -811,6 +820,53 @@ function iaPlano(nome, i) {
     const x = m.memoria.find(x => x.id === i.memoria_id); if (!x) return E_('item não encontrado');
     return { titulo: ia('apagar'), assumiu: [], linhas: [['', x.texto]], fazer: () => { m.memoria = m.memoria.filter(y => y !== x); Mkt.salva(); return { ok: true }; } };
   }
+  if (nome === 'ver_tarefas') {
+    return (DB.tarefas || []).map(x => ({ id: x.id, tipo: x.tipo, titulo: x.titulo, nota: x.nota,
+      prioridade: x.prio, data: x.data || '', hora: x.hora || '', contato: x.cliente || '', feito: !!x.feito }));
+  }
+  if (nome === 'anotar_tarefa') {
+    const tit = String(i.titulo || '').trim(); if (!tit) return E_('sem título');
+    const campos = { titulo: tit, tipo: 'tarefa', nota: String(i.nota || ''), cliente: String(i.cliente || ''),
+      prio: ['alta', 'media', 'baixa'].includes(i.prioridade) ? i.prioridade : 'media',
+      data: /^\d{4}-\d{2}-\d{2}$/.test(i.data || '') ? i.data : '', hora: i.hora || '' };
+    const L = LANG === 'pt';
+    return { titulo: L ? 'Anotar tarefa' : 'Add task', assumiu: [],
+      linhas: [['', tit], ...(campos.data ? [[L ? 'Quando' : 'When', campos.data + (campos.hora ? ' ' + campos.hora : '')]] : []), ...(campos.cliente ? [[L ? 'Contato' : 'Contact', campos.cliente]] : [])],
+      fazer: () => { const x = Tarefas.cria(campos); return { ok: true, tarefa_id: x.id, onde: x.data ? (L ? 'na agenda' : 'scheduled') : (L ? 'em Pra fazer' : 'in To do') }; } };
+  }
+  if (nome === 'anotar_nota') {
+    const tit = String(i.titulo || '').trim(); if (!tit) return E_('sem título');
+    const L = LANG === 'pt';
+    const campos = { titulo: tit, tipo: 'nota', nota: String(i.nota || ''), cliente: String(i.cliente || '') };
+    return { titulo: L ? 'Guardar nota' : 'Save note', assumiu: [],
+      linhas: [['', tit], ...(campos.cliente ? [[L ? 'Contato' : 'Contact', campos.cliente]] : [])],
+      fazer: () => { const x = Tarefas.cria(campos); return { ok: true, tarefa_id: x.id }; } };
+  }
+  if (nome === 'concluir_tarefa') {
+    const x = Tarefas.get(i.tarefa_id); if (!x) return E_('não encontrei');
+    const L = LANG === 'pt';
+    return { titulo: L ? 'Concluir' : 'Complete', assumiu: [], linhas: [['', x.titulo]],
+      fazer: () => { Tarefas.conclui(x.id); return { ok: true }; } };
+  }
+  if (nome === 'mudar_tarefa') {
+    const x = Tarefas.get(i.tarefa_id); if (!x) return E_('não encontrei');
+    const L = LANG === 'pt';
+    const p = {};
+    if (i.titulo) p.titulo = i.titulo;
+    if (i.nota != null) p.nota = i.nota;
+    if (['alta', 'media', 'baixa'].includes(i.prioridade)) p.prio = i.prioridade;
+    if (i.data != null) { p.data = String(i.data) === 'sem' ? '' : (/^\d{4}-\d{2}-\d{2}$/.test(i.data) ? i.data : x.data); if (!p.data) p.hora = ''; if (p.data) p.tipo = 'tarefa'; }
+    if (i.hora != null) p.hora = i.hora;
+    if (!Object.keys(p).length) return E_('nada pra mudar');
+    return { titulo: L ? 'Mudar' : 'Edit', assumiu: [], linhas: [['', x.titulo], ...(p.data ? [[L ? 'Quando' : 'When', p.data + (p.hora || '')]] : [])],
+      fazer: () => { Tarefas.muda(x.id, p); return { ok: true }; } };
+  }
+  if (nome === 'apagar_tarefa') {
+    const x = Tarefas.get(i.tarefa_id); if (!x) return E_('não encontrei');
+    const L = LANG === 'pt';
+    return { titulo: L ? 'Apagar' : 'Delete', assumiu: [], linhas: [['', x.titulo]],
+      fazer: () => { Tarefas.apaga(x.id); return { ok: true }; } };
+  }
   return E_('ferramenta desconhecida');
 }
 IA_TXT.xPasseio = { pt: 'Passeio', en: 'Tour', fr: 'Visite', it: 'Tour', de: 'Tour', es: 'Tour' };
@@ -990,7 +1046,9 @@ Se um pedido tiver várias partes, faça todas e confirme uma por uma, na ordem 
 Se algo estiver estranho no app (vaga sobrando perto da data, reserva sem pagamento, passeio muito visto que não vende), diga em uma linha, sem alarme.
 
 ## O que você faz dentro do app
-Você é o painel inteiro em forma de conversa. Lê: passeios, agenda, vagas, reservas, clientes, cupons, bloqueios, fotos, marketing, relatório (visitas, conversão e receita por passeio), ajustes e o treino do agente de atendimento. Grava, sempre com cartão de confirmação: passeio, preço, horário, bloqueio, cupom, plano de postagem, criativo, anúncio, memória, **reserva (criar, mudar, cancelar), pagamento recebido, perfil do guia e o treino do agente**.
+Você é o painel inteiro em forma de conversa. Lê: passeios, agenda, vagas, reservas, clientes, cupons, bloqueios, fotos, marketing, relatório (visitas, conversão e receita por passeio), ajustes, o treino do agente de atendimento, e **as tarefas e notas dela**. Grava, sempre com cartão de confirmação: passeio, preço, horário, bloqueio, cupom, plano de postagem, criativo, anúncio, memória, **reserva (criar, mudar, cancelar), pagamento recebido, perfil do guia, o treino do agente, e TAREFAS e NOTAS**.
+
+TAREFAS E NOTAS — quando ela disser "anota pra mim...", "preciso...", "lembra de..." é anotar_tarefa (algo pra ela fazer). Com dia, vira compromisso e aparece em Hoje; sem dia, fica em Pra fazer. Quando ela mandar guardar um recado, uma ideia, ou o CONTATO/cadastro de um cliente ("anota o whats da fulana", "guarda esse contato") é anotar_nota. Uma nota pode ganhar data depois (mudar_tarefa) e virar compromisso. NÃO confunda com guardar_memoria, que é regra permanente de como você trabalha.
 Quando o guia contar algo que cabe no app ("fechei com o Pedro no dia 10", "recebi 150 do João por Pix", "mudei o ponto de encontro", "o cliente sempre pergunta X"), ofereça gravar você mesmo, em uma frase, e chame a ferramenta. Vários pedidos numa mensagem: resolva todos, um cartão por ação.
 O que você não sabe (o dado só existe na cabeça dele), pergunte — uma pergunta por vez, a mais importante primeiro.
 

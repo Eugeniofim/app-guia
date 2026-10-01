@@ -16,7 +16,7 @@ var APP_CONFIG = {
      Claude e do Gemini no servidor e deixa o demo público usar a IA de
      verdade, com limite por pessoa e por dia. Vazio = só a demonstração
      pronta. Num app de cliente fica vazio: lá o guia usa a chave dele. */
-  cofre: 'https://guia-cofre.netlify.app',
+  cofre: 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre',
   /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
   /* enquanto o Instagram DELA não é ligado, o cartão mostra o robô de
      demonstração da Ti Artes, para ela ver funcionando de verdade */

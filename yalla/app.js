@@ -1050,6 +1050,7 @@ function renderBook() {
 const ADM_TABS = [
   ['today',    'admToday'],
   ['agenda',   'admAgenda'],
+  ['tarefas',  'admTarefas'],
   ['tours',    'admTours'],
   ['bookings', 'admBookings'],
   ['money',    'admMoney'],
@@ -1130,6 +1131,7 @@ function viewAdm(tab, arg) {
   else if (tab === 'bookings') admBookings();
   else if (tab === 'money')    admMoney();
   else if (tab === 'agenda')   admAgenda();
+  else if (tab === 'tarefas')  admTarefas();
   else if (tab === 'reports')  admReports();
   else if (tab === 'clients')  admClients();
   else if (tab === 'coupons')  admCoupons();
@@ -1161,7 +1163,11 @@ function admToday() {
         const left = Cal.seatsLeft(d.tourId, d.date, d.time, d.capacity);
         return `<div class="deprow"><b class="mono">${d.time}</b><span>${esc(tl(d.tour.name))}</span><span class="pill ${left === 0 ? 'ok' : 'n'}">${d.capacity - left}/${d.capacity}</span></div>`;
       }).join('') : `<p class="empty">${t('noDepToday')}</p>`}
-    </section>`);
+    </section>
+    ${(typeof Tarefas!=='undefined' && Tarefas.deHoje().length) ? `<section class="card">
+      <h3>${LANG==='pt'?'Suas tarefas de hoje':'Your tasks for today'}</h3>
+      ${Tarefas.deHoje().map(x=>`<div class="deprow"><span>${esc(x.titulo)}</span>${x.hora?`<b class="mono">${x.hora}</b>`:''}</div>`).join('')}
+    </section>` : ''}`);
   $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
   Coach.start([
     { sel: '#nb-tours',    txt: { pt: 'Aqui você cria e edita seus passeios — quantos quiser, com o calendário de cada um.', en: 'Create and edit your tours here — as many as you want, each with its own calendar.', fr: 'Créez et modifiez vos visites ici — autant que vous voulez, chacune avec son calendrier.', it: 'Qui create e modificate i vostri tour — quanti volete, ognuno con il suo calendario.', de: 'Hier legen Sie Ihre Touren an und bearbeiten sie — so viele Sie wollen, jede mit eigenem Kalender.', es: 'Aquí creas y editas tus tours — los que quieras, cada uno con su calendario.' } },
