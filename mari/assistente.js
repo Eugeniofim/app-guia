@@ -1840,6 +1840,8 @@ body:has(.coach) #iaFab{display:none!important}
 #iaGaveta{position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:950;display:flex;flex-direction:column;background:var(--surface,#fff);color:var(--ink,#222);
   box-shadow:-8px 0 30px rgba(0,0,0,.18);transform:translateX(105%);transition:transform .22s ease;font-family:var(--f-ui,system-ui)}
 #iaGaveta.aberta{transform:none}
+body.iaSolta #iaGaveta{outline:3px dashed var(--accent,#064c3f);outline-offset:-6px}
+body.iaSolta #iaGaveta::after{content:'Solta aqui — vai pro assistente';position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:rgba(6,76,63,.10);font-weight:800;pointer-events:none}
 #iaGaveta header{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--line,#e5e5e5)}
 #iaGaveta header b{flex:1;font-size:16px}
 #iaGaveta .x{border:0;background:none;font-size:26px;line-height:1;cursor:pointer;color:inherit;min-width:44px;min-height:44px}
@@ -2208,6 +2210,19 @@ function iaDesenha() {
     ta.oninput = () => { ta.style.height = ''; ta.style.height = Math.min(140, ta.scrollHeight) + 'px'; };
     corpo.querySelector('#iaClip').onclick = () => arq.click();
     arq.onchange = async () => { const files = [...arq.files].slice(0, 4 - iaFoto.length); arq.value = ''; for (const file of files) { try { iaFoto.push(await iaReduzFoto(file)); } catch (e) { iaBolha('erro', e.message); } } iaMostraAnexo(); };
+    /* arrastar/soltar em qualquer lugar da tela e Cmd+V de print: a foto vai pro assistente, igual ao clipe
+       (pedido do Eugênio, 01/10/2026 — vale pra todos os apps com assistente) */
+    if (!window.__iaSoltaOk) { window.__iaSoltaOk = true;
+      const pega = async (lista) => { const files = [...lista].filter(f => /^image\//.test(f.type)).slice(0, 4 - iaFoto.length); if (!files.length) return;
+        if (iaEl && iaEl.g && !iaEl.g.classList.contains('aberta')) iaAbre();
+        for (const file of files) { try { iaFoto.push(await iaReduzFoto(file)); } catch (e) {} }
+        iaMostraAnexo(); const t = document.querySelector('#iaTxt'); if (t) t.focus(); };
+      const temArq = (e) => !!(e.dataTransfer && e.dataTransfer.types && [...e.dataTransfer.types].includes('Files'));
+      let tt = null;
+      document.addEventListener('dragover', (e) => { if (!temArq(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; document.body.classList.add('iaSolta'); clearTimeout(tt); tt = setTimeout(() => document.body.classList.remove('iaSolta'), 400); });
+      document.addEventListener('drop', (e) => { if (!temArq(e)) return; e.preventDefault(); clearTimeout(tt); document.body.classList.remove('iaSolta'); pega(e.dataTransfer.files); });
+      document.addEventListener('paste', (e) => { const fs = [...((e.clipboardData && e.clipboardData.items) || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean); if (fs.length) { e.preventDefault(); pega(fs); } });
+    }
     const tc = corpo.querySelector('#iaTiraChave');
     if (tc) tc.onclick = () => { if (!confirm(ia('tirarChave'))) return; localStorage.removeItem(IA_CHAVE); iaAtualizaFab(); iaDesenha(); };
     iaMostraGasto();
