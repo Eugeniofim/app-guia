@@ -642,6 +642,31 @@ function dicasDo(b) {
    Na DEMONSTRACAO (sem banco), semeia guias, contas e o dia de hoje com
    servicos de verdade, para ela fazer o test drive com o painel vivo. */
 const OP_SEED = 1;
+/* ZERAR PARA TRABALHAR: entrega o app limpo para a Ingrid — sem clientes,
+   reservas, guias e parceiros de exemplo — MANTENDO o catálogo de passeios,
+   os preços e os pontos de encontro (que são dados reais dela). Em config.js,
+   semExemplos liga isto para todo aparelho novo; o botão em Ajustes e a
+   migração automática abaixo limpam o aparelho que já viu a demonstração. */
+const RESET_VER = 1;
+const _semExemplos = () => typeof APP_CONFIG !== 'undefined' && !!APP_CONFIG.semExemplos;
+/* cheira a demonstração ainda intacta? (para só auto-limpar quem não começou) */
+function _pareceDemo() {
+  return (DB.equipe || []).some(p => p.id === 'op-m1')
+      || (DB.bookings || []).some(b => b.name === 'Juliana Andrade' || b.name === 'Camila Teixeira');
+}
+/* apaga o que é de exemplo; guarda catálogo, preços, pontos e os ajustes dela */
+function zerarExemplos() {
+  DB.bookings = []; DB.clientes = []; DB.equipe = []; DB.disp = [];
+  DB.parceiros = []; DB.coupons = []; DB.tarefas = []; DB.orcamentos = [];
+  DB.pedidos = []; DB.fichas = {}; DB.interesse = {}; DB.lembretesVistos = {};
+  if (Array.isArray(DB.arquivos)) DB.arquivos = [];
+  if (DB.settings) DB.settings.avaliacoes = [];
+  /* marca para não semear a demonstração de novo */
+  DB.opSeed = OP_SEED; DB.interesseSeed = 1; DB.parceirosSeed = 1; DB.tarefasSeed = 1;
+  DB.cadastroFeito = 1; DB.resetFeito = RESET_VER;
+  _opSave();
+  return { ok: true };
+}
 function opGarante() {
   if (!DB) return;
   DB.equipe = DB.equipe || [];
@@ -657,9 +682,12 @@ function opGarante() {
   DB.parceiros = DB.parceiros || [];
   DB.pontos = DB.pontos || [];
   const demo = DB.demo && !(typeof temNuvem === 'function' && temNuvem());
+  const limpo = _semExemplos();
+  /* pontos de encontro são reais (Vaticano, Coliseu, aeroporto) e ligam ao
+     catálogo: entram mesmo no app zerado */
   if (demo && !DB.pontosSeed) { opSemeiaPontos(); DB.pontosSeed = 1; }
-  if (demo && !DB.interesseSeed) { opSemeiaInteresse(); DB.interesseSeed = 1; }
-  if (demo && (+DB.opSeed || 0) < OP_SEED) {
+  if (demo && !limpo && !DB.interesseSeed) { opSemeiaInteresse(); DB.interesseSeed = 1; }
+  if (demo && !limpo && (+DB.opSeed || 0) < OP_SEED) {
     opSemeiaDemo();
     DB.opSeed = OP_SEED;
   }
@@ -668,12 +696,15 @@ function opGarante() {
     for (const bk of [...DB.bookings].sort((x, y) => String(x.createdAt).localeCompare(String(y.createdAt)))) cadastroDaReserva(bk);
     DB.cadastroFeito = 1;
   }
-  if (demo && !DB.parceirosSeed) { opSemeiaParceiros(); DB.parceirosSeed = 1; }
+  if (demo && !limpo && !DB.parceirosSeed) { opSemeiaParceiros(); DB.parceirosSeed = 1; }
   /* tarefas de exemplo so uma vez, e so na demonstracao */
-  if (demo && !DB.tarefasSeed && typeof opSemeiaTarefas === 'function') {
+  if (demo && !limpo && !DB.tarefasSeed && typeof opSemeiaTarefas === 'function') {
     opSemeiaTarefas();
     DB.tarefasSeed = 1;
   }
+  /* o aparelho dela que já viu a demonstração se limpa sozinho uma vez,
+     só se os dados ainda são os de exemplo (ela ainda não começou) */
+  if (limpo && (+DB.resetFeito || 0) < RESET_VER && _pareceDemo()) { zerarExemplos(); return; }
   _opSave();
 }
 function opSemeiaDemo() {

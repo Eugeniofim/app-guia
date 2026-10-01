@@ -11,6 +11,11 @@ var APP_CONFIG = {
   supabaseUrl: '',   /* ex.: 'https://SEU-PROJETO.supabase.co' */
   supabaseKey: '',   /* a chave "publishable" do projeto; nunca a secreta */
 
+  /* App zerado para a Ingrid trabalhar: começa sem clientes, reservas, guias
+     e parceiros de exemplo. O catálogo de passeios, os preços e os pontos de
+     encontro (dados reais dela) continuam. false = volta a demonstração cheia. */
+  semExemplos: true,
+
   /* Cofre (repositorio guia-cofre, no Supabase do Eugenio): o assistente
      "ao vivo" usa o Claude de verdade por ali, com limite por dia, sem a
      Ingrid colar chave nenhuma. Vazio = o assistente roda so com os pedidos
