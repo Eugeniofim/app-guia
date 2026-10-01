@@ -1970,6 +1970,13 @@ const Painel = {
     const mesmoDia = antDe.slice(0, 8) + hoje.slice(8, 10);
     return { de, ate: hoje, antDe, antAte: mesmoDia > fimAnt ? fimAnt : mesmoDia, nome: 'este mês', ant: 'o mês passado até o mesmo dia', antCurto: 'mês passado' };
   },
+  /* período escolhido à mão (de/até): compara com o período anterior do mesmo tamanho */
+  periodoCustom(de, ate) {
+    const n = _dias(de, ate) + 1;
+    const antAte = addDays(de, -1), antDe = addDays(antAte, -(n - 1));
+    const dd = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+    return { de, ate, antDe, antAte, nome: `${dd(de)} a ${dd(ate)}`, ant: 'o período anterior de mesmo tamanho', antCurto: 'período anterior' };
+  },
   delta(cur, ant) { return ant ? (cur - ant) / ant : (cur ? null : 0); },
   _ativos() { return DB.bookings.filter(b => b.status !== 'cancelled'); },
   recebido(de, ate) {

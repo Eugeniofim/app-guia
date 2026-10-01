@@ -613,3 +613,11 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .pl-card.pl-e-perdido{border-left-color:var(--danger);opacity:.75}
 .pl-vazio{color:var(--ink-3);font-size:var(--fs-2);text-align:center;padding:10px 0}
 .pl-col-perdido{opacity:.9}
+/* ---- período personalizado (Relatórios e Contabilidade) ---- */
+.per-datas{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 16px;font-size:var(--fs-3);color:var(--ink-2)}
+.per-datas .per-lbl{font-weight:var(--t-strong)}
+.per-datas input[type=date]{padding:7px 10px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font:inherit;width:auto}
+/* ---- contabilidade: tiles com mais info ---- */
+.kpi em{display:block;font-style:normal;font-size:var(--fs-2);color:var(--ink-3);margin-top:2px}
+.kpi-forte{border-left:3px solid var(--accent)}
+.kpi b.kpi-warn{color:var(--danger)}

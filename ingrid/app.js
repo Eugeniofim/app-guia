@@ -1437,10 +1437,10 @@ function renderBook() {
 /* A ordem do dia dela (reuniao de 28/09/2026): o que acontece hoje, o que
    chegou pedindo orcamento, quem faz, e so depois o resto. */
 /* O menu em grupos (como o TI ARTES): cada grupo tem um título e as abas.
-   'planilha' não fica no menu — é um lado da aba Orçamentos (atalho cli-seg). */
+   A Planilha (o CRM dela, a planilha mais importante) fica SEMPRE no menu. */
 const ADM_GROUPS = [
   { h: 'O dia a dia',           tabs: [['today', 'admToday'], ['agenda', 'admAgenda'], ['tarefas', 'admTarefas']] },
-  { h: 'Orçamentos e clientes', tabs: [['pipeline', 'admPipeline'], ['consulta', 'admConsulta'], ['clients', 'admClients'], ['bookings', 'admBookings']] },
+  { h: 'Orçamentos e clientes', tabs: [['planilha', 'admPlanilha'], ['pipeline', 'admPipeline'], ['consulta', 'admConsulta'], ['clients', 'admClients'], ['bookings', 'admBookings']] },
   { h: 'Em Roma',               tabs: [['guias', 'admGuias'], ['transfer', 'admTransfer'], ['tours', 'admTours']] },
   { h: 'Dinheiro',              tabs: [['money', 'admMoney'], ['reports', 'admReports'], ['coupons', 'admCoupons']] },
   { h: 'O app',                 tabs: [['look', 'temaTit'], ['settings', 'admSettings']] },

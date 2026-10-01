@@ -788,8 +788,8 @@ function admClientes() {
 function admContabilidade() {
   const S = admContabilidade._s = admContabilidade._s || { mes: isoToday().slice(0, 7), ano: false };
   const hoje = isoToday();
-  const de = S.ano ? S.mes.slice(0, 4) + '-01-01' : S.mes + '-01';
-  const ate = S.ano ? S.mes.slice(0, 4) + '-12-31' : addDays(addDays(S.mes + '-28', 4).slice(0, 7) + '-01', -1);
+  const de = S.modo === 'custom' && S.de ? S.de : S.ano ? S.mes.slice(0, 4) + '-01-01' : S.mes + '-01';
+  const ate = S.modo === 'custom' && S.ate ? S.ate : S.ano ? S.mes.slice(0, 4) + '-12-31' : addDays(addDays(S.mes + '-28', 4).slice(0, 7) + '-01', -1);
   const rows = extratoContas(de, ate);
   const lado = (l) => rows.filter(r => r.lado === l);
   const soma = (a) => a.reduce((s, r) => s + r.amount, 0);
@@ -799,7 +799,11 @@ function admContabilidade() {
   const ac = acertos(de, ate);
   const KIND = { full: 'integral', deposit: 'sinal/parcial', balance: 'restante' };
   const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-  const titulo = S.ano ? 'Ano de ' + S.mes.slice(0, 4) : MESES[+S.mes.slice(5, 7) - 1] + ' de ' + S.mes.slice(0, 4);
+  const dd = (iso) => iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4);
+  const titulo = S.modo === 'custom' ? `${dd(de)} a ${dd(ate)}` : S.ano ? 'Ano de ' + S.mes.slice(0, 4) : MESES[+S.mes.slice(5, 7) - 1] + ' de ' + S.mes.slice(0, 4);
+  /* o que ainda falta repassar a guias/motoristas (acertos não marcados) */
+  const aRepassar = ac.filter(a => a.custo && !a.acertado && a.saldo > 0).reduce((s, a) => s + a.saldo, 0);
+  const seuCaixa = soma(br) + soma(eu);
   const tabela = (lista, vazio) => lista.length ? `<table class="tbl"><thead><tr><th>Data</th><th>Cliente</th><th>Serviço</th><th>Tipo</th><th>Conta</th><th class="right">Valor</th></tr></thead>
     <tbody>${lista.map(r => `<tr><td class="mono">${r.date}</td><td>${esc(r.client)}</td><td>${esc(opNomeServ(r))}</td><td>${KIND[r.kind] || r.kind}</td>
       <td>${esc(r.conta ? Contas.nome(r.conta) : formaPg(r.method))}</td><td class="mono right">${eur(r.amount)}</td></tr>`).join('')}</tbody>
@@ -809,15 +813,18 @@ function admContabilidade() {
     <div class="pagehead"><h1 class="pageh">Contabilidade · ${titulo}</h1>
       <div class="chips">
         <button class="mini" id="ctPrev">←</button>
-        <button class="chip ${!S.ano && S.mes === hoje.slice(0, 7) ? 'on' : ''}" id="ctEste">este mês</button>
-        <button class="chip ${S.ano ? 'on' : ''}" id="ctAno">o ano</button>
+        <button class="chip ${!S.ano && S.modo !== 'custom' && S.mes === hoje.slice(0, 7) ? 'on' : ''}" id="ctEste">este mês</button>
+        <button class="chip ${S.ano && S.modo !== 'custom' ? 'on' : ''}" id="ctAno">o ano</button>
         <button class="mini" id="ctNext">→</button>
         <button class="mini" id="ctPrint">imprimir / PDF</button>
       </div></div>
+    <div class="per-datas"><span class="per-lbl">Ou escolha o período:</span><input type="date" id="ctDe" value="${esc(S.modo === 'custom' ? de : '')}" aria-label="de"><span>até</span><input type="date" id="ctAte" value="${esc(S.modo === 'custom' ? ate : '')}" aria-label="até"><button class="mini ${S.modo === 'custom' ? 'strong' : ''}" id="ctVer">ver</button></div>
     <div class="kpis">
+      <div class="kpi kpi-forte"><small>Seu caixa (Brasil + Europa)</small><b>${eur(seuCaixa)}</b><em>${rows.filter(r => r.lado !== 'prestador').length} pagamento(s)</em></div>
       <div class="kpi"><small>🇧🇷 Brasil</small><b>${eur(soma(br))}</b></div>
       <div class="kpi"><small>🇪🇺 Europa</small><b>${eur(soma(eu))}</b></div>
-      <div class="kpi"><small>Recebido direto por guias/motoristas</small><b>${eur(soma(pr))}</b></div>
+      <div class="kpi"><small>A repassar a guias/motoristas</small><b class="${aRepassar > 0 ? 'kpi-warn' : ''}">${eur(aRepassar)}</b><em>${aRepassar > 0 ? 'ainda não acertado' : 'tudo em dia'}</em></div>
+      <div class="kpi"><small>Pago na mão às guias no dia</small><b>${eur(soma(pr))}</b><em>fora do seu caixa</em></div>
     </div>
     <section class="card">
       <h3>Por conta</h3>
@@ -845,11 +852,12 @@ function admContabilidade() {
       </tbody></table>` : '<p class="empty">Nenhum serviço com guia ou motorista no período.</p>'}
       <div class="btnrow"><button class="mini" id="csvAc">baixar acertos (CSV)</button><button class="mini" id="csvTudo">baixar tudo (CSV)</button></div>
     </section>`);
-  const mudaMes = (n) => { const d = new Date(S.mes + '-15T12:00:00'); d.setMonth(d.getMonth() + (S.ano ? n * 12 : n)); S.mes = d.toISOString().slice(0, 7); admContabilidade(); };
+  const mudaMes = (n) => { S.modo = ''; const d = new Date(S.mes + '-15T12:00:00'); d.setMonth(d.getMonth() + (S.ano ? n * 12 : n)); S.mes = d.toISOString().slice(0, 7); admContabilidade(); };
   $('#ctPrev').onclick = () => mudaMes(-1);
   $('#ctNext').onclick = () => mudaMes(1);
-  $('#ctEste').onclick = () => { S.mes = hoje.slice(0, 7); S.ano = false; admContabilidade(); };
-  $('#ctAno').onclick = () => { S.ano = !S.ano; admContabilidade(); };
+  $('#ctEste').onclick = () => { S.modo = ''; S.mes = hoje.slice(0, 7); S.ano = false; admContabilidade(); };
+  $('#ctAno').onclick = () => { S.modo = ''; S.ano = !S.ano; admContabilidade(); };
+  $('#ctVer') && ($('#ctVer').onclick = () => { const d1 = $('#ctDe').value, d2 = $('#ctAte').value; if (!d1 || !d2 || d1 > d2) return toast('Escolha as duas datas (de ≤ até)'); S.modo = 'custom'; S.de = d1; S.ate = d2; admContabilidade(); });
   $('#ctPrint').onclick = () => print();
   const cab = ['Data', 'Cliente', 'Serviço', 'Tipo', 'Conta', 'Lado', 'Valor (EUR)', 'Código'];
   const lin = (l) => l.map(r => [r.date, r.client, opNomeServ(r), KIND[r.kind] || r.kind, r.conta ? Contas.nome(r.conta) : formaPg(r.method), r.lado, String(r.amount).replace('.', ','), r.code]);
@@ -1771,7 +1779,7 @@ function rpLigaDicas(raiz) {
 function admRelatorios() {
   const S = admRelatorios._s = admRelatorios._s || { p: 'mes' };
   const hoje = isoToday();
-  const P = Painel.periodo(S.p, hoje);
+  const P = (S.p === 'custom' && S.de && S.ate) ? Painel.periodoCustom(S.de, S.ate) : Painel.periodo(S.p, hoje);
   const rec = Painel.recebido(P.de, P.ate), recA = Painel.recebido(P.antDe, P.antAte);
   const ven = Painel.vendido(P.de, P.ate), venA = Painel.vendido(P.antDe, P.antAte);
   const srv = Painel.servicos(P.de, P.ate), srvA = Painel.servicos(P.antDe, P.antAte);
@@ -1787,8 +1795,11 @@ function admRelatorios() {
   const ant = Painel.antecedencia(P.de, P.ate);
   const ticket = ven.n ? ven.valor / ven.n : 0, ticketA = venA.n ? venA.valor / venA.n : 0;
   const sem12 = (fn) => Painel.semanas(12, hoje, fn).map(s => s.v);
+  const semEntre = (de, ate, fn) => { const out = []; let a = de; while (a <= ate && out.length < 27) { const z = addDays(a, 6), zz = z > ate ? ate : z; out.push({ de: a, ate: zz, v: fn(a, zz) }); a = addDays(z, 1); } return out; };
   const entrada = S.p === 'ano'
     ? Painel.meses(+hoje.slice(0, 4), (a, z) => Painel.recebido(a, z > hoje ? hoje : z).voce).map((m, i) => ({ ...m, destaque: i === +hoje.slice(5, 7) - 1 }))
+    : S.p === 'custom'
+    ? semEntre(P.de, P.ate, (a, z) => Painel.recebido(a, z).voce).map((s, i, arr) => ({ ...s, destaque: i === arr.length - 1 }))
     : Painel.semanas(12, hoje, (a, z) => Painel.recebido(a, z).voce).map((s, i, arr) => ({ ...s, destaque: i === arr.length - 1 }));
   const futTot = fut.reduce((s, f) => s + f.total, 0), futPago = fut.reduce((s, f) => s + f.pago, 0);
   const DIAS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
@@ -1815,6 +1826,7 @@ function admRelatorios() {
     <div class="pagehead"><h1 class="pageh">Relatórios</h1>
       <div class="chips">${[['semana', '7 dias'], ['mes', 'Este mês'], ['90', '90 dias'], ['ano', 'Este ano']].map(([v, l]) =>
         `<button class="chip ${S.p === v ? 'on' : ''}" data-rp="${v}">${l}</button>`).join('')}</div></div>
+    <div class="per-datas"><span class="per-lbl">Ou escolha o período:</span><input type="date" id="rpDe" value="${esc(S.de || '')}" aria-label="de"><span>até</span><input type="date" id="rpAte" value="${esc(S.ate || '')}" aria-label="até"><button class="mini ${S.p === 'custom' ? 'strong' : ''}" id="rpVer">ver</button></div>
     <p class="why rp-per">${fmtDate(P.de)} a ${fmtDate(P.ate)} · comparado com ${esc(P.ant)} (${opCurta(P.antDe)} a ${opCurta(P.antAte)})</p>
 
     <section class="card rp-hero">
@@ -1825,7 +1837,7 @@ function admRelatorios() {
         <span class="rp-extra">${rec.n} ${rec.n === 1 ? 'pagamento' : 'pagamentos'}${rec.prest ? ` · + ${rpEur(rec.prest)} pagos direto às guias e motoristas` : ''}</span>
       </div>
       <div class="rp-hero-graf">
-        <span class="op-lbl">${S.p === 'ano' ? 'Mês a mês' : 'Semana a semana · últimas 12'}</span>
+        <span class="op-lbl">${S.p === 'ano' ? 'Mês a mês' : S.p === 'custom' ? 'Semana a semana no período' : 'Semana a semana · últimas 12'}</span>
         <div id="rpEntrada" class="rp-plot"></div>
       </div>
       <div class="rp-full">${rpTabela([S.p === 'ano' ? 'Mês' : 'Semana', 'Entrou'], entrada.map(e => [S.p === 'ano' ? e.rot : `${opCurta(e.de)} a ${opCurta(e.ate)}`, eur(e.v)]))}</div>
@@ -1942,6 +1954,7 @@ function admRelatorios() {
     </div>`;
   $('#stage').appendChild(extra);
   $$('[data-rp]').forEach(b => b.onclick = () => { S.p = b.dataset.rp; admRelatorios(); });
+  $('#rpVer') && ($('#rpVer').onclick = () => { const de = $('#rpDe').value, ate = $('#rpAte').value; if (!de || !ate || de > ate) return toast('Escolha as duas datas (de ≤ até)'); S.de = de; S.ate = ate; S.p = 'custom'; admRelatorios(); });
   const desenha = () => {
     rpColunas($('#rpEntrada'), entrada.map(e => ({ rot: e.rot, v: e.v, destaque: e.destaque,
       tip: [eur(e.v), S.p === 'ano' ? e.rot + ' ' + hoje.slice(0, 4) : `semana de ${opCurta(e.de)} a ${opCurta(e.ate)}`] })), { h: 180 });
