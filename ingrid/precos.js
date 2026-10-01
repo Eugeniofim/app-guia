@@ -105,4 +105,34 @@ const Precos = {
     return Object.assign({ desc: Precos.descLinha(t, s, c), pax: c.paxN, valor: c.preco, custo: c.custo, sinal: c.sinal,
       obs: b.tipo === 'guia' && c.ingressos ? `ingressos à parte: ${_prEur(c.ingressos)}/pessoa` : '', precoRef: ref }, extra || {});
   },
+
+  /* ---------- pro ASSISTENTE ler a tabela ---------- */
+  /* o que existe (nomes das tabelas e seções) */
+  resumo() {
+    return Precos.all().map(t => ({ tabela: t.id, nome: t.nome, tipo: Precos.base(t).tipo, desconto_pct: Precos.descontoPct(t) || undefined, secoes: Precos.secoesView(t).map(s => s.titulo) }));
+  },
+  /* acha as linhas certas: tabela (transfer | guia | bv | transfer-roma-5), pessoas, e um
+     texto pra filtrar seção/veículo/duração ("aeroporto", "civitavecchia", "vaticano", "van", "4 horas") */
+  acha(q) {
+    q = q || {};
+    const n = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const qt = n(q.tabela), qs = n(q.secao), qx = n(q.texto), px = +q.pessoas || 0;
+    const out = [];
+    for (const t of Precos.all()) {
+      /* "transfer" = só a Transfer Roma; a 5% (derivada) só entra se pedida (id ou "5") */
+      const casa = !qt || t.id === q.tabela || (t.derivaDe ? /5/.test(qt) : (n(t.nome).includes(qt) || Precos.base(t).tipo === qt));
+      if (!casa) continue;
+      for (const s of Precos.secoesView(t)) {
+        if (qs && !n(s.titulo).includes(qs)) continue;
+        for (const c of s.linhas) {
+          const cabe = !px || c.paxN === px || (px === 1 && c.paxN === 2 && /1 ou 2/i.test(c.pax)) || (/^at[eé]\s/i.test(c.pax) && px <= c.paxN);
+          if (!cabe) continue;
+          if (qx && !n([s.titulo, c.pax, c.veic, c.dur].join(' ')).includes(qx)) continue;
+          out.push({ ref: `${t.id}|${s.id}|${c.ref}`, tabela: t.nome, secao: s.titulo, pessoas: c.pax, veiculo: c.veic || undefined, duracao: c.dur || undefined,
+            preco: c.preco, por_pessoa: c.porPessoa, sinal: c.sinal, custo: c.custo, cartao: c.cartao, noturno: c.noturno, noturno_cartao: c.noturnoCartao, ingressos_por_pessoa: c.ingressos || undefined });
+        }
+      }
+    }
+    return out;
+  },
 };

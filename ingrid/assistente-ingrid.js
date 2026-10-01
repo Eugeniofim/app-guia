@@ -87,7 +87,7 @@ function ingServ(b) {
     paga_no_dia: nd.valor ? `${nd.valor} € ${nd.para === 'prestador' ? 'para quem faz o serviço' : 'para a Ingrid'}` : 'nada',
     obs: b.obsOp || '', situacao: b.status === 'cancelled' ? 'cancelada' : 'confirmada' };
 }
-const ING_ABAS = ['today', 'planilha', 'consulta', 'tarefas', 'guias', 'transfer', 'agenda', 'bookings', 'clients', 'money', 'tours', 'reports', 'coupons', 'look', 'settings'];
+const ING_ABAS = ['today', 'planilha', 'pipeline', 'consulta', 'tarefas', 'guias', 'transfer', 'agenda', 'bookings', 'clients', 'money', 'tours', 'precos', 'voucher', 'reports', 'coupons', 'look', 'settings'];
 const ING_TURNOS = ['manha', 'tarde', 'noite', 'dia'];
 
 /* ---------- 2. as ferramentas das abas dela ---------- */
@@ -129,9 +129,11 @@ const ING_FERRAMENTAS = [
   { name: 'detalhes_servico', description: 'Voo/trem, onde buscar, para onde levar, observação, quanto ela paga a quem faz (custo) e quem recebe o resto (no_dia = a guia/motorista recebe do cliente; ingrid = ela recebe e acerta).', input_schema: obj({ codigo: S_(), voo: S_(), buscar_em: S_(), levar_para: S_(), obs: S_(), custo: N_(), resto: { type: 'string', enum: ['no_dia', 'ingrid'] } }, ['codigo']) },
   { name: 'registrar_pagamento', description: 'Registra dinheiro recebido numa reserva, na conta certa (define Brasil ou Europa na contabilidade). "prestador" = o cliente pagou na mão da guia/motorista. Sem valor = o que falta. Se ela não disse a conta, PERGUNTE.', input_schema: obj({ codigo: S_(), valor: N_(), conta: S_('id de ver_contas ou "prestador"'), anexo: S_('ref do comprovante que ela mandou no chat (anexo1…): fica na ficha e na pasta do cliente no Google Drive') }, ['codigo', 'conta']) },
   { name: 'arquivar', description: 'Guarda um arquivo que ela mandou no chat (anexo1…) na ficha do cliente e na pastinha dele no Google Drive (EmRoma › Clientes › nome). Para comprovante de pagamento use registrar_pagamento com anexo — ele já arquiva.', input_schema: obj({ anexo: S_('anexo1, anexo2…'), cliente: S_('nome, código da reserva ou WhatsApp'), descricao: S_('o que é: passaporte, voucher do hotel, bilhete de trem…') }, ['anexo', 'cliente']) },
-  { name: 'criar_orcamento', description: 'Cria orçamento sob consulta com vários serviços; preço da tabela dela quando for serviço do catálogo (passeio_id de ver_passeios).', input_schema: obj({ cliente: S_(), whats: S_(), email: S_(), itens: { type: 'array', items: obj({ passeio_id: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_() }) }, sinal_pct: N_(), obs: S_() }, ['cliente']) },
+  { name: 'criar_orcamento', description: 'Cria orçamento sob consulta com vários serviços. Para transfer, guia ou bate-e-volta use preco_ref (de ver_precos): valor, SINAL e custo entram certos da Tabela de preços. passeio_id (de ver_passeios) para o catálogo de passeios. Para MUDAR um orçamento que já existe use editar_orcamento — não crie outro.', input_schema: obj({ cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_('ex.: 2 adultos + 1 bebê (bebê conta como pessoa)'), bagagem: S_('ex.: 2 malas 23kg + 1 de bordo + carrinho de bebê'), itens: { type: 'array', items: obj({ preco_ref: S_('ref de ver_precos — traz valor, sinal e custo da tabela'), passeio_id: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_() }) }, sinal_pct: N_(), obs: S_() }, ['cliente']) },
   { name: 'ler_conversa', description: 'Lê uma conversa colada do WhatsApp/Instagram/e-mail e monta o rascunho do orçamento + a anotação com o resumo. Nunca responde o cliente.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'mudar_orcamento', description: 'Muda situação, validade ou % de sinal de um orçamento.', input_schema: obj({ numero: S_(), situacao: { type: 'string', enum: ['rascunho', 'enviado', 'perdido'] }, validade: S_(), sinal_pct: N_() }, ['numero']) },
+  { name: 'ver_precos', description: 'LÊ a Tabela de preços dela (as 4 abas do Excel: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma). Acha a linha certa por número de pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão (+10%) e noturno, com um ref para usar em preco_ref. Sem filtro, lista as tabelas e seções.', input_schema: obj({ tabela: { type: 'string', enum: ['transfer', 'transfer-roma-5', 'guia', 'bv'] }, pessoas: { type: 'integer', description: 'quantas pessoas (bebê e criança contam)' }, texto: S_('filtra por seção/veículo/duração: aeroporto, civitavecchia, termini, outlet, roma antiga, vaticano, walking, carro, minivan, van, 3 horas, 4 horas…') }) },
+  { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar'] }, item: S_('qual serviço: 1, 2… ou pedaço da descrição (para mudar/tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
   { name: 'fechar_orcamento', description: 'O cliente fechou: cada serviço do catálogo vira reserva com o sinal; registra o sinal na conta se já caiu.', input_schema: obj({ numero: S_(), sinal_recebido: { type: 'boolean' }, conta: S_() }, ['numero', 'sinal_recebido']) },
   { name: 'ajustar_termos', description: 'Termos e condições do orçamento e o número de plantão do voucher.', input_schema: obj({ termos: S_(), plantao: S_() }) },
   { name: 'orcamento_do_roteiro', description: 'Monta o rascunho de orçamento a partir de um pedido do "Monte seu roteiro" (veja pedidos_de_roteiro em ver_orcamentos).', input_schema: obj({ pedido: S_('id ou nome de quem pediu') }, ['pedido']) },
@@ -152,6 +154,15 @@ const ING_FERRAMENTAS = [
 IA_FERRAMENTAS.push(...ING_FERRAMENTAS);
 
 const ING_LER = {
+  ver_precos(i) {
+    if (typeof Precos === 'undefined') return E_('a Tabela de preços não carregou');
+    const q = { tabela: i.tabela, pessoas: i.pessoas, texto: i.texto };
+    if (!q.tabela && !q.pessoas && !q.texto) return { tabelas: Precos.resumo(), dica: 'chame de novo com tabela, pessoas e/ou texto para ver as linhas com valor e sinal' };
+    const l = Precos.acha(q);
+    if (!l.length) return { nada: 'nenhuma linha com esse filtro', tabelas: Precos.resumo() };
+    return { linhas: l.slice(0, 40), total_achado: l.length, como_usar: 'passe o ref em preco_ref (criar_orcamento ou editar_orcamento): valor, sinal e custo entram certos',
+      regras: 'sinal = preço − custo (a margem dela); cartão = +10%; noturno (21h–6h) = +€30 por veículo; bebê e criança contam como pessoa; a "Transfer Roma 5%" (preço com desconto) só quando ela pedir desconto — o normal é Transfer Roma' };
+  },
   ver_hoje(i) {
     const d = isoOk(i.data) ? i.data : hojeIso();
     const l = Op.doDia(d).map(ingServ);
@@ -428,20 +439,28 @@ const ING_PLANO = {
   },
   criar_orcamento(i) {
     if (!String(i.cliente || '').trim()) return E_('faltou o nome do cliente');
-    const itens = [];
+    const itens = [], assumiu = [];
     for (const it of i.itens || []) {
-      if (it.passeio_id) {
+      if (it.preco_ref && typeof Precos !== 'undefined') {
+        /* a linha certa da Tabela de preços: valor, sinal (= preço − custo) e custo vêm de lá */
+        const n = Precos.itemOrc(it.preco_ref, { data: isoOk(it.data) ? it.data : '', hora: it.hora || '' }); if (!n) return E_(`preco_ref ${it.preco_ref} não existe — use ver_precos`);
+        if (it.pessoas) n.pax = +it.pessoas;
+        if (+it.valor > 0) { n.valor = +it.valor; n.sinal = Math.max(0, n.valor - (n.custo || 0)); }
+        itens.push(Orc._item(n)); assumiu.push('valor, sinal e custo da Tabela de preços');
+      } else if (it.passeio_id) {
         const x = Tours.get(it.passeio_id); if (!x) return E_(`passeio ${it.passeio_id} não existe — use ver_passeios`);
         const n = Orc.itemDoCatalogo(it.passeio_id, { pax: it.pessoas || 2, data: isoOk(it.data) ? it.data : '', hora: it.hora });
         if (+it.valor > 0) n.valor = +it.valor;
-        itens.push(n);
-      } else if (it.descricao) itens.push(Orc._item({ desc: it.descricao, pax: it.pessoas || 2, data: isoOk(it.data) ? it.data : '', valor: +it.valor || 0 }));
+        itens.push(n); assumiu.push('preços do catálogo de passeios');
+      } else if (it.descricao) itens.push(Orc._item({ desc: it.descricao, pax: it.pessoas || 2, data: isoOk(it.data) ? it.data : '', hora: it.hora || '', valor: +it.valor || 0 }));
     }
     const o0 = { itens, sinalPct: i.sinal_pct != null ? +i.sinal_pct : 30 };
-    return { titulo: 'Criar orçamento', assumiu: itens.some(x => x.tourId && !(i.itens || []).find(y => y.passeio_id === x.tourId && +y.valor > 0)) ? ['preços da sua tabela'] : [],
-      linhas: [['Cliente', i.cliente], ...itens.slice(0, 8).map(x => [x.data ? ingData(x.data) : '—', `${x.desc} · ${x.pax}p · ${x.valor ? eur(x.valor) : 'a definir'}`]), ['Total', eur(Orc.total(o0))], ['Sinal', eur(Orc.sinal(o0))]],
+    return { titulo: 'Criar orçamento', assumiu: [...new Set(assumiu)],
+      linhas: [['Cliente', i.cliente], ...(i.pessoas_nota ? [['Pessoas', i.pessoas_nota]] : []), ...(i.bagagem ? [['Bagagem', i.bagagem]] : []),
+        ...itens.slice(0, 8).map(x => [x.data ? ingData(x.data) : '—', `${x.desc} · ${x.pax}p · ${x.valor ? eur(x.valor) : 'a definir'}${x.sinal ? ' · sinal ' + eur(x.sinal) : ''}`]), ['Total', eur(Orc.total(o0))], ['Sinal', eur(Orc.sinal(o0))]],
       fazer: () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho', cliente: { nome: i.cliente, whats: i.whats, email: i.email }, itens, sinalPct: o0.sinalPct, obs: i.obs || '' });
-        return { ok: true, numero: o.num, lembrete: 'ela confere e manda pelo botão da aba Sob consulta — você não manda nada para o cliente' }; } };
+        if (i.bagagem || i.pessoas_nota) Orc.salva({ id: o.id, bagagem: i.bagagem || '', paxNota: i.pessoas_nota || '' });
+        return { ok: true, numero: o.num, lembrete: `para mudar qualquer coisa depois use editar_orcamento no ${o.num} — não crie outro; ela confere e manda pelo botão (você não manda nada para o cliente)` }; } };
   },
   ler_conversa(i) {
     const c = lerConversa(i.texto); const itens = rascunhoDaConversa(c);
@@ -450,6 +469,45 @@ const ING_PLANO = {
       fazer: () => { const o = Orc.cria({ origem: 'whats', status: 'rascunho', cliente: { nome: c.nome, whats: c.whats }, conversa: i.texto, resumo: c.resumo, pax: c.pax, datas: c.datas, itens });
         Tarefas.cria({ tipo: 'nota', origem: 'whats', texto: `Resumo do WhatsApp — ${c.nome || 'cliente novo'}`, detalhe: c.resumo, orcId: o.id, clienteNome: c.nome, whats: c.whats });
         return { ok: true, numero: o.num }; } };
+  },
+  editar_orcamento(i) {
+    const r = ingAchaOrc(i.numero); if (!r.o) return r;
+    const o = r.o, itens = o.itens.map(x => ({ ...x })), cli = { ...o.cliente }, linhas = [['Orçamento', `${o.num} · ${o.cliente.nome}`]];
+    if (i.cliente) { cli.nome = i.cliente; linhas.push(['Cliente', i.cliente]); }
+    if (i.whats) { cli.whats = i.whats; linhas.push(['WhatsApp', i.whats]); }
+    if (i.email) { cli.email = i.email; linhas.push(['E-mail', i.email]); }
+    const lista = () => itens.map((y, k) => (k + 1) + '. ' + y.desc).join(' · ');
+    const acha = (q) => { const s = String(q || '').trim(); if (/^\d+$/.test(s)) return itens[+s - 1]; return itens.find(x => ingN(x.desc).includes(ingN(s))); };
+    for (const it of i.itens || []) {
+      if (it.acao === 'tirar') {
+        const x = acha(it.item); if (!x) return E_(`não achei o serviço "${it.item}" — os serviços são: ${lista()}`);
+        itens.splice(itens.indexOf(x), 1); linhas.push(['Tira', x.desc]);
+      } else if (it.acao === 'adicionar') {
+        let n = null;
+        if (it.preco_ref && typeof Precos !== 'undefined') { n = Precos.itemOrc(it.preco_ref, { data: isoOk(it.data) ? it.data : '', hora: it.hora || '' }); if (!n) return E_('preco_ref não existe — use ver_precos'); if (it.pessoas) n.pax = +it.pessoas; }
+        else if (it.descricao) n = { desc: it.descricao, pax: it.pessoas || o.pax || 2, data: isoOk(it.data) ? it.data : '', hora: it.hora || '', valor: +it.valor || 0, sinal: it.sinal != null ? +it.sinal : null };
+        else return E_('para adicionar, passe preco_ref (de ver_precos) ou descricao');
+        if (+it.valor > 0) { n.valor = +it.valor; if (n.custo != null && it.sinal == null) n.sinal = Math.max(0, n.valor - (n.custo || 0)); }
+        if (it.sinal != null) n.sinal = +it.sinal;
+        itens.push(Orc._item(n)); linhas.push(['Adiciona', `${n.desc} · ${n.pax}p · ${n.valor ? eur(n.valor) : 'a definir'}`]);
+      } else {
+        const x = acha(it.item); if (!x) return E_(`não achei o serviço "${it.item}" — os serviços são: ${lista()}`);
+        if (it.preco_ref && typeof Precos !== 'undefined') { const n = Precos.itemOrc(it.preco_ref); if (!n) return E_('preco_ref não existe — use ver_precos'); Object.assign(x, { desc: n.desc, valor: n.valor, custo: n.custo, sinal: n.sinal, precoRef: n.precoRef, obs: n.obs || x.obs }); if (!it.pessoas) x.pax = n.pax; }
+        if (it.descricao) x.desc = it.descricao; if (isoOk(it.data)) x.data = it.data; if (it.hora) x.hora = it.hora; if (it.pessoas) x.pax = +it.pessoas;
+        if (+it.valor > 0) { x.valor = +it.valor; if (x.custo != null && it.sinal == null) x.sinal = Math.max(0, x.valor - (x.custo || 0)); }
+        if (it.sinal != null) x.sinal = +it.sinal;
+        linhas.push(['Muda', `${x.desc} · ${x.data ? ingData(x.data) : '—'}${x.hora ? ' ' + x.hora : ''} · ${x.pax}p · ${x.valor ? eur(x.valor) : 'a definir'}`]);
+      }
+    }
+    if (i.obs != null) linhas.push(['Obs', i.obs]);
+    if (i.bagagem != null) linhas.push(['Bagagem', i.bagagem]);
+    if (i.pessoas_nota != null) linhas.push(['Pessoas', i.pessoas_nota]);
+    if (linhas.length === 1) return E_('nada para mudar');
+    const o1 = { ...o, itens };
+    linhas.push(['Total', eur(Orc.total(o1))], ['Sinal', eur(Orc.sinal(o1))]);
+    return { titulo: `Mudar o orçamento ${o.num}`, assumiu: [], linhas,
+      fazer: () => { Orc.salva({ id: o.id, cliente: cli, itens, ...(i.obs != null ? { obs: i.obs } : {}), ...(i.bagagem != null ? { bagagem: i.bagagem } : {}), ...(i.pessoas_nota != null ? { paxNota: i.pessoas_nota } : {}) });
+        return { ok: true, numero: o.num, lembrete: 'o mesmo orçamento foi atualizado — nenhum novo foi criado' }; } };
   },
   mudar_orcamento(i) {
     const r = ingAchaOrc(i.numero); if (!r.o) return r;
@@ -630,7 +688,9 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 
 ## VOCÊ ALCANÇA TODAS AS ABAS
 - Hoje (serviços do dia, emergência): ver_hoje, buscar, detalhes_servico, escalar, registrar_pagamento
-- Sob consulta (orçamentos): ver_orcamentos, ler_conversa (conversa colada → rascunho), criar_orcamento, mudar_orcamento, fechar_orcamento
+- Orçamentos (Sob consulta): ver_orcamentos, ler_conversa (conversa colada → rascunho), criar_orcamento, editar_orcamento (MUDA o que já existe: cliente, serviços, datas, valores, bagagem, pessoas), mudar_orcamento (situação/validade/% sinal), fechar_orcamento
+- TABELA DE PREÇOS (as 4 abas do Excel dela: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma): ver_precos acha a linha certa por pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão e noturno, com um ref. VOCÊ LÊ ESSA TABELA — nunca peça o valor ou o sinal a ela: consulte ver_precos e passe o ref em preco_ref.
+- Voucher (o texto de cada reserva, que se monta sozinho) e Pipeline (kanban dos pedidos): abrir_aba voucher / pipeline
 - Planilha (o CRM dela, linha por serviço, igual ao Google Planilhas): ver_crm lê TODAS as colunas (filtre por cliente/mês); ver_painel dá os números e o "precisa de você"; para mudar use mudar_orcamento, fechar_orcamento, registrar_pagamento, marcar_perdido ou abrir_aba planilha
 - Transfer (New Star Limousine — SÓ transfers de Roma; os de fora de Roma são com outro fornecedor): ver_transfers (inclui os dados prontos para colar na plataforma)
 - ⭐ Avaliações do site: ver_avaliacoes
@@ -663,6 +723,13 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Outro arquivo do cliente (passaporte, bilhete, voucher do hotel) → arquivar.
 - Conversa de cliente colada → ler_conversa.
 - Regra de trabalho dela para você lembrar sempre → guardar_memoria.
+
+## ORÇAMENTO — COMO ELA TRABALHA (tudo se conversa)
+- Transfer, guia ou bate-e-volta → ver_precos (pessoas + serviço) e passe o ref em preco_ref: valor, SINAL e custo entram certos da Tabela de preços. Sem ref, não invente preço nem sinal.
+- Bebê ou criança CONTA como pessoa (entra no número de pessoas da tabela). Escreva no pessoas_nota ("2 adultos + 1 bebê") e lembre de perguntar se tem carrinho de bebê e quantas malas (bagagem) — isso muda o veículo.
+- Ela pediu uma mudança num orçamento que já existe → editar_orcamento NO MESMO NÚMERO. Nunca crie um segundo orçamento para o mesmo pedido.
+- O orçamento que vai pro cliente nunca mostra o custo (só valor, sinal e o que paga no dia).
+- Nunca diga que não consegue ler a tabela ou uma aba: ver_precos, ver_crm, ver_tudo e procurar leem tudo.
 
 ## Gravar
 Chame a ferramenta direto: o app mostra o cartão "confirma?". Se ela cancelar, não grave e não insista. Na dúvida entre dois registros (duas "Juliana"), a ferramenta devolve as opções: pergunte qual — nunca chute. Datas em AAAA-MM-DD. Nunca invente preço, data, voo ou valor recebido.

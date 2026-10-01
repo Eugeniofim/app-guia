@@ -1358,6 +1358,7 @@ function opMsgOrc(o) {
   const tot = Orc.total(o), sin = Orc.sinal(o);
   const l = [`Olá${nome ? ' ' + nome : ''}! Segue o seu orçamento ${o.num} — ${guiaNegocio()}`, ''];
   o.itens.forEach((i, n) => l.push(`${n + 1}. ${i.desc}${i.data ? ' — ' + opCurta(i.data) + (i.hora ? ' ' + i.hora : '') : ''} · ${i.pax} ${i.pax > 1 ? 'pessoas' : 'pessoa'} — ${i.valor ? eur(i.valor) : 'a definir'}`));
+  if (o.paxNota || o.bagagem) l.push('', [o.paxNota && 'Pessoas: ' + o.paxNota, o.bagagem && 'Bagagem: ' + o.bagagem].filter(Boolean).join(' · '));
   l.push('', `Total: ${eur(tot)}`);
   if (sin) l.push(`Para reservar: sinal de ${eur(sin)}. O restante (${eur(Math.max(0, tot - sin))}) é pago no dia, a quem faz cada serviço.`);
   const formas = [DB.settings.pixKey && 'Pix', DB.settings.wiseLink && 'Wise', DB.settings.iban && 'transferência (IBAN)'].filter(Boolean);
@@ -1621,6 +1622,7 @@ function opDocOrc(id) {
   const corpo = `
     <div class="doc-grande"><small>Orçamento</small><b class="mono">${esc(o.num)}</b></div>
     <p>Para <b>${esc(o.cliente.nome || '')}</b>${o.cliente.whats ? ' · ' + esc(o.cliente.whats) : ''} · emitido em ${opCurta(o.criado.slice(0, 10))} · válido até ${opCurta(o.validade)}</p>
+    ${o.paxNota || o.bagagem ? `<p>${o.paxNota ? '<b>Pessoas:</b> ' + esc(o.paxNota) : ''}${o.paxNota && o.bagagem ? ' · ' : ''}${o.bagagem ? '<b>Bagagem:</b> ' + esc(o.bagagem) : ''}</p>` : ''}
     <table class="tbl doc-tbl"><thead><tr><th>Serviço</th><th>Dia</th><th class="right">Pessoas</th><th class="right">Valor</th></tr></thead><tbody>
       ${o.itens.map(i => `<tr><td>${esc(i.desc)}${i.obs && !i.sugestao ? `<br><small>${esc(i.obs)}</small>` : ''}</td><td class="mono">${i.data ? opCurta(i.data) + (i.hora ? ' ' + esc(i.hora) : '') : '—'}</td><td class="right">${i.pax}</td><td class="mono right">${i.valor ? eur(i.valor) : 'a definir'}</td></tr>`).join('')}
     </tbody><tfoot>
