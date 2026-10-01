@@ -2117,6 +2117,7 @@ if (typeof STR !== 'undefined') {
   Object.assign(STR, {
     admGuias:    { pt: 'Guias e motoristas', en: 'Guides & drivers' },
     admPipeline: { pt: 'Pipeline', en: 'Pipeline' },
+    admPrecos:   { pt: 'Tabela de preços', en: 'Price list' },
     admConsulta: { pt: 'Orçamentos', en: 'Quotes' },
     hubAval: { pt: 'Avaliações', en: 'Reviews' },
     hubAvalSub: { pt: 'O que dizem os clientes', en: 'What our guests say' },

@@ -348,6 +348,33 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .crm-plan .crm-quem{color:var(--accent)}
 .crm-plan .crm-sem{color:var(--ink-3);font-style:italic}
 .crm-plan .crm-dow{color:var(--ink-3);font-size:var(--fs-1)}
+
+/* ---------- TABELA DE PREÇOS ---------- */
+.pr-seg{display:flex;gap:4px;padding:4px;border-radius:var(--r-md);background:var(--surface-2);margin:0 0 14px;overflow-x:auto;scrollbar-width:thin}
+.pr-seg-b{padding:9px 16px;border-radius:var(--r-sm);font-weight:var(--t-strong);font-size:var(--fs-3);color:var(--ink-2);text-decoration:none;white-space:nowrap}
+.pr-seg-b.on{background:var(--surface);color:var(--accent);box-shadow:var(--sh-1)}
+.pr-ajuda{margin:0 0 14px;line-height:1.5}
+.pr-desc{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.pr-descin{display:inline-flex;align-items:center;gap:6px}.pr-descin input{width:70px}
+.pr-bloco{padding:0;overflow:hidden}
+.pr-sec{margin:0;padding:12px 16px;background:var(--brand-primaria);color:#fff;font-size:var(--fs-3);line-height:1.35;border-radius:var(--r-md) var(--r-md) 0 0}
+.pr-wrap{overflow-x:auto;scrollbar-width:thin}
+.pr-tab{border-collapse:collapse;width:100%;font-size:var(--fs-3)}
+.pr-tab th,.pr-tab td{padding:8px 12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:middle}
+.pr-tab th:first-child,.pr-tab td:first-child,.pr-veic{text-align:left}
+.pr-tab thead th{position:sticky;top:0;z-index:1;background:var(--surface-2);color:var(--ink-2);font-weight:var(--t-strong);font-size:var(--fs-1);text-transform:uppercase;letter-spacing:.03em}
+.pr-tab th.pr-th-ed{color:var(--accent)}
+.pr-tab tbody tr:hover{background:var(--accent-wash)}
+.pr-tab td.pr-c{color:var(--ink-2)}
+.pr-tab td.pr-pp{color:var(--ink-3);font-size:var(--fs-2)}
+.pr-tab td.pr-forte{font-weight:var(--t-strong);color:var(--accent)}
+.pr-veic{color:var(--ink-3);font-size:var(--fs-2);white-space:normal;min-width:180px;max-width:280px}
+.pr-edc{padding:4px 6px;background:var(--paper)}
+.pr-in{width:82px;padding:6px 8px;border:1px solid var(--line-2);border-radius:var(--r-sm);text-align:right;font:inherit;font-weight:var(--t-strong);color:var(--ink);background:var(--surface)}
+.pr-in:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+.pr-acao{text-align:center}
+.pr-orc{white-space:nowrap}
+@media(max-width:700px){.pr-veic{min-width:120px;max-width:160px}.pr-tab th,.pr-tab td{padding:7px 8px}}
 .crm-plan .crm-dica{color:var(--ink-3);font-weight:400}
 .crm-plan tr.crm-mes td{background:var(--surface-3);font-weight:var(--t-strong);font-size:var(--fs-2);color:var(--ink-2);text-transform:capitalize;padding:6px 10px}
 .crm-plan tr.crm-mes td.crm-fix{color:var(--ink);box-shadow:1px 0 0 var(--line-2)}

@@ -1441,7 +1441,7 @@ function renderBook() {
 const ADM_GROUPS = [
   { h: 'O dia a dia',           tabs: [['today', 'admToday'], ['agenda', 'admAgenda'], ['tarefas', 'admTarefas']] },
   { h: 'Orçamentos e clientes', tabs: [['planilha', 'admPlanilha'], ['pipeline', 'admPipeline'], ['consulta', 'admConsulta'], ['clients', 'admClients'], ['bookings', 'admBookings']] },
-  { h: 'Em Roma',               tabs: [['guias', 'admGuias'], ['transfer', 'admTransfer'], ['tours', 'admTours']] },
+  { h: 'Em Roma',               tabs: [['guias', 'admGuias'], ['transfer', 'admTransfer'], ['tours', 'admTours'], ['precos', 'admPrecos']] },
   { h: 'Dinheiro',              tabs: [['money', 'admMoney'], ['reports', 'admReports'], ['coupons', 'admCoupons']] },
   { h: 'O app',                 tabs: [['look', 'temaTit'], ['settings', 'admSettings']] },
 ];
@@ -1517,6 +1517,7 @@ function viewAdm(tab, arg) {
   else if (tab === 'guias')    admGuias(arg);
   else if (tab === 'planilha') admConsulta(undefined, 'planilha');
   else if (tab === 'transfer') admTransfer();
+  else if (tab === 'precos')   admPrecos(arg);
   else if (tab === 'consulta') admConsulta(arg);
   else if (tab === 'tarefas')  admTarefas(arg);
   else if (tab === 'voucher')  opDocVoucher(arg);

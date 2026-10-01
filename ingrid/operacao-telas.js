@@ -1039,6 +1039,80 @@ const DIAS_SEM = ['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'];
 function diaSemanaCurto(iso) { if (!iso || iso.length < 10) return ''; const d = new Date(iso + 'T12:00:00'); return isNaN(d) ? '' : DIAS_SEM[d.getDay()]; }
 /* data completa pra Planilha: dia/mês/ano + dia da semana (01/10/26 · qui.) */
 function crmDataSem(iso) { if (!iso) return '—'; const s = diaSemanaCurto(iso); return iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) + (s ? ` <span class="crm-dow">${s}</span>` : ''); }
+
+/* =====================================================
+   TABELA DE PREÇOS — as 4 abas do Excel dela, editáveis e com
+   recálculo automático (ver precos.js). Amarra no orçamento.
+===================================================== */
+function prNum(n) { n = +n || 0; return (Number.isInteger(n) ? String(n) : n.toFixed(2)).replace('.', ','); }
+const PR_COLS = {
+  transfer: [
+    { h: 'Pessoas', get: c => esc(c.pax) }, { h: 'Veículo', get: c => esc(c.veic), cls: 'pr-veic' },
+    { h: 'Dinheiro', key: 'preco', ed: 1 }, { h: 'Cartão', key: 'cartao' }, { h: 'Noturno', key: 'noturno' },
+    { h: 'Not. cartão', key: 'noturnoCartao' }, { h: 'por pessoa', key: 'porPessoa', pp: 1 }, { h: 'Custo', key: 'custo', ed: 1 }, { h: 'Sinal', key: 'sinal', forte: 1 },
+  ],
+  guia: [
+    { h: 'Pessoas', get: c => esc(c.pax) }, { h: 'Duração', get: c => esc(c.dur) },
+    { h: 'Cliente', key: 'preco', ed: 1 }, { h: 'por pessoa', key: 'porPessoa', pp: 1 }, { h: 'Custo', key: 'custo', ed: 1 }, { h: 'Sinal', key: 'sinal', forte: 1 }, { h: 'Ingressos', key: 'ingressos', ed: 1 },
+  ],
+  bv: [
+    { h: 'Pessoas', get: c => esc(c.pax) }, { h: 'Cliente', key: 'preco', ed: 1 },
+    { h: 'por pessoa', key: 'porPessoa', pp: 1 }, { h: 'Custo', key: 'custo', ed: 1 }, { h: 'Sinal', key: 'sinal', forte: 1 },
+  ],
+};
+function admPrecos(sub) {
+  const tabs = Precos.all();
+  const atual = tabs.find(t => t.id === sub) || tabs[0];
+  const tipo = Precos.base(atual).tipo, deriva = !!atual.derivaDe, editavel = !deriva;
+  const cols = PR_COLS[tipo];
+  const secoes = Precos.secoesView(atual);
+  const seg = `<div class="pr-seg">${tabs.map(t => `<a class="pr-seg-b ${t.id === atual.id ? 'on' : ''}" href="#/adm/precos/${t.id}">${esc(t.nome)}</a>`).join('')}</div>`;
+  const cel = (col, c) => {
+    if (col.get) return `<td class="${col.cls || ''}">${col.get(c)}</td>`;
+    const v = c[col.key];
+    if (col.ed && editavel) return `<td class="pr-edc"><input class="pr-in" data-f="${col.key}" value="${prNum(v)}" inputmode="decimal" aria-label="${col.h}"></td>`;
+    return `<td class="pr-c${col.pp ? ' pr-pp' : ''}${col.forte ? ' pr-forte' : ''}${col.ed ? ' pr-base' : ''}" data-c="${col.key}">${eur(v)}</td>`;
+  };
+  const linha = (s, c) => `<tr data-tab="${atual.id}" data-sec="${s.id}" data-lin="${c.ref}" data-tipo="${tipo}" data-paxn="${c.paxN}" data-veicn="${c.veicN || 1}">
+      ${cols.map(col => cel(col, c)).join('')}
+      <td class="pr-acao"><button class="mini pr-orc" data-orc="${atual.id}|${s.id}|${c.ref}" title="gerar um orçamento já com este item">➕ orçamento</button></td></tr>`;
+  const bloco = (s) => `<section class="card pr-bloco"><h3 class="pr-sec">${esc(s.titulo)}</h3>
+    <div class="pr-wrap"><table class="pr-tab"><thead><tr>${cols.map(c => `<th${c.ed ? ' class="pr-th-ed"' : ''}>${c.h}${c.ed && editavel ? ' ✏️' : ''}</th>`).join('')}<th></th></tr></thead>
+    <tbody>${s.linhas.map(c => linha(s, c)).join('')}</tbody></table></div></section>`;
+  const ajuda = editavel
+    ? `Edite só o que está em <b>branco</b> (${tipo === 'transfer' ? 'Dinheiro e Custo' : tipo === 'guia' ? 'Cliente, Custo e Ingressos' : 'Cliente e Custo'}). O resto — por pessoa, sinal${tipo === 'transfer' ? ', cartão, noturno' : ''} — o app calcula sozinho, como no Excel. <b>Sinal = preço − custo</b> (a sua margem).`
+    : `Esta tabela é a <b>Transfer Roma</b> com desconto. Mexeu na Transfer Roma, aqui acompanha sozinho — por isso ela não se edita direto.`;
+  admShell('precos', `
+    <div class="pagehead"><h1 class="pageh">Tabela de preços</h1>
+      <span class="why">as suas tabelas do Excel, aqui dentro — e ligadas ao orçamento</span></div>
+    ${seg}
+    ${deriva ? `<section class="card pr-desc"><label class="fld sm">Desconto desta tabela<span class="pr-descin"><input id="prDesc" type="number" min="0" max="100" step="0.5" value="${Precos.descontoPct(atual)}"> %</span></label><button class="mini strong" id="prDescOk">aplicar</button></section>` : ''}
+    <p class="why pr-ajuda">💡 ${ajuda}</p>
+    ${secoes.map(bloco).join('') || '<p class="empty">Tabela vazia.</p>'}
+  `);
+  /* recálculo ao vivo + salvar */
+  $$('.pr-tab tbody tr').forEach(tr => {
+    const recalc = () => {
+      const base = { preco: _precoNum((tr.querySelector('[data-f="preco"]') || {}).value || 0),
+        custo: _precoNum((tr.querySelector('[data-f="custo"]') || {}).value || 0),
+        ingressos: _precoNum((tr.querySelector('[data-f="ingressos"]') || {}).value || 0),
+        paxN: +tr.dataset.paxn || 1, veicN: +tr.dataset.veicn || 1 };
+      const c = Precos.calc(tr.dataset.tipo, base, 1);
+      tr.querySelectorAll('.pr-c').forEach(td => { const k = td.dataset.c; if (c[k] != null) td.textContent = eur(c[k]); });
+    };
+    tr.querySelectorAll('.pr-in').forEach(inp => {
+      inp.oninput = recalc;
+      inp.onchange = () => { Precos.editaValor(tr.dataset.tab, tr.dataset.sec, tr.dataset.lin, inp.dataset.f, inp.value); recalc(); };
+    });
+  });
+  $$('.pr-orc').forEach(b => b.onclick = () => {
+    const it = Precos.itemOrc(b.dataset.orc); if (!it) return toast('Não consegui montar o item.');
+    const o = Orc.cria({ origem: 'tabela', status: 'rascunho', itens: [it] });
+    toast('Orçamento criado com este item · agora é só pôr o cliente');
+    go('/adm/consulta/' + o.id);
+  });
+  if (deriva) { const bt = $('#prDescOk'); if (bt) bt.onclick = () => { Precos.setDesconto(atual.id, $('#prDesc').value); admPrecos(atual.id); }; }
+}
 /* modo 'planilha' = a aba Planilha: a planilha dela, para preencher celula por
    celula. Sem modo = a aba Orcamentos: o painel e os cartoes com a proxima acao. */
 function admConsulta(arg, modo) {
@@ -1342,6 +1416,7 @@ function admOrcEditor(id) {
       <div class="frow orc-add">
         <label class="fld grow">Acrescentar da sua tabela<select id="orAddT"><option value="">escolha…</option>
           ${regioes().map(([rg, pt]) => { const ts = tours.filter(x => x.region === rg); return ts.length ? `<optgroup label="${esc(pt)}">${ts.map(x => `<option value="${esc(x.id)}">${esc(x.name.pt)}</option>`).join('')}</optgroup>` : ''; }).join('')}
+          ${typeof Precos !== 'undefined' ? Precos.all().map(t => Precos.secoesView(t).map(s => s.linhas.length ? `<optgroup label="${esc('💶 ' + t.nome + ' · ' + s.titulo.slice(0, 44))}">${s.linhas.map(c => `<option value="${esc(t.id + '|' + s.id + '|' + c.ref)}">${esc(Precos.rotuloCurto(t, c))}</option>`).join('')}</optgroup>` : '').join('')).join('') : ''}
         </select></label>
         <label class="fld sm">Pessoas<input type="number" min="1" id="orAddP" value="${o.pax || 2}"></label>
         <label class="fld">Dia<input type="date" id="orAddD"></label>
@@ -1397,7 +1472,10 @@ function admOrcEditor(id) {
   $('#orAdd').onclick = () => {
     const tid = $('#orAddT').value; if (!tid) return toast('Escolha um serviço.');
     lerTela();
-    const it = Orc.itemDoCatalogo(tid, { pax: +$('#orAddP').value || 1, data: $('#orAddD').value });
+    let it;
+    if (tid.includes('|') && typeof Precos !== 'undefined') { it = Precos.itemOrc(tid, { data: $('#orAddD').value }); const p = +$('#orAddP').value; if (it && p) it.pax = p; }
+    else it = Orc.itemDoCatalogo(tid, { pax: +$('#orAddP').value || 1, data: $('#orAddD').value });
+    if (!it) return toast('Não consegui montar o item.');
     o.itens.push(it); Orc.salva(o); re();
   };
   $('#orLkAdd').onclick = () => { lerTela(); const r = Orc.linkAdd(id, $('#orLkNome').value, $('#orLkUrl').value); if (r && r.erro) return toast(r.erro); re(); };
