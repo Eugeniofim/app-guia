@@ -51,10 +51,15 @@ const Tarefas = {
    mudou, troca tudo pela nova — é demonstração, não há nada dela a perder.
    Suba o número quando mudar os dados de exemplo. */
 (function sementeNova() {
-  const VER = 2;
+  const VER = 3;   /* 3 = 01/10/2026: Pix de exemplo */
   if (!DB || !DB.demo || DB.sementeFoto === VER) return;
   const lang = DB.settings && DB.settings.lang;
   DB = _seed(); DB.sementeFoto = VER;
+  /* PIX DE EXEMPLO — o argumento de venda é "seu cliente paga no Pix, em real",
+     então o demo precisa mostrar o Pix. A chave é um e-mail no domínio do
+     Eugênio que NÃO está cadastrado como chave Pix: se alguém tentar pagar, o
+     banco não acha a chave e nenhum dinheiro sai. Só ele poderia cadastrá-la. */
+  Object.assign(DB.settings, { pixKey: 'pix-exemplo@eugeniofim.com', pixName: 'ESTUDIO AURORA', pixCity: 'PARIS' });
   if (lang) DB.settings.lang = lang;
   save();
 })();
@@ -509,6 +514,22 @@ function tiraSeloExtra() {
 if (typeof marcaExtras === 'function') {
   const _marcaAntes = marcaExtras;
   marcaExtras = function () { _marcaAntes(); tiraSeloExtra(); };
+}
+
+
+/* ---------- 7. o Pix do demo avisa que é exemplo ---------- */
+if (typeof comoPagar === 'function') {
+  const _comoPagarAntes = comoPagar;
+  comoPagar = function (b, x) {
+    const html = _comoPagarAntes(b, x);
+    if (!DB.demo) return html;
+    const aviso = `<p class="pn-exemplo">⚠ ${LANG === 'en' ? 'Demo example — do not pay.' : 'Exemplo de demonstração — não pague.'}</p>`;
+    return html.replace('<div class="pixbox">', '<div class="pixbox">' + aviso);
+  };
+  document.head.insertAdjacentHTML('beforeend', `<style>
+.pn-exemplo{background:var(--warn-wash);color:var(--warn);border:1px solid var(--warn);border-radius:var(--r);
+  padding:8px 12px;font-size:var(--fs-2);font-weight:700;margin-bottom:10px;text-align:center}
+</style>`);
 }
 
 /* redesenha com as peças novas (e com a semente nova, se trocou) */
