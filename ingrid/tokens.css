@@ -21,6 +21,7 @@
   --surface-3: #E8E0D3;
   --line:      #E1DBD9;
   --line-2:    #D0C6C2;
+  --rail:      #F3ECE0;  /* barra lateral: distinta dos cartões e do conteúdo */
 
   /* ---------- TEXTO ---------- */
   --ink:    #111111;   /* 17.8:1 */
@@ -94,8 +95,8 @@
    data-theme fixa e o media query abaixo nao se aplica. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --paper:#150F12; --surface:#1E161A; --surface-2:#281E23; --surface-3:#33262D;
-    --line:#33262D; --line-2:#45333C;
+    --paper:#1A1217; --surface:#251B22; --surface-2:#30212A; --surface-3:#3B2A34;
+    --line:#3A2B34; --line-2:#4E3A46; --rail:#120C10;
     --ink:#F5F1F2; --ink-2:#C4B4BB; --ink-3:#9B8A91;
     --accent:#E08CAC; --accent-ink:#2A0F1B; --accent-wash:#2C1622; --accent-line:#4A2436;
     --highlight:#E3B23C; --highlight-ink:#1A1405; --highlight-wash:#332512; --highlight-text:#E3B23C;
@@ -111,8 +112,8 @@
 
 /* Tema escuro — o painel dela à noite. O vinho clareia para rosa, o dourado se mantém. */
 :root[data-theme="dark"]{
-  --paper:#150F12; --surface:#1E161A; --surface-2:#281E23; --surface-3:#33262D;
-  --line:#33262D; --line-2:#45333C;
+  --paper:#1A1217; --surface:#251B22; --surface-2:#30212A; --surface-3:#3B2A34;
+  --line:#3A2B34; --line-2:#4E3A46; --rail:#120C10;
   --ink:#F5F1F2; --ink-2:#C4B4BB; --ink-3:#9B8A91;
   --accent:#E08CAC; --accent-ink:#2A0F1B; --accent-wash:#2C1622; --accent-line:#4A2436;
   --highlight:#E3B23C; --highlight-ink:#1A1405; --highlight-wash:#332512; --highlight-text:#E3B23C;
