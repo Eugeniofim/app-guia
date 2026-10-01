@@ -347,6 +347,7 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .crm-plan .right{text-align:right}
 .crm-plan .crm-quem{color:var(--accent)}
 .crm-plan .crm-sem{color:var(--ink-3);font-style:italic}
+.crm-plan .crm-dow{color:var(--ink-3);font-size:var(--fs-1)}
 .crm-plan .crm-dica{color:var(--ink-3);font-weight:400}
 .crm-plan tr.crm-mes td{background:var(--surface-3);font-weight:var(--t-strong);font-size:var(--fs-2);color:var(--ink-2);text-transform:capitalize;padding:6px 10px}
 .crm-plan tr.crm-mes td.crm-fix{color:var(--ink);box-shadow:1px 0 0 var(--line-2)}
@@ -415,6 +416,16 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .cl-row small{display:block;color:var(--ink-3);font-size:var(--fs-2)}
 .cl-row b{font-size:var(--fs-3)}
 @media(max-width:700px){.cl-row{grid-template-columns:1fr auto}.cl-prox{grid-column:1}.cl-num{text-align:right}}
+.cl-lista .fu-row{display:grid;grid-template-columns:minmax(160px,2fr) auto minmax(120px,auto);gap:10px 14px;align-items:center;padding:12px 8px;border-bottom:1px solid var(--line)}
+.cl-lista .fu-row:last-child{border-bottom:0}
+.fu-row .cl-nome{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fu-row .cl-nome b{font-size:var(--fs-3)}
+.fu-row .cl-nome small{color:var(--ink-3);font-size:var(--fs-2)}
+.fu-row .pill{justify-self:start}
+.fu-btns{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.chip.chip-fup{border-color:var(--accent);color:var(--accent);font-weight:var(--t-strong)}
+.chip.chip-fup.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+@media(max-width:560px){.cl-lista .fu-row{grid-template-columns:1fr auto}.fu-row .fu-btns{grid-column:1/-1;justify-content:flex-end}}
 .op-part,.op-links{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .op-part .grow{grid-template-columns:1fr 130px}
 .op-links .frow{align-items:end}

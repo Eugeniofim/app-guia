@@ -698,6 +698,41 @@ function tfsHtmlFicha(tfs) {
 }
 
 /* =====================================================
+   FOLLOW-UP — quem está esperando um retorno da Ingrid
+   (vive dentro de Clientes, como um filtro "⏰ Follow-up")
+===================================================== */
+function followupMotivo(c, r, hoje) {
+  if (!c || !r) return null;
+  if (r.deve > 0) return { urg: 0, cor: 'bad', rotulo: 'Cobrar', txt: `deve ${eur(r.deve)}`, acao: 'cobrar',
+    msg: `Oi ${opPrimeiro(c.nome)}! Passando só pra acertar o restante (${eur(r.deve)}) do passeio. Qualquer coisa estou à disposição 😊` };
+  if (r.prox) {
+    const d = _dias(hoje, r.prox.date);
+    if (d >= 0 && d <= 3) return { urg: 1, cor: 'warn', rotulo: 'Confirmar', txt: `passeio ${d === 0 ? 'hoje' : 'em ' + d + ' dia' + (d > 1 ? 's' : '')} · ${nomeDoServico(r.prox)}`, acao: 'confirmar',
+      msg: `Oi ${opPrimeiro(c.nome)}! Tudo certo pro seu ${nomeDoServico(r.prox)}${d === 0 ? ' de hoje' : ' em ' + crmData(r.prox.date)}? Fico à disposição, um beijo da ${guiaNome()} 💚` };
+    return null;
+  }
+  if (r.ultima) {
+    const d = _dias(r.ultima, hoje);
+    if (d >= 150) return { urg: 3, cor: 'n', rotulo: 'Retomar', txt: `${Math.round(d / 30)} meses sem passeio`, acao: 'retomar',
+      msg: `Oi ${opPrimeiro(c.nome)}! Saudades por aqui 😊 Se pensar em voltar a Roma — ou indicar alguém — é só me chamar. Um beijo da ${guiaNome()}!` };
+  }
+  return null;
+}
+function fupListaHtml(lista, resumo, hoje) {
+  if (!lista.length) return '<p class="empty">Ninguém precisa de retorno agora. Tudo em dia 💚</p>';
+  return '<p class="why" style="margin:0 0 10px">Quem está esperando um retorno seu — do mais urgente ao mais tranquilo. O botão já abre o WhatsApp com a mensagem escrita; você só revisa e envia.</p>'
+    + lista.slice(0, 200).map(c => {
+      const r = resumo.get(c.id), m = followupMotivo(c, r, hoje); if (!m) return '';
+      const num = opNum(c.whats || (c.grupoDe && (Cadastro.get(c.grupoDe) || {}).whats));
+      return `<div class="fu-row">
+        <span class="cl-nome"><b>${esc(c.nome)}</b><small>${esc(m.txt)}</small></span>
+        <span class="pill ${m.cor}">${m.rotulo}</span>
+        <span class="fu-btns">${num ? `<a class="mini strong" target="_blank" rel="noopener" href="${waLink(m.msg, num)}">💬 ${m.acao}</a>` : '<small class="why">sem WhatsApp</small>'}<a class="mini" href="${fichaHref(c)}">ficha</a></span>
+      </div>`;
+    }).join('');
+}
+
+/* =====================================================
    CLIENTES — o dashboard (quem sao, de onde vem, quem indica)
 ===================================================== */
 function admClientes() {
@@ -718,9 +753,12 @@ function admClientes() {
   const F = {
     todos: () => true, compradores: (c) => !c.grupoDe, junto: (c) => !!c.grupoDe,
     marcado: (c) => !!resumo.get(c.id).prox, devem: (c) => resumo.get(c.id).deve > 0, voltaram: (c) => DB.bookings.filter(b => b.clienteId === c.id).length > 1,
+    followup: (c) => !!followupMotivo(c, resumo.get(c.id), hoje),
   };
+  const paraRetorno = todos.filter(c => !!followupMotivo(c, resumo.get(c.id), hoje)).length;
   lista = lista.filter(F[S.f] || (c => c.veioPor === S.f));
-  lista.sort((a, b) => { const ra = resumo.get(a.id), rb = resumo.get(b.id); return (rb.prox ? 1 : 0) - (ra.prox ? 1 : 0) || String((ra.prox || {}).date || '').localeCompare(String((rb.prox || {}).date || '')) || rb.gasto - ra.gasto || a.nome.localeCompare(b.nome); });
+  if (S.f === 'followup') lista.sort((a, b) => { const ma = followupMotivo(a, resumo.get(a.id), hoje) || {}, mb = followupMotivo(b, resumo.get(b.id), hoje) || {}; return (ma.urg ?? 9) - (mb.urg ?? 9) || resumo.get(b.id).deve - resumo.get(a.id).deve || a.nome.localeCompare(b.nome); });
+  else lista.sort((a, b) => { const ra = resumo.get(a.id), rb = resumo.get(b.id); return (rb.prox ? 1 : 0) - (ra.prox ? 1 : 0) || String((ra.prox || {}).date || '').localeCompare(String((rb.prox || {}).date || '')) || rb.gasto - ra.gasto || a.nome.localeCompare(b.nome); });
   const maxO = Math.max(1, ...origens.map(o => o.n));
   admShell('clients', `${cliTopo('clientes')}
     <div class="pagehead"><h1 class="pageh">Clientes</h1>
@@ -732,6 +770,7 @@ function admClientes() {
       ${rpTile('Por indicação', compradores.length ? Math.round(porIndic / compradores.length * 100) + '%' : '—', '', '', `${porIndic} clientes indicados por alguém`)}
       ${rpTile('Aniversários este mês', String(aniv.length), '', '', 'bom motivo para mandar uma mensagem')}
       ${rpTile('Devem a você', eur([...resumo.values()].reduce((s2, r) => s2 + r.deve, 0)), '', '', `${[...resumo.values()].filter(r => r.deve).length} clientes`)}
+      ${rpTile('Para dar retorno', String(paraRetorno), paraRetorno ? '<span class="rp-d n">tem gente esperando</span>' : '<span class="rp-d ok">tudo em dia</span>', '', 'use o filtro ⏰ Follow-up')}
     </div>
     <div class="two-col rp-duas">
       <section class="card"><h3>De onde vêm</h3>
@@ -746,11 +785,11 @@ function admClientes() {
     </div>
     <div class="crm-filtros">
       <input id="clQ" type="search" placeholder="🔎 nome, WhatsApp ou e-mail" value="${esc(S.q)}">
-      <div class="chips" style="margin:0">${[['todos', 'Todos'], ['compradores', 'Compraram'], ['junto', 'Vieram junto'], ['marcado', 'Com serviço marcado'], ['devem', 'Devem'], ['voltaram', 'Voltaram']].map(([f, l]) => `<button class="chip ${S.f === f ? 'on' : ''}" data-f="${f}">${l}</button>`).join('')}
+      <div class="chips" style="margin:0">${[['followup', `⏰ Follow-up${paraRetorno ? ' (' + paraRetorno + ')' : ''}`], ['todos', 'Todos'], ['compradores', 'Compraram'], ['junto', 'Vieram junto'], ['marcado', 'Com serviço marcado'], ['devem', 'Devem'], ['voltaram', 'Voltaram']].map(([f, l]) => `<button class="chip ${S.f === f ? 'on' : ''}${f === 'followup' ? ' chip-fup' : ''}" data-f="${f}">${l}</button>`).join('')}
         ${VEIO_POR.some(v => v[0] === S.f) ? `<button class="chip on" data-f="${S.f}">${esc(veioPorNome(S.f))} ✕</button>` : ''}</div>
     </div>
     <section class="card cl-lista">
-      ${lista.length ? lista.slice(0, 200).map(c => { const r = resumo.get(c.id), dono = c.grupoDe ? Cadastro.get(c.grupoDe) : null;
+      ${S.f === 'followup' ? fupListaHtml(lista, resumo, hoje) : lista.length ? lista.slice(0, 200).map(c => { const r = resumo.get(c.id), dono = c.grupoDe ? Cadastro.get(c.grupoDe) : null;
         return `<a class="cl-row" href="${fichaHref(c)}">
           <span class="cl-nome"><b>${esc(c.nome)}</b><small>${c.veioPor ? esc(veioPorNome(c.veioPor)) + (c.indicadoNome ? ' — ' + esc(c.indicadoNome) : '') : 'veio por: ?'}${dono ? ' · veio com ' + esc(dono.nome) : ''}${idadeDe(c.nasc) != null ? ' · ' + idadeDe(c.nasc) + ' anos' : ''}</small></span>
           <span class="cl-prox">${r.prox ? `<small>próximo</small><b>${crmData(r.prox.date)} · ${esc(nomeDoServico(r.prox).slice(0, 34))}</b>` : r.ultima ? `<small>último</small><b>${crmData(r.ultima)}/${r.ultima.slice(2, 4)}</b>` : '<small>sem serviço</small>'}</span>
@@ -933,11 +972,11 @@ function crmColunas() {
   const edRes = (k) => soOrc(T('res' + k, r => { const x = rpx(r, k); return x ? x.resultado : ''; }));
   const edLk = (campo, nome) => () => T(campo, linkUrl(nome), 'url');
   return [
-    { g: 'cli', ed: ed.data, h: 'Data', dica: 'a data do pagamento (se ainda não pagou, a do pedido)', v: r => r.tipo === 'reserva' && !r.dataPago ? `<span class="crm-sem" title="ainda sem pagamento — data do pedido">${crmData(r.dataPedido)}</span>` : crmData(r.dataPedido), c: 'mono' },
+    { g: 'cli', ed: ed.data, h: 'Data', dica: 'a data do pagamento (se ainda não pagou, a do pedido)', v: r => r.tipo === 'reserva' && !r.dataPago ? `<span class="crm-sem" title="ainda sem pagamento — data do pedido">${crmDataSem(r.dataPedido)}</span>` : crmDataSem(r.dataPedido), c: 'mono' },
     { g: 'cli', ed: ed.veio, h: 'veio por', v: r => esc(r.veio) },
     { g: 'cli', ed: ed.indicou, h: 'Agência · indicação · influencer', dica: 'quem mandou o cliente: a agência, a pessoa que indicou ou o influencer', v: r => r.indicou ? `<b class="crm-quem">${esc(r.indicou)}</b>` : '' },
     { g: 'cli', ed: ed.whats, h: 'WhatsApp', v: r => r.whats ? `<a target="_blank" rel="noopener" href="${waLink('', opNum(r.whats))}">${esc(r.whats)}</a>` : '', c: 'mono' },
-    { g: 'serv', ed: ed.dataServ, h: 'Data serviço', v: r => crmData(r.dataServ), c: 'mono' },
+    { g: 'serv', ed: ed.dataServ, h: 'Data serviço', v: r => crmDataSem(r.dataServ), c: 'mono' },
     { g: 'serv', ed: ed.hora, h: 'Hora', v: r => esc(r.hora), c: 'mono' },
     { g: 'serv', ed: ed.pax, h: 'PAX', v: r => esc(r.pax), c: 'mono right', soma: r => +r.pax || 0, fmt: v => v },
     { g: 'serv', ed: ed.servico, h: 'Serviço pedido', v: r => esc(r.servico), c: 'crm-serv' },
@@ -995,6 +1034,11 @@ function crmPlanilha(linhas, cols, editavel) {
     ${linhas.length ? `<tfoot><tr><td class="crm-fix">${linhas.length} ${linhas.length === 1 ? 'serviço' : 'serviços'} · ${pedidos.size} ${pedidos.size === 1 ? 'pedido' : 'pedidos'}</td>${pe}</tr></tfoot>` : ''}</table></div>`;
 }
 function crmData(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '—'; }
+/* dia da semana curto, como na planilha da Ingrid ("qui.", "sex.") */
+const DIAS_SEM = ['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'];
+function diaSemanaCurto(iso) { if (!iso || iso.length < 10) return ''; const d = new Date(iso + 'T12:00:00'); return isNaN(d) ? '' : DIAS_SEM[d.getDay()]; }
+/* data completa pra Planilha: dia/mês/ano + dia da semana (01/10/26 · qui.) */
+function crmDataSem(iso) { if (!iso) return '—'; const s = diaSemanaCurto(iso); return iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) + (s ? ` <span class="crm-dow">${s}</span>` : ''); }
 /* modo 'planilha' = a aba Planilha: a planilha dela, para preencher celula por
    celula. Sem modo = a aba Orcamentos: o painel e os cartoes com a proxima acao. */
 function admConsulta(arg, modo) {

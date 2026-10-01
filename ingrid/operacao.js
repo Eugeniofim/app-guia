@@ -1478,7 +1478,7 @@ function _valorPlanilha(v) {
   return +s || 0;
 }
 const COLS_CRM = {
-  data: /^data$/, veio: /^veio/, indicou: /^agencia|^quem indicou|influenc/, whats: /whats|telefone|fone/, nome: /^nome( do cliente| completo)?$/, dataServ: /data ?servi/,
+  data: /^data( do)? ?or[cç]amento$|^data$/, veio: /^veio/, indicou: /^agencia|^quem indicou|^quem\??$|influenc/, whats: /whats|telefone|fone/, nome: /^nome( do cliente| completo)?$/, dataServ: /data ?servi/,
   hora: /^hora/, pax: /^pax|pessoas/, servico: /servi[cç]o/, obs: /^obs/, clientePaga: /cliente ?paga/, ingridPaga: /ingrid ?paga|custo/, cidade: /cidade|hotel/,
   parceiro: /^parceiro/, total: /^total/, sinal: /^sinal/, forma: /forma/, emReal: /em real/, comVendor: /comiss.*vend/, comIndic: /comiss.*indic/,
   status: /^status/, motivo: /motivo/, rep1: /^repescagem ?1/, res1: /^resultado ?1/, rep2: /^repescagem ?2/, res2: /^resultado ?2/, rep3: /^repescagem ?3/, res3: /^resultado ?3/,
