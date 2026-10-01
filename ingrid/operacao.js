@@ -716,6 +716,162 @@ function termosTexto() {
   const l = (typeof LANG !== 'undefined' && LANG === 'en') ? 'en' : 'pt';
   return String(s[l] || s.pt || TERMOS_MODELO);
 }
+
+/* ---------- VOUCHER inteligente ----------
+   O voucher se monta sozinho pelo que a reserva já sabe: transfer de chegada
+   (aeroporto/porto/trem) ou de partida, ou passeio — e puxa o ponto de encontro
+   dos Pontos. Estes são os textos padrão (o voucher real dela, Doc de 01/10),
+   todos editáveis na aba Voucher. */
+const VOUCHER_BLOCOS_EMROMA = {
+  pagamento: `MÉTODO DE PAGAMENTO
+- Dinheiro (em euros)
+- Cartão de crédito: acréscimo de 10%
+- PIX ou WISE (antecipado): acréscimo de 15%
+Obs.: é possível alterar o método de pagamento com no máximo 24 horas de antecedência.`,
+  suporte: `SUPORTE EXCLUSIVO
+Em caso de qualquer necessidade durante a sua experiência, o nosso atendimento de plantão estará à sua disposição. Salve este número antes de partir, com o nome SUPORTE EMROMA: +39 375 520 2615.
+
+INFORMAÇÕES GERAIS
+- Não é necessário imprimir ou apresentar este voucher ao motorista ou guia.
+- O número de suporte é diferente do número comercial e deve ser usado apenas nos casos descritos neste voucher. Leia todas as informações com atenção.
+- Caso o acesso de carro ao hotel não seja possível, consulte o hotel para indicar o ponto mais próximo e conveniente para embarque e desembarque.`,
+  trocado: `TROCO
+- Leve dinheiro trocado, pois os motoristas podem não ter troco devido ao volume de serviços.
+- Caso não consiga providenciar o valor trocado, nos informe com pelo menos 24 horas de antecedência.`,
+  transferAeroporto: `TRANSFER DE CHEGADA — AEROPORTO
+O que NÃO precisa ser comunicado:
+- Atraso do voo de até 1 hora.
+- Avisar que o voo acabou de aterrissar.
+- Informar que está aguardando ou retirando a bagagem.
+
+Entre em contato com o suporte (+39 375 520 2615) quando:
+- Precisar estender a espera: o serviço inclui até 1 hora após a aterrissagem; além disso, €40 por hora extra (por veículo).
+- Perder a conexão, o voo, ou houver alteração no número do voo — avise assim que tiver as novas informações.
+- Houver extravio de bagagem, fila de imigração muito lenta ou atraso superior a 40 minutos dentro do aeroporto.
+- Não encontrar o motorista.
+
+ATENÇÃO — CONTATO COM O SUPORTE
+- Qualquer atraso dentro do aeroporto superior a 40 minutos (imigração, bagagem, compras, alimentação, etc.) deve ser avisado diretamente pelo WhatsApp de suporte, mesmo que já esteja em contato com o motorista.
+- Estar em contato com o motorista não substitui o contato com o suporte.
+- A falta de comunicação pode impactar o tempo de espera do motorista e a execução do serviço.
+
+DICA
+- Após desembarcar, dirija-se diretamente à fila da imigração.
+- Evite parar no caminho (inclusive ao banheiro): a chegada de outros voos pode gerar filas longas em poucos minutos.
+- Mantenha o telefone carregado e conectado ao Wi-Fi. Todas as comunicações são feitas via WhatsApp.
+
+COMO IDENTIFICAR O SEU MOTORISTA
+- O motorista aguarda na saída do terminal, segurando uma placa com o seu nome.
+- O nome do motorista não é informado previamente. Procure com atenção, especialmente em alta temporada.`,
+  transferPartida: `TRANSFER DA PARTIDA
+Alterações:
+- Não é possível alterar o horário do transfer com menos de 24 horas de antecedência.
+
+Como encontrar o seu motorista:
+- O motorista chega pontualmente no horário combinado.
+- O nome do motorista não é informado previamente.
+- Esteja na frente do hotel ou acomodação no horário marcado.
+- Se não localizar o motorista, envie mensagem imediatamente ao suporte: +39 375 520 2615.
+
+Dica sobre o terminal do voo:
+- O terminal normalmente é informado apenas no dia do voo. Pesquise no Google "Voo + número do voo" (ex.: Voo LA8120) e informe o terminal diretamente ao motorista.`,
+  transferPorto: `TRANSFER DE CHEGADA — PORTO
+- O motorista aguarda na saída do navio, segurando uma placa com o seu nome.
+- O nome do motorista não é informado previamente.
+- Caso não encontre o motorista, envie mensagem imediatamente ao suporte: +39 375 520 2615.
+- O serviço inclui até 15 minutos de espera após o horário combinado. Após esse período, €40 por hora extra de espera (por veículo).`,
+  transferTrem: `TRANSFER DE CHEGADA — ESTAÇÃO DE TREM
+Estação Termini:
+- O motorista aguarda do lado de fora da estação, em frente ao Caffè Trombetta, segurando uma placa com o seu nome.
+- O nome do motorista não é informado previamente.
+- O serviço inclui até 15 minutos de espera após a chegada do trem. Após esse período, €20 a cada 15 minutos de espera (por veículo).
+
+Estação Napoli Centrale:
+- O motorista aguarda com uma placa com o seu nome em frente à plataforma 24, ao lado do Bar Ciro, em frente à fonte da sereia.
+- O serviço inclui até 15 minutos de espera após a chegada do trem. Após esse período, €20 a cada 15 minutos de espera (por veículo).`,
+  passeios: `PASSEIOS
+Suporte exclusivo: em caso de qualquer assistência durante a experiência, o atendimento de plantão estará à disposição: +39 375 520 2615.
+
+PAGAMENTO
+- O valor referente à guia e eventuais extras deverá ser pago em dinheiro (cash) no dia do serviço.
+
+PONTUALIDADE
+- As atrações têm horários rigorosos de entrada. Chegue no mínimo 15 minutos antes do horário marcado.
+- Em caso de atraso, o tempo será descontado da duração do passeio. Se impossibilitar a entrada, a guia proporá uma atividade alternativa nas proximidades.
+
+DOCUMENTOS (obrigatório no controle de ingressos)
+- Passaporte físico, OU foto do passaporte em alta qualidade (impressa ou no celular), OU carteira de identidade da União Europeia.
+- Não são aceitos documentos brasileiros (RG, CNH, etc.).
+- Vaticano: cada visitante deve ter o próprio documento (no celular ou em mãos), exceto crianças.
+- Mantenha o celular com bateria suficiente para apresentá-lo quando solicitado.
+
+INGRESSOS
+- Museus do Vaticano: é obrigatória a impressão do ingresso em folha A4, completo e legível.
+- Para as demais atrações não é necessário imprimir.
+
+CÓDIGO DE VESTIMENTA
+- Calçados confortáveis para caminhada (parte do trajeto pode ter pisos irregulares ou degraus).
+- Vaticano e igrejas (obrigatório) — Mulheres: ombros cobertos, evitar roupas curtas ou decotadas, saias ou bermudas na altura do joelho (leve um lenço leve para cobrir os ombros). Homens: camisetas com mangas (regatas não são permitidas) e bermudas na altura do joelho.
+
+BOLSAS, MOCHILAS E GUARDA-CHUVAS
+- Leve apenas itens essenciais. Apenas guarda-chuvas pequenos são permitidos na maioria das atrações; bolsas e mochilas grandes não são permitidas.
+- Vaticano: caso seja necessário usar o guarda-volumes, não será possível acessar diretamente a Basílica de São Pedro, o que inviabiliza a visita guiada ao interior.
+
+ENCONTRO COM A GUIA
+- A guia estará com uma plaquinha personalizada com o seu nome no ponto de encontro indicado neste voucher.`,
+  fechamento: `Grazie!!
+Espero que a sua viagem traga momentos inesquecíveis, com experiências leves, culturais e cheias de significado. A nossa equipe está à disposição para tirar dúvidas e oferecer suporte antes e durante os passeios. Conte com a gente para o que precisar.
+Um abraço carinhoso e até breve,
+Ingrid
+
+EM ROMA COM INGRID
+www.emroma.com · info@emroma.com · +39 351 563 1485 · @em_roma`,
+};
+/* a ordem e o rótulo de cada bloco na aba Voucher */
+const VOUCHER_BLOCOS_META = [
+  { k: 'pagamento', nome: 'Método de pagamento', grupo: 'Sempre aparece', quando: 'em todo voucher' },
+  { k: 'suporte', nome: 'Suporte e informações gerais', grupo: 'Sempre aparece', quando: 'em todo voucher' },
+  { k: 'trocado', nome: 'Troco (dinheiro trocado)', grupo: 'Transfer', quando: 'nos transfers' },
+  { k: 'transferAeroporto', nome: 'Transfer de chegada — Aeroporto', grupo: 'Transfer', quando: 'chegada de avião' },
+  { k: 'transferPartida', nome: 'Transfer da partida', grupo: 'Transfer', quando: 'quando vai para o aeroporto/porto/estação' },
+  { k: 'transferPorto', nome: 'Transfer de chegada — Porto', grupo: 'Transfer', quando: 'chegada de navio' },
+  { k: 'transferTrem', nome: 'Transfer de chegada — Estação de trem', grupo: 'Transfer', quando: 'chegada de trem' },
+  { k: 'passeios', nome: 'Passeios (documentos, vestimenta, ingressos…)', grupo: 'Passeios', quando: 'nos passeios com guia' },
+  { k: 'fechamento', nome: 'Fechamento e assinatura', grupo: 'Sempre aparece', quando: 'no fim de todo voucher' },
+];
+function voucherBlocoTxt(k) {
+  const b = (DB.settings && DB.settings.voucher && DB.settings.voucher.blocos) || {};
+  return (b[k] != null ? b[k] : VOUCHER_BLOCOS_EMROMA[k]) || '';
+}
+function voucherSalvaBloco(k, txt) {
+  if (!DB.settings.voucher) DB.settings.voucher = {};
+  if (!DB.settings.voucher.blocos) DB.settings.voucher.blocos = Object.assign({}, VOUCHER_BLOCOS_EMROMA);
+  DB.settings.voucher.blocos[k] = String(txt == null ? '' : txt);
+  if (typeof save === 'function') save();
+}
+/* que tipo de transfer é este (pra escolher o bloco certo) */
+function voucherTipoTransfer(b) {
+  const AERO = /\b(fco|cia)\b|fiumicino|ciampino|aeroport/i, PORTO = /civitavecchia|\bporto\b|navio|cruzeiro|\bcais\b/i, TREM = /termini|tiburtina|stazione|esta[cç][aã]o|\btrem\b|\btreno\b|centrale/i;
+  const dest = String(b.destino || '').toLowerCase();
+  if (AERO.test(dest) || PORTO.test(dest) || TREM.test(dest)) return 'partida';
+  const txt = [b.origem, b.servicoTxt, (typeof nomeDoServico === 'function' ? nomeDoServico(b) : '')].filter(Boolean).join(' ');
+  if (PORTO.test(txt)) return 'porto';
+  if (TREM.test(txt)) return 'trem';
+  return 'aeroporto';
+}
+/* os blocos que entram NESTE voucher, na ordem */
+function voucherBlocosDe(b) {
+  const out = ['pagamento', 'suporte'];
+  if (typeof ehTransfer === 'function' && ehTransfer(b)) {
+    out.push('trocado');
+    const t = voucherTipoTransfer(b);
+    out.push(t === 'partida' ? 'transferPartida' : t === 'porto' ? 'transferPorto' : t === 'trem' ? 'transferTrem' : 'transferAeroporto');
+  } else {
+    out.push('passeios');
+  }
+  out.push('fechamento');
+  return out;
+}
 /* O que o cliente precisa saber NO DIA. Dicas do servico (o editor do
    passeio tem o campo) ou, sem elas, as do tipo de servico. */
 const DICAS_PADRAO = {
@@ -774,6 +930,7 @@ function opGarante() {
   if (!Array.isArray(DB.contas) || !DB.contas.length) DB.contas = contasPadrao();
   if (DB.settings && !DB.settings.termos) DB.settings.termos = { pt: '', en: '' };
   if (DB.settings && DB.settings.termos && !DB.settings.termos.pt && !DB.settings.termosSeed) { DB.settings.termos.pt = TERMOS_EMROMA; DB.settings.termosSeed = 'emroma1'; }
+  if (DB.settings && !DB.settings.voucherSeed) { DB.settings.voucher = DB.settings.voucher || {}; if (!DB.settings.voucher.blocos) DB.settings.voucher.blocos = Object.assign({}, VOUCHER_BLOCOS_EMROMA); DB.settings.voucherSeed = 'emroma1'; }
   if (DB.settings && DB.settings.plantao === undefined) DB.settings.plantao = '';
   DB.tarefas = DB.tarefas || [];
   DB.lembretesVistos = DB.lembretesVistos || {};
@@ -2217,6 +2374,7 @@ if (typeof STR !== 'undefined') {
     admGuias:    { pt: 'Guias e motoristas', en: 'Guides & drivers' },
     admPipeline: { pt: 'Pipeline', en: 'Pipeline' },
     admPrecos:   { pt: 'Tabela de preços', en: 'Price list' },
+    admVoucher:  { pt: 'Voucher', en: 'Voucher' },
     admConsulta: { pt: 'Orçamentos', en: 'Quotes' },
     hubAval: { pt: 'Avaliações', en: 'Reviews' },
     hubAvalSub: { pt: 'O que dizem os clientes', en: 'What our guests say' },

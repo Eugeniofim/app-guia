@@ -375,6 +375,24 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .pr-acao{text-align:center}
 .pr-orc{white-space:nowrap}
 @media(max-width:700px){.pr-veic{min-width:120px;max-width:160px}.pr-tab th,.pr-tab td{padding:7px 8px}}
+
+/* ---------- VOUCHER (documento + editor) ---------- */
+.vch-bloco{margin:14px 0;padding-top:12px;border-top:1px solid var(--line)}
+.vch-bloco:first-of-type{border-top:0}
+.vch-h{margin:12px 0 6px;font-size:var(--fs-4);color:var(--accent);letter-spacing:.02em}
+.vch-bloco .vch-sub{margin:8px 0 2px;font-weight:var(--t-strong);color:var(--ink)}
+.vch-bloco p{margin:4px 0;line-height:1.5}
+.vch-ul{margin:4px 0 8px;padding-left:20px}
+.vch-ul li{margin:3px 0;line-height:1.45}
+.vch-ajuda{margin:0 0 16px;line-height:1.55}
+.vch-grp{margin:18px 0 8px;font-size:var(--fs-2);text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
+.vch-ed{padding:14px}
+.vch-ed-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.vch-ta{width:100%;font:inherit;font-size:var(--fs-3);line-height:1.5;padding:10px 12px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);resize:vertical}
+.vch-ta:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+.vch-prev{margin-top:8px}
+.vch-prev summary{cursor:pointer;color:var(--accent);font-size:var(--fs-2)}
+.vch-preview{margin-top:6px;padding:12px;background:var(--surface-2);border-radius:var(--r-sm);border-top:0}
 .crm-plan .crm-dica{color:var(--ink-3);font-weight:400}
 .crm-plan tr.crm-mes td{background:var(--surface-3);font-weight:var(--t-strong);font-size:var(--fs-2);color:var(--ink-2);text-transform:capitalize;padding:6px 10px}
 .crm-plan tr.crm-mes td.crm-fix{color:var(--ink);box-shadow:1px 0 0 var(--line-2)}

@@ -1536,6 +1536,45 @@ function opVoucherTexto(b) {
   l.push(`WhatsApp: ${DB.settings.whats || ''}`);
   return l.join('\n');
 }
+/* deixa o texto de um bloco bonito: TÍTULOS MAIÚSCULOS viram cabeçalho,
+   "Sub-títulos:" ficam em negrito, "- item" vira lista. */
+function vchFmt(txt) {
+  const linhas = String(txt || '').split('\n');
+  let html = '', emLista = false;
+  const fecha = () => { if (emLista) { html += '</ul>'; emLista = false; } };
+  for (const raw of linhas) {
+    const t = raw.trim();
+    if (!t) { fecha(); continue; }
+    if (/^[-•·]\s*/.test(t)) { if (!emLista) { html += '<ul class="vch-ul">'; emLista = true; } html += `<li>${esc(t.replace(/^[-•·]\s*/, ''))}</li>`; continue; }
+    fecha();
+    const base = t.replace(/\([^)]*\)/g, '').replace(/[—–]/g, '').trim();
+    const semAc = base.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (base && semAc === semAc.toUpperCase() && /[A-Z]/.test(semAc) && t.length <= 70) html += `<h4 class="vch-h">${esc(t)}</h4>`;
+    else if (/:$/.test(t) && t.length <= 55) html += `<p class="vch-sub">${esc(t)}</p>`;
+    else html += `<p>${esc(t)}</p>`;
+  }
+  fecha();
+  return html;
+}
+/* a ABA VOUCHER — edita os textos padrão; cada reserva monta o seu sozinho */
+function admVoucher() {
+  const grupos = [...new Set(VOUCHER_BLOCOS_META.map(m => m.grupo))];
+  const umaReserva = (DB.bookings || []).filter(b => b.status !== 'cancelled').sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+  admShell('voucher', `
+    <div class="pagehead"><h1 class="pageh">Voucher</h1>
+      <span class="why">o voucher se monta sozinho em cada reserva — aqui você edita os textos padrão</span></div>
+    <p class="why vch-ajuda">💡 Cada reserva gera o seu voucher automaticamente: junta o <b>resumo da reserva</b> + o <b>ponto de encontro</b> (que você cadastra em Ajustes → Pontos de encontro) + os blocos abaixo, escolhendo sozinho os certos — transfer de chegada, de partida, porto, trem, ou passeio. O que você edita aqui vale para todos os vouchers.${umaReserva ? ` <a href="#/adm/voucher/${esc(umaReserva.id)}">ver um voucher de exemplo →</a>` : ''}</p>
+    ${grupos.map(g => `<h3 class="vch-grp">${esc(g)}</h3>
+      ${VOUCHER_BLOCOS_META.filter(m => m.grupo === g).map(m => `<section class="card vch-ed">
+        <div class="vch-ed-top"><b>${esc(m.nome)}</b><small class="why">aparece ${esc(m.quando)}</small></div>
+        <textarea class="vch-ta" data-bl="${m.k}" rows="6">${esc(voucherBlocoTxt(m.k))}</textarea>
+        <details class="vch-prev"><summary>como fica no voucher</summary><div class="vch-bloco vch-preview" data-prev="${m.k}">${vchFmt(voucherBlocoTxt(m.k))}</div></details>
+      </section>`).join('')}`).join('')}`);
+  $$('.vch-ta').forEach(ta => {
+    ta.oninput = () => { const pv = document.querySelector(`.vch-preview[data-prev="${ta.dataset.bl}"]`); if (pv) pv.innerHTML = vchFmt(ta.value); };
+    ta.onchange = () => { voucherSalvaBloco(ta.dataset.bl, ta.value); toast('Bloco salvo'); };
+  });
+}
 function opDocVoucher(id) {
   const b = Bookings.get(id);
   if (!b) return go('/adm/today');
@@ -1563,11 +1602,7 @@ function opDocVoucher(id) {
         : `<b>Falta pagar ${eur(nd.valor)} até ${fmtDate(Bookings.dueDate(b))}.</b><small>Já pago: ${eur(pago)} de ${eur(b.total)}</small>`)
         : `<b>✓ Tudo pago.</b><small>Não há nada a pagar no dia.</small>`}
     </div>
-    <h3>Para o dia</h3><p class="doc-dica">${esc(dicasDo(b))}</p>
-    <div class="doc-contato">
-      ${DB.settings.plantao ? `<p><b>Plantão (emergências):</b> ${esc(DB.settings.plantao)}</p>` : '<p class="why nao-imprime">Dica: cadastre o número de plantão em Ajustes para ele sair no voucher.</p>'}
-      <p><b>WhatsApp:</b> ${esc(DB.settings.whats || '')}</p>
-    </div>`;
+    ${voucherBlocosDe(b).map(k => { const txt = voucherBlocoTxt(k); return txt ? `<div class="vch-bloco">${vchFmt(txt)}</div>` : ''; }).join('')}`;
   /* o ponto de encontro: ela escolhe o deste cliente (so aparece aqui, nao no PDF) */
   const opcoes = Pontos.doPasseio(b.tourId), atual = pontoDoServico(b);
   const sel = opcoes.length ? `<label class="doc-ponto-sel">Ponto de encontro <select id="docPonto">${opcoes.map(p => `<option value="${esc(p.id)}" ${atual && atual.id === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>` : '';
