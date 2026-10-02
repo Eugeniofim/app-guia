@@ -406,11 +406,84 @@ const Orc = {
              custo: Math.max(0, +i.custo || 0), cidade: String(i.cidade || '').trim(),
              /* o cliente NAO quis este servico: fica no orcamento como perdido (estatistica dela),
                 fora do total e do que vai pro cliente; pode voltar se ele mudar de ideia */
-             perdido: !!i.perdido, perdidoEm: i.perdido ? (i.perdidoEm || isoToday()) : '', motivoPerda: String(i.motivoPerda || '').trim(),
+             perdido: !!i.perdido, perdidoEm: i.perdido ? (i.perdidoEm || isoToday()) : '', motivoPerda: String(i.motivoPerda || '').trim(), porPasseio: !!(i.perdido && i.porPasseio),
              /* de que linha da Tabela de preços veio (re-tarifa noturno), turno, se é OPÇÃO
                 (o cliente escolhe uma) e o valor cheio antes do desconto (mostrar a economia) */
              precoRef: String(i.precoRef || ''), turno: i.turno || '', alt: !!i.alt,
-             valorCheio: Math.max(0, +i.valorCheio || 0), descontoPct: +i.descontoPct || 0 };
+             valorCheio: Math.max(0, +i.valorCheio || 0), descontoPct: +i.descontoPct || 0,
+             /* linha que ACOMPANHA um passeio (ingressos, fones, gestão — 02/10): vinculo = os
+                passeios de que ela depende (3 h e/ou 4 h do mesmo dia); auto = que linha é */
+             vinculo: Array.isArray(i.vinculo) ? i.vinculo.filter(Boolean).map(String) : [],
+             auto: ['ingresso', 'nodia', 'gestao'].includes(i.auto) ? i.auto : '', ingKey: String(i.ingKey || '') };
+  },
+  /* ---------- O QUE ACOMPANHA O PASSEIO (ingressos, fones, gestão) ----------
+     A linha de ingresso conta se ALGUM passeio dela conta: com opção 3 h OU 4 h o
+     ingresso do Coliseu (igual nas duas) entra uma vez só; o da Basílica (só no de
+     4 h) só entra se a opção de 4 h for a escolhida. */
+  _dependeDe(o, i) { return (i.vinculo || []).length ? (o.itens || []).filter(x => i.vinculo.includes(x.id)) : null; },
+  /* o cliente não quis o passeio → a linha dele acompanha (e volta se o passeio voltar);
+     a linha automática cujo passeio foi APAGADO some junto */
+  propaga(o) {
+    if (!o || !Array.isArray(o.itens)) return o;
+    const ids = new Set(o.itens.map(x => x.id));
+    o.itens = o.itens.filter(i => !(i.auto && (i.vinculo || []).length && !i.vinculo.some(id => ids.has(id))));
+    for (const i of o.itens) {
+      const pais = Orc._dependeDe(o, i); if (!pais || !pais.length) continue;
+      i.vinculo = pais.map(x => x.id);
+      /* mudou o dia/hora do passeio: o ingresso dele acompanha */
+      if (i.auto && pais.every(x => x.data === pais[0].data) && (i.data !== pais[0].data || (pais[0].hora && i.hora !== pais[0].hora))) { i.data = pais[0].data; i.hora = pais[0].hora || i.hora; }
+      const vivo = pais.some(x => !x.perdido);
+      if (!vivo && !i.perdido) { i.perdido = true; i.perdidoEm = isoToday(); i.motivoPerda = i.motivoPerda || 'acompanha o passeio'; i.porPasseio = true; }
+      else if (vivo && i.perdido && i.porPasseio) { i.perdido = false; i.perdidoEm = ''; i.motivoPerda = ''; i.porPasseio = false; }
+    }
+    return o;
+  },
+  /* põe junto o que é do mesmo trajeto/passeio e dia: as opções e, logo depois, as
+     linhas que acompanham — como no orçamento dela */
+  agrupa(o) {
+    if (!o || !Array.isArray(o.itens) || typeof Precos === 'undefined' || !Precos.grupoDe) return o;
+    const byId = new Map(o.itens.map(i => [i.id, i]));
+    const k = (i) => i.precoRef ? Precos.grupoDe(i.precoRef) + '|' + (i.data || '') : '';
+    const kDe = (i) => (i.vinculo || []).length ? k(byId.get(i.vinculo[0]) || {}) : k(i);
+    const out = [], feito = new Set();
+    for (const i of o.itens) {
+      if (feito.has(i)) continue;
+      const g = kDe(i); if (!g) { out.push(i); feito.add(i); continue; }
+      const grupo = o.itens.filter(x => kDe(x) === g);
+      /* a ordem do orçamento dela: o(s) passeio(s), os ingressos, os fones, a gestão */
+      const R = { ingresso: 0, nodia: 1, gestao: 2 }, deps = grupo.filter(y => (y.vinculo || []).length).map((y, n) => [y, n]).sort((a, b) => ((R[a[0].auto] ?? 3) - (R[b[0].auto] ?? 3)) || a[1] - b[1]).map(z => z[0]);
+      for (const x of [...grupo.filter(y => !(y.vinculo || []).length), ...deps]) if (!feito.has(x)) { out.push(x); feito.add(x); }
+    }
+    o.itens = out; return o;
+  },
+  /* acrescenta um passeio da Tabela COM o que o acompanha. Se já existe a outra duração
+     no mesmo dia (opção 3 h × 4 h), a linha igual é compartilhada, não duplicada.
+     pessoas: { adultos, idades } — sem idade = todos adultos (regra dela) */
+  comExtras(o, item, pessoas) {
+    if (!o || !item || typeof Precos === 'undefined' || !Precos.extrasGuia) return o;
+    const it = item.id && o.itens.includes(item) ? item : null; if (!it || !it.precoRef) return o;
+    const ex = Precos.extrasGuia(it.precoRef, Object.assign({ pax: it.pax, data: it.data, hora: it.hora }, pessoas || {}));
+    if (!ex.length) return o;
+    const g = Precos.grupoDe(it.precoRef) + '|' + (it.data || '');
+    const irmaos = o.itens.filter(x => x !== it && x.precoRef && Precos.grupoDe(x.precoRef) + '|' + (x.data || '') === g && !(x.vinculo || []).length).map(x => x.id);
+    for (const e of ex) {
+      const ja = o.itens.find(x => x.auto && x.ingKey === e.ingKey && (x.vinculo || []).some(id => irmaos.includes(id)) && Math.abs((+x.valor || 0) - e.valor) < 0.01);
+      if (ja) { if (!ja.vinculo.includes(it.id)) ja.vinculo.push(it.id); }
+      else o.itens.push(Orc._item(Object.assign({}, e, { vinculo: [it.id] })));
+    }
+    Orc.agrupa(o); Orc.propaga(o); return o;
+  },
+  /* ela soube as idades (ou quantos são): refaz as linhas de ingresso e de fones do orçamento */
+  refazIngressos(o, pessoas) {
+    if (!o || typeof Precos === 'undefined') return 0;
+    let n = 0;
+    for (const i of o.itens.filter(x => x.auto === 'ingresso' || x.auto === 'nodia')) {
+      const pai = o.itens.find(x => (i.vinculo || []).includes(x.id) && x.precoRef); if (!pai) continue;
+      const e = Precos.extrasGuia(pai.precoRef, Object.assign({ pax: pai.pax, data: pai.data, hora: pai.hora }, pessoas || {})).find(y => y.ingKey === i.ingKey);
+      if (e) { Object.assign(i, { desc: e.desc, valor: e.valor, custo: e.custo, sinal: e.sinal, pax: e.pax }); n++; }
+      else { o.itens = o.itens.filter(x => x !== i); n++; }   // criança de graça: a linha zera e sai
+    }
+    return n;
   },
   /* OPÇÕES: itens marcados "opção" no mesmo dia = alternativas (carro OU minivan) */
   /* grupo = mesmo trajeto da tabela (ou "manual") + mesmo dia: duas escolhas no mesmo dia não se misturam */
@@ -429,14 +502,17 @@ const Orc = {
   itensConta(o) {
     const fora = new Set();
     for (const l of Orc.opcoes(o)) { const min = l.reduce((a, b) => ((+b.valor || 0) < (+a.valor || 0) ? b : a)); for (const i of l) if (i !== min) fora.add(i); }
-    return ((o && o.itens) || []).filter(i => !i.perdido && !fora.has(i));
+    const conta = ((o && o.itens) || []).filter(i => !i.perdido && !fora.has(i));
+    /* a linha que acompanha um passeio só entra se algum passeio dela entrou */
+    const ids = new Set(conta.map(i => i.id));
+    return conta.filter(i => !(i.vinculo || []).length || i.vinculo.some(id => ids.has(id)));
   },
   /* o cliente escolheu: as outras opções do grupo viram "perdido" (fica a estatística) */
   escolheOpcao(o, itemId) {
     const i = (o.itens || []).find(x => x.id === itemId); if (!i) return null;
     const k = Orc.grupoOpcao(i); if (!k) return i;
     for (const x of o.itens) if (x !== i && Orc.grupoOpcao(x) === k) { x.perdido = true; x.perdidoEm = isoToday(); x.motivoPerda = 'escolheu outra opção'; }
-    _opSave(); return i;
+    Orc.propaga(o); _opSave(); return i;
   },
   /* linhas da MESMA seção da tabela no MESMO dia, com veículos diferentes = opções */
   marcaOpcoes(o) {
@@ -464,7 +540,7 @@ const Orc = {
   salva(o) {
     const x = Orc.get(o.id); if (!x) return null;
     Object.assign(x, o, { itens: (o.itens || x.itens).map(Orc._item) });
-    _opSave(); return x;
+    Orc.propaga(x); _opSave(); return x;
   },
   status(id, st) { const o = Orc.get(id); if (!o) return; o.status = st; _opSave(); },
   linkAdd(id, nome, url) {
@@ -473,7 +549,36 @@ const Orc = {
     o.links = o.links || []; const l = { id: uid(), nome: String(nome || '').trim() || 'link', url: u }; o.links.push(l); _opSave(); return l;
   },
   /* o nome do arquivo como ela ja usa: "2026_05_26 Jo Souza" */
-  nomeArquivo(o) { if (o.arquivo) return o.arquivo; const d = (o.itens.map(i => i.data).filter(Boolean).sort()[0] || String(o.criado).slice(0, 10)).replace(/-/g, '_'); return `${d} ${o.cliente.nome || 'Cliente'}`; },
+  /* pedido dela (02/10): "aaaa_mm_dd Nome do Cliente (Agência se vier de agência)" — a data
+     é a do 1º serviço; é o nome que já aparece ao "Salvar como PDF" */
+  nomeArquivo(o) {
+    if (o.arquivo) return o.arquivo;
+    const d = (o.itens.filter(i => !i.perdido).map(i => i.data).filter(Boolean).sort()[0] || o.itens.map(i => i.data).filter(Boolean).sort()[0] || String(o.criado).slice(0, 10)).replace(/-/g, '_');
+    const ag = o.veioPor === 'agencia' && String(o.indicou || '').trim() ? ` (${String(o.indicou).trim()})` : '';
+    return `${d} ${String(o.cliente.nome || 'Cliente').trim()}${ag}`.replace(/[\\/:*?"<>|]+/g, '-');
+  },
+  /* FOLLOW-UP planejado (pedido dela, 02/10): grava as datas nas colunas Follow-up 1/2/3 da
+     Planilha E cria a tarefa de cada uma (no dia). Tarefa que já existe no mesmo dia pra
+     esse cliente vira a do follow-up (não duplica). lista = [{ n, data, resultado }] */
+  followUps(id, lista, { tarefas = true } = {}) {
+    const o = Orc.get(id); if (!o) return { erro: 'orçamento não encontrado' };
+    o.repescagens = o.repescagens || [];
+    const feitas = [], nome = o.cliente.nome || 'cliente';
+    for (const f of lista || []) {
+      const n = Math.max(1, Math.min(3, +f.n || 1));
+      let x = o.repescagens.find(y => +y.n === n); if (!x) { x = { n, data: '', resultado: '' }; o.repescagens.push(x); }
+      if (f.data !== undefined) x.data = f.data || '';
+      if (f.resultado !== undefined) x.resultado = String(f.resultado || '').trim();
+      if (tarefas && x.data && x.data >= isoToday() && !x.resultado) {
+        const ja = Tarefas.all().find(t => !t.feita && t.prazo === x.data && (t.orcId === o.id || (_nomeN(t.clienteNome) && _nomeN(t.clienteNome) === _nomeN(nome))) && (t.etapa === 'followup' || /follow|repesc|retorno|lembr|mensagem|contato|cutuc/i.test(t.texto)));
+        const dados = { texto: `Follow-up ${n} — mandar mensagem para ${nome} (${o.num})`, prazo: x.data, orcId: o.id, clienteNome: nome, whats: o.cliente.whats || '', clienteKey: o.clienteKey || '', etapa: 'followup', tentativa: n, chave: `fu:${o.id}:${n}` };
+        if (ja) Object.assign(ja, { orcId: o.id, etapa: 'followup', tentativa: n, chave: dados.chave }); else Tarefas.garante(dados);
+      }
+      feitas.push(x);
+    }
+    o.repescagens = o.repescagens.filter(y => y.data || y.resultado).sort((a, b) => a.n - b.n);
+    _opSave(); return { ok: true, followups: o.repescagens };
+  },
   /* apagar: some o orçamento E a tarefa "aguardar a resposta" dele (antes ficava pendurada) */
   remove(id) {
     DB.orcamentos = (DB.orcamentos || []).filter(o => o.id !== id);
@@ -498,14 +603,16 @@ const Orc = {
     const o = Orc.get(destId), x = Orc.get(origemId); if (!o || !x || o.id === x.id) return null;
     const chave = (i) => _nomeN(i.desc) + '|' + (i.data || '');
     const tem = new Set(o.itens.map(chave));
-    let n = 0;
-    for (const i of x.itens) if (String(i.desc || '').trim() && !tem.has(chave(i))) { o.itens.push(Orc._item(Object.assign({}, i, { id: uid() }))); tem.add(chave(i)); n++; }
+    let n = 0; const novoId = new Map();
+    for (const i of x.itens) if (String(i.desc || '').trim() && !tem.has(chave(i))) { const ni = Orc._item(Object.assign({}, i, { id: uid() })); novoId.set(i.id, ni.id); o.itens.push(ni); tem.add(chave(i)); n++; }
+    /* o ingresso trazido continua preso ao passeio trazido junto */
+    for (const i of o.itens) if ((i.vinculo || []).length) i.vinculo = i.vinculo.map(id => novoId.get(id) || id);
     for (const k of ['whats', 'email', 'nome']) if (!o.cliente[k] && x.cliente[k]) o.cliente[k] = x.cliente[k];
     if (!o.paxNota && x.paxNota) o.paxNota = x.paxNota;
     if (!o.bagagem && x.bagagem) o.bagagem = x.bagagem;
     if (x.obs && !String(o.obs || '').includes(x.obs)) o.obs = [o.obs, x.obs].filter(Boolean).join('\n');
     if (typeof Orc.marcaOpcoes === 'function') Orc.marcaOpcoes(o);
-    Orc.salva(o); Orc.remove(x.id);
+    Orc.agrupa(o); Orc.salva(o); Orc.remove(x.id);
     return { orc: o, trazidos: n };
   },
   /* Fechou: cada servico do catalogo vira uma reserva de verdade, com o
@@ -519,9 +626,10 @@ const Orc = {
     /* nenhum serviço que conta pode sumir calado ao fechar (antes: item da tabela sem data era descartado) */
     const semData = Orc.itensConta(o).filter(i => !(i.tourId && Tours.get(i.tourId)) && !i.sugestao && (!i.data || !String(i.desc || '').trim()));
     if (semData.length) { Orc.erro = 'falta o dia em: ' + semData.map(i => i.desc || '(sem descrição)').join(', '); return []; }
-    const criadas = [];
+    const criadas = [], contaF = new Set(Orc.itensConta(o));
     for (const i of o.itens) {
       if (i.perdido) continue;   // o cliente nao quis este servico: nao vira reserva (fica so o registro)
+      if ((i.vinculo || []).length && !contaF.has(i)) continue;   // ingresso de um passeio que não fechou
       /* do catalogo, ou escrito a mao com data (a planilha dela) */
       const avulso = !(i.tourId && Tours.get(i.tourId));
       if (avulso && (!i.data || !String(i.desc || '').trim() || i.sugestao)) continue;
@@ -539,6 +647,8 @@ const Orc = {
       if (i.obs && !i.sugestao) b.obsOp = i.obs;
       if (i.voo) b.voo = i.voo;
       if (+i.custo > 0) b.custo = +i.custo;
+      /* linha de ingresso: a reserva sabe que tem ingresso pra comprar (lembrete "comprar os ingressos") */
+      if (i.auto === 'ingresso') b.ingressos = { linhas: [], total: +i.valor || 0, noDia: [], totalDia: 0 };
       _opSaveBooking(b);
       if (sinalRecebido && b.sinal > 0) registraPagamento(b.id, { valor: b.sinal, conta });
       criadas.push(b);
@@ -1235,11 +1345,16 @@ const Tarefas = {
     const t = Tarefas.get(id); if (!t || t.feita) return null;
     t.feita = true; t.feitaEm = new Date().toISOString();
     t.obsFim = resultado === 'respondeu' ? 'respondeu' : resultado === 'cutucar' ? 'não respondeu' : '';
-    /* REPESCAGEM (colunas da planilha dela): a espera de um orcamento que
-       acabou vira "Repescagem N · data · resultado" no proprio pedido */
-    if (t.orcId && t.etapa === 'aguardar') {
+    /* FOLLOW-UP (colunas "Follow-up 1/2/3" da planilha dela; antes "Repescagem"): a espera
+       de um orçamento que acabou, ou o follow-up que ela fez, vira "Follow-up N · data ·
+       resultado" no próprio pedido. Se a data já estava marcada (planejada), completa a mesma. */
+    if (t.orcId && (t.etapa === 'aguardar' || t.etapa === 'followup')) {
       const o = Orc.get(t.orcId);
-      if (o) { o.repescagens = o.repescagens || []; o.repescagens.push({ n: +t.tentativa || 1, data: isoToday(), resultado: t.obsFim || resultado || 'feito' }); }
+      if (o) { o.repescagens = o.repescagens || []; const n = +t.tentativa || 1;
+        const res = t.etapa === 'followup' ? (t.obsFim || 'mandado') : (t.obsFim || resultado || 'feito');
+        const x = o.repescagens.find(y => +y.n === n);
+        if (x) { if (t.etapa === 'followup' || !x.data || x.data > isoToday()) x.data = isoToday(); x.resultado = res; }
+        else { o.repescagens.push({ n, data: isoToday(), resultado: res }); o.repescagens.sort((a, b) => a.n - b.n); } }
     }
     if (t.repete && t.prazo) {
       const d0 = new Date(t.prazo + 'T12:00:00');
@@ -1370,6 +1485,8 @@ function proximoPasso(t, resultado) {
     return { etapa: 'aguardar', texto: `Aguardar a resposta de ${alvo} sobre o orçamento`, prazo: addDays(hoje, 2), fechaQuando: 'orc-decidido', chave: 'orc:' + t.orcId, tentativa: t.tentativa };
   if (t.etapa === 'guia')
     return { etapa: 'aguardar', texto: `Aguardar a resposta de ${alvo}`, prazo: hoje, fechaQuando: t.liga && t.liga.data ? 'guia-respondeu' : '', liga: t.liga, chave: 'guia:' + t.pessoaId + ':' + ((t.liga && t.liga.data) || ''), tentativa: t.tentativa };
+  if (t.etapa === 'followup')
+    return { etapa: 'aguardar', texto: `Aguardar a resposta de ${alvo} (follow-up ${+t.tentativa || 1})`, prazo: addDays(hoje, 2), fechaQuando: t.orcId ? 'orc-decidido' : '', chave: 'orc:' + (t.orcId || t.id), tentativa: t.tentativa };
   if (t.etapa === 'escalar')
     return { etapa: 'aguardar', texto: `Aguardar a confirmação de ${alvo}`, prazo: hoje, chave: 'conf:' + t.pessoaId + ':' + t.bookingId };
   if (t.etapa !== 'aguardar') return null;
@@ -1490,7 +1607,7 @@ const Lembretes = {
               txt: `Escalar ${(Tours.get(b.tourId) || {}).priceMode === 'transfer' ? 'motorista' : 'guia'} para ${b.name} (${b.date.slice(8, 10)}/${b.date.slice(5, 7)} ${b.time})`, href: '#/adm/guias/servico:' + b.id });
       if (b.date >= hoje && b.date <= addDays(hoje, 30) && Op.precisaIngresso(b) && !b.ingressosOk)
         add({ chave: 'ingresso:' + b.id, grupo: 'servicos', nivel: b.date <= addDays(hoje, 7) ? 'bad' : 'warn', data: b.date, bookingId: b.id,
-              txt: `Comprar os ingressos de ${b.name} — ${(Tours.get(b.tourId) || { name: { pt: '?' } }).name.pt} (${b.date.slice(8, 10)}/${b.date.slice(5, 7)})`, href: '#/adm/clients/' + encodeURIComponent('c:' + (b.clienteId || '')) });
+              txt: `Comprar os ingressos de ${b.name} — ${nomeDoServico(b)} (${b.date.slice(8, 10)}/${b.date.slice(5, 7)})`, href: '#/adm/clients/' + encodeURIComponent('c:' + (b.clienteId || '')) });
       if (b.date >= hoje && b.date <= addDays(hoje, 2) && !b.voucherEm)
         add({ chave: 'voucher:' + b.id, grupo: 'servicos', nivel: 'n', data: b.date, bookingId: b.id,
               txt: `Mandar o voucher para ${b.name} (${b.date.slice(8, 10)}/${b.date.slice(5, 7)})`, href: '#/adm/voucher/' + b.id });
@@ -1888,7 +2005,7 @@ const COLS_CRM = {
   data: /^data( do)? ?or[cç]amento$|^data$/, veio: /^veio/, indicou: /^agencia|^quem indicou|^quem\??$|influenc/, whats: /whats|telefone|fone/, nome: /^nome( do cliente| completo)?$/, dataServ: /data ?servi/,
   hora: /^hora/, pax: /^pax|pessoas/, servico: /servi[cç]o/, obs: /^obs/, clientePaga: /cliente ?paga/, ingridPaga: /ingrid ?paga|custo/, cidade: /cidade|hotel/,
   parceiro: /^parceiro/, total: /^total/, sinal: /^sinal/, forma: /forma/, emReal: /em real/, comVendor: /comiss.*vend/, comIndic: /comiss.*indic/,
-  status: /^status/, motivo: /motivo/, rep1: /^repescagem ?1/, res1: /^resultado ?1/, rep2: /^repescagem ?2/, res2: /^resultado ?2/, rep3: /^repescagem ?3/, res3: /^resultado ?3/,
+  status: /^status/, motivo: /motivo/, rep1: /^(repescagem|follow[ -]?up) ?1/, res1: /^resultado ?1/, rep2: /^(repescagem|follow[ -]?up) ?2/, res2: /^resultado ?2/, rep3: /^(repescagem|follow[ -]?up) ?3/, res3: /^resultado ?3/,
   arquivo: /nome do arquivo/, lPdf: /link ?pdf/, lOrc: /link ?or/, lVoucher: /link ?voucher/, lComprov: /link ?comprov/, lAval: /link ?avalia/,
 };
 /* o Status da planilha decide o que a linha vira:
@@ -2240,6 +2357,8 @@ function crmEdita(ref, campo, valor, hoje) {
     _opSave(); return { ok: true };
   }
   const b = Bookings.get(ref.id); if (!b) return { erro: 'reserva não encontrada' };
+  /* Follow-up / Resultado de uma reserva: moram no orçamento de onde ela veio */
+  if (/^(rep|res)[123]$/.test(campo)) return b.orcamentoId && Orc.get(b.orcamentoId) ? crmEdita({ tipo: 'orcamento', id: b.orcamentoId }, campo, valor, hoje) : { erro: 'esta reserva não veio de um orçamento' };
   if (CRM_LINK_CAMPO[campo]) return crmLinkPoe(b, CRM_LINK_CAMPO[campo], v);
   switch (campo) {
     case 'nome': if (v) b.name = v; break;
@@ -2313,7 +2432,7 @@ function crmPainel(linhas, hoje) {
     if (o.status === 'novo' || o.status === 'rascunho') agora.push({ tipo: 'montar', ordem: 2, nome: p.r.nome, o, txt: 'orçamento ainda não mandado' });
     else {
       const t = Tarefas.all().find(t2 => !t2.feita && t2.orcId === o.id && t2.etapa === 'aguardar');
-      if (t && t.prazo && t.prazo <= hoje) agora.push({ tipo: 'repescar', ordem: 1, nome: p.r.nome, o, txt: `mandado e sem resposta${(o.repescagens || []).length ? ` · já foram ${o.repescagens.length} repescagem(ns)` : ''}` });
+      if (t && t.prazo && t.prazo <= hoje) agora.push({ tipo: 'repescar', ordem: 1, nome: p.r.nome, o, txt: `mandado e sem resposta${(o.repescagens || []).length ? ` · já foram ${o.repescagens.length} follow-up(s)` : ''}` });
     }
   }
   const semSinal = new Map();
@@ -2344,7 +2463,7 @@ function perdeOrcamento(id, motivo) { const o = Orc.get(id); if (!o) return; o.s
 /* a planilha de volta para o Google Planilhas, com as colunas dela */
 const CRM_COLUNAS = ['Data', 'veio por', 'Agência / indicação / influencer', 'Whatsapp', 'Nome', 'Data Serviço', 'Hora', 'PAX', 'Serviço pedido', 'Obs', 'Cliente Paga', 'Ingrid Paga', 'Cidade', 'Parceiro',
   'Total', 'Sinal', 'forma Pagamento', 'Em Real (se fez PIX)', 'Comissao Vendor', 'Comissao indicacao', 'Status', 'Motivo da perda',
-  'Repescagem 1', 'Resultado 1', 'Repescagem 2', 'Resultado 2', 'Repescagem 3', 'Resultado 3', 'Nome do arquivo', 'Link PDF', 'Link Orçamento', 'Link Voucher', 'Link Comprov', 'Link Avaliacao'];
+  'Follow-up 1', 'Resultado 1', 'Follow-up 2', 'Resultado 2', 'Follow-up 3', 'Resultado 3', 'Nome do arquivo', 'Link PDF', 'Link Orçamento', 'Link Voucher', 'Link Comprov', 'Link Avaliacao'];
 /* o Status com as palavras da planilha dela */
 function crmStatusTxt(r) {
   if (r.etapa === 'aberto') return r.status === 'enviado' ? 'Enviado' : 'Rascunho';

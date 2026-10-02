@@ -942,7 +942,7 @@ function crmLinksCels(r) {
 }
 /* as colunas da planilha, na ordem dela, em grupos que ela pode esconder
    (como ocultar colunas no Google Planilhas). O NOME fica sempre fixo a esquerda. */
-const CRM_GRUPOS = [['cli', 'Cliente'], ['serv', 'Serviço'], ['val', 'Valores'], ['par', 'Parceria'], ['st', 'Status'], ['rep', 'Repescagem'], ['arq', 'Arquivos e links']];
+const CRM_GRUPOS = [['cli', 'Cliente'], ['serv', 'Serviço'], ['val', 'Valores'], ['par', 'Parceria'], ['st', 'Status'], ['rep', 'Follow-up'], ['arq', 'Arquivos e links']];
 function crmColunas() {
   const m = (v) => v ? eur(v) : '';
   const rpx = (r, k) => (r.repescagens || []).find(y => y.n === k);
@@ -995,8 +995,8 @@ function crmColunas() {
     { g: 'par', ed: ed.comIndic, h: 'Comissão indicação', v: r => m(r.comIndic), c: 'mono right', soma: r => r.comIndic || 0 },
     { g: 'st', ed: ed.status, h: 'Status', v: r => crmEtapaPill(r.etapa, r.status) },
     { g: 'st', ed: ed.motivo, h: 'Motivo da perda', v: r => esc(r.motivo) },
-    { g: 'rep', ed: edRep(1), h: 'Repescagem 1', v: rp(1), c: 'mono' }, { g: 'rep', ed: edRes(1), h: 'Resultado 1', v: rs(1) }, { g: 'rep', ed: edRep(2), h: 'Repescagem 2', v: rp(2), c: 'mono' }, { g: 'rep', ed: edRes(2), h: 'Resultado 2', v: rs(2) },
-    { g: 'rep', ed: edRep(3), h: 'Repescagem 3', v: rp(3), c: 'mono' }, { g: 'rep', ed: edRes(3), h: 'Resultado 3', v: rs(3) },
+    { g: 'rep', ed: edRep(1), h: 'Follow-up 1', v: rp(1), c: 'mono' }, { g: 'rep', ed: edRes(1), h: 'Resultado 1', v: rs(1) }, { g: 'rep', ed: edRep(2), h: 'Follow-up 2', v: rp(2), c: 'mono' }, { g: 'rep', ed: edRes(2), h: 'Resultado 2', v: rs(2) },
+    { g: 'rep', ed: edRep(3), h: 'Follow-up 3', v: rp(3), c: 'mono' }, { g: 'rep', ed: edRes(3), h: 'Resultado 3', v: rs(3) },
     { g: 'arq', ed: ed.arquivo, h: 'Nome do arquivo', v: lk(0) }, { g: 'arq', ed: edLk('lPdf', 'PDF'), h: 'Link PDF', v: lk(1) }, { g: 'arq', ed: edLk('lOrc', 'Orçamento'), h: 'Link Orçamento', v: lk(2) },
     { g: 'arq', ed: edLk('lVoucher', 'Voucher'), h: 'Link Voucher', v: lk(3) }, { g: 'arq', ed: edLk('lComprov', 'Comprovante'), h: 'Link Comprov', v: lk(4) }, { g: 'arq', ed: edLk('lAval', 'Avaliação'), h: 'Link Avaliação', v: lk(5) },
   ];
@@ -1058,7 +1058,7 @@ const PR_COLS = {
   ],
   guia: [
     { h: 'Pessoas', get: c => esc(c.pax) }, { h: 'Duração', get: c => esc(c.dur) },
-    { h: 'Cliente', key: 'preco', ed: 1 }, { h: 'por pessoa', key: 'porPessoa', pp: 1 }, { h: 'Custo', key: 'custo', ed: 1 }, { h: 'Sinal', key: 'sinal', forte: 1 }, { h: 'Ingressos', key: 'ingressos', ed: 1 },
+    { h: 'Cliente', key: 'preco', ed: 1 }, { h: 'por pessoa', key: 'porPessoa', pp: 1 }, { h: 'Custo', key: 'custo', ed: 1 }, { h: 'Sinal', key: 'sinal', forte: 1 }, { h: 'Gestão em compra de ingressos', key: 'ingressos', ed: 1, cls: 'pr-gest' },
   ],
   bv: [
     { h: 'Pessoas', get: c => esc(c.pax) }, { h: 'Cliente', key: 'preco', ed: 1 },
@@ -1075,17 +1075,35 @@ function admPrecos(sub) {
   const cel = (col, c) => {
     if (col.get) return `<td class="${col.cls || ''}">${col.get(c)}</td>`;
     const v = c[col.key];
-    if (col.ed && editavel) return `<td class="pr-edc"><input class="pr-in" data-f="${col.key}" value="${prNum(v)}" inputmode="decimal" aria-label="${col.h}"></td>`;
+    if (col.ed && editavel) return `<td class="pr-edc ${col.cls || ''}"><input class="pr-in" data-f="${col.key}" value="${prNum(v)}" inputmode="decimal" aria-label="${col.h}"></td>`;
     return `<td class="pr-c${col.pp ? ' pr-pp' : ''}${col.forte ? ' pr-forte' : ''}${col.ed ? ' pr-base' : ''}" data-c="${col.key}">${eur(v)}</td>`;
   };
   const linha = (s, c) => `<tr data-tab="${atual.id}" data-sec="${s.id}" data-lin="${c.ref}" data-tipo="${tipo}" data-paxn="${c.paxN}" data-veicn="${c.veicN || 1}">
       ${cols.map(col => cel(col, c)).join('')}
       <td class="pr-acao"><button class="mini pr-orc" data-orc="${atual.id}|${s.id}|${c.ref}" title="gerar um orçamento já com este item">➕ orçamento</button></td></tr>`;
+  /* GUIA: o que cada duração inclui (vai no orçamento entre parênteses) e os ingressos por
+     pessoa (do catálogo de passeios — a mesma conta do site) */
+  const guiaInfo = (s) => {
+    if (tipo !== 'guia') return '';
+    const durs = [...new Set(s.linhas.map(c => c.dur || ''))], ings = Precos.ingressosDaSecao(s);
+    const td = (e, k, ph) => `<td><input class="pr-in pr-ingin" data-ing="${esc(e.nome)}" data-sec="${esc(s.id)}" data-ik="${k}" value="${e.g[k] === '' || e.g[k] == null ? '' : prNum(e.g[k])}" placeholder="${ph}" inputmode="decimal" aria-label="${esc(e.nome)} ${k}" ${editavel ? '' : 'disabled'}></td>`;
+    return `<div class="pr-guia">
+      ${durs.map(d => `<label class="fld sm pr-inc">O que inclui${d ? ' — ' + esc(d) : ''} <small>(sai no orçamento entre parênteses)</small>
+        <input data-inc="${esc(d)}" data-sec="${esc(s.id)}" value="${esc((s.inclui || {})[d] || '')}" placeholder="ex.: Coliseu + Fórum Romano" ${editavel ? '' : 'disabled'}></label>`).join('')}
+      ${ings.length ? `<div class="pr-ing"><b>🎟 Ingressos por pessoa</b> <small>— entram sozinhos no orçamento (sem idade = adulto) e valem também para o site</small>
+        <div class="pr-wrap"><table class="pr-tab pr-ingtab"><thead><tr><th>Ingresso</th><th>Adulto €</th><th>Reduzido €</th><th>Reduzido até (anos)</th><th>Grátis até (anos)</th><th>Em</th></tr></thead><tbody>
+        ${ings.map(e => `<tr><td><b>${esc(e.nome)}</b>${e.g.noDia ? '<br><small>pago no dia</small>' : +e.g.guia > 0 ? `<br><small>+ ${eur(e.g.guia)} do grupo</small>` : ''}</td>
+          ${td(e, 'inteiro', '0')}${e.g.noDia ? '<td></td><td></td><td></td>' : td(e, 'reduzido', '—') + td(e, 'reduzidoAte', '—') + td(e, 'gratisAte', '—')}
+          <td><small>${e.durs.length === durs.length ? 'todas' : esc(e.durs.join(', ')) || '—'}</small></td></tr>`).join('')}
+        </tbody></table></div></div>` : '<p class="why pr-ing">🎟 Este passeio não tem ingresso.</p>'}
+    </div>`;
+  };
   const bloco = (s) => `<section class="card pr-bloco"><h3 class="pr-sec">${esc(s.titulo)}</h3>
-    <div class="pr-wrap"><table class="pr-tab"><thead><tr>${cols.map(c => `<th${c.ed ? ' class="pr-th-ed"' : ''}>${c.h}${c.ed && editavel ? ' ✏️' : ''}</th>`).join('')}<th></th></tr></thead>
+    ${guiaInfo(s)}
+    <div class="pr-wrap"><table class="pr-tab"><thead><tr>${cols.map(c => `<th class="${c.ed ? 'pr-th-ed' : ''} ${c.cls || ''}">${c.h}${c.ed && editavel ? ' ✏️' : ''}</th>`).join('')}<th></th></tr></thead>
     <tbody>${s.linhas.map(c => linha(s, c)).join('')}</tbody></table></div></section>`;
   const ajuda = editavel
-    ? `Edite só o que está em <b>branco</b> (${tipo === 'transfer' ? 'Dinheiro e Custo' : tipo === 'guia' ? 'Cliente, Custo e Ingressos' : 'Cliente e Custo'}). O resto — por pessoa, sinal${tipo === 'transfer' ? ', cartão, noturno' : ''} — o app calcula sozinho, como no Excel. <b>Sinal = preço − custo</b> (a sua margem).`
+    ? `Edite só o que está em <b>branco</b> (${tipo === 'transfer' ? 'Dinheiro e Custo' : tipo === 'guia' ? 'Cliente, Custo e Gestão em compra de ingressos' : 'Cliente e Custo'}). O resto — por pessoa, sinal${tipo === 'transfer' ? ', cartão, noturno' : ''} — o app calcula sozinho, como no Excel. <b>Sinal = preço − custo</b> (a sua margem).`
     : `Esta tabela é a <b>Transfer Roma</b> com desconto. Mexeu na Transfer Roma, aqui acompanha sozinho — por isso ela não se edita direto.`;
   admShell('precos', `
     <div class="pagehead"><h1 class="pageh">Tabela de preços</h1>
@@ -1110,9 +1128,12 @@ function admPrecos(sub) {
       inp.onchange = () => { Precos.editaValor(tr.dataset.tab, tr.dataset.sec, tr.dataset.lin, inp.dataset.f, inp.value); recalc(); };
     });
   });
+  $$('[data-inc]').forEach(inp => inp.onchange = () => { Precos.editaInclui(atual.id, inp.dataset.sec, inp.dataset.inc, inp.value); toast('Salvo · os próximos orçamentos já saem com esse texto'); });
+  $$('[data-ing]').forEach(inp => inp.onchange = () => { const n = Precos.editaIngresso(atual.id, inp.dataset.sec, inp.dataset.ing, inp.dataset.ik, inp.value); toast(n ? 'Ingresso salvo · vale para os próximos orçamentos e para o site' : 'Não achei esse ingresso'); });
   $$('.pr-orc').forEach(b => b.onclick = () => {
     const it = Precos.itemOrc(b.dataset.orc); if (!it) return toast('Não consegui montar o item.');
     const o = Orc.cria({ origem: 'tabela', status: 'rascunho', itens: [it] });
+    Orc.comExtras(o, o.itens[0]); Orc.salva(o);   // passeio com guia: ingressos e gestão entram junto
     toast('Orçamento criado com este item · agora é só pôr o cliente');
     go('/adm/consulta/' + o.id);
   });
@@ -1193,7 +1214,7 @@ function admConsulta(arg, modo) {
         ${r.veio ? `<span class="crm-veio">${esc(r.veio)}${r.indicou ? ': <b>' + esc(r.indicou) + '</b>' : ''}</span>` : ''}${r.parceiro ? `<span class="crm-veio">🤝 ${esc(r.parceiro)}</span>` : ''}</div>
       <ul class="crm-linhas">${p.linhas.map(x => `<li><span class="mono">${crmData(x.dataServ)}${x.hora ? ' ' + esc(x.hora) : ''}</span><span>${esc(x.servico)}${x.pax ? ` <small>· ${esc(x.pax)}p</small>` : ''}${x.obs ? `<small> · ${esc(x.obs)}</small>` : ''}</span><b class="mono">${x.clientePaga ? eur(x.clientePaga) : '—'}</b></li>`).join('')}</ul>
       <div class="crm-pe"><span>Total <b>${eur(tot)}</b>${r.sinal ? ` · sinal ${eur(r.sinal)}` : ''}${r.forma ? ` · ${esc(r.forma)}` : ''}</span>
-        ${rp ? `<small class="crm-rp">Repescagem: ${esc(rp)}</small>` : ''}
+        ${rp ? `<small class="crm-rp">Follow-up: ${esc(rp)}</small>` : ''}
         <div class="tacts">${acoes(p)}${r.whats ? `<a class="mini ghost" target="_blank" rel="noopener" href="${waLink('', opNum(r.whats))}">WhatsApp</a>` : ''}</div></div>
     </article>`;
   }).join('');
@@ -1269,7 +1290,7 @@ function admConsulta(arg, modo) {
     const o = Orc.get(a.dataset.repesca); const t0 = Tarefas.all().find(t => !t.feita && t.orcId === o.id && t.etapa === 'aguardar');
     if (t0) Tarefas.conclui(t0.id, 'cutucar'); else { o.repescagens = o.repescagens || []; o.repescagens.push({ n: o.repescagens.length + 1, data: isoToday(), resultado: 'mandada' }); _opSave(); }
     const nov = Tarefas.all().find(t => !t.feita && t.orcId === o.id && t.etapa !== 'aguardar'); if (nov) Tarefas.conclui(nov.id);
-    setTimeout(() => { toast('Repescagem registrada · aguardando resposta'); re(); }, 400);
+    setTimeout(() => { toast('Follow-up registrado · aguardando resposta'); re(); }, 400);
   }));
   $('#ccBranco').onclick = () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho' }); go('/adm/consulta/' + o.id); };
   $('#ccLer').onclick = () => {
@@ -1368,7 +1389,7 @@ function opMsgOrc(o) {
   /* opções numeradas (o cliente escolhe uma), desconto com o valor cheio, e o total de CADA opção */
   const C = orcCenarios(o);
   C.ativos.forEach((i, n) => { const si = Orc.sinalDoItem(o, i), op = C.emGrupo.get(i);
-    l.push(`${n + 1}. ${op ? '[Opção ' + (op.k + 1) + '] ' : ''}${i.data ? opCurta(i.data) + ' ' + diaSemanaCurto(i.data) + (i.hora ? ' ' + i.hora : '') + ' — ' : ''}${i.desc}`,
+    l.push(`${n + 1}. ${op ? '[Opção ' + (op.k + 1) + '] ' : ''}${i.data ? opCurta(i.data) + ' ' + diaSemanaCurto(i.data) + (i.hora ? ' ' + i.hora : '') + ' — ' : ''}${i.desc}${C.soNa.has(i) ? ' (só na ' + C.soNa.get(i) + ')' : ''}`,
       i.valor ? `   Total ${+i.valorCheio > +i.valor ? '(de ' + eur(i.valorCheio) + ') ' : ''}${eur(i.valor)} · Sinal ${eur(si)} · Pagar no dia ${eur(Math.max(0, i.valor - si))}` : '   valor a definir'); });
   l.push('');
   for (const c of C.cenarios) l.push(`TOTAL${c.rotulo ? ' — ' + c.rotulo : ''}: ${eur(c.total)} · Sinal: ${eur(c.sinal)} · Pagar no dia: ${eur(c.dia)}`);
@@ -1402,7 +1423,9 @@ function admOrcEditor(id) {
       ${(Tours.get(i.tourId) || {}).priceMode === 'transfer' ? `<label class="fld sm">Voo / trem<input data-k="voo" value="${esc(i.voo || '')}" placeholder="AZ 673"></label>` : ''}
     </div>
     <div class="orc-item-pe">
-      ${i.tourId ? `<small class="why">da tabela: ${esc((Tours.get(i.tourId) || { name: { pt: '?' } }).name.pt)}</small>` : '<small class="why">item avulso (não vira reserva)</small>'}
+      ${i.tourId ? `<small class="why">da tabela: ${esc((Tours.get(i.tourId) || { name: { pt: '?' } }).name.pt)}</small>`
+        : (i.vinculo || []).length ? `<small class="why">🎟 acompanha: ${esc(o.itens.filter(x => i.vinculo.includes(x.id)).map(x => x.desc.replace(/\s*\(.*?\)/, '')).join(' / ') || '?')}</small>`
+        : i.precoRef ? '<small class="why">da Tabela de preços</small>' : '<small class="why">escrito à mão (com dia, vira reserva ao fechar)</small>'}
       ${i.sugestao ? '<span class="pill warn">sugestão do app — confira</span>' : ''}
       <input class="orc-obs" data-k="obs" value="${esc(i.obs)}" placeholder="observação para o cliente">
       ${i.tourId ? `<button class="mini" data-recalc="${esc(i.id)}">preço da tabela</button>` : ''}
@@ -1462,7 +1485,7 @@ function admOrcEditor(id) {
       <div class="orc-links"><span class="op-lbl">Arquivo: ${esc(Orc.nomeArquivo(o))}</span>
         ${(o.links || []).map(l => `<a class="mini" target="_blank" rel="noopener" href="${esc(l.url)}">🔗 ${esc(l.nome)}</a>`).join('')}
         <div class="frow"><label class="fld grow"><input id="orLkNome" placeholder="nome (ex.: PDF do orçamento)"></label><label class="fld grow"><input id="orLkUrl" placeholder="https://drive.google.com/…"></label><button class="mini" id="orLkAdd">+ link</button></div></div>
-      ${(o.repescagens || []).length ? `<p class="why">Repescagem: ${o.repescagens.map(x => `${x.n}ª ${crmData(x.data)} · ${esc(x.resultado)}`).join(' | ')}</p>` : ''}
+      ${(o.repescagens || []).length ? `<p class="why">Follow-up: ${o.repescagens.map(x => `${x.n}ª ${crmData(x.data)} · ${esc(x.resultado)}`).join(' | ')}</p>` : ''}
       <div class="btnrow"><button class="cta sm" id="orSalva">Salvar</button><button class="mini danger" id="orApaga">apagar</button></div>
     </section>
     ${o.status !== 'fechado' ? `<section class="card orc-fecha">
@@ -1514,7 +1537,10 @@ function admOrcEditor(id) {
     if (tid.includes('|') && typeof Precos !== 'undefined') it = Precos.itemOrc(tid, { data: $('#orAddD').value });
     else it = Orc.itemDoCatalogo(tid, { pax: +$('#orAddP').value || 1, data: $('#orAddD').value });
     if (!it) return toast('Não consegui montar o item.');
-    o.itens.push(it); if (it.precoRef) Orc.marcaOpcoes(o); Orc.salva(o); re();
+    /* passeio com guia: os ingressos e a gestão entram junto (sem idade = adulto) */
+    const ni = Orc._item(it); o.itens.push(ni);
+    if (ni.precoRef) { Orc.marcaOpcoes(o); Orc.comExtras(o, ni, { pax: +o.pax > 0 && +o.pax <= ni.pax ? +o.pax : ni.pax }); }
+    Orc.salva(o); re();
   };
   $('#orLkAdd').onclick = () => { lerTela(); const r = Orc.linkAdd(id, $('#orLkNome').value, $('#orLkUrl').value); if (r && r.erro) return toast(r.erro); re(); };
   $('#orAvulso').onclick = () => { lerTela(); o.itens.push(Orc._item({ desc: 'Roteiro com consultoria de especialista', pax: o.pax || 2 })); Orc.salva(o); re(); };
@@ -1546,8 +1572,17 @@ function admOrcEditor(id) {
 /* =====================================================
    DOCUMENTOS — voucher e orcamento, para imprimir ou mandar
 ===================================================== */
-function opDoc(titulo, corpo, acoes) {
+/* o NOME do PDF (pedido dela, 02/10): o "Salvar como PDF" do navegador usa o título da
+   página — durante a impressão ele vira "2026_10_05 Grazi (Agência)" e depois volta */
+function opDocNomePdf() {
+  if (opDocNomePdf.ok) return; opDocNomePdf.ok = true;
+  let antes = '';
+  window.addEventListener('beforeprint', () => { if (opDoc._nome && document.querySelector('article.doc')) { antes = document.title; document.title = opDoc._nome; } });
+  window.addEventListener('afterprint', () => { if (antes) { document.title = antes; antes = ''; } });
+}
+function opDoc(titulo, corpo, acoes, arquivo) {
   document.body.classList.add('em-adm');
+  opDoc._nome = String(arquivo || '').trim(); opDocNomePdf();
   app.innerHTML = `<div class="doc-barra">
       <button class="mini" id="docVolta">← voltar</button>
       ${acoes || ''}
@@ -1775,7 +1810,8 @@ function opDocVoucher(id) {
       <label class="fld">Observação deste voucher (sai antes da assinatura)<textarea id="vchNota" rows="3">${esc(nota)}</textarea></label>
       <button class="cta sm" id="vchSalva">salvar este voucher</button>
     </details>`;
-  opDoc('Voucher', corpo, b.whats ? `<a class="mini cta-ish" id="docVoucherWa" target="_blank" rel="noopener" href="${waLink(opVoucherTexto(b), opNum(b.whats))}">💬 mandar ao cliente</a>` : '');
+  opDoc('Voucher', corpo, b.whats ? `<a class="mini cta-ish" id="docVoucherWa" target="_blank" rel="noopener" href="${waLink(opVoucherTexto(b), opNum(b.whats))}">💬 mandar ao cliente</a>` : '',
+    (orc ? Orc.nomeArquivo(orc) : b.arquivo || `${String(bs.map(x => x.date).filter(Boolean).sort()[0] || b.date || '').replace(/-/g, '_')} ${b.name}`) + ' - Voucher');
   $$('[data-pt]').forEach(s => s.onchange = () => { escolhePonto(s.dataset.pt, s.value); opDocVoucher(id); toast('Ponto de encontro escolhido'); });
   const vs = $('#vchSalva'); if (vs) vs.onclick = () => {
     const f = $$('[data-vblk]').filter(i => !i.checked).map(i => i.dataset.vblk), n = $('#vchNota').value.trim();
@@ -1794,16 +1830,22 @@ function orcCenarios(o) {
   grupos.forEach((l, g) => l.forEach((i, k) => emGrupo.set(i, { g, k })));
   const ativos = (o.itens || []).filter(i => !i.perdido), fixos = ativos.filter(i => !emGrupo.has(i));
   const soma = (l) => { const t = l.reduce((s, i) => s + (+i.valor || 0), 0), s2 = l.reduce((s, i) => s + Orc.sinalDoItem(o, i), 0); return { total: r2(t), sinal: r2(s2), dia: r2(Math.max(0, t - s2)) }; };
-  const cenarios = grupos.length === 1 ? grupos[0].map((op, k) => Object.assign({ rotulo: 'Opção ' + (k + 1) }, soma([...fixos, op])))
+  /* a linha que acompanha um passeio (ingresso, gestão) só soma se o passeio dela está no cenário */
+  const doCenario = (l) => { const ids = new Set(l.filter(i => !(i.vinculo || []).length).map(i => i.id)); return l.filter(i => !(i.vinculo || []).length || i.vinculo.some(id => ids.has(id))); };
+  const cenarios = grupos.length === 1 ? grupos[0].map((op, k) => Object.assign({ rotulo: 'Opção ' + (k + 1) }, soma(doCenario([...fixos, op]))))
     : [Object.assign({ rotulo: grupos.length ? 'a partir de' : '' }, soma(Orc.itensConta(o)))];
-  return { grupos, emGrupo, ativos, cenarios, descontos: ativos.filter(i => +i.valorCheio > +i.valor) };
+  /* "só na Opção 2": a linha que acompanha só uma das opções (a Basílica, só no de 4 horas) */
+  const soNa = new Map();
+  for (const i of ativos) { if (!(i.vinculo || []).length) continue;
+    for (const l of grupos) { const meus = l.filter(x => i.vinculo.includes(x.id)); if (meus.length && meus.length < l.length) soNa.set(i, meus.map(x => 'Opção ' + (emGrupo.get(x).k + 1)).join(' / ')); } }
+  return { grupos, emGrupo, ativos, cenarios, soNa, descontos: ativos.filter(i => +i.valorCheio > +i.valor) };
 }
 /* o cabeçalho (Nome/Whatsapp/Pessoas/Bagagem) + a tabela Data|Hora|Serviço|Total|Sinal|Pagar no dia */
 function orcTabelasHtml(o) {
   const C = orcCenarios(o), pMax = Math.max(+o.pax || 0, ...(o.itens || []).map(i => +i.pax || 0));
   const linhas = C.ativos.map(i => { const si = Orc.sinalDoItem(o, i), op = C.emGrupo.get(i);
     return `<tr${op ? ' class="doc-opcao"' : ''}><td class="mono">${i.data ? crmDataSem(i.data) : '—'}</td><td class="mono">${esc(i.hora || '')}</td>
-      <td>${op ? `<span class="doc-op">Opção ${op.k + 1}</span> ` : ''}${esc(i.desc)}${i.obs && !i.sugestao ? `<br><small>${esc(i.obs)}</small>` : ''}</td>
+      <td>${op ? `<span class="doc-op">Opção ${op.k + 1}</span> ` : ''}${esc(i.desc)}${C.soNa.has(i) ? ` <span class="doc-sona">só na ${esc(C.soNa.get(i))}</span>` : ''}${i.obs && !i.sugestao ? `<br><small>${esc(i.obs)}</small>` : ''}</td>
       <td class="mono right">${i.valor ? (+i.valorCheio > +i.valor ? `<s class="doc-cheio">${eur(i.valorCheio)}</s><br>` : '') + eur(i.valor) : 'a definir'}</td>
       <td class="mono right">${i.valor ? eur(si) : ''}</td><td class="mono right">${i.valor ? eur(Math.max(0, i.valor - si)) : ''}</td></tr>`; }).join('');
   const rod = C.cenarios.map(c => `<tr><td colspan="3"><b>TOTAL${c.rotulo ? ' — ' + c.rotulo : ''}</b></td><td class="mono right"><b>${eur(c.total)}</b></td><td class="mono right"><b>${eur(c.sinal)}</b></td><td class="mono right"><b>${eur(c.dia)}</b></td></tr>`).join('');
@@ -1835,7 +1877,7 @@ function opDocOrc(id) {
       ${modelo ? '<div class="alert warn nao-imprime">Estes ainda são os termos MODELO. Cole os seus em Ajustes → Termos e condições.</div>' : ''}
       <div class="doc-termos vch-bloco">${vchFmt(termos.replace(/^MODELO.*\n\n?/, ''))}</div>
       <p><b>Ao pagar o sinal, você declara que leu e aceita estes termos.</b></p>` : ''}`;
-  opDoc('Orçamento', corpo, `<a class="mini" href="#/adm/consulta/${esc(o.id)}">editar</a>`);
+  opDoc('Orçamento', corpo, `<a class="mini" href="#/adm/consulta/${esc(o.id)}">editar</a>`, Orc.nomeArquivo(o));
 }
 
 /* =====================================================

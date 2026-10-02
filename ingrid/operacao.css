@@ -130,7 +130,11 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .doc-tbl{width:100%;margin:10px 0}
 @media(max-width:600px){.doc{padding:22px 18px;margin:12px 8px 80px}.doc-dl{grid-template-columns:1fr}.doc-dl dt{margin-top:6px}}
 @media print{
-  .doc-barra,.nao-imprime,.cesta-bar,.protobar,#demoFaixa{display:none!important}
+  /* no PDF sai só a folha: nada de botão do assistente, gaveta, avisos (o PDF dela saiu
+     com o "Assistente EXTRA" na 1ª página e uma faixa cinza à direita — 02/10) */
+  .doc-barra,.nao-imprime,.cesta-bar,.protobar,#demoFaixa,#iaFab,#iaGaveta,.toast,#toast,.coach,.demobar{display:none!important}
+  html,body{background:#fff!important;overflow:visible!important;height:auto!important;scrollbar-width:none}
+  body.em-adm{padding:0!important;margin:0!important}
   .doc{box-shadow:none!important;margin:0!important;padding:0!important;max-width:none!important}
   .svc-form,.op-busca,.op-pend .alert{display:none!important}
   .svc{break-inside:avoid;box-shadow:none!important;border:1px solid #ccc!important}
@@ -359,6 +363,7 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .doc-orc tfoot td{border-top:2px solid var(--ink)}
 .doc-cheio{color:var(--ink-3);font-weight:400;font-size:var(--fs-2)}
 .doc-op{display:inline-block;padding:1px 8px;border-radius:var(--r-pill);background:var(--accent-wash);color:var(--accent);font-size:var(--fs-1);font-weight:var(--t-strong);margin-right:4px}
+.doc-sona{display:inline-block;padding:1px 8px;border-radius:var(--r-pill);border:1px solid var(--accent);color:var(--accent);font-size:var(--fs-1);font-weight:var(--t-strong);white-space:nowrap}
 .doc-nota{margin:6px 0;font-size:var(--fs-2);color:var(--ink-2)}
 .doc-desconto{color:var(--ok)}
 .doc-ref{margin:14px 0 0;font-size:var(--fs-1);color:var(--ink-3);opacity:.7}
@@ -398,6 +403,13 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .pr-acao{text-align:center}
 .pr-orc{white-space:nowrap}
 @media(max-width:700px){.pr-veic{min-width:120px;max-width:160px}.pr-tab th,.pr-tab td{padding:7px 8px}}
+/* Guia: o que inclui + ingressos por pessoa (02/10) */
+.pr-guia{padding:12px 16px 4px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;border-bottom:1px solid var(--line);min-width:0}
+.pr-guia .fld.pr-inc{display:block;margin:0;max-width:none;width:100%}.pr-inc small{font-weight:400;color:var(--ink-3)}.pr-inc input{width:100%;margin-top:4px}
+.pr-ing{margin:0 0 6px;min-width:0}.pr-ing small{color:var(--ink-3)}
+.pr-ingtab{margin-top:6px}.pr-ingtab td:first-child{white-space:normal;min-width:150px}
+.pr-ingtab .pr-in{width:70px}
+.pr-tab th.pr-gest{white-space:normal;min-width:110px;line-height:1.25}
 
 /* ---------- VOUCHER (documento + editor) ---------- */
 .vch-bloco{margin:14px 0;padding-top:12px;border-top:1px solid var(--line)}
@@ -739,7 +751,10 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .vch-bloco p,.vch-bloco .vch-ul{max-width:75ch}
 .doc-termos{font-size:var(--fs-2)}
 .doc-termos .vch-h{font-size:var(--fs-3)}
-@media print{.doc-tblwrap{overflow:visible}.doc-tblwrap .doc-tbl{min-width:0}}
+@media print{.doc-tblwrap{overflow:visible}.doc-tblwrap .doc-tbl{min-width:0}
+  /* o TOTAL sai UMA vez, no fim da tabela (o Chrome repetia o rodapé no pé de cada página,
+     e o "TOTAL" aparecia no meio do orçamento); linha de serviço não parte entre páginas */
+  .doc-tbl tfoot{display:table-row-group}.doc-tbl tr{break-inside:avoid}}
 
 .vch-sug{color:var(--accent);font-style:italic}
 

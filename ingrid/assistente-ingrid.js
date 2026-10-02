@@ -108,7 +108,7 @@ const ING_FERRAMENTAS = [
   { name: 'ver_contas', description: 'As contas onde ela recebe (id, nome, Brasil ou Europa).', input_schema: obj() },
   { name: 'ver_backup', description: 'Quando foi o último backup, onde (pasta do computador/Google Drive ou baixado) e se o de hoje já foi feito.', input_schema: obj() },
   { name: 'ver_clientes', description: 'Clientes cadastrados: veio por, indicado por, passeios, quanto pagou, quanto deve, próximo serviço. Filtro opcional.', input_schema: obj({ filtro: { type: 'string', enum: ['todos', 'compraram', 'vieram_junto', 'com_servico', 'devem', 'voltaram', 'aniversario_mes'] }, veio_por: S_() }) },
-  { name: 'ver_crm', description: 'A PLANILHA dela (aba Planilha / CRM), com TODAS as colunas: data do pagamento, veio por, agência/indicação/influencer, WhatsApp, nome, data serviço, hora, PAX, serviço, obs, cliente paga, Ingrid paga, cidade, parceiro, total, sinal, forma de pagamento, em real, comissões, status, motivo da perda, repescagens e resultados, nome do arquivo e links. Filtre por etapa, cliente ou mês.', input_schema: obj({ etapa: { type: 'string', enum: ['aberto', 'confirmado', 'avaliar', 'finalizado', 'perdido', 'todos'] }, cliente: S_('nome, WhatsApp ou agência'), mes: S_('AAAA-MM do serviço') }) },
+  { name: 'ver_crm', description: 'A PLANILHA dela (aba Planilha / CRM), com TODAS as colunas: data do pagamento, veio por, agência/indicação/influencer, WhatsApp, nome, data serviço, hora, PAX, serviço, obs, cliente paga, Ingrid paga, cidade, parceiro, total, sinal, forma de pagamento, em real, comissões, status, motivo da perda, follow-ups 1/2/3 e resultados, nome do arquivo e links. Filtre por etapa, cliente ou mês.', input_schema: obj({ etapa: { type: 'string', enum: ['aberto', 'confirmado', 'avaliar', 'finalizado', 'perdido', 'todos'] }, cliente: S_('nome, WhatsApp ou agência'), mes: S_('AAAA-MM do serviço') }) },
   { name: 'ver_painel', description: 'O painel do CRM: em aberto, confirmados, falta receber, taxa de fechamento, motivo que mais perde, comissões a pagar e a lista "precisa de você" (repescar, mandar orçamento, cobrar sinal, pedir avaliação).', input_schema: obj({ mes: S_('AAAA-MM (opcional)') }) },
   { name: 'ver_transfers', description: 'Aba Transfer: os transfers de ROMA de hoje em diante (a New Star só faz Roma), se já foram pedidos lá (e o número deles) e os dados prontos para colar; e, à parte, os de fora de Roma (outro fornecedor).', input_schema: obj({ so_falta: { type: 'boolean' } }) },
   { name: 'ver_arquivos', description: 'Arquivos guardados (comprovantes e documentos), por cliente ou todos, e onde estão no Google Drive.', input_schema: obj({ cliente: S_() }) },
@@ -130,12 +130,12 @@ const ING_FERRAMENTAS = [
   { name: 'detalhes_servico', description: 'Voo/trem, onde buscar, para onde levar, observação, quanto ela paga a quem faz (custo) e quem recebe o resto (no_dia = a guia/motorista recebe do cliente; ingrid = ela recebe e acerta).', input_schema: obj({ codigo: S_(), voo: S_(), buscar_em: S_(), levar_para: S_(), obs: S_(), custo: N_(), resto: { type: 'string', enum: ['no_dia', 'ingrid'] } }, ['codigo']) },
   { name: 'registrar_pagamento', description: 'Registra dinheiro recebido numa reserva, na conta certa (define Brasil ou Europa na contabilidade). "prestador" = o cliente pagou na mão da guia/motorista. Sem valor = o que falta. Se ela não disse a conta, PERGUNTE.', input_schema: obj({ codigo: S_(), valor: N_(), conta: S_('id de ver_contas ou "prestador"'), anexo: S_('ref do comprovante que ela mandou no chat (anexo1…): fica na ficha e na pasta do cliente no Google Drive') }, ['codigo', 'conta']) },
   { name: 'arquivar', description: 'Guarda um arquivo que ela mandou no chat (anexo1…) na ficha do cliente e na pastinha dele no Google Drive (EmRoma › Clientes › nome). Para comprovante de pagamento use registrar_pagamento com anexo — ele já arquiva.', input_schema: obj({ anexo: S_('anexo1, anexo2…'), cliente: S_('nome, código da reserva ou WhatsApp'), descricao: S_('o que é: passaporte, voucher do hotel, bilhete de trem…') }, ['anexo', 'cliente']) },
-  { name: 'criar_orcamento', description: 'Cria orçamento sob consulta com vários serviços. Para transfer, guia ou bate-e-volta use preco_ref (de ver_precos): valor, SINAL e custo entram certos da Tabela de preços. passeio_id (de ver_passeios) para o catálogo de passeios. Para MUDAR um orçamento que já existe use editar_orcamento — não crie outro.', input_schema: obj({ cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_('ex.: 2 adultos + 1 bebê (bebê conta como pessoa)'), bagagem: S_('ex.: 2 malas 23kg + 1 de bordo + carrinho de bebê'), itens: { type: 'array', items: obj({ preco_ref: S_('ref de ver_precos — traz valor, sinal e custo da tabela'), passeio_id: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_() }) }, sinal_pct: N_(), obs: S_(), novo: { type: 'boolean', description: 'só true se ela pedir MESMO um segundo orçamento para um cliente que já tem um em aberto' } }, ['cliente']) },
+  { name: 'criar_orcamento', description: 'Cria orçamento sob consulta com vários serviços. Para transfer, guia ou bate-e-volta use preco_ref (de ver_precos): valor, SINAL e custo entram certos da Tabela de preços. passeio_id (de ver_passeios) para o catálogo de passeios. Para MUDAR um orçamento que já existe use editar_orcamento — não crie outro.', input_schema: obj({ cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_('ex.: 2 adultos + 1 bebê (bebê conta como pessoa)'), bagagem: S_('ex.: 2 malas 23kg + 1 de bordo + carrinho de bebê'), adultos: { type: 'integer', description: 'só se ela disse: quantos adultos (os ingressos são por idade; sem isso = todos adultos)' }, idades: { type: 'array', items: { type: 'integer' }, description: 'idades das crianças/jovens, se ela disse (ex.: [10, 5])' }, itens: { type: 'array', items: obj({ preco_ref: S_('ref de ver_precos — traz valor, sinal e custo da tabela'), passeio_id: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_() }) }, sinal_pct: N_(), obs: S_(), novo: { type: 'boolean', description: 'só true se ela pedir MESMO um segundo orçamento para um cliente que já tem um em aberto' } }, ['cliente']) },
   { name: 'apagar_orcamento', description: 'Apaga um orçamento — ex.: o repetido (regra dela: 1 orçamento por cliente até pagar e receber o voucher). Fecha junto a tarefa de aguardar resposta. Para não perder serviços do repetido, traga-os antes com editar_orcamento (adicionar) no que fica.', input_schema: obj({ numero: S_('número do orçamento') }, ['numero']) },
   { name: 'ler_conversa', description: 'Lê uma conversa colada do WhatsApp/Instagram/e-mail e monta o rascunho do orçamento + a anotação com o resumo. Nunca responde o cliente.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'mudar_orcamento', description: 'Muda situação, validade ou % de sinal de um orçamento.', input_schema: obj({ numero: S_(), situacao: { type: 'string', enum: ['rascunho', 'enviado', 'perdido'] }, validade: S_(), sinal_pct: N_() }, ['numero']) },
   { name: 'ver_precos', description: 'LÊ a Tabela de preços dela (as 4 abas do Excel: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma). Acha a linha certa por número de pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão (+10%) e noturno, com um ref para usar em preco_ref. Sem filtro, lista as tabelas e seções.', input_schema: obj({ tabela: { type: 'string', enum: ['transfer', 'transfer-roma-5', 'guia', 'bv'] }, pessoas: { type: 'integer', description: 'quantas pessoas (bebê e criança contam)' }, texto: S_('filtra por seção/veículo/duração: aeroporto, civitavecchia, termini, outlet, roma antiga, vaticano, walking, carro, minivan, van, 3 horas, 4 horas…') }) },
-  { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar', 'voltar', 'apagar', 'escolher'], description: 'escolher = o cliente escolheu ESTA opção (as outras do mesmo dia viram não fechou); tirar = o cliente NÃO quis: fica registrado como perdido (estatística dela), sai do total e do que vai pro cliente; voltar = ele quer de novo; apagar = só erro de digitação (some de vez)' }, item: S_('qual serviço: de preferência o NÚMERO (1, 2… na ordem do orçamento); também aceita "opção 2" ou o veículo ("minivan")'), motivo: S_('por que o cliente não quis (opcional, com tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
+  { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, idades/adultos (refaz os ingressos), e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), adultos: { type: 'integer', description: 'quantos adultos (refaz as linhas de ingresso)' }, idades: { type: 'array', items: { type: 'integer' }, description: 'idades das crianças/jovens (refaz as linhas de ingresso: Roma Antiga grátis até 17; Vaticano €15 de 7 a 18, grátis até 6)' }, itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar', 'voltar', 'apagar', 'escolher'], description: 'escolher = o cliente escolheu ESTA opção (as outras do mesmo dia viram não fechou); tirar = o cliente NÃO quis: fica registrado como perdido (estatística dela), sai do total e do que vai pro cliente; voltar = ele quer de novo; apagar = só erro de digitação (some de vez)' }, item: S_('qual serviço: de preferência o NÚMERO (1, 2… na ordem do orçamento); também aceita "opção 2" ou o veículo ("minivan")'), motivo: S_('por que o cliente não quis (opcional, com tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
   { name: 'fechar_orcamento', description: 'O cliente fechou: cada serviço do catálogo vira reserva com o sinal; registra o sinal na conta se já caiu.', input_schema: obj({ numero: S_(), sinal_recebido: { type: 'boolean' }, conta: S_() }, ['numero', 'sinal_recebido']) },
   { name: 'ajustar_termos', description: 'Termos e condições do orçamento e o número de plantão do voucher.', input_schema: obj({ termos: S_(), plantao: S_() }) },
   { name: 'orcamento_do_roteiro', description: 'Monta o rascunho de orçamento a partir de um pedido do "Monte seu roteiro" (veja pedidos_de_roteiro em ver_orcamentos).', input_schema: obj({ pedido: S_('id ou nome de quem pediu') }, ['pedido']) },
@@ -147,6 +147,8 @@ const ING_FERRAMENTAS = [
   { name: 'quem_vai', description: 'Registra quem vai num serviço (nome completo e nascimento de cada um — os ingressos são nominais) e se quem comprou também vai.', input_schema: obj({ codigo: S_(), comprador_vai: { type: 'boolean' }, nascimento_comprador: S_(), pessoas: { type: 'array', items: obj({ nome: S_(), nascimento: S_('dd/mm/aaaa') }, ['nome']) } }, ['codigo']) },
   { name: 'ingressos_comprados', description: 'Marca que os ingressos de um serviço já foram comprados (ou desmarca).', input_schema: obj({ codigo: S_(), comprados: { type: 'boolean' } }, ['codigo', 'comprados']) },
   { name: 'link_servico', description: 'Guarda um link no serviço (PDF do ingresso, QR code, voucher do parceiro).', input_schema: obj({ codigo: S_(), nome: S_(), url: S_() }, ['codigo', 'url']) },
+  { name: 'follow_up', description: 'FOLLOW-UP de um orçamento (colunas "Follow-up 1, 2 e 3" e "Resultado" da PLANILHA — antes chamadas de Repescagem): grava as DATAS na Planilha E cria a tarefa de cada dia (tarefa que já existe no mesmo dia para esse cliente vira a do follow-up — não duplica). Também registra o resultado (respondeu, não respondeu, fechou…). Use SEMPRE que ela falar em follow-up, repescagem ou retorno marcado de um orçamento.', input_schema: obj({ numero: S_('número do orçamento, nome do cliente ou código da reserva'), followups: { type: 'array', items: obj({ n: { type: 'integer', description: '1, 2 ou 3' }, data: S_('AAAA-MM-DD (vazio = apagar a data)'), resultado: S_() }, ['n']) }, criar_tarefas: { type: 'boolean', description: 'padrão true: cria a tarefa no dia de cada follow-up' } }, ['numero', 'followups']) },
+  { name: 'editar_planilha', description: 'MUDA qualquer célula da PLANILHA (aba Planilha / CRM), como ela faria tocando na célula: data do pagamento, veio por, agência/indicação/influencer, WhatsApp, nome, data do serviço, hora, PAX, serviço, obs, cliente paga, Ingrid paga, cidade, parceiro, sinal, forma, em real, comissões, status, motivo, follow-up 1/2/3 e resultado, nome do arquivo e links. A linha é um orçamento (número + qual serviço) ou uma reserva (código). Datas em dd/mm/aaaa ou AAAA-MM-DD.', input_schema: obj({ linha: S_('número do orçamento (ex.: ORC-0004) ou código da reserva'), servico: { type: 'integer', description: 'orçamento com vários serviços: o NÚMERO do serviço (1, 2…) — para data, hora, PAX, serviço, obs e valores' }, coluna: { type: 'string', enum: ['data_pagamento','veio_por','agencia_indicacao_influencer','whatsapp','nome','data_servico','hora','pax','servico','obs','cliente_paga','ingrid_paga','cidade','parceiro','sinal','forma','em_real','comissao_vendor','comissao_indicacao','status','motivo','follow_up_1','resultado_1','follow_up_2','resultado_2','follow_up_3','resultado_3','nome_do_arquivo','link_pdf','link_orcamento','link_voucher','link_comprovante','link_avaliacao'] }, valor: S_() }, ['linha', 'coluna', 'valor']) },
   { name: 'marcar_perdido', description: 'Marca um orçamento como perdido, com o motivo.', input_schema: obj({ numero: S_(), motivo: { type: 'string', enum: MOTIVOS_PERDA } }, ['numero', 'motivo']) },
   { name: 'avaliacao_pedida', description: 'Registra que ela já pediu a avaliação ao cliente (o serviço vai para Finalizado). A mensagem ela manda pelo botão do CRM.', input_schema: obj({ codigo: S_() }, ['codigo']) },
   { name: 'cadastrar_parceiro', description: 'Cadastra ou muda um influencer/agência/parceiro com cupom, desconto e comissão.', input_schema: obj({ nome: S_(), tipo: { type: 'string', enum: TIPOS_PARCEIRO.map(t => t[0]) }, contato: S_(), cupom: S_(), desconto: N_(), comissao: N_() }, ['nome']) },
@@ -159,7 +161,23 @@ IA_FERRAMENTAS.push(...ING_FERRAMENTAS);
    não fechou — teste ao vivo de 02/10: sem a lista, a IA adivinhava o número e errava */
 function ingServicosNum(o) {
   const ops = new Set(Orc.opcoes(o).flat());
-  return o.itens.map((x, k) => `${k + 1}. ${x.desc}${x.data ? ' — ' + x.data + (x.hora ? ' ' + x.hora : '') : ''} · ${eur(x.valor)}${ops.has(x) ? ' [OPÇÃO]' : ''}${x.perdido ? ' [não fechou]' : ''}`);
+  const num = (id) => o.itens.findIndex(y => y.id === id) + 1;
+  return o.itens.map((x, k) => `${k + 1}. ${x.desc}${x.data ? ' — ' + x.data + (x.hora ? ' ' + x.hora : '') : ''} · ${eur(x.valor)}${ops.has(x) ? ' [OPÇÃO]' : ''}${(x.vinculo || []).length ? ` [acompanha o ${x.vinculo.map(num).filter(Boolean).join(' e ')} — entra/sai sozinho]` : ''}${x.perdido ? ' [não fechou]' : ''}`);
+}
+/* passeio com guia (da Tabela): põe os ingressos, os fones e a gestão junto — pedido dela de 02/10.
+   Devolve quantas linhas entraram. pessoas: adultos/idades da fala dela (sem idade = adultos) */
+function ingComExtras(o, guias, i) {
+  const antes = o.itens.length;
+  for (const g of guias || []) if (g.precoRef) Orc.comExtras(o, g, { pax: g.pax, adultos: i && i.adultos, idades: i && i.idades });
+  return Math.max(0, o.itens.length - antes);
+}
+/* regra dela: transfer SEMPRE com a quantidade e o tamanho das malas ("senão o cliente acha que
+   cabe, dá um jeitinho e vai"). Transfer escrito à mão sem malas é recusado → use a Tabela. */
+function ingTransferSemMalas(desc) {
+  const d = String(desc || '');
+  if (/transfer|aeroporto|fiumicino|ciampino|\bfco\b|civitavecchia|termini|esta[cç][aã]o de trem/i.test(d) && !/mala/i.test(d))
+    return E_('transfer sem a quantidade e o tamanho das malas — regra dela: o cliente precisa ver o que cabe. Use ver_precos (tabela transfer, pessoas e bagagem) e passe o ref em preco_ref: a descrição já sai "até X malas médias 65x45x28 + Y de bordo". Fora de Roma (sem linha na tabela), escreva as malas na descricao.');
+  return null;
 }
 const ING_LER = {
   ver_precos(i) {
@@ -169,7 +187,7 @@ const ING_LER = {
     const l = Precos.acha(q);
     if (!l.length) return { nada: 'nenhuma linha com esse filtro', tabelas: Precos.resumo() };
     return { linhas: l.slice(0, 40), total_achado: l.length, como_usar: 'passe o ref em preco_ref (criar_orcamento ou editar_orcamento): valor, sinal e custo entram certos',
-      regras: 'sinal = preço − custo (a margem dela); cartão = +10%; noturno (21h–6h) = +€30 por veículo; bebê e criança contam como pessoa; a "Transfer Roma 5%" (preço com desconto) só quando ela pedir desconto — o normal é Transfer Roma' };
+      regras: 'sinal = preço − custo (a margem dela); cartão = +10%; noturno (21h–6h) = +€30 por veículo; bebê e criança contam como pessoa; a "Transfer Roma 5%" (preço com desconto) só quando ela pedir desconto — o normal é Transfer Roma. GUIA: a descrição já sai com o que inclui entre parênteses; os ingressos (comprar antecipado), os fones e a "gestão e reserva antecipada de ingressos" (gestao_ingressos_do_grupo — é a taxa dela, NÃO o ingresso) entram SOZINHOS no orçamento; sem idade = todos adultos. Duração não dita = ponha 3 horas E 4 horas no mesmo dia (viram opção 1 e opção 2)' };
   },
   ver_conversas(i) {
     const hoje = hojeIso(), q = String(i.cliente || '').trim(), qd = q.replace(/\D/g, '');
@@ -267,7 +285,7 @@ const ING_LER = {
     return l.length ? { linhas: l.map(r => sem({ data_pagamento: r.dataPago ? r.dataPedido : '', data_pedido: r.dataPago ? '' : r.dataPedido, veio_por: r.veio, agencia_indicacao_influencer: r.indicou, whats: r.whats, nome: r.nomePlan || r.nome,
       data_servico: r.dataServ, hora: r.hora, pax: r.pax, servico: r.servico, obs: r.obs, cliente_paga: r.clientePaga, ingrid_paga: r.ingridPaga, cidade: r.cidade, parceiro: r.parceiro,
       total_pedido: r.totalPedido, sinal: r.sinal, forma_pagamento: r.forma, em_real: r.emReal, comissao_vendor: r.comVendor, comissao_indicacao: r.comIndic, status: crmStatusTxt(r), motivo_perda: r.motivo,
-      repescagens: (r.repescagens || []).map(x => `${x.n}ª ${x.data || '?'} → ${x.resultado}`), nome_do_arquivo: r.arquivo, links: (r.links || []).map(x => x.nome + ': ' + x.url),
+      follow_ups: (r.repescagens || []).map(x => `Follow-up ${x.n}: ${x.data || '?'}${x.resultado ? ' → ' + x.resultado : ''}`), nome_do_arquivo: r.arquivo, links: (r.links || []).map(x => x.nome + ': ' + x.url),
       numero: r.o ? r.o.num : '', codigo: r.b ? r.b.code : '' })), ...(todas.length > l.length ? { aviso: `mostrando 150 de ${todas.length} — filtre por cliente ou mês` } : {}) } : 'nada com esse filtro';
   },
   ver_painel(i) {
@@ -472,15 +490,19 @@ const ING_PLANO = {
         const n = Orc.itemDoCatalogo(it.passeio_id, { pax: it.pessoas || 2, data: isoOk(it.data) ? it.data : '', hora: it.hora });
         if (+it.valor > 0) n.valor = +it.valor;
         itens.push(n); assumiu.push('preços do catálogo de passeios');
-      } else if (it.descricao) itens.push(Orc._item({ desc: it.descricao, pax: it.pessoas || 2, data: isoOk(it.data) ? it.data : '', hora: it.hora || '', valor: +it.valor || 0 }));
+      } else if (it.descricao) { const g = ingTransferSemMalas(it.descricao); if (g) return g;
+        itens.push(Orc._item({ desc: it.descricao, pax: it.pessoas || 2, data: isoOk(it.data) ? it.data : '', hora: it.hora || '', valor: +it.valor || 0 })); }
     }
     const o0 = { itens, sinalPct: i.sinal_pct != null ? +i.sinal_pct : 30 };
     Orc.marcaOpcoes(o0);   // carro E minivan do mesmo trajeto/dia = OPÇÕES (o total não soma as duas)
+    /* passeio com guia: ingressos (comprar antecipado), fones e gestão entram sozinhos; 3 h e 4 h do mesmo dia compartilham a linha igual */
+    const nEx = ingComExtras(o0, itens.filter(x => x.precoRef), i);
+    if (nEx) assumiu.push('passeio com guia: ingressos, fones e gestão entraram sozinhos' + (i.idades && i.idades.length ? ' (pelas idades)' : ' (sem idade = todos adultos)'));
     if (Orc.opcoes(o0).length) assumiu.push('serviços do mesmo trajeto e dia entraram como OPÇÕES (o cliente escolhe uma)');
     return { titulo: 'Criar orçamento', assumiu: [...new Set(assumiu)],
       linhas: [['Cliente', i.cliente], ...(i.pessoas_nota ? [['Pessoas', i.pessoas_nota]] : []), ...(i.bagagem ? [['Bagagem', i.bagagem]] : []),
-        ...itens.slice(0, 8).map(x => [x.data ? ingData(x.data) : '—', `${x.desc} · ${x.pax}p · ${x.valor ? eur(x.valor) : 'a definir'}${x.sinal ? ' · sinal ' + eur(x.sinal) : ''}`]), ['Total', eur(Orc.total(o0))], ['Sinal', eur(Orc.sinal(o0))]],
-      fazer: () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho', cliente: { nome: i.cliente, whats: i.whats, email: i.email }, itens, sinalPct: o0.sinalPct, obs: i.obs || '' });
+        ...o0.itens.slice(0, 16).map(x => [x.data ? ingData(x.data) : '—', `${x.desc} · ${x.pax}p · ${x.valor ? eur(x.valor) : 'a definir'}${x.sinal ? ' · sinal ' + eur(x.sinal) : ''}`]), ['Total', eur(Orc.total(o0))], ['Sinal', eur(Orc.sinal(o0))]],
+      fazer: () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho', cliente: { nome: i.cliente, whats: i.whats, email: i.email }, itens: o0.itens, sinalPct: o0.sinalPct, obs: i.obs || '' });
         if (i.bagagem || i.pessoas_nota) Orc.salva({ id: o.id, bagagem: i.bagagem || '', paxNota: i.pessoas_nota || '' });
         return { ok: true, numero: o.num, servicos_numerados: ingServicosNum(Orc.get(o.id)), lembrete: `para mudar qualquer coisa depois use editar_orcamento no ${o.num} com o NÚMERO do serviço (lista acima) — não crie outro; ela confere e manda pelo botão (você não manda nada para o cliente)` }; } };
   },
@@ -511,7 +533,10 @@ const ING_PLANO = {
       if (op && alts[+op[1] - 1] && !/\b(carro|minivans?|vans?)\b/.test(s)) return alts[+op[1] - 1];
       /* o veículo filtra PRIMEIRO, como palavra inteira: "van" nunca casa com "minivan" */
       const veics = s.match(/\b(carro|minivans?|vans?|onibus|micro)\b/g) || [];
-      const cand = veics.length ? itens.filter(x => veics.every(v => new RegExp('\\b' + v + '\\b').test(ingN(x.desc)))) : itens;
+      /* "tira o Vaticano" = o PASSEIO (o ingresso/gestão dele acompanham sozinhos); a linha de
+         ingresso só é o alvo se ela falar de ingresso, gestão ou fones */
+      const base = /ingress|gestao|fone/.test(s) ? itens : itens.filter(x => !x.auto);
+      const cand = veics.length ? base.filter(x => veics.every(v => new RegExp('\\b' + v + '\\b').test(ingN(x.desc)))) : base;
       const exato = cand.filter(x => ingN(x.desc).includes(s)); if (exato.length === 1) return exato[0];
       const STOP = new Set(['opcao', 'servico', 'horario', 'cliente', 'escolheu', 'quer', 'pra', 'para', 'com', 'dos', 'das', 'uma', 'ele', 'ela', 'esse', 'essa', 'este', 'esta']);
       const toks = s.split(/[^a-z0-9]+/).filter(t => t.length >= 3 && !STOP.has(t) && !veics.includes(t));
@@ -523,6 +548,7 @@ const ING_PLANO = {
     const naoAchei = (it) => E_(`não achei o serviço "${it.item || it.preco_ref || ''}" — os serviços são: ${lista()}. Use o NÚMERO do serviço.`);
     const ambiguo = (it, l) => E_(`"${it.item}" serve para mais de um serviço: ${l.map(y => (itens.indexOf(y) + 1) + '. ' + y.desc).join(' · ')} — pergunte qual (use o número).`);
     const feitoEm = new Map();   // contradição: escolher E tirar o mesmo serviço na mesma fala
+    const novos = [];            // passeios da Tabela que entraram agora (ganham ingressos/gestão)
     for (const it of i.itens || []) {
       if (it.acao === 'tirar' || it.acao === 'voltar' || it.acao === 'apagar' || it.acao === 'escolher') {
         /* para escolher/tirar/voltar/apagar o item vem pelo número, "opção N", veículo ou palavras (o preco_ref também serve) */
@@ -537,14 +563,16 @@ const ING_PLANO = {
       } else if (it.acao === 'adicionar') {
         let n = null;
         if (it.preco_ref && typeof Precos !== 'undefined') { n = Precos.itemOrc(it.preco_ref, { data: isoOk(it.data) ? it.data : '', hora: it.hora || '' }); if (!n) return E_('preco_ref não existe — use ver_precos'); if (it.pessoas) n.pax = +it.pessoas; }
-        else if (it.descricao) n = { desc: it.descricao, pax: it.pessoas || o.pax || 2, data: isoOk(it.data) ? it.data : '', hora: it.hora || '', valor: +it.valor || 0, sinal: it.sinal != null ? +it.sinal : null };
+        else if (it.descricao) { const g = ingTransferSemMalas(it.descricao); if (g) return g; n = { desc: it.descricao, pax: it.pessoas || o.pax || 2, data: isoOk(it.data) ? it.data : '', hora: it.hora || '', valor: +it.valor || 0, sinal: it.sinal != null ? +it.sinal : null }; }
         else return E_('para adicionar, passe preco_ref (de ver_precos) ou descricao');
         if (+it.valor > 0) { n.valor = +it.valor; if (n.custo != null && it.sinal == null) n.sinal = Math.max(0, n.valor - (n.custo || 0)); }
         if (it.sinal != null) n.sinal = +it.sinal;
-        itens.push(Orc._item(n)); linhas.push(['Adiciona', `${n.desc} · ${n.pax}p · ${n.valor ? eur(n.valor) : 'a definir'}`]);
+        const ni = Orc._item(n); itens.push(ni); if (ni.precoRef) novos.push(ni); linhas.push(['Adiciona', `${n.desc} · ${n.pax}p · ${n.valor ? eur(n.valor) : 'a definir'}`]);
       } else {
         const x = acha(it.item); if (!x) return naoAchei(it); if (x.ambiguo) return ambiguo(it, x.ambiguo);
-        if (it.preco_ref && typeof Precos !== 'undefined') { const n = Precos.itemOrc(it.preco_ref, { hora: it.hora || x.hora }); if (!n) return E_('preco_ref não existe — use ver_precos'); Object.assign(x, { desc: n.desc, valor: n.valor, custo: n.custo, sinal: n.sinal, precoRef: n.precoRef, turno: n.turno, valorCheio: n.valorCheio, descontoPct: n.descontoPct, obs: n.obs || x.obs }); if (!it.pessoas) x.pax = n.pax; }
+        if (it.preco_ref && typeof Precos !== 'undefined') { const n = Precos.itemOrc(it.preco_ref, { hora: it.hora || x.hora }); if (!n) return E_('preco_ref não existe — use ver_precos'); const trocou = n.precoRef !== x.precoRef; Object.assign(x, { desc: n.desc, valor: n.valor, custo: n.custo, sinal: n.sinal, precoRef: n.precoRef, turno: n.turno, valorCheio: n.valorCheio, descontoPct: n.descontoPct, obs: n.obs || x.obs }); if (!it.pessoas) x.pax = n.pax;
+          /* trocou o passeio (3 h → 4 h): os ingressos/gestão dele são refeitos */
+          if (trocou) { for (const y of itens) if ((y.vinculo || []).includes(x.id)) y.vinculo = y.vinculo.filter(id => id !== x.id); for (let k = itens.length - 1; k >= 0; k--) if (itens[k].auto && !(itens[k].vinculo || []).length) itens.splice(k, 1); novos.push(x); } }
         if (it.descricao) x.desc = it.descricao; if (isoOk(it.data)) x.data = it.data; if (it.hora) x.hora = it.hora; if (it.pessoas) x.pax = +it.pessoas;
         /* hora passou pra noite/dia: re-tarifa pela Tabela de preços (21h–6h +€30 por veículo) */
         if (it.hora && x.precoRef && x.turno && !(+it.valor > 0) && typeof Precos !== 'undefined') { const n = Precos.itemOrc(x.precoRef, { hora: x.hora });
@@ -556,6 +584,11 @@ const ING_PLANO = {
       }
     }
     if ((i.itens || []).some(x => x.acao === 'adicionar' && x.preco_ref)) Orc.marcaOpcoes({ itens });
+    /* passeio com guia novo: ingressos/fones/gestão entram junto; idades novas: refaz os ingressos */
+    const tmp = { itens };
+    if (novos.length && ingComExtras(tmp, novos, i)) linhas.push(['Ingressos e gestão', 'entram junto com o passeio' + (i.idades && i.idades.length ? ' (pelas idades)' : ' (sem idade = todos adultos)')]);
+    if ((i.adultos != null || (i.idades || []).length) && !novos.length) { const n = Orc.refazIngressos(tmp, { adultos: i.adultos, idades: i.idades }); linhas.push(['Ingressos refeitos', n ? `${i.adultos != null ? i.adultos + ' adulto(s)' : ''}${(i.idades || []).length ? ' + idades ' + i.idades.join(', ') : ''}` : 'não há linha de ingresso neste orçamento']); }
+    if (tmp.itens !== itens) itens.splice(0, itens.length, ...tmp.itens);
     if (i.obs != null) linhas.push(['Obs', i.obs]);
     if (i.bagagem != null) linhas.push(['Bagagem', i.bagagem]);
     if (i.pessoas_nota != null) linhas.push(['Pessoas', i.pessoas_nota]);
@@ -670,6 +703,43 @@ const ING_PLANO = {
     if (!/^https?:\/\//i.test(String(i.url || ''))) return E_('o link precisa começar com http');
     return { titulo: 'Guardar link', assumiu: [], linhas: [['Serviço', `${nomeDoServico(rb.b)} · ${rb.b.name}`], ['Link', (i.nome || 'link') + ' — ' + i.url]], fazer: () => { Op.linkAdd(rb.b.id, i.nome, i.url); return { ok: true }; } };
   },
+  follow_up(i) {
+    let r = ingAchaOrc(i.numero);
+    if (!r.o) { const rb = ingAchaReserva(i.numero); if (rb.b && rb.b.orcamentoId && Orc.get(rb.b.orcamentoId)) r = { o: Orc.get(rb.b.orcamentoId) }; else return r; }
+    const o = r.o, lista = [];
+    for (const f of i.followups || []) {
+      const n = +f.n; if (![1, 2, 3].includes(n)) return E_('follow-up vai de 1 a 3 (as colunas da planilha)');
+      const x = { n }; if (f.data !== undefined) { if (f.data && !isoOk(f.data)) return E_('data em AAAA-MM-DD'); x.data = f.data || ''; }
+      if (f.resultado !== undefined) x.resultado = f.resultado; lista.push(x);
+    }
+    if (!lista.length) return E_('nada para gravar');
+    const tarefas = i.criar_tarefas !== false;
+    return { titulo: `Follow-up — ${o.num}`, assumiu: tarefas ? ['grava na Planilha (colunas Follow-up) E cria a tarefa no dia de cada um'] : [],
+      linhas: [['Orçamento', `${o.num} · ${o.cliente.nome}`], ...lista.map(x => [`Follow-up ${x.n}`, [x.data !== undefined ? (x.data ? ingData(x.data) : 'sem data') : '', x.resultado ? '→ ' + x.resultado : ''].filter(Boolean).join(' ')])],
+      fazer: () => { const res = Orc.followUps(o.id, lista, { tarefas }); if (res.erro) return E_(res.erro); Tarefas.sincroniza && Tarefas.sincroniza();
+        return { ok: true, planilha: (res.followups || []).map(x => `Follow-up ${x.n}: ${x.data || '—'}${x.resultado ? ' → ' + x.resultado : ''}`), tarefas: tarefas ? 'criadas no dia de cada follow-up (aparecem em Tarefas e na Agenda)' : 'nenhuma' }; } };
+  },
+  editar_planilha(i) {
+    const COL = { data_pagamento: 'dataPedido', veio_por: 'veio', agencia_indicacao_influencer: 'indicou', whatsapp: 'whats', nome: 'nome', data_servico: 'dataServ', hora: 'hora', pax: 'pax', servico: 'servico', obs: 'obs',
+      cliente_paga: 'clientePaga', ingrid_paga: 'ingridPaga', cidade: 'cidade', parceiro: 'parceiro', sinal: 'sinal', forma: 'forma', em_real: 'emReal', comissao_vendor: 'comVendor', comissao_indicacao: 'comIndic',
+      status: 'status', motivo: 'motivo', follow_up_1: 'rep1', resultado_1: 'res1', follow_up_2: 'rep2', resultado_2: 'res2', follow_up_3: 'rep3', resultado_3: 'res3', nome_do_arquivo: 'arquivo',
+      link_pdf: 'lPdf', link_orcamento: 'lOrc', link_voucher: 'lVoucher', link_comprovante: 'lComprov', link_avaliacao: 'lAval' };
+    const campo = COL[i.coluna]; if (!campo) return E_('coluna desconhecida');
+    let ref = null, quem = '';
+    const rb = ingAchaReserva(i.linha);
+    if (rb.b) { ref = { tipo: 'reserva', id: rb.b.id }; quem = `${rb.b.code} · ${rb.b.name} · ${nomeDoServico(rb.b)}`; }
+    else {
+      const r = ingAchaOrc(i.linha); if (!r.o) return r;
+      const o = r.o, doServico = ['dataServ', 'hora', 'pax', 'servico', 'obs', 'clientePaga', 'ingridPaga', 'cidade'].includes(campo);
+      if (doServico && o.itens.length > 1 && !(+i.servico >= 1)) return E_(`o ${o.num} tem ${o.itens.length} serviços — diga qual (servico = número): ${ingServicosNum(o).join(' · ')}`);
+      const it = doServico ? o.itens[(+i.servico || 1) - 1] : null; if (doServico && o.itens.length && !it) return E_('não existe esse número de serviço');
+      if (o.status === 'fechado' && !/^(rep|res)\d$/.test(campo)) return E_(`o ${o.num} já fechou — mude na linha da reserva (código em ver_crm)`);
+      ref = { tipo: 'orcamento', id: o.id, itemId: it ? it.id : '' }; quem = `${o.num} · ${o.cliente.nome}${it ? ' · ' + it.desc : ''}`;
+    }
+    const rot = String(i.coluna).replace(/_/g, ' ').replace(/^follow up/, 'Follow-up');
+    return { titulo: 'Mudar a Planilha', assumiu: [], linhas: [['Linha', quem], ['Coluna', rot], ['Fica', String(i.valor ?? '') || '(vazio)']],
+      fazer: () => { const res = crmEdita(ref, campo, i.valor, isoToday()); if (res && res.erro) return E_(res.erro); Tarefas.sincroniza && Tarefas.sincroniza(); return { ok: true, ...(res && res.reservas ? { reservas_criadas: res.reservas } : {}) }; } };
+  },
   marcar_perdido(i) {
     const r = ingAchaOrc(i.numero); if (!r.o) return r;
     return { titulo: 'Orçamento perdido', assumiu: [], linhas: [['Orçamento', `${r.o.num} · ${r.o.cliente.nome}`], ['Motivo', i.motivo]], fazer: () => { perdeOrcamento(r.o.id, i.motivo); Tarefas.sincroniza(); return { ok: true }; } };
@@ -756,7 +826,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - TABELA DE PREÇOS (as 4 abas do Excel dela: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma): ver_precos acha a linha certa por pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão e noturno, com um ref. VOCÊ LÊ ESSA TABELA — nunca peça o valor ou o sinal a ela: consulte ver_precos e passe o ref em preco_ref.
 - Voucher (o texto de cada reserva, que se monta sozinho) e Pipeline (kanban dos pedidos): abrir_aba voucher / pipeline
 - Conversas (central de mensagens): ver_conversas mostra quem está esperando algo dela e o que ela já mandou; a mensagem ELA manda pelo botão da aba (abrir_aba conversas) — você só escreve o texto quando ela pedir
-- Planilha (o CRM dela, linha por serviço, igual ao Google Planilhas): ver_crm lê TODAS as colunas (filtre por cliente/mês); ver_painel dá os números e o "precisa de você"; para mudar use mudar_orcamento, fechar_orcamento, registrar_pagamento, marcar_perdido ou abrir_aba planilha
+- Planilha (o CRM dela, linha por serviço, igual ao Google Planilhas): ver_crm lê TODAS as colunas (filtre por cliente/mês); ver_painel dá os números e o "precisa de você"; para MUDAR qualquer célula: editar_planilha (como tocar na célula); FOLLOW-UP 1/2/3 (antes "repescagem"): follow_up — grava as datas na Planilha E cria as tarefas. Você EDITA a planilha: nunca diga que não consegue
 - Transfer (New Star Limousine — SÓ transfers de Roma; os de fora de Roma são com outro fornecedor): ver_transfers (inclui os dados prontos para colar na plataforma)
 - ⭐ Avaliações do site: ver_avaliacoes
 - Arquivos: ver_arquivos
@@ -788,6 +858,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Outro arquivo do cliente (passaporte, bilhete, voucher do hotel) → arquivar.
 - Conversa de cliente colada → ler_conversa.
 - Regra de trabalho dela para você lembrar sempre → guardar_memoria.
+- Follow-up de orçamento ("me lembra de cobrar a resposta dia 15/01, 15/02 e 15/03", "registra a repescagem") → follow_up: as datas vão para as colunas Follow-up 1/2/3 da Planilha E viram tarefas — sempre as duas coisas. A palavra dela é "follow-up" (a planilha antiga dizia "repescagem": é a mesma coisa).
 
 ## ORÇAMENTO — COMO ELA TRABALHA (tudo se conversa)
 - Transfer, guia ou bate-e-volta → ver_precos (pessoas + serviço) e passe o ref em preco_ref: valor, SINAL e custo entram certos da Tabela de preços. Sem ref, não invente preço nem sinal.
@@ -799,6 +870,9 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Horário 21h–6h: a tarifa noturna (+€30 por veículo) entra sozinha quando você põe a hora; a descrição já diz "Horário noturno/diurno".
 - Desconto (Transfer Roma 5%): o orçamento mostra o valor cheio riscado e o com desconto — não precisa escrever na observação.
 - A descrição vem pronta da tabela (rota – veículo (até X malas + Y de bordo) – horário). Não acrescente número de pessoas nem "Transfer Roma": as pessoas já estão no cabeçalho.
+- TRANSFER: sempre com preco_ref — a descrição sai com a QUANTIDADE e o TAMANHO das malas (regra dela: "senão o cliente acha que cabe, dá um jeitinho e vai"). Preencha também a bagagem do cabeçalho. Transfer escrito à mão sem malas é recusado.
+- PASSEIO COM GUIA (Roma Antiga, Vaticano, Basílicas…): se o cliente não disse a duração, ponha as DUAS no mesmo dia — opção 1 = 3 horas, opção 2 = 4 horas (um preco_ref para cada; viram opções sozinhas). A descrição já sai com o que inclui entre parênteses: "Roma Antiga (Coliseu + Fórum Romano ou Palatino) - guia privativo 3 horas". Os INGRESSOS (comprar antecipado, "valores para N adultos"), os FONES do Vaticano (pagos no dia) e a GESTÃO E RESERVA ANTECIPADA DE INGRESSOS entram SOZINHOS — não escreva essas linhas à mão. A gestão é a taxa dela (valor do grupo), não o ingresso.
+- Ingressos: Roma Antiga €18 adulto, grátis até 17 anos; Vaticano €24 adulto, €15 de 7 a 18 anos, grátis até 6 (valores da Tabela de preços — ver_precos mostra os atuais). Idade não informada = todos adultos; quando ela disser as idades → editar_orcamento com idades (e adultos) refaz os ingressos.
 - Nunca diga que não consegue ler a tabela ou uma aba: ver_precos, ver_crm, ver_tudo e procurar leem tudo.
 
 ## Gravar
