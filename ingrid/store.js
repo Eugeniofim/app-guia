@@ -1696,7 +1696,7 @@ const Bookings = {
     return b;
   },
 
-  paid(b)   { return b.payments.reduce((s, p) => s + p.amount, 0); },
+  paid(b)   { return Math.round((b.payments || []).reduce((s, p) => s + (+p.amount || 0), 0) * 100) / 100; },   // em centavos: 30,06+10,10+60,04 não deixa 0,0000001 "a pagar"
   /* ---------- preco escalonado ----------
      O guia vende as primeiras vagas de cada data mais barato: 195 para
      os 3 primeiros, 225 depois. O calculo e por DATA, nao por reserva —
@@ -1741,7 +1741,7 @@ const Bookings = {
     }
     return n;
   },
-  due(b)    { return Math.max(0, b.total - Bookings.paid(b)); },
+  due(b)    { return Math.max(0, Math.round(((+b.total || 0) - Bookings.paid(b)) * 100) / 100); },
   /* Cada passeio tem seu prazo. O de Natal cobra o saldo 30 dias antes,
      nao na vespera — usar um numero fixo aqui cobraria tarde demais. */
   dueDate(b){

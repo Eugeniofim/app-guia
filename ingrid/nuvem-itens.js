@@ -14,9 +14,11 @@
    ===================================================== */
 'use strict';
 
-const ITENS_COLS = ['equipe', 'disp', 'contas', 'orcamentos', 'fichas', 'tarefas', 'clientes', 'parceiros', 'pontos', 'pedidos', 'lembretesVistos', 'interesse'];
+/* precos = a Tabela de preços (tem os CUSTOS dela: vai só para `itens`, que só a
+   dona lê — nunca para o appstate público); conversas = o que ela mandou a cada cliente */
+const ITENS_COLS = ['equipe', 'disp', 'contas', 'orcamentos', 'fichas', 'tarefas', 'clientes', 'parceiros', 'pontos', 'pedidos', 'lembretesVistos', 'interesse', 'precos', 'conversas'];
 /* estas sao "dicionarios" no DB (chave -> valor); as outras sao listas com id */
-const ITENS_DIC = ['fichas', 'lembretesVistos', 'interesse'];
+const ITENS_DIC = ['fichas', 'lembretesVistos', 'interesse', 'conversas'];
 const IT_SOMBRA = 'ingrid_sombra_v1', IT_FILA = 'ingrid_fila_v1', IT_MARCA = 'ingrid_marca_v1', IT_EMDIA = 'ingrid_emdia_v1';
 const itLe = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
 const itGrava = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };

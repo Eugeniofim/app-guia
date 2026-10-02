@@ -87,10 +87,37 @@ const Precos = {
   },
 
   /* ---------- a ponte com os ORÇAMENTOS ---------- */
-  descLinha(t, s, c) {
-    const nome = t.nome.replace(/\s*5%$/, '');
-    const comp = c.veic ? c.veic.replace(/.*\(([^)]*)\).*/, '$1') : c.dur ? c.dur : '';
-    return `${nome} — ${s.titulo} · ${c.pax}${comp ? ' · ' + comp : ''}`;
+  /* ---------- a DESCRIÇÃO que o cliente lê (pedido da Ingrid, 02/10) ----------
+     Como no orçamento dela: "rota - veículo (até X malas + Y de bordo) - Horário
+     diurno". Sem "Transfer Roma" (do aeroporto pra cidade já é transfer), sem o
+     número de pessoas (está no cabeçalho) e SEM as notas internas da tabela
+     ("(caso o hotel não seja no centro…)" é recado dela, não do cliente). */
+  rotaBonita(titulo) {
+    const ACENTO = { ESTACOES: 'Estações', BASILICAS: 'Basílicas', AUDIENCIA: 'Audiência', NAPOLES: 'Nápoles', VESUVIO: 'Vesúvio', NECROPOLE: 'Necrópole', CASSIA: 'Cássia' };
+    const SIGLA = /^(FCO|CIA|LIN|MXP|BGY|VCE|TSF|NAP|FLR|PSA|BRI|BDS|BLQ|VRN)$/, MINUSC = /^(DE|DA|DO|DAS|DOS|E|OU|EM|COM|A|O|AO|NA|NO)$/;
+    let t = String(titulo || '').replace(/\s*\((?:caso|obs|n[aã]o passar|avisar)[^)]*\)/gi, '').trim();
+    let primeira = true;
+    t = t.split(/([\s\/,()\-]+)/).map(w => {
+      if (!/[A-ZÀ-Ú]{2,}/.test(w) || w !== w.toUpperCase()) { if (/\w/.test(w)) primeira = false; return w; }
+      let r = SIGLA.test(w) ? w : ACENTO[w] ? ACENTO[w] : w === 'ETC' ? 'etc.' : (MINUSC.test(w) && !primeira) ? w.toLowerCase() : w.charAt(0) + w.slice(1).toLowerCase();
+      primeira = false; return r;
+    }).join('');
+    return t.replace(/\s+x\s+/gi, ' ↔ ').replace(/\s+/g, ' ').trim();
+  },
+  /* "2 malas médias (65x45x28) e 2 bordo (carro)" → { veiculo: 'carro', malas: '2 malas médias 65x45x28 + 2 de bordo' } */
+  malasDe(veic) {
+    const v = String(veic || ''), m = v.match(/\(([^)]*)\)\s*$/);
+    const malas = v.replace(/\s*\([^)]*\)\s*$/, '').replace(/\((\d+x\d+x\d+)\)/i, '$1').replace(/\s+e\s+(\d+)\s+bordo/i, ' + $1 de bordo').trim();
+    return { veiculo: m ? m[1].trim() : '', malas };
+  },
+  /* tarifa noturna dos termos dela: 21h às 6h */
+  ehNoturno(hora) { const m = String(hora || '').match(/^(\d{1,2})[:h.]?(\d{2})?/); if (!m) return false; const h = +m[1]; return h >= 21 || h < 6; },
+  descLinha(t, s, c, noturno) {
+    const rota = Precos.rotaBonita(s.titulo), tipo = Precos.base(t).tipo;
+    if (tipo === 'transfer') { const { veiculo, malas } = Precos.malasDe(c.veic);
+      return `${rota}${veiculo ? ' - ' + veiculo : ''}${malas ? ' (até ' + malas + ')' : ''} - Horário ${noturno ? 'noturno' : 'diurno'}`; }
+    if (tipo === 'guia') return `${rota} - visita guiada${c.dur ? ' - ' + c.dur : ''}`;
+    return rota;
   },
   rotuloCurto(t, c) {
     const comp = c.veic ? c.veic.replace(/.*\(([^)]*)\).*/, '$1') : c.dur ? c.dur : '';
@@ -102,9 +129,19 @@ const Precos = {
     const b = Precos.base(t), f = Precos.fator(t);
     const s = (b.secoes || []).find(x => x.id === p[1]), l = s && s.linhas.find(x => x.id === p[2]); if (!l) return null;
     const c = Precos.calc(b.tipo, l, f);
-    return Object.assign({ desc: Precos.descLinha(t, s, c), pax: c.paxN, valor: c.preco, custo: c.custo, sinal: c.sinal,
-      obs: b.tipo === 'guia' && c.ingressos ? `ingressos à parte: ${_prEur(c.ingressos)}/pessoa` : '', precoRef: ref }, extra || {});
+    /* noturno (21h–6h, termos dela): +€30 por veículo. O acréscimo vai pro motorista
+       (entra no custo), então o sinal — a margem dela — continua o mesmo da tabela. */
+    const not = b.tipo === 'transfer' && Precos.ehNoturno(extra && extra.hora);
+    const extraNot = not ? PRECO_NOTURNO_VEIC * (c.veicN || 1) : 0;
+    const valor = _prR2(c.preco + extraNot), custo = _prR2(c.custo + extraNot);
+    /* tabela com desconto (Transfer Roma 5%): guarda o valor cheio pra mostrar a economia */
+    const cheio = t.derivaDe ? _prR2(Precos.calc(b.tipo, l, 1).preco + extraNot) : 0;
+    return Object.assign({ desc: Precos.descLinha(t, s, c, not), pax: c.paxN, valor, custo, sinal: _prR2(valor - custo),
+      obs: b.tipo === 'guia' && c.ingressos ? `ingressos à parte: ${_prEur(c.ingressos)}/pessoa` : '', precoRef: ref,
+      turno: b.tipo === 'transfer' ? (not ? 'noturno' : 'diurno') : '', valorCheio: cheio > valor ? cheio : 0, descontoPct: cheio > valor ? Precos.descontoPct(t) : 0 }, extra || {});
   },
+  /* o grupo da linha (tabela + seção): duas linhas do mesmo grupo no mesmo dia = OPÇÕES (carro OU minivan) */
+  grupoDe(ref) { const p = String(ref || '').split('|'); return p.length === 3 ? p[0].replace(/-5$/, '') + '|' + p[1] : ''; },
 
   /* ---------- pro ASSISTENTE ler a tabela ---------- */
   /* o que existe (nomes das tabelas e seções) */

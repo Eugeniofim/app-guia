@@ -175,11 +175,21 @@ const Op = {
   },
   /* O caso da semana da reuniao: "Ingrid, o cliente quer pagar 35". Eram 70.
      Esta e a linha que responde isso sem abrir planilha. */
+  /* UMA regra para o dinheiro que falta (revisão de 02/10): o SINAL combinado que
+     ainda não caiu é da Ingrid (ela cobra); só o resto é pago no dia a quem faz.
+     Antes o sinal não pago aparecia como "pague €95 ao motorista". */
+  pagoIngrid(b) { return Math.round((b.payments || []).filter(p => p.conta !== CONTA_PRESTADOR).reduce((s, p) => s + (+p.amount || 0), 0) * 100) / 100; },
+  sinalFalta(b) {
+    if (!b || b.status === 'cancelled' || Op.restoPara(b) !== 'prestador' || !(+b.sinal > 0)) return 0;
+    return Math.min(Bookings.due(b), Math.max(0, Math.round((+b.sinal - Op.pagoIngrid(b)) * 100) / 100));
+  },
+  dueNoDia(b) { return b && b.status !== 'cancelled' && Op.restoPara(b) === 'prestador' ? Math.max(0, Math.round((Bookings.due(b) - Op.sinalFalta(b)) * 100) / 100) : 0; },
+  dueIngrid(b) { return !b || b.status === 'cancelled' ? 0 : Op.restoPara(b) === 'prestador' ? Op.sinalFalta(b) : Bookings.due(b); },
   noDia(b) {
     const falta = Bookings.due(b);
-    if (b.status === 'cancelled' || falta <= 0) return { valor: 0, para: '', pessoa: null };
-    const para = Op.restoPara(b);
-    return { valor: falta, para, pessoa: b.prestadorId ? Equipe.get(b.prestadorId) : null };
+    if (b.status === 'cancelled' || falta <= 0) return { valor: 0, para: '', pessoa: null, sinalFalta: 0 };
+    const para = Op.restoPara(b), sf = Op.sinalFalta(b);
+    return { valor: para === 'prestador' ? Op.dueNoDia(b) : falta, para, sinalFalta: sf, pessoa: b.prestadorId ? Equipe.get(b.prestadorId) : null };
   },
   escala(bookingId, pessoaId) {
     const b = Bookings.get(bookingId); if (!b) return null;
@@ -317,7 +327,7 @@ function acertos(de, ate) {
     if (b.status === 'cancelled' || !b.prestadorId || b.date < de || b.date > ate) continue;
     const custo = +b.custo || 0;
     const noDiaRecebido = (b.payments || []).filter(p => p.conta === CONTA_PRESTADOR).reduce((s, p) => s + p.amount, 0);
-    const aReceberNoDia = Op.restoPara(b) === 'prestador' ? Bookings.due(b) : 0;
+    const aReceberNoDia = Op.dueNoDia(b);
     const comPrestador = noDiaRecebido + aReceberNoDia;
     if (!custo && !comPrestador) continue;
     out.push({ b, pessoa: Equipe.get(b.prestadorId), custo, comPrestador, saldo: custo - comPrestador, acertado: !!b.acertado });
@@ -396,7 +406,44 @@ const Orc = {
              custo: Math.max(0, +i.custo || 0), cidade: String(i.cidade || '').trim(),
              /* o cliente NAO quis este servico: fica no orcamento como perdido (estatistica dela),
                 fora do total e do que vai pro cliente; pode voltar se ele mudar de ideia */
-             perdido: !!i.perdido, perdidoEm: i.perdido ? (i.perdidoEm || isoToday()) : '', motivoPerda: String(i.motivoPerda || '').trim() };
+             perdido: !!i.perdido, perdidoEm: i.perdido ? (i.perdidoEm || isoToday()) : '', motivoPerda: String(i.motivoPerda || '').trim(),
+             /* de que linha da Tabela de preços veio (re-tarifa noturno), turno, se é OPÇÃO
+                (o cliente escolhe uma) e o valor cheio antes do desconto (mostrar a economia) */
+             precoRef: String(i.precoRef || ''), turno: i.turno || '', alt: !!i.alt,
+             valorCheio: Math.max(0, +i.valorCheio || 0), descontoPct: +i.descontoPct || 0 };
+  },
+  /* OPÇÕES: itens marcados "opção" no mesmo dia = alternativas (carro OU minivan) */
+  /* grupo = mesmo trajeto da tabela (ou "manual") + mesmo dia: duas escolhas no mesmo dia não se misturam */
+  grupoOpcao(i) {
+    if (!i || !i.alt || i.perdido) return '';
+    const g = i.precoRef && typeof Precos !== 'undefined' && Precos.grupoDe ? Precos.grupoDe(i.precoRef) : 'manual';
+    return 'alt|' + g + '|' + (i.data || '');
+  },
+  opcoes(o) {
+    const g = {};
+    for (const i of (o && o.itens) || []) { const k = Orc.grupoOpcao(i); if (k) (g[k] = g[k] || []).push(i); }
+    return Object.values(g).filter(l => l.length > 1);
+  },
+  /* o que entra na CONTA: sem os perdidos e, de cada grupo de opções, só a mais
+     barata ("a partir de") — nunca as duas alternativas somadas */
+  itensConta(o) {
+    const fora = new Set();
+    for (const l of Orc.opcoes(o)) { const min = l.reduce((a, b) => ((+b.valor || 0) < (+a.valor || 0) ? b : a)); for (const i of l) if (i !== min) fora.add(i); }
+    return ((o && o.itens) || []).filter(i => !i.perdido && !fora.has(i));
+  },
+  /* o cliente escolheu: as outras opções do grupo viram "perdido" (fica a estatística) */
+  escolheOpcao(o, itemId) {
+    const i = (o.itens || []).find(x => x.id === itemId); if (!i) return null;
+    const k = Orc.grupoOpcao(i); if (!k) return i;
+    for (const x of o.itens) if (x !== i && Orc.grupoOpcao(x) === k) { x.perdido = true; x.perdidoEm = isoToday(); x.motivoPerda = 'escolheu outra opção'; }
+    _opSave(); return i;
+  },
+  /* linhas da MESMA seção da tabela no MESMO dia, com veículos diferentes = opções */
+  marcaOpcoes(o) {
+    if (typeof Precos === 'undefined' || !Precos.grupoDe) return;
+    const g = {};
+    for (const i of (o && o.itens) || []) if (!i.perdido && i.precoRef) { const k = Precos.grupoDe(i.precoRef) + '|' + (i.data || ''); (g[k] = g[k] || []).push(i); }
+    for (const l of Object.values(g)) if (l.length > 1 && new Set(l.map(i => i.precoRef)).size > 1) for (const i of l) i.alt = true;
   },
   /* um servico do catalogo, ja com o preco da tabela dela para aquele grupo */
   itemDoCatalogo(tourId, { pax, data, hora, opcao } = {}) {
@@ -407,12 +454,13 @@ const Orc = {
                        valor: pr.total || 0, sinal: x.priceMode === 'transfer' ? (pr.sinal || null) : null,
                        obs: pr.consultar ? 'Sem preço na tabela — defina o valor' : '' });
   },
-  /* itens "perdidos" (o cliente nao quis) ficam registrados, mas fora da conta */
-  total(o) { return (o.itens || []).filter(i => !i.perdido).reduce((s, i) => s + (+i.valor || 0), 0); },
+  /* itens "perdidos" (o cliente nao quis) ficam registrados, mas fora da conta;
+     de cada grupo de opcoes conta so uma (itensConta) */
+  total(o) { return Math.round(Orc.itensConta(o).reduce((s, i) => s + (+i.valor || 0), 0) * 100) / 100; },
   sinalDoItem(o, i) {
     return i.sinal != null ? +i.sinal : Math.round((+i.valor || 0) * (+o.sinalPct || 0) / 100);
   },
-  sinal(o) { return (o.itens || []).filter(i => !i.perdido).reduce((s, i) => s + Orc.sinalDoItem(o, i), 0); },
+  sinal(o) { return Math.round(Orc.itensConta(o).reduce((s, i) => s + Orc.sinalDoItem(o, i), 0) * 100) / 100; },
   salva(o) {
     const x = Orc.get(o.id); if (!x) return null;
     Object.assign(x, o, { itens: (o.itens || x.itens).map(Orc._item) });
@@ -432,6 +480,12 @@ const Orc = {
      orcamento — ela lanca a parte, se quiser. */
   fecha(id, { sinalRecebido, conta } = {}) {
     const o = Orc.get(id); if (!o || o.status === 'fechado') return [];
+    /* opção ainda não escolhida: fechar viraria DUAS reservas (carro E minivan) */
+    Orc.erro = '';
+    if (Orc.opcoes(o).length) { Orc.erro = 'escolha a opção do cliente antes de fechar (' + Orc.opcoes(o).map(l => l.map(i => i.desc.split(' - ').slice(1, 2).join('') || i.desc).join(' OU ')).join('; ') + ')'; return []; }
+    /* nenhum serviço que conta pode sumir calado ao fechar (antes: item da tabela sem data era descartado) */
+    const semData = Orc.itensConta(o).filter(i => !(i.tourId && Tours.get(i.tourId)) && !i.sugestao && (!i.data || !String(i.desc || '').trim()));
+    if (semData.length) { Orc.erro = 'falta o dia em: ' + semData.map(i => i.desc || '(sem descrição)').join(', '); return []; }
     const criadas = [];
     for (const i of o.itens) {
       if (i.perdido) continue;   // o cliente nao quis este servico: nao vira reserva (fica so o registro)
@@ -864,6 +918,24 @@ function voucherTipoTransfer(b) {
   if (TREM.test(txt)) return 'trem';
   return 'aeroporto';
 }
+/* O VOUCHER DA VIAGEM (o modelo dela): um documento por cliente com TODOS os
+   serviços da viagem — as reservas não canceladas do mesmo cliente até 30 dias
+   antes/depois desta — em ordem de data e hora. */
+function voucherViagem(b) {
+  if (!b) return [];
+  const dig = (w) => String(w || '').replace(/\D/g, '');
+  const mesmo = (x) => b.clienteId ? x.clienteId === b.clienteId : ((dig(b.whats).length >= 6 && dig(x.whats) === dig(b.whats)) || _nomeN(x.name) === _nomeN(b.name));
+  return (DB.bookings || []).filter(x => x.status !== 'cancelled' && (x.id === b.id || (mesmo(x) && Math.abs(_dias(b.date, x.date)) <= 30)))
+    .sort((a, c) => (a.date + (a.time || '')).localeCompare(c.date + (c.time || '')));
+}
+/* os blocos da viagem inteira, SEM repetir: um "passeios" mesmo com 3 passeios;
+   chegada e partida aparecem uma vez cada; na ordem do Doc dela */
+const VOUCHER_ORDEM = ['pagamento', 'suporte', 'trocado', 'transferAeroporto', 'transferPorto', 'transferTrem', 'transferPartida', 'passeios', 'fechamento'];
+function voucherBlocosViagem(bs) {
+  const tem = new Set();
+  for (const b of bs || []) for (const k of voucherBlocosDe(b)) tem.add(k);
+  return VOUCHER_ORDEM.filter(k => tem.has(k));
+}
 /* os blocos que entram NESTE voucher, na ordem */
 function voucherBlocosDe(b) {
   const out = ['pagamento', 'suporte'];
@@ -1164,8 +1236,8 @@ const Tarefas = {
       let motivo = '', resultado = 'respondeu';
       if (t.fechaQuando === 'pago') {
         const bs = t.bookingId ? [Bookings.get(t.bookingId)].filter(Boolean)
-          : DB.bookings.filter(b => t.clienteKey && chaveCliente(b) === t.clienteKey && b.status !== 'cancelled' && Op.restoPara(b) === 'ingrid');
-        if (bs.length && bs.every(b => b.status === 'cancelled' || Bookings.due(b) <= 0 || Op.restoPara(b) !== 'ingrid')) motivo = 'pagou';
+          : DB.bookings.filter(b => t.clienteKey && chaveCliente(b) === t.clienteKey && b.status !== 'cancelled');
+        if (bs.length && bs.every(b => b.status === 'cancelled' || Op.dueIngrid(b) <= 0)) motivo = 'pagou';
       } else if (t.fechaQuando === 'orc-decidido') {
         const o = Orc.get(t.orcId);
         if (o && o.status === 'fechado') motivo = 'o orçamento fechou';
@@ -1354,7 +1426,7 @@ const Lembretes = {
     const map = new Map();
     for (const b of DB.bookings) {
       if (b.status === 'cancelled') continue;
-      const falta = Bookings.due(b); if (falta <= 0 || Op.restoPara(b) !== 'ingrid') continue;
+      const falta = Op.dueIngrid(b); if (falta <= 0) continue;   // inclui o sinal combinado que ainda não caiu
       const k = chaveCliente(b);
       const r = map.get(k) || { chave: k, nome: b.name, whats: b.whats, total: 0, prazo: '', servicos: [] };
       r.total += falta; r.servicos.push(b);
@@ -1487,6 +1559,8 @@ function pacoteBackup() {
     contas: DB.contas || [], orcamentos: DB.orcamentos || [], fichas: DB.fichas || {},
     tarefas: DB.tarefas || [], lembretesVistos: DB.lembretesVistos || {}, memoriaAssistente: memoria,
     clientes: DB.clientes || [], parceiros: DB.parceiros || [], pontos: DB.pontos || [], interesse: DB.interesse || {},
+    /* a Tabela de preços editada (com os custos dela) e as Conversas também voltam no backup */
+    precos: DB.precos || [], conversas: DB.conversas || {},
   };
 }
 function resumoBackup(p) {
@@ -1510,6 +1584,7 @@ function restauraBackup(txt) {
     equipe: p.equipe || [], disp: p.disponibilidade || [], contas: p.contas || [], orcamentos: p.orcamentos || [],
     fichas: p.fichas || {}, tarefas: p.tarefas || [], lembretesVistos: p.lembretesVistos || {},
     clientes: p.clientes || [], parceiros: p.parceiros || [], pontos: p.pontos || [], interesse: p.interesse || {},
+    precos: Array.isArray(p.precos) ? p.precos : [], conversas: (p.conversas && typeof p.conversas === 'object') ? p.conversas : {},
   });
   novo.cadastroFeito = Array.isArray(p.clientes) ? 1 : 0; novo.parceirosSeed = 1; novo.pontosSeed = 1;
   novo.settings = fillSettings(p.configuracoes || {});
@@ -1607,7 +1682,7 @@ const Cadastro = {
     const bs = Cadastro.reservas(c).filter(b => b.status !== 'cancelled');
     const dele = bs.filter(b => b.clienteId === c.id);
     const prox = bs.filter(b => b.date >= hoje).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0] || null;
-    return { reservas: bs.length, gasto: dele.reduce((s, b) => s + Bookings.paid(b), 0), deve: dele.filter(b => Op.restoPara(b) === 'ingrid').reduce((s, b) => s + Bookings.due(b), 0),
+    return { reservas: bs.length, gasto: dele.reduce((s, b) => s + Bookings.paid(b), 0), deve: Math.round(dele.reduce((s, b) => s + Op.dueIngrid(b), 0) * 100) / 100,
              ultima: bs.map(b => b.date).filter(d => d < hoje).sort().pop() || '', prox, indicou: Cadastro.indicou(c).length, trouxe: Cadastro.trouxe(c).length };
   },
 };
@@ -2022,14 +2097,16 @@ function crmLinhas(hoje) {
     const irmas = porPedido[pedidoDe(b)] || [b];
     const pagos = (b.payments || []).filter(p => p.conta !== CONTA_PRESTADOR);
     const veioPor = (c && c.veioPor) || (par ? (par.tipo === 'agencia' ? 'agencia' : par.tipo === 'influencer' ? 'influencer' : '') : '');
-    out.push({ tipo: 'reserva', id: b.id, b, pedido: pedidoDe(b), etapa: etapaDaReserva(b, hoje),
+    out.push({ tipo: 'reserva', id: b.id, b, pedido: pedidoDe(b), etapa: etapaDaReserva(b, hoje), conta: b.status !== 'cancelled',
       /* nota [1] da planilha: a Data e a do PAGAMENTO, nao a do registro */
       dataPedido: pagos.map(p => p.date).filter(Boolean).sort()[0] || String(b.createdAt || '').slice(0, 10), dataPago: !!pagos.length,
       veio: VEIO_CURTO[veioPor] || '', veioPor, indicou: quem(veioPor, par, b.indicou || (c && c.indicadoNome) || ''),
       whats: b.whats || '', nome: b.name, nomePlan: entre(b.name, veioPor), arquivo: b.arquivo || '',
       dataServ: b.date, hora: b.time, pax: b.pax, servico: nomeDoServico(b) + (b.voo ? ' · ' + b.voo : ''), obs: b.obsOp || '',
       clientePaga: +b.total || 0, ingridPaga: +b.custo || 0, cidade: b.destino || b.origem || '', parceiro: par && par.tipo === 'parceiro' ? par.nome : (b.parceiroTxt || ''),
-      totalPedido: irmas.reduce((s2, x) => s2 + (+x.total || 0), 0), sinal: pagos.reduce((s2, p) => s2 + p.amount, 0),
+      /* Total e Sinal sao do PEDIDO (como na planilha dela): o sinal e o que o pedido inteiro ja pagou a ela */
+      totalPedido: irmas.reduce((s2, x) => s2 + (+x.total || 0), 0),
+      sinal: Math.round(irmas.reduce((s2, x) => s2 + (x.payments || []).filter(p => p.conta !== CONTA_PRESTADOR).reduce((a, p) => a + p.amount, 0), 0) * 100) / 100,
       forma: contas(b), emReal: pagos.reduce((s2, p) => s2 + (+p.reais || 0), 0),
       comVendor: comDe(b, par, 'vendor'), comIndic: comDe(b, par, 'indic'), motivo: b.motivoPerda || '',
       repescagens: (b.orcamentoId && (Orc.get(b.orcamentoId) || {}).repescagens) || [], links: b.links || [] });
@@ -2038,12 +2115,16 @@ function crmLinhas(hoje) {
     if (o.status === 'fechado') continue;
     const etapa = o.status === 'perdido' ? 'perdido' : 'aberto';
     const itens = o.itens.length ? o.itens : [{ desc: o.resumo || '(sem serviços ainda)', data: (o.datas || [])[0] || '', hora: '', pax: o.pax || 0, valor: 0 }];
+    /* "conta": o item entra nas somas? (perdido e a opção não escolhida aparecem, mas não somam) */
+    const conta = new Set(Orc.itensConta(o));
     for (const it of itens) out.push({ tipo: 'orcamento', id: o.id, o, itemId: it.id || '', pedido: o.id, etapa: it.perdido ? 'perdido' : etapa, status: o.status,
+      conta: o.status !== 'perdido' && (!o.itens.length || conta.has(it)), opcao: !!(it.alt && !it.perdido && Orc.opcoes(o).some(l => l.includes(it))),
       dataPedido: String(o.criado || '').slice(0, 10), veio: o.veioPor ? (VEIO_CURTO[o.veioPor] || '') : (ORIGEM_ORC_TXT[o.origem] || ''), veioPor: o.veioPor || '', indicou: o.indicou || '',
       whats: o.cliente.whats || '', nome: o.cliente.nome || '', nomePlan: entre(o.cliente.nome || '', o.veioPor), arquivo: Orc.nomeArquivo(o),
       dataServ: it.data || '', hora: it.hora || '', pax: it.pax || '', servico: it.desc + (it.voo ? ' · ' + it.voo : ''), obs: it.obs || '',
       clientePaga: +it.valor || 0, ingridPaga: +it.custo || 0, cidade: it.cidade || '', parceiro: o.parceiroTxt || '', totalPedido: Orc.total(o), sinal: Orc.sinal(o), forma: o.forma || '', emReal: +o.emReal || 0,
-      comVendor: +o.comVendor || 0, comIndic: +o.comIndic || 0, motivo: o.motivoPerda || '',
+      /* comissão é do PEDIDO: só na 1ª linha (senão a soma da planilha conta N vezes) */
+      comVendor: it === itens[0] ? (+o.comVendor || 0) : 0, comIndic: it === itens[0] ? (+o.comIndic || 0) : 0, motivo: o.motivoPerda || '',
       repescagens: o.repescagens || [], links: o.links || [] });
   }
   return out.sort((a, b2) => String(a.dataServ || '9999').localeCompare(String(b2.dataServ || '9999')) || String(a.hora).localeCompare(String(b2.hora)));
@@ -2098,7 +2179,11 @@ function crmEdita(ref, campo, valor, hoje) {
       case 'ingridPaga': it.custo = num(); break;
       case 'cidade': it.cidade = v; break;
       case 'parceiro': o.parceiroTxt = v; break;
-      case 'sinal': o.itens.forEach((x, k) => { x.sinal = k === 0 ? num() : 0; }); break;
+      /* o Sinal do pedido digitado na Planilha é repartido entre os serviços que CONTAM,
+         cada um até o próprio valor (antes ia todo pro 1º item, mesmo perdido) */
+      case 'sinal': { const cont = Orc.itensConta(o); let resto = Math.round(num() * 100) / 100;
+        for (const x of cont) { const v = Math.min(resto, +x.valor || 0); x.sinal = Math.round(v * 100) / 100; resto = Math.round((resto - v) * 100) / 100; }
+        if (resto > 0 && cont.length) cont[0].sinal = Math.round((cont[0].sinal + resto) * 100) / 100; break; }
       case 'forma': o.forma = v; break;
       case 'emReal': o.emReal = num(); break;
       case 'comVendor': o.comVendor = num(); break;
@@ -2109,7 +2194,7 @@ function crmEdita(ref, campo, valor, hoje) {
         if (v === 'confirmado') {
           const semData = o.itens.filter(x => String(x.desc || '').trim() && !x.data);
           if (semData.length) return { erro: `falta a data do serviço: ${semData.map(x => x.desc).join(', ')}` };
-          const bs = Orc.fecha(o.id, { sinalRecebido: false }); return { ok: true, reservas: bs.length };
+          const bs = Orc.fecha(o.id, { sinalRecebido: false }); if (!bs.length && Orc.erro) return { erro: Orc.erro }; return { ok: true, reservas: bs.length };
         }
         if (v === 'perdido') { o.status = 'perdido'; o.motivoPerda = o.motivoPerda || 'Outro'; }
         else if (v === 'enviado' || v === 'rascunho') { o.status = v; o.motivoPerda = ''; if (v === 'enviado' && typeof Espera !== 'undefined') Espera.orcamento(o); }
@@ -2306,8 +2391,9 @@ const Painel = {
     hoje = hoje || isoToday();
     let comVoce = 0, noDia = 0, atrasado = 0;
     for (const b of Painel._ativos()) {
-      const falta = Bookings.due(b); if (falta <= 0) continue;
-      if (Op.restoPara(b) === 'prestador') { if (b.date >= hoje) noDia += falta; continue; }
+      if (Bookings.due(b) <= 0) continue;
+      if (b.date >= hoje) noDia += Op.dueNoDia(b);
+      const falta = Op.dueIngrid(b); if (falta <= 0) continue;   // o que é dela: o resto (política "tudo a ela") ou o sinal que não caiu
       comVoce += falta;
       if (Bookings.dueDate(b) < hoje) atrasado += falta;
     }
@@ -2395,7 +2481,7 @@ const Painel = {
       const r = map.get(b.prestadorId) || { pessoa: Equipe.get(b.prestadorId), n: 0, pax: 0, noDia: 0 };
       r.n++; r.pax += +b.pax || 0;
       r.noDia += (b.payments || []).filter(p => p.conta === CONTA_PRESTADOR).reduce((s, p) => s + p.amount, 0)
-               + (Op.restoPara(b) === 'prestador' ? Bookings.due(b) : 0);
+               + Op.dueNoDia(b);
       map.set(b.prestadorId, r);
     }
     return { lista: [...map.values()].filter(r => r.pessoa).sort((a, b) => b.n - a.n), sem };

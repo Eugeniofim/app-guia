@@ -232,7 +232,7 @@ function admHoje(arg) {
   const hoje = isoToday();
   const dia = /^\d{4}-\d{2}-\d{2}$/.test(arg || '') ? arg : hoje;
   const lista = Op.doDia(dia);
-  const late = Bookings.all().filter(b => b.status === 'confirmed' && Bookings.due(b) > 0 && Op.restoPara(b) === 'ingrid' && Bookings.dueDate(b) < hoje);
+  const late = Bookings.all().filter(b => b.status === 'confirmed' && Op.dueIngrid(b) > 0 && Bookings.dueDate(b) < hoje);
   const semPres = Op.semPrestador(3);
   const sozinhas = Tarefas.sincroniza(hoje);
   const tfHoje = Tarefas.grupos(hoje);
@@ -982,10 +982,12 @@ function crmColunas() {
     { g: 'serv', ed: ed.servico, h: 'Serviço pedido', v: r => esc(r.servico), c: 'crm-serv' },
     { g: 'serv', ed: ed.obs, h: 'Obs', v: r => esc(r.obs), c: 'crm-obs' },
     { g: 'serv', ed: ed.cidade, h: 'Cidade', v: r => esc(r.cidade) },
-    { g: 'val', ed: ed.clientePaga, h: 'Cliente paga', v: r => m(r.clientePaga), c: 'mono right', soma: r => r.clientePaga || 0 },
-    { g: 'val', ed: ed.ingridPaga, h: 'Ingrid paga', v: r => m(r.ingridPaga), c: 'mono right', soma: r => r.ingridPaga || 0 },
+    /* opção não escolhida ou serviço que o cliente não quis: aparece, mas NÃO soma */
+    { g: 'val', ed: ed.clientePaga, h: 'Cliente paga', v: r => r.conta === false ? `<span class="crm-sem" title="não entra na soma (${r.opcao ? 'opção — o cliente escolhe uma' : 'o cliente não quis'})">${m(r.clientePaga)}</span>` : m(r.clientePaga), c: 'mono right', soma: r => r.conta === false ? 0 : (r.clientePaga || 0) },
+    { g: 'val', ed: ed.ingridPaga, h: 'Ingrid paga', v: r => r.conta === false ? `<span class="crm-sem">${m(r.ingridPaga)}</span>` : m(r.ingridPaga), c: 'mono right', soma: r => r.conta === false ? 0 : (r.ingridPaga || 0) },
     { g: 'val', h: 'Total', v: (r, prim) => prim ? m(r.totalPedido) : '<span class="crm-idem">〃</span>', c: 'mono right', somaPedido: r => r.totalPedido || 0 },
-    { g: 'val', ed: ed.sinal, h: 'Sinal', v: r => m(r.sinal), c: 'mono right', soma: r => r.sinal || 0 },
+    /* o Sinal é do PEDIDO, como o Total: mostra na 1ª linha (〃 nas outras) e soma uma vez por pedido */
+    { g: 'val', ed: ed.sinal, h: 'Sinal', v: (r, prim) => prim ? m(r.sinal) : '<span class="crm-idem">〃</span>', c: 'mono right', somaPedido: r => r.sinal || 0 },
     { g: 'val', ed: ed.forma, h: 'forma Pagamento', v: r => esc(r.forma) },
     { g: 'val', ed: ed.emReal, h: 'Em Real (se fez PIX)', v: r => r.emReal ? 'R$ ' + String(r.emReal).replace('.', ',') : '', c: 'mono right' },
     { g: 'par', ed: ed.parceiro, h: 'Parceiro', v: r => esc(r.parceiro) },
@@ -1013,7 +1015,7 @@ function crmPlanilha(linhas, cols, editavel) {
       mesAnt = mes;
       const doMes = linhas.filter(x => (String(x.dataServ || '').slice(0, 7) || 'sem data') === mes);
       const nm = mes === 'sem data' ? 'Sem data de serviço' : CRM_MESES[+mes.slice(5, 7) - 1] + ' ' + mes.slice(0, 4);
-      corpo += `<tr class="crm-mes"><td class="crm-fix">${nm}</td><td colspan="${vis.length}">${doMes.length} ${doMes.length === 1 ? 'serviço' : 'serviços'} · cliente paga ${eur(doMes.reduce((s2, x) => s2 + (x.clientePaga || 0), 0))}</td></tr>`;
+      corpo += `<tr class="crm-mes"><td class="crm-fix">${nm}</td><td colspan="${vis.length}">${doMes.length} ${doMes.length === 1 ? 'serviço' : 'serviços'} · cliente paga ${eur(doMes.reduce((s2, x) => s2 + (x.conta === false ? 0 : (x.clientePaga || 0)), 0))}</td></tr>`;
     }
     const prim = !vistos.has(r.pedido); vistos.add(r.pedido);
     const alvo = r.tipo === 'orcamento' ? '#/adm/consulta/' + r.o.id : '#/adm/clients/' + encodeURIComponent('c:' + (r.b.clienteId || ''));
@@ -1025,7 +1027,10 @@ function crmPlanilha(linhas, cols, editavel) {
       ${vis.map(cel).join('')}</tr>`;
   }
   const pedidos = new Map(linhas.map(r => [r.pedido, r]));
-  const pe = vis.map(c => { const v = c.soma ? linhas.reduce((s2, r) => s2 + c.soma(r), 0) : c.somaPedido ? [...pedidos.values()].reduce((s2, r) => s2 + c.somaPedido(r), 0) : null;
+  /* as somas do rodapé só com o que CONTA: sem reserva cancelada, orçamento perdido,
+     serviço que o cliente não quis e opção não escolhida (revisão de 02/10) */
+  const pedConta = new Map(linhas.filter(r => r.conta !== false).map(r => [r.pedido, r]));
+  const pe = vis.map(c => { const v = c.soma ? linhas.reduce((s2, r) => s2 + (r.conta === false ? 0 : c.soma(r)), 0) : c.somaPedido ? [...pedConta.values()].reduce((s2, r) => s2 + c.somaPedido(r), 0) : null;
     return `<td class="${c.c || ''}">${v == null ? '' : c.fmt ? c.fmt(v) : eur(v)}</td>`; }).join('');
   return `<div class="crm-plan-wrap"><table class="crm-plan"><thead>
       <tr class="crm-grp"><th class="crm-fix" rowspan="2">Nome</th>${grupos.map(g => `<th colspan="${g.n}" class="crm-g-${g.g}">${nomeG[g.g]}</th>`).join('')}</tr>
@@ -1360,11 +1365,17 @@ function opMsgOrc(o) {
   /* o formato dela: Nome / Whatsapp / Pessoas / Bagagem, e cada serviço com Total · Sinal · Pagar no dia */
   const pMax = Math.max(+o.pax || 0, ...o.itens.map(i => +i.pax || 0));
   l.push(`Nome: ${o.cliente.nome || ''}`, `Whatsapp: ${o.cliente.whats || ''}`, `Pessoas: ${o.paxNota || (pMax ? pMax + ' pessoa' + (pMax > 1 ? 's' : '') : '')}`, `Bagagem: ${o.bagagem || ''}`, '');
-  o.itens.filter(i => !i.perdido).forEach((i, n) => { const si = Orc.sinalDoItem(o, i);
-    l.push(`${n + 1}. ${i.data ? opCurta(i.data) + ' ' + diaSemanaCurto(i.data) + (i.hora ? ' ' + i.hora : '') + ' — ' : ''}${i.desc} · ${i.pax} ${i.pax > 1 ? 'pessoas' : 'pessoa'}`,
-      i.valor ? `   Total ${eur(i.valor)} · Sinal ${eur(si)} · Pagar no dia ${eur(Math.max(0, i.valor - si))}` : '   valor a definir'); });
-  l.push('', `TOTAL: ${eur(tot)} · Sinal: ${eur(sin)} · Pagar no dia: ${eur(Math.max(0, tot - sin))}`);
-  if (sin) l.push(`Para reservar: sinal de ${eur(sin)}. O restante (${eur(Math.max(0, tot - sin))}) é pago no dia, a quem faz cada serviço.`);
+  /* opções numeradas (o cliente escolhe uma), desconto com o valor cheio, e o total de CADA opção */
+  const C = orcCenarios(o);
+  C.ativos.forEach((i, n) => { const si = Orc.sinalDoItem(o, i), op = C.emGrupo.get(i);
+    l.push(`${n + 1}. ${op ? '[Opção ' + (op.k + 1) + '] ' : ''}${i.data ? opCurta(i.data) + ' ' + diaSemanaCurto(i.data) + (i.hora ? ' ' + i.hora : '') + ' — ' : ''}${i.desc}`,
+      i.valor ? `   Total ${+i.valorCheio > +i.valor ? '(de ' + eur(i.valorCheio) + ') ' : ''}${eur(i.valor)} · Sinal ${eur(si)} · Pagar no dia ${eur(Math.max(0, i.valor - si))}` : '   valor a definir'); });
+  l.push('');
+  for (const c of C.cenarios) l.push(`TOTAL${c.rotulo ? ' — ' + c.rotulo : ''}: ${eur(c.total)} · Sinal: ${eur(c.sinal)} · Pagar no dia: ${eur(c.dia)}`);
+  if (C.grupos.length) l.push(C.grupos.length === 1 ? 'Escolha UMA das opções — o total muda conforme a opção.' : 'Os serviços marcados como opção são alternativas: o total muda conforme as escolhas.');
+  if (C.descontos.length) l.push(`Desconto já aplicado: ${C.descontos.map(i => 'de ' + eur(i.valorCheio) + ' por ' + eur(i.valor)).join(' · ')}.`);
+  if (sin && !C.grupos.length) l.push(`Para reservar: sinal de ${eur(sin)}. O restante (${eur(Math.max(0, tot - sin))}) é pago no dia, a quem faz cada serviço.`);
+  else if (sin) l.push('Para reservar: o sinal da opção escolhida. O restante é pago no dia, a quem faz cada serviço.');
   const formas = [DB.settings.pixKey && 'Pix', DB.settings.wiseLink && 'Wise', DB.settings.iban && 'transferência (IBAN)'].filter(Boolean);
   if (formas.length) l.push('Formas de pagamento: ' + formas.join(' · '));
   l.push(`Orçamento válido até ${opCurta(o.validade)}.`);
@@ -1387,6 +1398,7 @@ function admOrcEditor(id) {
       <label class="fld sm">Valor €<input type="number" min="0" data-k="valor" value="${i.valor}"></label>
       <label class="fld sm">Sinal €<input type="number" min="0" data-k="sinal" value="${i.sinal ?? ''}" placeholder="${Orc.sinalDoItem(o, i)}"></label>
       <label class="fld sm" title="o que você paga a quem faz o serviço">Ingrid paga €<input type="number" min="0" data-k="custo" value="${i.custo || ''}" placeholder="0"></label>
+      <label class="fld sm orc-alt" title="marque nos serviços do MESMO dia que são alternativas (carro OU minivan): o cliente escolhe um e o total não soma os dois"><span>Opção?</span><input type="checkbox" data-k="alt" ${i.alt ? 'checked' : ''}></label>
       ${(Tours.get(i.tourId) || {}).priceMode === 'transfer' ? `<label class="fld sm">Voo / trem<input data-k="voo" value="${esc(i.voo || '')}" placeholder="AZ 673"></label>` : ''}
     </div>
     <div class="orc-item-pe">
@@ -1394,6 +1406,7 @@ function admOrcEditor(id) {
       ${i.sugestao ? '<span class="pill warn">sugestão do app — confira</span>' : ''}
       <input class="orc-obs" data-k="obs" value="${esc(i.obs)}" placeholder="observação para o cliente">
       ${i.tourId ? `<button class="mini" data-recalc="${esc(i.id)}">preço da tabela</button>` : ''}
+      ${!i.perdido && Orc.opcoes(o).some(l => l.includes(i)) ? `<button class="mini strong" data-escolhe="${esc(i.id)}" title="as outras opções deste dia ficam registradas como 'não fechou'">✓ o cliente escolheu esta</button>` : ''}
       ${i.perdido
         ? `<span class="pill bad" title="o cliente não quis — fica registrado, fora do total e do que vai pro cliente">não fechou${i.perdidoEm ? ' · ' + crmData(i.perdidoEm) : ''}</span><button class="mini" data-volta="${esc(i.id)}" title="o cliente quer de novo">voltar</button><button class="mini ghost danger" data-apaga="${esc(i.id)}" title="apagar de vez (sem registro)">apagar</button>`
         : `<button class="mini danger" data-rmi="${esc(i.id)}" title="o cliente não quis: fica registrado como perdido e sai do total">não fechou</button>`}
@@ -1422,8 +1435,8 @@ function admOrcEditor(id) {
       <div id="orItens">${o.itens.map(linhaItem).join('') || '<p class="why">Nenhum serviço ainda.</p>'}</div>
       <div class="frow orc-add">
         <label class="fld grow">Acrescentar da sua tabela<select id="orAddT"><option value="">escolha…</option>
-          ${regioes().map(([rg, pt]) => { const ts = tours.filter(x => x.region === rg); return ts.length ? `<optgroup label="${esc(pt)}">${ts.map(x => `<option value="${esc(x.id)}">${esc(x.name.pt)}</option>`).join('')}</optgroup>` : ''; }).join('')}
           ${typeof Precos !== 'undefined' ? Precos.all().map(t => Precos.secoesView(t).map(s => s.linhas.length ? `<optgroup label="${esc('💶 ' + t.nome + ' · ' + s.titulo.slice(0, 44))}">${s.linhas.map(c => `<option value="${esc(t.id + '|' + s.id + '|' + c.ref)}">${esc(Precos.rotuloCurto(t, c))}</option>`).join('')}</optgroup>` : '').join('')).join('') : ''}
+          ${regioes().map(([rg, pt]) => { const ts = tours.filter(x => x.region === rg); return ts.length ? `<optgroup label="${esc('catálogo do site · ' + pt)}">${ts.map(x => `<option value="${esc(x.id)}">${esc(x.name.pt)}</option>`).join('')}</optgroup>` : ''; }).join('')}
         </select></label>
         <label class="fld sm">Pessoas<input type="number" min="1" id="orAddP" value="${o.pax || 2}"></label>
         <label class="fld">Dia<input type="date" id="orAddD"></label>
@@ -1439,7 +1452,7 @@ function admOrcEditor(id) {
       </div>
       <label class="optin"><input type="checkbox" id="orTermos" ${o.termos ? 'checked' : ''}><span><b>Incluir os termos e condições</b><small>Pagou o sinal = aceitou. Edite os seus em Ajustes.${DB.settings.termos && DB.settings.termos.pt ? '' : ' <b>Hoje ainda é o MODELO.</b>'}</small></span></label>
       <label class="fld">Observações para o cliente<textarea id="orObs" rows="2">${esc(o.obs)}</textarea></label>
-      <div class="orc-tot"><span>Total <b>${eur(tot)}</b></span><span>Sinal <b>${eur(sin)}</b></span><span>No dia <b>${eur(Math.max(0, tot - sin))}</b></span>${o.itens.some(x => x.custo) ? `<span>Sua margem <b>${eur(tot - o.itens.reduce((s2, x) => s2 + (+x.custo || 0), 0))}</b></span>` : ''}</div>
+      <div class="orc-tot"><span>Total <b>${eur(tot)}</b></span><span>Sinal <b>${eur(sin)}</b></span><span>No dia <b>${eur(Math.max(0, tot - sin))}</b></span>${Orc.itensConta(o).some(x => x.custo) ? `<span>Sua margem <b>${eur(Math.round((tot - Orc.itensConta(o).reduce((s2, x) => s2 + (+x.custo || 0), 0)) * 100) / 100)}</b></span>` : ''}</div>
       <div class="orc-links"><span class="op-lbl">Arquivo: ${esc(Orc.nomeArquivo(o))}</span>
         ${(o.links || []).map(l => `<a class="mini" target="_blank" rel="noopener" href="${esc(l.url)}">🔗 ${esc(l.nome)}</a>`).join('')}
         <div class="frow"><label class="fld grow"><input id="orLkNome" placeholder="nome (ex.: PDF do orçamento)"></label><label class="fld grow"><input id="orLkUrl" placeholder="https://drive.google.com/…"></label><button class="mini" id="orLkAdd">+ link</button></div></div>
@@ -1462,8 +1475,17 @@ function admOrcEditor(id) {
       const v = (k) => el.querySelector(`[data-k="${k}"]`).value;
       return { ...i, desc: v('desc'), data: v('data'), hora: v('hora'), pax: +v('pax') || 1, valor: +v('valor') || 0,
                sinal: v('sinal') === '' ? null : +v('sinal'), obs: v('obs'), custo: +v('custo') || 0,
-               voo: el.querySelector('[data-k="voo"]') ? v('voo') : (i.voo || '') };
+               voo: el.querySelector('[data-k="voo"]') ? v('voo') : (i.voo || ''), alt: !!(el.querySelector('[data-k="alt"]') || {}).checked };
     });
+    /* a hora passou pra noite (21h–6h) ou voltou pro dia: a tarifa da Tabela de preços acompanha */
+    let retarifa = '';
+    if (typeof Precos !== 'undefined') for (const i of o.itens) if (i.precoRef && i.turno && i.hora) {
+      const t = Precos.ehNoturno(i.hora) ? 'noturno' : 'diurno'; if (t === i.turno) continue;
+      const n = Precos.itemOrc(i.precoRef, { hora: i.hora }); if (!n) continue;
+      Object.assign(i, { valor: n.valor, custo: n.custo, sinal: n.sinal, turno: n.turno, valorCheio: n.valorCheio, desc: /Horário (diurno|noturno)/.test(i.desc) ? i.desc.replace(/Horário (diurno|noturno)/, 'Horário ' + t) : i.desc });
+      retarifa = t;
+    }
+    if (retarifa) setTimeout(() => toast(retarifa === 'noturno' ? 'Tarifa noturna aplicada (21h–6h: +€30 por veículo)' : 'Voltou a tarifa diurna'), 50);
     o.sinalPct = +$('#orPct').value || 0; o.validade = $('#orVal').value; o.status = $('#orSt').value;
     o.termos = $('#orTermos').checked; o.obs = $('#orObs').value;
     if (o.status === 'novo') o.status = 'rascunho';
@@ -1480,13 +1502,16 @@ function admOrcEditor(id) {
     const tid = $('#orAddT').value; if (!tid) return toast('Escolha um serviço.');
     lerTela();
     let it;
-    if (tid.includes('|') && typeof Precos !== 'undefined') { it = Precos.itemOrc(tid, { data: $('#orAddD').value }); const p = +$('#orAddP').value; if (it && p) it.pax = p; }
+    /* linha da tabela: as pessoas são as DA LINHA ("3 pessoas" = €95); não sobrescreve com o campo */
+    if (tid.includes('|') && typeof Precos !== 'undefined') it = Precos.itemOrc(tid, { data: $('#orAddD').value });
     else it = Orc.itemDoCatalogo(tid, { pax: +$('#orAddP').value || 1, data: $('#orAddD').value });
     if (!it) return toast('Não consegui montar o item.');
-    o.itens.push(it); Orc.salva(o); re();
+    o.itens.push(it); if (it.precoRef) Orc.marcaOpcoes(o); Orc.salva(o); re();
   };
   $('#orLkAdd').onclick = () => { lerTela(); const r = Orc.linkAdd(id, $('#orLkNome').value, $('#orLkUrl').value); if (r && r.erro) return toast(r.erro); re(); };
   $('#orAvulso').onclick = () => { lerTela(); o.itens.push(Orc._item({ desc: 'Roteiro com consultoria de especialista', pax: o.pax || 2 })); Orc.salva(o); re(); };
+  /* o cliente escolheu uma das opções: as outras do mesmo dia viram "não fechou" (fica a estatística) */
+  $$('[data-escolhe]').forEach(b => b.onclick = () => { lerTela(); Orc.escolheOpcao(o, b.dataset.escolhe); Orc.salva(o); toast('Opção escolhida · a outra ficou registrada como "não fechou"'); re(); });
   /* "não fechou": o item vira perdido (fica registrado, sai do total); "voltar" desfaz; "apagar" some de vez */
   $$('[data-rmi]').forEach(b => b.onclick = () => { lerTela(); const i = o.itens.find(z => z.id === b.dataset.rmi); if (i) { i.perdido = true; i.perdidoEm = isoToday(); } Orc.salva(o); re(); });
   $$('[data-volta]').forEach(b => b.onclick = () => { lerTela(); const i = o.itens.find(z => z.id === b.dataset.volta); if (i) { i.perdido = false; i.perdidoEm = ''; } Orc.salva(o); re(); });
@@ -1503,6 +1528,7 @@ function admOrcEditor(id) {
     const semData = o.itens.filter(i => i.tourId && !i.data);
     if (semData.length) return toast('Falta o dia em ' + semData.map(i => i.desc).join(', '));
     const bs = Orc.fecha(id, { sinalRecebido: $('#orSinalOk').checked, conta: $('#orConta').value });
+    if (!bs.length && Orc.erro) return toast('Antes de fechar: ' + Orc.erro);
     toast(`${bs.length} ${bs.length === 1 ? 'reserva criada' : 'reservas criadas'} 🎉`);
     re();
   });
@@ -1526,24 +1552,23 @@ function opDoc(titulo, corpo, acoes) {
   $('#docVolta').onclick = () => history.length > 1 ? history.back() : go('/adm/today');
   $('#docPrint').onclick = () => print();
 }
+/* o voucher da viagem em texto (WhatsApp): as mesmas contas do documento; os
+   textos longos (pagamento, suporte, transfer, passeios) vão no PDF */
 function opVoucherTexto(b) {
-  const x = Tours.get(b.tourId);
-  const nd = Op.noDia(b);
-  const pres = b.prestadorId ? Equipe.get(b.prestadorId) : null;
-  const l = [`VOUCHER ${b.code} — ${guiaNegocio()}`, '', `${opNomeServ(b)}`, `${fmtDate(b.date)} às ${b.time} · ${b.pax} ${b.pax > 1 ? 'pessoas' : 'pessoa'}${b.veiculo ? ' · ' + b.veiculo : ''}`,
-    `Cliente: ${b.name}${(b.group || []).length ? ' + ' + b.group.map(g => g.nome).join(', ') : ''}`];
-  if (b.voo) l.push(`Voo/trem: ${b.voo}`);
-  const pt = pontoDoServico(b);
-  if (pt) { l.push(`Encontro: ${pt.nome}${pt.endereco ? ' — ' + pt.endereco : ''}`); if (pt.instrucoes) l.push(pt.instrucoes); if (linkMapa(pt)) l.push('Mapa: ' + linkMapa(pt)); }
-  else l.push(`Encontro: ${b.origem || noIdioma(x && x.meeting) || 'combinado pelo WhatsApp'}`);
-  if (b.destino) l.push(`Destino: ${b.destino}`);
-  if (pres) l.push(`${opPapel(b) === 'motorista' ? 'Motorista' : 'Guia'}: ${pres.nome}`);
-  l.push('', nd.valor > 0 ? (nd.para === 'prestador'
-    ? `No dia: pague ${eur(nd.valor)} em dinheiro ${opPapel(b) === 'motorista' ? 'ao motorista' : 'à guia'}.`
-    : `Falta pagar ${eur(nd.valor)} até ${fmtDate(Bookings.dueDate(b))}.`) : 'Tudo pago. Não há nada a pagar no dia.');
-  l.push('', 'Dicas: ' + dicasDo(b));
-  if (DB.settings.plantao) l.push('', `Plantão (emergências): ${DB.settings.plantao}`);
-  l.push(`WhatsApp: ${DB.settings.whats || ''}`);
+  const bs = voucherViagem(b), orc = bs.map(x => x.orcamentoId && Orc.get(x.orcamentoId)).find(Boolean) || null;
+  const pMax = Math.max(...bs.map(x => +x.pax || 0)), r2 = (n) => Math.round(n * 100) / 100;
+  const l = [`Voucher — ${guiaNegocio()}`, '', `Nome: ${b.name}`, `Pessoas: ${(orc && orc.paxNota) || pMax + ' pessoa' + (pMax > 1 ? 's' : '')}`];
+  if (orc && orc.bagagem) l.push(`Bagagem: ${orc.bagagem}`);
+  l.push('');
+  let T = 0, S = 0, D = 0;
+  bs.forEach((x, n) => { const q = vchContaDe(x); T += q.total; S += q.sinal; D += q.dia;
+    l.push(`${n + 1}. ${opCurta(x.date)} ${diaSemanaCurto(x.date)} ${x.time || ''} — ${opNomeServ(x)}`, `   Total ${eur(q.total)} · Sinal ${eur(q.sinal)}${q.pendente ? ' (a pagar)' : ''} · Pagar no dia ${eur(q.dia)}`);
+    const e = vchEncontro(x);
+    l.push(`   Encontro: ${e.txt}${e.ponto && linkMapa(e.ponto) ? ' · ' + linkMapa(e.ponto) : ''}`);
+    if (x.voo) l.push(`   Voo/trem: ${x.voo}`); });
+  l.push('', `TOTAL: ${eur(r2(T))} · Sinal: ${eur(r2(S))} · Pagar no dia: ${eur(r2(D))}`);
+  if (DB.settings.plantao) l.push('', `Suporte (plantão): ${DB.settings.plantao}`);
+  l.push('', 'O voucher completo (pagamento, suporte e as instruções de cada serviço) segue em PDF.', guiaNome());
   return l.join('\n');
 }
 /* deixa o texto de um bloco bonito: TÍTULOS MAIÚSCULOS viram cabeçalho,
@@ -1667,42 +1692,125 @@ function admVoucher() {
     ta.onchange = () => { voucherSalvaBloco(ta.dataset.bl, ta.value); toast('Bloco salvo'); };
   });
 }
+/* as contas de UMA reserva no voucher: total = sinal (já pago) + pagar no dia.
+   Sem nada pago ainda, mostra o sinal combinado como "pendente". */
+function vchContaDe(x) {
+  const pago = Bookings.paid(x), total = +x.total || 0;
+  const sinal = pago > 0 ? pago : (+x.sinal || 0);
+  return { total, sinal, pendente: pago <= 0 && +x.sinal > 0, dia: Math.max(0, Math.round((total - sinal) * 100) / 100), paraIngrid: Op.restoPara(x) !== 'prestador' };
+}
+/* o app SUGERE o ponto pelo nome do passeio (Roma Antiga → Coliseu, Vaticano → Museus…)
+   quando ela ainda não escolheu — e avisa (só na tela) que é sugestão */
+function vchPontoSugerido(x) {
+  const nome = _nomeN(opNomeServ(x)), P = Pontos.all();
+  const R = [[/roma antiga|coliseu|colosseo|forum|foro/, /coliseu|colosseo/], [/vaticano|museus|capela sistina/, /vaticano/],
+             [/navona|walking|barroc|panorama/, /navona/], [/sao pedro|audiencia|basilica/, /pedro/]];
+  for (const [rs, rp] of R) if (rs.test(nome)) { const p = P.find(q => rp.test(_nomeN(q.nome))); if (p) return p; }
+  return null;
+}
+/* o encontro de cada tipo de transfer, nas palavras dos textos dela */
+const VCH_ENC_TRANSFER = { aeroporto: 'no aeroporto: o motorista aguarda na saída do desembarque, com uma placa com o seu nome', porto: 'no porto: o motorista aguarda na saída do navio, com uma placa com o seu nome',
+  trem: 'na estação: o motorista aguarda do lado de fora, com uma placa com o seu nome (Termini: em frente ao Caffè Trombetta)', partida: 'na frente do hotel ou acomodação, no horário marcado' };
+function vchEncontro(x) {
+  if (ehTransfer(x)) return { txt: x.origem ? x.origem + ' — ' + VCH_ENC_TRANSFER[voucherTipoTransfer(x)] : VCH_ENC_TRANSFER[voucherTipoTransfer(x)], ponto: null, sugerido: false };
+  const escolhido = pontoDoServico(x), pt = escolhido || vchPontoSugerido(x), tour = Tours.get(x.tourId);
+  return pt ? { txt: pt.nome + (pt.endereco ? ' — ' + pt.endereco : ''), ponto: pt, sugerido: !escolhido } : { txt: x.origem || noIdioma(tour && tour.meeting) || 'combinado pelo WhatsApp', ponto: null, sugerido: false };
+}
+function vchEncontroHtml(x) {
+  const e = vchEncontro(x), pt = e.ponto;
+  if (!pt) return esc(e.txt);
+  return `${esc(e.txt)}${pt.instrucoes ? `<br><small>${esc(pt.instrucoes)}</small>` : ''}${linkMapa(pt) ? ` · <a href="${esc(linkMapa(pt))}" target="_blank" rel="noopener">abrir no mapa</a>` : ''}${e.sugerido ? ' <small class="nao-imprime vch-sug">(sugerido pelo app — confira no seletor)</small>' : ''}`;
+}
+/* O VOUCHER DA VIAGEM — o modelo do Doc dela: Nome/Whatsapp/Pessoas/Bagagem, a
+   tabela com TODOS os serviços (Data|Hora|Serviço|Total|Sinal|Pagar no dia), onde
+   encontrar em cada um, e os blocos da aba Voucher SEM repetir. O nome do
+   motorista/guia não sai (os textos dela dizem que não é informado antes). */
 function opDocVoucher(id) {
   const b = Bookings.get(id);
   if (!b) return go('/adm/today');
-  const x = Tours.get(b.tourId);
-  const nd = Op.noDia(b);
-  const pres = b.prestadorId ? Equipe.get(b.prestadorId) : null;
-  const pago = Bookings.paid(b);
+  const bs = voucherViagem(b);
+  const c = b.clienteId ? Cadastro.get(b.clienteId) : null;
+  const orc = bs.map(x => x.orcamentoId && Orc.get(x.orcamentoId)).find(Boolean) || null;
+  const cfg = bs.find(x => x.voucherFora || x.voucherNota) || {};
+  const fora = new Set(cfg.voucherFora || []), nota = String(cfg.voucherNota || '');
+  const pMax = Math.max(...bs.map(x => +x.pax || 0));
+  const pessoas = (orc && orc.paxNota) || (pMax ? pMax + ' pessoa' + (pMax > 1 ? 's' : '') : '');
+  const bagagem = (orc && orc.bagagem) || (c && (c.bagagem || (c.viagem && c.viagem.bagagem))) || [...new Set(bs.map(x => x.malas).filter(Boolean))].join(' · ');
+  const contas = bs.map(vchContaDe), T = contas.reduce((a, k) => ({ total: a.total + k.total, sinal: a.sinal + k.sinal, dia: a.dia + k.dia }), { total: 0, sinal: 0, dia: 0 });
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const blocos = voucherBlocosViagem(bs);
   const corpo = `
-    <div class="doc-grande"><small>Código</small><b class="mono">${esc(b.code)}</b></div>
-    <h2>${esc(opNomeServ(b))}</h2>
-    <dl class="doc-dl">
-      <dt>Quando</dt><dd>${fmtDate(b.date)} às ${esc(b.time)}</dd>
-      <dt>Quem</dt><dd>${esc(b.name)}${(b.group || []).length ? '<br>' + b.group.map(g => esc(g.nome)).join(', ') : ''} · ${b.pax} ${b.pax > 1 ? 'pessoas' : 'pessoa'}</dd>
-      ${b.veiculo ? `<dt>Veículo</dt><dd>${esc(b.veiculo)}${b.malas ? ' · ' + esc(b.malas) : ''}</dd>` : ''}
-      ${b.voo ? `<dt>Voo / trem</dt><dd>${esc(b.voo)}</dd>` : ''}
-      <dt>Encontro</dt><dd>${(() => { const pt = pontoDoServico(b); return pt
-        ? `${esc(pt.nome)}${pt.endereco ? `<br><small>${esc(pt.endereco)}</small>` : ''}${pt.instrucoes ? `<br><small>${esc(pt.instrucoes)}</small>` : ''}${linkMapa(pt) ? `<br><a href="${esc(linkMapa(pt))}" target="_blank" rel="noopener">abrir no mapa</a>` : ''}`
-        : esc(b.origem || noIdioma(x && x.meeting) || 'combinado pelo WhatsApp'); })()}</dd>
-      ${b.destino ? `<dt>Destino</dt><dd>${esc(b.destino)}</dd>` : ''}
-      ${pres ? `<dt>${opPapel(b) === 'motorista' ? 'Motorista' : 'Guia'}</dt><dd>${esc(pres.nome)}</dd>` : ''}
-    </dl>
-    <div class="doc-pag ${nd.valor > 0 ? 'falta' : 'ok'}">
-      ${nd.valor > 0 ? (nd.para === 'prestador'
-        ? `<b>No dia, pague ${eur(nd.valor)} em dinheiro ${opPapel(b) === 'motorista' ? 'ao motorista' : 'à guia'}.</b><small>Já pago: ${eur(pago)} de ${eur(b.total)}</small>`
-        : `<b>Falta pagar ${eur(nd.valor)} até ${fmtDate(Bookings.dueDate(b))}.</b><small>Já pago: ${eur(pago)} de ${eur(b.total)}</small>`)
-        : `<b>✓ Tudo pago.</b><small>Não há nada a pagar no dia.</small>`}
+    <table class="doc-cli"><tbody>
+      <tr><th>Nome:</th><td>${esc(b.name)}</td></tr>
+      <tr><th>Whatsapp:</th><td>${esc(b.whats || (c && c.whats) || '')}</td></tr>
+      <tr><th>Pessoas:</th><td>${esc(pessoas)}${bs.some(x => (x.group || []).length) ? `<br><small>${esc([...new Set(bs.flatMap(x => (x.group || []).map(g => g.nome)))].join(', '))}</small>` : ''}</td></tr>
+      <tr><th>Bagagem:</th><td>${esc(bagagem)}</td></tr>
+    </tbody></table>
+    <div class="doc-tblwrap"><table class="tbl doc-tbl doc-orc"><thead><tr><th>Data</th><th>Hora</th><th>Serviço</th><th class="right">Total</th><th class="right">Sinal</th><th class="right">Pagar no dia</th></tr></thead><tbody>
+      ${bs.map((x, k) => { const q = contas[k]; return `<tr><td class="mono">${crmDataSem(x.date)}</td><td class="mono">${esc(x.time || '')}</td>
+        <td>${esc(opNomeServ(x))}${x.voo ? `<br><small>voo/trem ${esc(x.voo)}</small>` : ''}${q.dia > 0 && q.paraIngrid ? `<br><small>a pagar à ${esc(guiaNegocio())} até ${fmtDate(Bookings.dueDate(x))}</small>` : ''}</td>
+        <td class="mono right">${eur(q.total)}</td><td class="mono right">${eur(q.sinal)}${q.pendente ? '<br><small>a pagar</small>' : ''}</td><td class="mono right">${eur(q.dia)}</td></tr>`; }).join('')}
+    </tbody><tfoot><tr><td colspan="3"><b>TOTAL</b></td><td class="mono right"><b>${eur(r2(T.total))}</b></td><td class="mono right"><b>${eur(r2(T.sinal))}</b></td><td class="mono right"><b>${eur(r2(T.dia))}</b></td></tr></tfoot></table></div>
+    <div class="vch-bloco"><h4 class="vch-h">ONDE E QUANDO</h4>
+      ${bs.map(x => { const ops = !ehTransfer(x) ? Pontos.doPasseio(x.tourId) : [], at = vchEncontro(x).ponto;
+        return `<div class="vch-serv"><p class="vch-sub">${crmDataSem(x.date)} · ${esc(x.time || '')} — ${esc(opNomeServ(x))}</p>
+          <p>Encontro: ${vchEncontroHtml(x)}</p>${x.destino ? `<p>Destino: ${esc(x.destino)}</p>` : ''}
+          ${ops.length ? `<label class="nao-imprime vch-pt">ponto deste passeio <select data-pt="${esc(x.id)}"><option value="">— escolher —</option>${ops.map(p => `<option value="${esc(p.id)}" ${at && at.id === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>` : ''}</div>`; }).join('')}
     </div>
-    ${voucherBlocosDe(b).map(k => { const txt = voucherBlocoTxt(k); return txt ? `<div class="vch-bloco">${vchFmt(txt)}</div>` : ''; }).join('')}`;
-  /* o ponto de encontro: ela escolhe o deste cliente (so aparece aqui, nao no PDF) */
-  const opcoes = Pontos.doPasseio(b.tourId), atual = pontoDoServico(b);
-  const sel = opcoes.length ? `<label class="doc-ponto-sel">Ponto de encontro <select id="docPonto">${opcoes.map(p => `<option value="${esc(p.id)}" ${atual && atual.id === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select></label>` : '';
-  opDoc('Voucher', corpo, sel + (b.whats ? `<a class="mini cta-ish" id="docVoucherWa" target="_blank" rel="noopener" href="${waLink(opVoucherTexto(b), opNum(b.whats))}">💬 mandar ao cliente</a>` : ''));
-  const ds = $('#docPonto'); if (ds) ds.onchange = () => { escolhePonto(b.id, ds.value); opDocVoucher(id); toast('Ponto de encontro escolhido'); };
-  /* mandou: o lembrete "mandar o voucher" some sozinho */
+    ${blocos.filter(k => !fora.has(k) && k !== 'fechamento').map(k => { const t = voucherBlocoTxt(k); return t ? `<div class="vch-bloco">${vchFmt(t)}</div>` : ''; }).join('')}
+    ${nota ? `<div class="vch-bloco"><h4 class="vch-h">OBSERVAÇÕES</h4>${vchFmt(nota)}</div>` : ''}
+    ${!fora.has('fechamento') && voucherBlocoTxt('fechamento') ? `<div class="vch-bloco">${vchFmt(voucherBlocoTxt('fechamento'))}</div>` : ''}
+    <p class="doc-ref">Reserva${bs.length > 1 ? 's' : ''} ${bs.map(x => esc(x.code)).join(' · ')}</p>
+    <details class="nao-imprime vch-edita"><summary>✏️ Editar este voucher</summary>
+      <p class="why">Tire o que não serve pra este cliente e escreva uma observação só dele. Os textos padrão você muda na aba Voucher.</p>
+      <div class="vch-blks">${blocos.map(k => `<label><input type="checkbox" data-vblk="${k}" ${fora.has(k) ? '' : 'checked'}> ${esc((VOUCHER_BLOCOS_META.find(m => m.k === k) || { nome: k }).nome)}</label>`).join('')}</div>
+      <label class="fld">Observação deste voucher (sai antes da assinatura)<textarea id="vchNota" rows="3">${esc(nota)}</textarea></label>
+      <button class="cta sm" id="vchSalva">salvar este voucher</button>
+    </details>`;
+  opDoc('Voucher', corpo, b.whats ? `<a class="mini cta-ish" id="docVoucherWa" target="_blank" rel="noopener" href="${waLink(opVoucherTexto(b), opNum(b.whats))}">💬 mandar ao cliente</a>` : '');
+  $$('[data-pt]').forEach(s => s.onchange = () => { escolhePonto(s.dataset.pt, s.value); opDocVoucher(id); toast('Ponto de encontro escolhido'); });
+  const vs = $('#vchSalva'); if (vs) vs.onclick = () => {
+    const f = $$('[data-vblk]').filter(i => !i.checked).map(i => i.dataset.vblk), n = $('#vchNota').value.trim();
+    for (const x of bs) { x.voucherFora = f; x.voucherNota = n; _opSaveBooking(x); }
+    toast('Voucher salvo'); opDocVoucher(id);
+  };
+  /* mandou: o lembrete "mandar o voucher" some sozinho (de todos os serviços da viagem) */
   const vw = $('#docVoucherWa');
-  if (vw) vw.addEventListener('click', () => { b.voucherEm = isoToday(); _opSaveBooking(b); });
+  if (vw) vw.addEventListener('click', () => { for (const x of bs) { x.voucherEm = isoToday(); _opSaveBooking(x); } });
+}
+/* as contas do orçamento como o CLIENTE vê: as opções numeradas (o cliente escolhe
+   uma — nunca somadas), o total de cada opção e os descontos com o valor cheio */
+function orcCenarios(o) {
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const grupos = Orc.opcoes(o), emGrupo = new Map();
+  grupos.forEach((l, g) => l.forEach((i, k) => emGrupo.set(i, { g, k })));
+  const ativos = (o.itens || []).filter(i => !i.perdido), fixos = ativos.filter(i => !emGrupo.has(i));
+  const soma = (l) => { const t = l.reduce((s, i) => s + (+i.valor || 0), 0), s2 = l.reduce((s, i) => s + Orc.sinalDoItem(o, i), 0); return { total: r2(t), sinal: r2(s2), dia: r2(Math.max(0, t - s2)) }; };
+  const cenarios = grupos.length === 1 ? grupos[0].map((op, k) => Object.assign({ rotulo: 'Opção ' + (k + 1) }, soma([...fixos, op])))
+    : [Object.assign({ rotulo: grupos.length ? 'a partir de' : '' }, soma(Orc.itensConta(o)))];
+  return { grupos, emGrupo, ativos, cenarios, descontos: ativos.filter(i => +i.valorCheio > +i.valor) };
+}
+/* o cabeçalho (Nome/Whatsapp/Pessoas/Bagagem) + a tabela Data|Hora|Serviço|Total|Sinal|Pagar no dia */
+function orcTabelasHtml(o) {
+  const C = orcCenarios(o), pMax = Math.max(+o.pax || 0, ...(o.itens || []).map(i => +i.pax || 0));
+  const linhas = C.ativos.map(i => { const si = Orc.sinalDoItem(o, i), op = C.emGrupo.get(i);
+    return `<tr${op ? ' class="doc-opcao"' : ''}><td class="mono">${i.data ? crmDataSem(i.data) : '—'}</td><td class="mono">${esc(i.hora || '')}</td>
+      <td>${op ? `<span class="doc-op">Opção ${op.k + 1}</span> ` : ''}${esc(i.desc)}${i.obs && !i.sugestao ? `<br><small>${esc(i.obs)}</small>` : ''}</td>
+      <td class="mono right">${i.valor ? (+i.valorCheio > +i.valor ? `<s class="doc-cheio">${eur(i.valorCheio)}</s><br>` : '') + eur(i.valor) : 'a definir'}</td>
+      <td class="mono right">${i.valor ? eur(si) : ''}</td><td class="mono right">${i.valor ? eur(Math.max(0, i.valor - si)) : ''}</td></tr>`; }).join('');
+  const rod = C.cenarios.map(c => `<tr><td colspan="3"><b>TOTAL${c.rotulo ? ' — ' + c.rotulo : ''}</b></td><td class="mono right"><b>${eur(c.total)}</b></td><td class="mono right"><b>${eur(c.sinal)}</b></td><td class="mono right"><b>${eur(c.dia)}</b></td></tr>`).join('');
+  const pcts = [...new Set(C.descontos.map(i => (+i.descontoPct || Math.round((1 - i.valor / i.valorCheio) * 1000) / 10) + '%'))].join(' / ');
+  return `<table class="doc-cli"><tbody>
+      <tr><th>Nome:</th><td>${esc(o.cliente.nome || '')}</td></tr>
+      <tr><th>Whatsapp:</th><td>${esc(o.cliente.whats || '')}</td></tr>
+      <tr><th>Pessoas:</th><td>${esc(o.paxNota || (pMax ? pMax + ' pessoa' + (pMax > 1 ? 's' : '') : ''))}</td></tr>
+      <tr><th>Bagagem:</th><td>${esc(o.bagagem || '')}</td></tr>
+    </tbody></table>
+    <div class="doc-tblwrap"><table class="tbl doc-tbl doc-orc"><thead><tr><th>Data</th><th>Hora</th><th>Serviço</th><th class="right">Total</th><th class="right">Sinal</th><th class="right">Pagar no dia</th></tr></thead>
+      <tbody>${linhas}</tbody><tfoot>${rod}</tfoot></table></div>
+    ${C.grupos.length ? `<p class="doc-nota">${C.grupos.length === 1 ? 'Escolha <b>uma</b> das opções — o total muda conforme a opção.' : 'Os serviços marcados como opção são alternativas: o total é “a partir de” e muda conforme as escolhas.'}</p>` : ''}
+    ${C.descontos.length ? `<p class="doc-nota doc-desconto">💚 Desconto de ${pcts} já aplicado: ${C.descontos.map(i => `de ${eur(i.valorCheio)} por <b>${eur(i.valor)}</b>`).join(' · ')}.</p>` : ''}
+    <p class="doc-ref">Orçamento ${esc(o.num)} · emitido em ${opCurta(String(o.criado).slice(0, 10))} · válido até ${opCurta(o.validade)}</p>`;
 }
 function opDocOrc(id) {
   const o = Orc.get(id);
@@ -1711,25 +1819,13 @@ function opDocOrc(id) {
   const termos = termosTexto();
   const modelo = /^MODELO/.test(termos);
   const corpo = `
-    <div class="doc-grande"><small>Orçamento</small><b class="mono">${esc(o.num)}</b></div>
-    <table class="doc-cab"><tbody>
-      <tr><th>Nome:</th><td>${esc(o.cliente.nome || '')}</td></tr>
-      <tr><th>Whatsapp:</th><td>${esc(o.cliente.whats || '')}</td></tr>
-      <tr><th>Pessoas:</th><td>${(() => { const p = Math.max(+o.pax || 0, ...o.itens.map(i => +i.pax || 0)); return esc(o.paxNota || (p ? p + ' pessoa' + (p > 1 ? 's' : '') : '')); })()}</td></tr>
-      <tr><th>Bagagem:</th><td>${esc(o.bagagem || '')}</td></tr>
-    </tbody></table>
-    <p class="why">Orçamento ${esc(o.num)} · emitido em ${opCurta(o.criado.slice(0, 10))} · válido até ${opCurta(o.validade)}</p>
-    <table class="tbl doc-tbl doc-orc"><thead><tr><th>Data</th><th>Hora</th><th>Serviço</th><th class="right">Total</th><th class="right">Sinal</th><th class="right">Pagar no dia</th></tr></thead><tbody>
-      ${o.itens.filter(i => !i.perdido).map(i => { const si = Orc.sinalDoItem(o, i); return `<tr><td class="mono">${i.data ? crmDataSem(i.data) : '—'}</td><td class="mono">${esc(i.hora || '')}</td><td>${esc(i.desc)}${i.pax ? ` <small>· ${i.pax}p</small>` : ''}${i.obs && !i.sugestao ? `<br><small>${esc(i.obs)}</small>` : ''}</td><td class="mono right">${i.valor ? eur(i.valor) : 'a definir'}</td><td class="mono right">${i.valor ? eur(si) : ''}</td><td class="mono right">${i.valor ? eur(Math.max(0, i.valor - si)) : ''}</td></tr>`; }).join('')}
-    </tbody><tfoot>
-      <tr><td colspan="3"><b>TOTAL</b></td><td class="mono right"><b>${eur(tot)}</b></td><td class="mono right"><b>${eur(sin)}</b></td><td class="mono right"><b>${eur(Math.max(0, tot - sin))}</b></td></tr>
-    </tfoot></table>
+    ${orcTabelasHtml(o)}
     ${o.obs ? `<p>${esc(o.obs).replace(/\n/g, '<br>')}</p>` : ''}
     <h3>Como pagar o sinal</h3>
     <p>${[DB.settings.pixKey && 'Pix: ' + esc(DB.settings.pixKey), DB.settings.wiseLink && 'Wise: ' + esc(DB.settings.wiseLink), DB.settings.iban && 'IBAN: ' + esc(DB.settings.iban) + (DB.settings.ibanName ? ' (' + esc(DB.settings.ibanName) + ')' : '')].filter(Boolean).join('<br>') || 'Os dados de pagamento seguem pelo WhatsApp.'}</p>
     ${o.termos ? `<h3>Termos e condições</h3>
       ${modelo ? '<div class="alert warn nao-imprime">Estes ainda são os termos MODELO. Cole os seus em Ajustes → Termos e condições.</div>' : ''}
-      <p class="doc-termos">${esc(termos.replace(/^MODELO.*\n\n?/, '')).replace(/\n/g, '<br>')}</p>
+      <div class="doc-termos vch-bloco">${vchFmt(termos.replace(/^MODELO.*\n\n?/, ''))}</div>
       <p><b>Ao pagar o sinal, você declara que leu e aceita estes termos.</b></p>` : ''}`;
   opDoc('Orçamento', corpo, `<a class="mini" href="#/adm/consulta/${esc(o.id)}">editar</a>`);
 }

@@ -349,11 +349,28 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .crm-plan .crm-sem{color:var(--ink-3);font-style:italic}
 .crm-plan .crm-dow{color:var(--ink-3);font-size:var(--fs-1)}
 /* o orçamento no formato dela: Nome/Whatsapp/Pessoas/Bagagem + Data|Hora|Serviço|Total|Sinal|Pagar no dia */
-.doc-cab{border-collapse:collapse;margin:6px 0 12px;font-size:var(--fs-3)}
-.doc-cab th{text-align:left;padding:4px 14px 4px 0;color:var(--ink-2);font-weight:var(--t-strong);white-space:nowrap;vertical-align:top}
-.doc-cab td{padding:4px 0;border-bottom:1px solid var(--line);min-width:220px}
-.doc-orc td:nth-child(3),.doc-orc th:nth-child(3){white-space:normal;min-width:200px}
+.doc-cli{border-collapse:collapse;margin:4px 0 14px;font-size:var(--fs-3)}
+.doc-cli th{text-align:left;padding:4px 14px 4px 0;color:var(--ink-2);font-weight:var(--t-strong);white-space:nowrap;vertical-align:top}
+.doc-cli td{padding:4px 0;border-bottom:1px solid var(--line);min-width:220px}
+.doc-orc th{white-space:nowrap}
+.doc-orc td.mono{white-space:nowrap}
+/* só a coluna Serviço do CORPO (no TOTAL a 1ª célula ocupa 3 colunas e a 3ª é o Sinal) */
+.doc-orc tbody td:nth-child(3),.doc-orc thead th:nth-child(3){white-space:normal;width:52%}
 .doc-orc tfoot td{border-top:2px solid var(--ink)}
+.doc-cheio{color:var(--ink-3);font-weight:400;font-size:var(--fs-2)}
+.doc-op{display:inline-block;padding:1px 8px;border-radius:var(--r-pill);background:var(--accent-wash);color:var(--accent);font-size:var(--fs-1);font-weight:var(--t-strong);margin-right:4px}
+.doc-nota{margin:6px 0;font-size:var(--fs-2);color:var(--ink-2)}
+.doc-desconto{color:var(--ok)}
+.doc-ref{margin:14px 0 0;font-size:var(--fs-1);color:var(--ink-3);opacity:.7}
+.vch-serv{margin:8px 0 10px}
+.vch-serv p{margin:2px 0}
+.vch-pt{display:inline-flex;gap:6px;align-items:center;font-size:var(--fs-2);color:var(--ink-3)}
+.vch-edita{margin-top:18px;padding:12px 14px;border:1px dashed var(--line-2);border-radius:var(--r-md)}
+.vch-edita summary{cursor:pointer;font-weight:var(--t-strong);color:var(--accent)}
+.vch-blks{display:flex;flex-wrap:wrap;gap:6px 16px;margin:8px 0 12px}
+.vch-blks label{display:inline-flex;gap:6px;align-items:center;font-size:var(--fs-2)}
+.orc-alt{align-items:center}
+.orc-alt input{width:20px;height:20px;margin-top:6px}
 
 /* ---------- TABELA DE PREÇOS ---------- */
 .pr-seg{display:flex;gap:4px;padding:4px;border-radius:var(--r-md);background:var(--surface-2);margin:0 0 14px;overflow-x:auto;scrollbar-width:thin}
@@ -715,3 +732,13 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .kpi em{display:block;font-style:normal;font-size:var(--fs-2);color:var(--ink-3);margin-top:2px}
 .kpi-forte{border-left:3px solid var(--accent)}
 .kpi b.kpi-warn{color:var(--danger)}
+
+/* UX (skill ui-ux-pro-max, 02/10): tabela larga rola no celular; texto corrido até ~75 caracteres por linha */
+.doc-tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:10px 0}
+.doc-tblwrap .doc-tbl{margin:0;min-width:560px}
+.vch-bloco p,.vch-bloco .vch-ul{max-width:75ch}
+.doc-termos{font-size:var(--fs-2)}
+.doc-termos .vch-h{font-size:var(--fs-3)}
+@media print{.doc-tblwrap{overflow:visible}.doc-tblwrap .doc-tbl{min-width:0}}
+
+.vch-sug{color:var(--accent);font-style:italic}

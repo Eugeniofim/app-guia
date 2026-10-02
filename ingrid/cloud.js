@@ -185,12 +185,19 @@ async function cloudUpdateBooking(b) {
   try {
     const r = await patchConta(path, body);
     if (!r.ok) return qPush({ path, method: 'PATCH', body });
+    /* 0 linhas logo depois de criar: o POST da reserva pode nao ter chegado ainda
+       (corrida). Tenta de novo (1s, 3s, 8s) antes de achar que foi recusado — senao
+       o sinal/pagamentos gravados logo apos criar se perdiam na proxima leitura. */
     if (r.linhas === 0) {
+      const n = (cloudUpdateBooking._t[b.id] || 0) + 1; cloudUpdateBooking._t[b.id] = n;
+      if (n <= 3) { setTimeout(() => cloudUpdateBooking(Bookings.get(b.id) || b), [1000, 3000, 8000][n - 1]); return; }
+      delete cloudUpdateBooking._t[b.id];
       cloudRejected = true;
       if (typeof onCloudRejected === 'function') onCloudRejected();
-    }
+    } else delete cloudUpdateBooking._t[b.id];
   } catch (e) { qPush({ path, method: 'PATCH', body }); }
 }
+cloudUpdateBooking._t = {};
 
 /* ---------- puxar tudo ---------- */
 let lastBookingIds = null;
