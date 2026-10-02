@@ -135,7 +135,7 @@ const ING_FERRAMENTAS = [
   { name: 'ler_conversa', description: 'Lê uma conversa colada do WhatsApp/Instagram/e-mail e monta o rascunho do orçamento + a anotação com o resumo. Nunca responde o cliente.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'mudar_orcamento', description: 'Muda situação, validade ou % de sinal de um orçamento.', input_schema: obj({ numero: S_(), situacao: { type: 'string', enum: ['rascunho', 'enviado', 'perdido'] }, validade: S_(), sinal_pct: N_() }, ['numero']) },
   { name: 'ver_precos', description: 'LÊ a Tabela de preços dela (as 4 abas do Excel: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma). Acha a linha certa por número de pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão (+10%) e noturno, com um ref para usar em preco_ref. Sem filtro, lista as tabelas e seções.', input_schema: obj({ tabela: { type: 'string', enum: ['transfer', 'transfer-roma-5', 'guia', 'bv'] }, pessoas: { type: 'integer', description: 'quantas pessoas (bebê e criança contam)' }, texto: S_('filtra por seção/veículo/duração: aeroporto, civitavecchia, termini, outlet, roma antiga, vaticano, walking, carro, minivan, van, 3 horas, 4 horas…') }) },
-  { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar', 'voltar', 'apagar', 'escolher'], description: 'escolher = o cliente escolheu ESTA opção (as outras do mesmo dia viram não fechou); tirar = o cliente NÃO quis: fica registrado como perdido (estatística dela), sai do total e do que vai pro cliente; voltar = ele quer de novo; apagar = só erro de digitação (some de vez)' }, item: S_('qual serviço: 1, 2… ou pedaço da descrição (para mudar/tirar/voltar/apagar)'), motivo: S_('por que o cliente não quis (opcional, com tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
+  { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar', 'voltar', 'apagar', 'escolher'], description: 'escolher = o cliente escolheu ESTA opção (as outras do mesmo dia viram não fechou); tirar = o cliente NÃO quis: fica registrado como perdido (estatística dela), sai do total e do que vai pro cliente; voltar = ele quer de novo; apagar = só erro de digitação (some de vez)' }, item: S_('qual serviço: de preferência o NÚMERO (1, 2… na ordem do orçamento); também aceita "opção 2" ou o veículo ("minivan")'), motivo: S_('por que o cliente não quis (opcional, com tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
   { name: 'fechar_orcamento', description: 'O cliente fechou: cada serviço do catálogo vira reserva com o sinal; registra o sinal na conta se já caiu.', input_schema: obj({ numero: S_(), sinal_recebido: { type: 'boolean' }, conta: S_() }, ['numero', 'sinal_recebido']) },
   { name: 'ajustar_termos', description: 'Termos e condições do orçamento e o número de plantão do voucher.', input_schema: obj({ termos: S_(), plantao: S_() }) },
   { name: 'orcamento_do_roteiro', description: 'Monta o rascunho de orçamento a partir de um pedido do "Monte seu roteiro" (veja pedidos_de_roteiro em ver_orcamentos).', input_schema: obj({ pedido: S_('id ou nome de quem pediu') }, ['pedido']) },
@@ -493,10 +493,35 @@ const ING_PLANO = {
     if (i.whats) { cli.whats = i.whats; linhas.push(['WhatsApp', i.whats]); }
     if (i.email) { cli.email = i.email; linhas.push(['E-mail', i.email]); }
     const lista = () => itens.map((y, k) => (k + 1) + '. ' + y.desc + (y.perdido ? ' (perdido)' : '')).join(' · ');
-    const acha = (q) => { const s = String(q || '').trim(); if (/^\d+$/.test(s)) return itens[+s - 1]; return itens.find(x => ingN(x.desc).includes(ingN(s))); };
+    /* achar o serviço que ela quis dizer (teste ao vivo de 02/10: "escolheu a minivan" caía no carro).
+       Entende: número (1, 2…), "opção 2", o ref da tabela, o VEÍCULO como palavra inteira
+       ("minivan" ≠ "van") e as palavras da descrição. Se dois servirem, devolve os dois
+       para perguntar — nunca chuta. */
+    const acha = (q, ref) => {
+      if (ref) { const r = itens.find(x => x.precoRef === ref); if (r) return r; }
+      const s = ingN(q); if (!s) return null;
+      if (/^\d+$/.test(s)) return itens[+s - 1] || null;
+      const op = s.match(/\bop[cç]?[aã]?o\s*(\d+)/); const alts = itens.filter(x => x.alt && !x.perdido);
+      if (op && alts[+op[1] - 1] && !/\b(carro|minivans?|vans?)\b/.test(s)) return alts[+op[1] - 1];
+      /* o veículo filtra PRIMEIRO, como palavra inteira: "van" nunca casa com "minivan" */
+      const veics = s.match(/\b(carro|minivans?|vans?|onibus|micro)\b/g) || [];
+      const cand = veics.length ? itens.filter(x => veics.every(v => new RegExp('\\b' + v + '\\b').test(ingN(x.desc)))) : itens;
+      const exato = cand.filter(x => ingN(x.desc).includes(s)); if (exato.length === 1) return exato[0];
+      const STOP = new Set(['opcao', 'servico', 'horario', 'cliente', 'escolheu', 'quer', 'pra', 'para', 'com', 'dos', 'das', 'uma', 'ele', 'ela', 'esse', 'essa', 'este', 'esta']);
+      const toks = s.split(/[^a-z0-9]+/).filter(t => t.length >= 3 && !STOP.has(t) && !veics.includes(t));
+      const sc = cand.map(x => ({ x, n: toks.filter(t => ingN(x.desc).includes(t)).length })).sort((a, b) => b.n - a.n);
+      if (!sc.length) return null;
+      if (sc.length > 1 && sc[0].n === sc[1].n) return { ambiguo: sc.filter(y => y.n === sc[0].n).map(y => y.x) };
+      return (sc[0].n > 0 || veics.length) ? sc[0].x : null;
+    };
+    const naoAchei = (it) => E_(`não achei o serviço "${it.item || it.preco_ref || ''}" — os serviços são: ${lista()}. Use o NÚMERO do serviço.`);
+    const ambiguo = (it, l) => E_(`"${it.item}" serve para mais de um serviço: ${l.map(y => (itens.indexOf(y) + 1) + '. ' + y.desc).join(' · ')} — pergunte qual (use o número).`);
+    const feitoEm = new Map();   // contradição: escolher E tirar o mesmo serviço na mesma fala
     for (const it of i.itens || []) {
       if (it.acao === 'tirar' || it.acao === 'voltar' || it.acao === 'apagar' || it.acao === 'escolher') {
-        const x = acha(it.item); if (!x) return E_(`não achei o serviço "${it.item}" — os serviços são: ${lista()}`);
+        /* para escolher/tirar/voltar/apagar o item vem pelo número, "opção N", veículo ou palavras (o preco_ref também serve) */
+        const x = acha(it.item, it.acao === 'escolher' ? it.preco_ref : ''); if (!x) return naoAchei(it); if (x.ambiguo) return ambiguo(it, x.ambiguo);
+        const ja = feitoEm.get(x); if (ja && ja !== it.acao) return E_(`pedido contraditório: "${x.desc}" foi marcado para ${ja} e para ${it.acao} na mesma mudança — confirme com ela o que o cliente quer.`); feitoEm.set(x, it.acao);
         if (it.acao === 'apagar') { itens.splice(itens.indexOf(x), 1); linhas.push(['Apaga de vez', x.desc]); }
         else if (it.acao === 'escolher') { const k = Orc.grupoOpcao(x); if (!k) return E_(`"${x.desc}" não é uma opção`);
           for (const y of itens) if (y !== x && Orc.grupoOpcao(y) === k) { y.perdido = true; y.perdidoEm = isoToday(); y.motivoPerda = 'escolheu outra opção'; linhas.push(['Não fechou (outra opção)', y.desc]); }
@@ -512,7 +537,7 @@ const ING_PLANO = {
         if (it.sinal != null) n.sinal = +it.sinal;
         itens.push(Orc._item(n)); linhas.push(['Adiciona', `${n.desc} · ${n.pax}p · ${n.valor ? eur(n.valor) : 'a definir'}`]);
       } else {
-        const x = acha(it.item); if (!x) return E_(`não achei o serviço "${it.item}" — os serviços são: ${lista()}`);
+        const x = acha(it.item); if (!x) return naoAchei(it); if (x.ambiguo) return ambiguo(it, x.ambiguo);
         if (it.preco_ref && typeof Precos !== 'undefined') { const n = Precos.itemOrc(it.preco_ref, { hora: it.hora || x.hora }); if (!n) return E_('preco_ref não existe — use ver_precos'); Object.assign(x, { desc: n.desc, valor: n.valor, custo: n.custo, sinal: n.sinal, precoRef: n.precoRef, turno: n.turno, valorCheio: n.valorCheio, descontoPct: n.descontoPct, obs: n.obs || x.obs }); if (!it.pessoas) x.pax = n.pax; }
         if (it.descricao) x.desc = it.descricao; if (isoOk(it.data)) x.data = it.data; if (it.hora) x.hora = it.hora; if (it.pessoas) x.pax = +it.pessoas;
         /* hora passou pra noite/dia: re-tarifa pela Tabela de preços (21h–6h +€30 por veículo) */
