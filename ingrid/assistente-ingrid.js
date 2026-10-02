@@ -155,6 +155,12 @@ const ING_FERRAMENTAS = [
 ];
 IA_FERRAMENTAS.push(...ING_FERRAMENTAS);
 
+/* os serviços NUMERADOS como a editar_orcamento entende (1, 2, 3…), marcando opção e
+   não fechou — teste ao vivo de 02/10: sem a lista, a IA adivinhava o número e errava */
+function ingServicosNum(o) {
+  const ops = new Set(Orc.opcoes(o).flat());
+  return o.itens.map((x, k) => `${k + 1}. ${x.desc}${x.data ? ' — ' + x.data + (x.hora ? ' ' + x.hora : '') : ''} · ${eur(x.valor)}${ops.has(x) ? ' [OPÇÃO]' : ''}${x.perdido ? ' [não fechou]' : ''}`);
+}
 const ING_LER = {
   ver_precos(i) {
     if (typeof Precos === 'undefined') return E_('a Tabela de preços não carregou');
@@ -198,7 +204,7 @@ const ING_LER = {
     const rot = (DB.pedidos || []).filter(p => !Orc.all().some(o => o.pedidoId === p.id)).map(p => ({ pedido_id: p.id, nome: p.nome, de: p.ini, ate: p.fim, pessoas: (+p.adultos || 0) + (+p.criancas || 0), onde: p.onde, modo: p.modo || '', respondido: p.respondido }));
     if (!l.length) return { orcamentos: 'nenhum', pedidos_de_roteiro: rot };
     return { pedidos_de_roteiro: rot, orcamentos: l.map(o => ({ numero: o.num, cliente: o.cliente.nome, whats: o.cliente.whats, situacao: o.status, resumo: o.resumo,
-      itens: o.itens.map(it => ({ servico: it.desc, data: it.data, pessoas: it.pax, valor: it.valor })), total: Orc.total(o), sinal: Orc.sinal(o), validade: o.validade })) };
+      servicos_numerados: ingServicosNum(o), total: Orc.total(o), sinal: Orc.sinal(o), validade: o.validade })) };
   },
   ver_tarefas() {
     const G = Tarefas.grupos(), um = (t) => ({ tarefa_id: t.id, texto: t.texto, dia: t.prazo, hora: t.hora, cliente: t.clienteNome, esperando: t.etapa === 'aguardar' });
@@ -476,7 +482,7 @@ const ING_PLANO = {
         ...itens.slice(0, 8).map(x => [x.data ? ingData(x.data) : '—', `${x.desc} · ${x.pax}p · ${x.valor ? eur(x.valor) : 'a definir'}${x.sinal ? ' · sinal ' + eur(x.sinal) : ''}`]), ['Total', eur(Orc.total(o0))], ['Sinal', eur(Orc.sinal(o0))]],
       fazer: () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho', cliente: { nome: i.cliente, whats: i.whats, email: i.email }, itens, sinalPct: o0.sinalPct, obs: i.obs || '' });
         if (i.bagagem || i.pessoas_nota) Orc.salva({ id: o.id, bagagem: i.bagagem || '', paxNota: i.pessoas_nota || '' });
-        return { ok: true, numero: o.num, lembrete: `para mudar qualquer coisa depois use editar_orcamento no ${o.num} — não crie outro; ela confere e manda pelo botão (você não manda nada para o cliente)` }; } };
+        return { ok: true, numero: o.num, servicos_numerados: ingServicosNum(Orc.get(o.id)), lembrete: `para mudar qualquer coisa depois use editar_orcamento no ${o.num} com o NÚMERO do serviço (lista acima) — não crie outro; ela confere e manda pelo botão (você não manda nada para o cliente)` }; } };
   },
   ler_conversa(i) {
     const c = lerConversa(i.texto); const itens = rascunhoDaConversa(c);
@@ -558,7 +564,7 @@ const ING_PLANO = {
     linhas.push(['Total', eur(Orc.total(o1))], ['Sinal', eur(Orc.sinal(o1))]);
     return { titulo: `Mudar o orçamento ${o.num}`, assumiu: [], linhas,
       fazer: () => { Orc.salva({ id: o.id, cliente: cli, itens, ...(i.obs != null ? { obs: i.obs } : {}), ...(i.bagagem != null ? { bagagem: i.bagagem } : {}), ...(i.pessoas_nota != null ? { paxNota: i.pessoas_nota } : {}) });
-        return { ok: true, numero: o.num, lembrete: 'o mesmo orçamento foi atualizado — nenhum novo foi criado' }; } };
+        return { ok: true, numero: o.num, servicos_numerados: ingServicosNum(Orc.get(o.id)), lembrete: 'o mesmo orçamento foi atualizado — nenhum novo foi criado; para a próxima mudança use o NÚMERO do serviço (lista acima)' }; } };
   },
   apagar_orcamento(i) {
     const r = ingAchaOrc(i.numero); if (!r.o) return r;
