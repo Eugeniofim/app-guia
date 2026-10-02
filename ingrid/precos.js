@@ -78,7 +78,9 @@ const Precos = {
     const t = Precos.base(Precos.get(tabelaId)); if (!t) return null;
     const s = (t.secoes || []).find(x => x.id === secId), l = s && s.linhas.find(x => x.id === linId);
     if (!l) return null;
-    l[campo] = _precoNum(valor); Precos._save(); return l;
+    l[campo] = _precoNum(valor); Precos._save();
+    if (t.id === 'transfer-roma' && campo !== 'ingressos') Precos.paraCatalogo();   // o site acompanha
+    return l;
   },
   /* muda o desconto da tabela derivada (5 -> 0,95) */
   setDesconto(tabelaId, pct) {
@@ -139,6 +141,48 @@ const Precos = {
     return Object.assign({ desc: Precos.descLinha(t, s, c, not), pax: c.paxN, valor, custo, sinal: _prR2(valor - custo),
       obs: b.tipo === 'guia' && c.ingressos ? `ingressos à parte: ${_prEur(c.ingressos)}/pessoa` : '', precoRef: ref,
       turno: b.tipo === 'transfer' ? (not ? 'noturno' : 'diurno') : '', valorCheio: cheio > valor ? cheio : 0, descontoPct: cheio > valor ? Precos.descontoPct(t) : 0 }, extra || {});
+  },
+  /* ---------- FONTE ÚNICA DE PREÇO: Tabela de preços ↔ catálogo do site (02/10) ----------
+     O transfer do site público (transfer-aeroporto, -civitavecchia, -termini, -outlet)
+     tem a MESMA tabela dela (pessoas, veículo, diurno, noturno, sinal). Ela edita em
+     qualquer um dos dois lugares e o outro acompanha — nunca dois preços diferentes. */
+  _tourDaSecao(s) {
+    const n = String(s && s.titulo || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return n.includes('aeroporto') ? 'transfer-aeroporto' : n.includes('civitavecchia') ? 'transfer-civitavecchia' : n.includes('outlet') ? 'transfer-outlet' : /esta[cç]|termini/.test(n) ? 'transfer-termini' : '';
+  },
+  /* linha da tabela ↔ linha do catálogo: mesmo nº de pessoas, mesma ordem de veículo */
+  _pares(s, tour) {
+    const out = [], porPax = {};
+    for (const l of s.linhas || []) (porPax[l.paxN] = porPax[l.paxN] || []).push(l);
+    for (const [px, arr] of Object.entries(porPax)) { const cat = tour.transfer.linhas.filter(c => +c.pax === +px); arr.forEach((l, k) => { if (cat[k]) out.push([l, cat[k]]); }); }
+    return out;
+  },
+  /* tabela → site: diurno = preço, noturno = preço + €30 por veículo, sinal = preço − custo */
+  paraCatalogo() {
+    const T = Precos.get('transfer-roma'); if (!T || typeof Tours === 'undefined') return 0;
+    let n = 0;
+    for (const s of T.secoes || []) {
+      const tour = Tours.get(Precos._tourDaSecao(s)); if (!tour || !tour.transfer || !Array.isArray(tour.transfer.linhas)) continue;
+      for (const [l, c] of Precos._pares(s, tour)) {
+        const dia = _prR2(l.preco), noite = _prR2(l.preco + PRECO_NOTURNO_VEIC * (l.veicN || 1)), sinal = _prR2(l.preco - l.custo);
+        if (+c.dia !== dia || +c.noite !== noite || +c.sinal !== sinal) { c.dia = dia; c.noite = noite; c.sinal = sinal; n++; }
+      }
+      const menor = Math.min(...tour.transfer.linhas.map(c => +c.dia || Infinity)); if (isFinite(menor)) tour.price = menor;   // o "a partir de" do site
+    }
+    if (n && typeof save === 'function') save();
+    return n;
+  },
+  /* site → tabela: ela mudou o transfer em "Meus passeios" (preço = diurno, custo = diurno − sinal) */
+  doCatalogo(tourId) {
+    const T = Precos.get('transfer-roma'), tour = typeof Tours !== 'undefined' && Tours.get(tourId);
+    if (!T || !tour || !tour.transfer || !Array.isArray(tour.transfer.linhas)) return 0;
+    let n = 0;
+    for (const s of T.secoes || []) if (Precos._tourDaSecao(s) === tourId) for (const [l, c] of Precos._pares(s, tour)) {
+      const preco = _prR2(+c.dia || 0), custo = _prR2(preco - (+c.sinal || 0));
+      if (l.preco !== preco || l.custo !== custo) { l.preco = preco; l.custo = custo; n++; }
+    }
+    if (n) Precos._save();
+    return n;
   },
   /* o grupo da linha (tabela + seção): duas linhas do mesmo grupo no mesmo dia = OPÇÕES (carro OU minivan) */
   grupoDe(ref) { const p = String(ref || '').split('|'); return p.length === 3 ? p[0].replace(/-5$/, '') + '|' + p[1] : ''; },

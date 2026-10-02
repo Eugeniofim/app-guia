@@ -2077,13 +2077,13 @@ function admTourEdit(id) {
     if (!validate(data)) return;
     if (!data.name.pt) return toast(LANG === 'pt' ? 'Dê um nome ao passeio.' : 'Give the tour a name.');
     if (isNew) { const nt = Tours.create(data); toast(t('published')); go('/adm/tours/' + nt.id); }
-    else { Tours.update(x.id, data); toast(t('published')); go('/adm/tours'); }
+    else { Tours.update(x.id, data); if (typeof Precos !== 'undefined' && Precos.doCatalogo) Precos.doCatalogo(x.id); toast(t('published')); go('/adm/tours'); }
   };
   $('#saveDraft').onclick = () => {
     if (!$('#fNamePt').value.trim()) { $('#fNamePt').classList.add('invalid'); $('#fNamePt').focus(); return toast(t('vName')); }
     const data = collect('draft');
     if (isNew) { const nt = Tours.create(data); go('/adm/tours/' + nt.id); }
-    else { Tours.update(x.id, data); go('/adm/tours'); }
+    else { Tours.update(x.id, data); if (typeof Precos !== 'undefined' && Precos.doCatalogo) Precos.doCatalogo(x.id); go('/adm/tours'); }
     toast(t('draft'));
   };
 
