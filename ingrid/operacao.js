@@ -474,7 +474,40 @@ const Orc = {
   },
   /* o nome do arquivo como ela ja usa: "2026_05_26 Jo Souza" */
   nomeArquivo(o) { if (o.arquivo) return o.arquivo; const d = (o.itens.map(i => i.data).filter(Boolean).sort()[0] || String(o.criado).slice(0, 10)).replace(/-/g, '_'); return `${d} ${o.cliente.nome || 'Cliente'}`; },
-  remove(id) { DB.orcamentos = (DB.orcamentos || []).filter(o => o.id !== id); _opSave(); },
+  /* apagar: some o orçamento E a tarefa "aguardar a resposta" dele (antes ficava pendurada) */
+  remove(id) {
+    DB.orcamentos = (DB.orcamentos || []).filter(o => o.id !== id);
+    for (const t of DB.tarefas || []) if (!t.feita && t.orcId === id) { t.feita = true; t.feitaEm = new Date().toISOString(); t.obsFim = 'orçamento apagado'; }
+    _opSave();
+  },
+  /* ---------- 1 ORÇAMENTO POR CLIENTE (regra da Ingrid, 02/10) ----------
+     até ele pagar e receber o voucher, o cliente tem UM orçamento: mudanças
+     entram nele. Depois de fechado, pode nascer outro (pediu mais serviços). */
+  mesmoCliente(a, b) {
+    const d = (w) => String(w || '').replace(/\D/g, ''), wa = d(a && a.whats), wb = d(b && b.whats);
+    if (wa.length >= 8 && wb.length >= 8) return wa.slice(-8) === wb.slice(-8);
+    const na = _nomeN(a && a.nome), nb = _nomeN(b && b.nome);
+    return !!na && na === nb;
+  },
+  abertosDoCliente(o) {
+    return Orc.all().filter(x => x.id !== (o && o.id) && ['novo', 'rascunho', 'enviado'].includes(x.status) && Orc.mesmoCliente(x.cliente, o && o.cliente));
+  },
+  /* traz os serviços do repetido pra cá (sem duplicar o mesmo serviço no mesmo dia),
+     completa o que faltar do cliente e apaga o repetido */
+  junta(destId, origemId) {
+    const o = Orc.get(destId), x = Orc.get(origemId); if (!o || !x || o.id === x.id) return null;
+    const chave = (i) => _nomeN(i.desc) + '|' + (i.data || '');
+    const tem = new Set(o.itens.map(chave));
+    let n = 0;
+    for (const i of x.itens) if (String(i.desc || '').trim() && !tem.has(chave(i))) { o.itens.push(Orc._item(Object.assign({}, i, { id: uid() }))); tem.add(chave(i)); n++; }
+    for (const k of ['whats', 'email', 'nome']) if (!o.cliente[k] && x.cliente[k]) o.cliente[k] = x.cliente[k];
+    if (!o.paxNota && x.paxNota) o.paxNota = x.paxNota;
+    if (!o.bagagem && x.bagagem) o.bagagem = x.bagagem;
+    if (x.obs && !String(o.obs || '').includes(x.obs)) o.obs = [o.obs, x.obs].filter(Boolean).join('\n');
+    if (typeof Orc.marcaOpcoes === 'function') Orc.marcaOpcoes(o);
+    Orc.salva(o); Orc.remove(x.id);
+    return { orc: o, trazidos: n };
+  },
   /* Fechou: cada servico do catalogo vira uma reserva de verdade, com o
      cliente e o sinal. Item avulso (sem servico do catalogo) fica so no
      orcamento — ela lanca a parte, se quiser. */
@@ -1240,7 +1273,8 @@ const Tarefas = {
         if (bs.length && bs.every(b => b.status === 'cancelled' || Op.dueIngrid(b) <= 0)) motivo = 'pagou';
       } else if (t.fechaQuando === 'orc-decidido') {
         const o = Orc.get(t.orcId);
-        if (o && o.status === 'fechado') motivo = 'o orçamento fechou';
+        if (!o && t.orcId) motivo = 'o orçamento foi apagado';
+        else if (o && o.status === 'fechado') motivo = 'o orçamento fechou';
         else if (o && o.status === 'perdido') { motivo = 'o orçamento não fechou'; resultado = 'perdido'; }
       } else if (t.fechaQuando === 'guia-respondeu' && t.liga && t.liga.data) {
         const tu = t.liga.turno === 'dia' ? 'manha' : t.liga.turno;

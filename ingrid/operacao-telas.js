@@ -1412,8 +1412,14 @@ function admOrcEditor(id) {
         : `<button class="mini danger" data-rmi="${esc(i.id)}" title="o cliente não quis: fica registrado como perdido e sai do total">não fechou</button>`}
     </div>
   </div>`;
+  /* 1 orçamento por cliente: avisa se este cliente já tem outro em aberto */
+  const dup = ['novo', 'rascunho', 'enviado'].includes(o.status) && (o.cliente.nome || o.cliente.whats) ? Orc.abertosDoCliente(o) : [];
   admShell('consulta', `
     <a class="linkbtn" href="#/adm/consulta">← Orçamentos</a>
+    ${dup.length ? `<div class="alert warn orc-dup"><div><b>${esc(opPrimeiro(o.cliente.nome) || 'Este cliente')} já tem ${dup.length === 1 ? 'outro orçamento em aberto' : dup.length + ' outros orçamentos em aberto'}:</b>
+        ${dup.map(x => `${esc(x.num)} (${esc(x.status)}, ${x.itens.filter(i => !i.perdido).length} serviço(s), ${eur(Orc.total(x))})`).join(' · ')}
+        <br><small>O certo é <b>1 orçamento por cliente</b> até ele pagar e receber o voucher. Junte aqui ou apague o repetido.</small></div>
+      <div class="orc-dup-acts">${dup.map(x => `<a class="mini" href="#/adm/consulta/${esc(x.id)}">abrir ${esc(x.num)}</a><button class="mini strong" data-junta="${esc(x.id)}">trazer os serviços do ${esc(x.num)} pra cá e apagá-lo</button><button class="mini danger" data-apagadup="${esc(x.id)}">apagar ${esc(x.num)}</button>`).join('')}</div></div>` : ''}
     <div class="pagehead"><h1 class="pageh">${esc(o.num)} ${opOrcPill(o)}</h1>
       <div class="chips">
         <a class="mini" href="#/adm/orcdoc/${esc(o.id)}">ver / imprimir PDF</a>
@@ -1497,7 +1503,9 @@ function admOrcEditor(id) {
   const wa = $('#orWa');
   /* mandou o orcamento: o app ja fica aguardando a resposta (fecha sozinha quando fechar) */
   if (wa) wa.onclick = () => { lerTela(); wa.href = waLink(opMsgOrc(Orc.get(id)), opNum(o.cliente.whats)); if (o.status !== 'fechado') { o.status = 'enviado'; Orc.salva(o); Espera.orcamento(o); setTimeout(() => { toast('Orçamento enviado · tarefa "aguardar resposta" criada'); re(); }, 300); } };
-  $('#orApaga').onclick = () => { if (confirm('Apagar este orçamento?')) { Orc.remove(id); go('/adm/consulta'); } };
+  $('#orApaga').onclick = () => { if (confirm('Apagar este orçamento?')) { Orc.remove(id); if (typeof Tarefas.sincroniza === 'function') Tarefas.sincroniza(); go('/adm/consulta'); } };
+  $$('[data-junta]').forEach(b => b.onclick = () => { lerTela(); const r = Orc.junta(id, b.dataset.junta); if (typeof Tarefas.sincroniza === 'function') Tarefas.sincroniza(); toast(r ? `${r.trazidos} serviço(s) trazido(s) · o repetido foi apagado` : 'Não consegui juntar'); re(); });
+  $$('[data-apagadup]').forEach(b => b.onclick = () => { const x = Orc.get(b.dataset.apagadup); if (!x || !confirm(`Apagar o ${x.num}? (os serviços dele não vêm pra cá)`)) return; lerTela(); Orc.remove(x.id); if (typeof Tarefas.sincroniza === 'function') Tarefas.sincroniza(); toast(`${x.num} apagado`); re(); });
   $('#orAdd').onclick = () => {
     const tid = $('#orAddT').value; if (!tid) return toast('Escolha um serviço.');
     lerTela();

@@ -130,7 +130,8 @@ const ING_FERRAMENTAS = [
   { name: 'detalhes_servico', description: 'Voo/trem, onde buscar, para onde levar, observação, quanto ela paga a quem faz (custo) e quem recebe o resto (no_dia = a guia/motorista recebe do cliente; ingrid = ela recebe e acerta).', input_schema: obj({ codigo: S_(), voo: S_(), buscar_em: S_(), levar_para: S_(), obs: S_(), custo: N_(), resto: { type: 'string', enum: ['no_dia', 'ingrid'] } }, ['codigo']) },
   { name: 'registrar_pagamento', description: 'Registra dinheiro recebido numa reserva, na conta certa (define Brasil ou Europa na contabilidade). "prestador" = o cliente pagou na mão da guia/motorista. Sem valor = o que falta. Se ela não disse a conta, PERGUNTE.', input_schema: obj({ codigo: S_(), valor: N_(), conta: S_('id de ver_contas ou "prestador"'), anexo: S_('ref do comprovante que ela mandou no chat (anexo1…): fica na ficha e na pasta do cliente no Google Drive') }, ['codigo', 'conta']) },
   { name: 'arquivar', description: 'Guarda um arquivo que ela mandou no chat (anexo1…) na ficha do cliente e na pastinha dele no Google Drive (EmRoma › Clientes › nome). Para comprovante de pagamento use registrar_pagamento com anexo — ele já arquiva.', input_schema: obj({ anexo: S_('anexo1, anexo2…'), cliente: S_('nome, código da reserva ou WhatsApp'), descricao: S_('o que é: passaporte, voucher do hotel, bilhete de trem…') }, ['anexo', 'cliente']) },
-  { name: 'criar_orcamento', description: 'Cria orçamento sob consulta com vários serviços. Para transfer, guia ou bate-e-volta use preco_ref (de ver_precos): valor, SINAL e custo entram certos da Tabela de preços. passeio_id (de ver_passeios) para o catálogo de passeios. Para MUDAR um orçamento que já existe use editar_orcamento — não crie outro.', input_schema: obj({ cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_('ex.: 2 adultos + 1 bebê (bebê conta como pessoa)'), bagagem: S_('ex.: 2 malas 23kg + 1 de bordo + carrinho de bebê'), itens: { type: 'array', items: obj({ preco_ref: S_('ref de ver_precos — traz valor, sinal e custo da tabela'), passeio_id: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_() }) }, sinal_pct: N_(), obs: S_() }, ['cliente']) },
+  { name: 'criar_orcamento', description: 'Cria orçamento sob consulta com vários serviços. Para transfer, guia ou bate-e-volta use preco_ref (de ver_precos): valor, SINAL e custo entram certos da Tabela de preços. passeio_id (de ver_passeios) para o catálogo de passeios. Para MUDAR um orçamento que já existe use editar_orcamento — não crie outro.', input_schema: obj({ cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_('ex.: 2 adultos + 1 bebê (bebê conta como pessoa)'), bagagem: S_('ex.: 2 malas 23kg + 1 de bordo + carrinho de bebê'), itens: { type: 'array', items: obj({ preco_ref: S_('ref de ver_precos — traz valor, sinal e custo da tabela'), passeio_id: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_() }) }, sinal_pct: N_(), obs: S_(), novo: { type: 'boolean', description: 'só true se ela pedir MESMO um segundo orçamento para um cliente que já tem um em aberto' } }, ['cliente']) },
+  { name: 'apagar_orcamento', description: 'Apaga um orçamento — ex.: o repetido (regra dela: 1 orçamento por cliente até pagar e receber o voucher). Fecha junto a tarefa de aguardar resposta. Para não perder serviços do repetido, traga-os antes com editar_orcamento (adicionar) no que fica.', input_schema: obj({ numero: S_('número do orçamento') }, ['numero']) },
   { name: 'ler_conversa', description: 'Lê uma conversa colada do WhatsApp/Instagram/e-mail e monta o rascunho do orçamento + a anotação com o resumo. Nunca responde o cliente.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'mudar_orcamento', description: 'Muda situação, validade ou % de sinal de um orçamento.', input_schema: obj({ numero: S_(), situacao: { type: 'string', enum: ['rascunho', 'enviado', 'perdido'] }, validade: S_(), sinal_pct: N_() }, ['numero']) },
   { name: 'ver_precos', description: 'LÊ a Tabela de preços dela (as 4 abas do Excel: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma). Acha a linha certa por número de pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão (+10%) e noturno, com um ref para usar em preco_ref. Sem filtro, lista as tabelas e seções.', input_schema: obj({ tabela: { type: 'string', enum: ['transfer', 'transfer-roma-5', 'guia', 'bv'] }, pessoas: { type: 'integer', description: 'quantas pessoas (bebê e criança contam)' }, texto: S_('filtra por seção/veículo/duração: aeroporto, civitavecchia, termini, outlet, roma antiga, vaticano, walking, carro, minivan, van, 3 horas, 4 horas…') }) },
@@ -449,6 +450,9 @@ const ING_PLANO = {
   },
   criar_orcamento(i) {
     if (!String(i.cliente || '').trim()) return E_('faltou o nome do cliente');
+    /* regra dela: 1 orçamento por cliente até pagar e receber o voucher */
+    const ja = Orc.abertosDoCliente({ id: '', cliente: { nome: i.cliente, whats: i.whats } });
+    if (ja.length && !i.novo) return E_(`${i.cliente} já tem ${ja.map(x => x.num + ' (' + x.status + ')').join(', ')} em aberto. A regra dela é 1 orçamento por cliente até pagar e receber o voucher: use editar_orcamento no ${ja[0].num}. Só crie outro (novo: true) se ela pedir isso explicitamente.`);
     const itens = [], assumiu = [];
     for (const it of i.itens || []) {
       if (it.preco_ref && typeof Precos !== 'undefined') {
@@ -530,6 +534,12 @@ const ING_PLANO = {
     return { titulo: `Mudar o orçamento ${o.num}`, assumiu: [], linhas,
       fazer: () => { Orc.salva({ id: o.id, cliente: cli, itens, ...(i.obs != null ? { obs: i.obs } : {}), ...(i.bagagem != null ? { bagagem: i.bagagem } : {}), ...(i.pessoas_nota != null ? { paxNota: i.pessoas_nota } : {}) });
         return { ok: true, numero: o.num, lembrete: 'o mesmo orçamento foi atualizado — nenhum novo foi criado' }; } };
+  },
+  apagar_orcamento(i) {
+    const r = ingAchaOrc(i.numero); if (!r.o) return r;
+    const o = r.o; if (o.status === 'fechado') return E_(`o ${o.num} já fechou (virou reserva) — não dá para apagar`);
+    return { titulo: `Apagar o ${o.num}`, assumiu: [], linhas: [['Orçamento', `${o.num} · ${o.cliente.nome} · ${o.status}`], ['Serviços', String(o.itens.filter(x => !x.perdido).length)], ['Total', eur(Orc.total(o))]],
+      fazer: () => { Orc.remove(o.id); Tarefas.sincroniza(); return { ok: true, apagado: o.num }; } };
   },
   mudar_orcamento(i) {
     const r = ingAchaOrc(i.numero); if (!r.o) return r;
@@ -711,7 +721,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 
 ## VOCÊ ALCANÇA TODAS AS ABAS
 - Hoje (serviços do dia, emergência): ver_hoje, buscar, detalhes_servico, escalar, registrar_pagamento
-- Orçamentos (Sob consulta): ver_orcamentos, ler_conversa (conversa colada → rascunho), criar_orcamento, editar_orcamento (MUDA o que já existe: cliente, serviços, datas, valores, bagagem, pessoas), mudar_orcamento (situação/validade/% sinal), fechar_orcamento
+- Orçamentos (Sob consulta): ver_orcamentos, ler_conversa (conversa colada → rascunho), criar_orcamento, editar_orcamento (MUDA o que já existe: cliente, serviços, datas, valores, bagagem, pessoas), mudar_orcamento (situação/validade/% sinal), fechar_orcamento, apagar_orcamento (o repetido)
 - TABELA DE PREÇOS (as 4 abas do Excel dela: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma): ver_precos acha a linha certa por pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão e noturno, com um ref. VOCÊ LÊ ESSA TABELA — nunca peça o valor ou o sinal a ela: consulte ver_precos e passe o ref em preco_ref.
 - Voucher (o texto de cada reserva, que se monta sozinho) e Pipeline (kanban dos pedidos): abrir_aba voucher / pipeline
 - Conversas (central de mensagens): ver_conversas mostra quem está esperando algo dela e o que ela já mandou; a mensagem ELA manda pelo botão da aba (abrir_aba conversas) — você só escreve o texto quando ela pedir
@@ -751,7 +761,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 ## ORÇAMENTO — COMO ELA TRABALHA (tudo se conversa)
 - Transfer, guia ou bate-e-volta → ver_precos (pessoas + serviço) e passe o ref em preco_ref: valor, SINAL e custo entram certos da Tabela de preços. Sem ref, não invente preço nem sinal.
 - Bebê ou criança CONTA como pessoa (entra no número de pessoas da tabela). Escreva no pessoas_nota ("2 adultos + 1 bebê") e lembre de perguntar se tem carrinho de bebê e quantas malas (bagagem) — isso muda o veículo.
-- Ela pediu uma mudança num orçamento que já existe → editar_orcamento NO MESMO NÚMERO. Nunca crie um segundo orçamento para o mesmo pedido. UM orçamento por cliente/pedido.
+- Ela pediu uma mudança num orçamento que já existe → editar_orcamento NO MESMO NÚMERO. Nunca crie um segundo orçamento para o mesmo pedido. UM orçamento por cliente até ele pagar e receber o voucher (criar_orcamento recusa se já houver um em aberto). Orçamento repetido → apagar_orcamento (pergunte qual fica; traga antes os serviços que faltarem).
 - Serviço que o cliente NÃO quer → editar_orcamento com acao "tirar": o serviço fica no orçamento como PERDIDO (sai do total e do que vai pro cliente, mas fica registrado — é a estatística dela de quanto pediram × quanto fecharam). Se o cliente voltar atrás → acao "voltar". "apagar" só para erro de digitação.
 - O orçamento que vai pro cliente nunca mostra o custo (só valor, sinal e o que paga no dia).
 - OPÇÕES: duas linhas do mesmo trajeto e dia (carro OU minivan, conforme a bagagem) entram sozinhas como opções — o total NÃO soma as duas; o documento mostra o total de cada opção. Quando o cliente escolher → editar_orcamento acao "escolher" no serviço escolhido (a outra fica registrada como não fechou). Não dá pra fechar com opção pendente.

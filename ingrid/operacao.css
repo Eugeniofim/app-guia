@@ -742,3 +742,7 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 @media print{.doc-tblwrap{overflow:visible}.doc-tblwrap .doc-tbl{min-width:0}}
 
 .vch-sug{color:var(--accent);font-style:italic}
+
+/* 1 orçamento por cliente: o aviso no editor */
+.orc-dup{display:flex;flex-direction:column;gap:10px;margin:8px 0 14px}
+.orc-dup-acts{display:flex;flex-wrap:wrap;gap:8px}
