@@ -8,8 +8,12 @@
    Para ligar a nuvem: criar o projeto no Supabase NA CONTA DELA, rodar
    SEGURANCA.sql no editor SQL e preencher os dois campos abaixo. */
 var APP_CONFIG = {
-  supabaseUrl: '',   /* ex.: 'https://SEU-PROJETO.supabase.co' */
-  supabaseKey: '',   /* a chave "publishable" do projeto; nunca a secreta */
+  /* NUVEM LIGADA em 02/10/2026: projeto "emroma" (Supabase, org Ti Artes do Eugênio,
+     Irlanda). SEGURANCA.sql rodado. A chave abaixo é a "publishable" (pública por
+     desenho — quem protege os dados é a RLS). Quando o projeto passar para a
+     conta da Ingrid, basta trocar estes dois campos. */
+  supabaseUrl: 'https://wayyctstytbjjissqsnp.supabase.co',
+  supabaseKey: 'sb_publishable_GugBRA81omXmlqbbS6wJcw_6pUWAnh4',
 
   /* App zerado para a Ingrid trabalhar: começa sem clientes, reservas, guias
      e parceiros de exemplo. O catálogo de passeios, os preços e os pontos de
