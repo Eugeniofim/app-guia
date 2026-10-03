@@ -16,7 +16,9 @@
 
 /* precos = a Tabela de preços (tem os CUSTOS dela: vai só para `itens`, que só a
    dona lê — nunca para o appstate público); conversas = o que ela mandou a cada cliente */
-const ITENS_COLS = ['equipe', 'disp', 'contas', 'orcamentos', 'fichas', 'tarefas', 'clientes', 'parceiros', 'pontos', 'pedidos', 'lembretesVistos', 'interesse', 'precos', 'conversas'];
+/* iaMemoria = o que ela ensinou ao assistente (antes só no aparelho); arquivos = a ficha
+   dos comprovantes/documentos (o arquivo em si fica no Drive) — v1.95 */
+const ITENS_COLS = ['equipe', 'disp', 'contas', 'orcamentos', 'fichas', 'tarefas', 'clientes', 'parceiros', 'pontos', 'pedidos', 'lembretesVistos', 'interesse', 'precos', 'conversas', 'iaMemoria', 'arquivos'];
 /* estas sao "dicionarios" no DB (chave -> valor); as outras sao listas com id */
 const ITENS_DIC = ['fichas', 'lembretesVistos', 'interesse', 'conversas'];
 const IT_SOMBRA = 'ingrid_sombra_v1', IT_FILA = 'ingrid_fila_v1', IT_MARCA = 'ingrid_marca_v1', IT_EMDIA = 'ingrid_emdia_v1';
@@ -91,6 +93,10 @@ function itAplicar(linhas) {
   }
   itGrava(IT_SOMBRA, sombra);
   if (mudou) try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); } catch (e) {}
+  /* chegou orçamento do formato antigo: o texto vira o de hoje (v1.94) */
+  if (mudou && typeof Precos !== 'undefined' && Precos.migraTextos) try { Precos.migraTextos(); } catch (e) {}
+  /* chegou memória do assistente de outro aparelho: o assistente daqui passa a saber */
+  if (mudou && typeof ingMemDesce === 'function') try { ingMemDesce(); } catch (e) {}
   return mudou;
 }
 async function itPuxar() {
@@ -112,6 +118,8 @@ async function itSincronizarAoAbrir() {
   let r = { ok: false };
   for (let k = 0; k < 3 && !r.ok; k++) { r = await itPuxar(); if (!r.ok) await new Promise(ok => setTimeout(ok, 1500 * (k + 1))); }
   if (!r.ok) return r;
+  /* banco lido: agora sim o texto antigo dos orçamentos vira o de hoje (v1.94) */
+  if (typeof Precos !== 'undefined' && Precos.migraTextos) try { Precos.migraTextos(); } catch (e) {}
   if (!itLe(IT_EMDIA, false)) {
     /* primeira vez neste aparelho: o que so ele tinha sobe (junta, nao troca) */
     itGrava(IT_EMDIA, true);

@@ -87,11 +87,34 @@ function ingServ(b) {
     paga_no_dia: nd.valor ? `${nd.valor} € ${nd.para === 'prestador' ? 'para quem faz o serviço' : 'para a Ingrid'}` : 'nada',
     obs: b.obsOp || '', situacao: b.status === 'cancelled' ? 'cancelada' : 'confirmada' };
 }
+/* o motor do assistente chama tl() para o nome do passeio — este app não tinha a função
+   (03/10: ver_passeios, agenda, cancelar/criar reserva, horários… davam erro) */
+if (typeof tl !== 'function') var tl = (o) => (o && typeof o === 'object' ? (o[typeof LANG !== 'undefined' ? LANG : 'pt'] || o.pt || o.en || '') : String(o || ''));
+/* app de verdade (dados dela) × cópia de demonstração */
+const ING_REAL = !!(typeof APP_CONFIG !== 'undefined' && APP_CONFIG && APP_CONFIG.semExemplos);
 const ING_ABAS = ['today', 'conversas', 'planilha', 'pipeline', 'consulta', 'tarefas', 'guias', 'transfer', 'agenda', 'bookings', 'clients', 'money', 'tours', 'precos', 'voucher', 'reports', 'coupons', 'look', 'settings'];
 const ING_TURNOS = ['manha', 'tarde', 'noite', 'dia'];
 
 /* ---------- 2. as ferramentas das abas dela ---------- */
 const contasIds = () => [...Contas.all().map(c => c.id), CONTA_PRESTADOR];
+/* "caiu no Wise", "no Pix", "em dinheiro", "na mão do motorista" → a conta certa. Se servir
+   para duas (Wise Brasil × Wise Europa), devolve as opções para ela escolher em UMA pergunta. */
+function ingConta(q) {
+  const s = ingN(q); if (!s) return { erro: 'em que conta caiu? contas: ' + Contas.all().map(c => `${c.nome} (${c.id})`).join(', ') + ' — ou "prestador" (pago na mão da guia/motorista)' };
+  if (contasIds().includes(q)) return { id: q };
+  if (/prestador|na mao d|guia recebeu|motorista recebeu|pagou (a|ao|pra|para) (guia|motorista)/.test(s)) return { id: CONTA_PRESTADOR };
+  const todas = Contas.all();
+  let l = todas.filter(c => ingN(c.nome + ' ' + c.id).includes(s) || s.split(/\s+/).filter(t => t.length >= 3).every(t => ingN(c.nome + ' ' + c.id + ' ' + c.metodo).includes(t)));
+  if (!l.length) l = todas.filter(c => s.split(/[^a-z0-9]+/).some(t => t.length >= 3 && ingN(c.nome + ' ' + c.id + ' ' + c.metodo).includes(t)));
+  if (/euro|eur\b|europa|italia/.test(s)) { const e = l.filter(c => c.pais === 'europa'); if (e.length) l = e; }
+  if (/brasil|real|reais|\bbr\b/.test(s)) { const b = l.filter(c => c.pais === 'brasil'); if (b.length) l = b; }
+  if (/pix/.test(s)) { const p = todas.filter(c => c.metodo === 'pix'); if (p.length) l = p; }
+  if (/dinheiro|em maos|cash|especie/.test(s)) { const d = todas.filter(c => c.metodo === 'cash'); if (d.length) l = d; }
+  if (/cartao|link/.test(s)) { const d = todas.filter(c => c.metodo === 'card'); if (d.length) l = d; }
+  if (l.length === 1) return { id: l[0].id };
+  if (l.length > 1) return { erro: `caiu em qual: ${l.map(c => `${c.nome} (${c.id})`).join(' ou ')}? Pergunte UMA vez, em uma linha, com essas opções.`, opcoes: l.map(c => c.id) };
+  return { erro: 'não achei essa conta — as contas são: ' + todas.map(c => `${c.nome} (${c.id})`).join(', ') };
+}
 const ING_FERRAMENTAS = [
   /* ler */
   { name: 'ver_conversas', description: 'A aba Conversas: quem está esperando algo DELA (orçamento enviado sem resposta, cobrar, confirmar passeio, tarefas de espera) e as últimas mensagens que ela mandou a cada cliente pelo WhatsApp. Mensagens que chegam só entram quando o WhatsApp oficial estiver ligado.', input_schema: obj({ cliente: S_('nome ou WhatsApp (opcional; vazio = todos que estão esperando)') }) },
@@ -135,8 +158,8 @@ const ING_FERRAMENTAS = [
   { name: 'ler_conversa', description: 'Lê uma conversa colada do WhatsApp/Instagram/e-mail e monta o rascunho do orçamento + a anotação com o resumo. Nunca responde o cliente.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'mudar_orcamento', description: 'Muda situação, validade ou % de sinal de um orçamento.', input_schema: obj({ numero: S_(), situacao: { type: 'string', enum: ['rascunho', 'enviado', 'perdido'] }, validade: S_(), sinal_pct: N_() }, ['numero']) },
   { name: 'ver_precos', description: 'LÊ a Tabela de preços dela (as 4 abas do Excel: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma). Acha a linha certa por número de pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão (+10%) e noturno, com um ref para usar em preco_ref. Sem filtro, lista as tabelas e seções.', input_schema: obj({ tabela: { type: 'string', enum: ['transfer', 'transfer-roma-5', 'guia', 'bv'] }, pessoas: { type: 'integer', description: 'quantas pessoas (bebê e criança contam)' }, texto: S_('filtra por seção/veículo/duração: aeroporto, civitavecchia, termini, outlet, roma antiga, vaticano, walking, carro, minivan, van, 3 horas, 4 horas…') }) },
-  { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, idades/adultos (refaz os ingressos), e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), adultos: { type: 'integer', description: 'quantos adultos (refaz as linhas de ingresso)' }, idades: { type: 'array', items: { type: 'integer' }, description: 'idades das crianças/jovens (refaz as linhas de ingresso: Roma Antiga grátis até 17; Vaticano €15 de 7 a 18, grátis até 6)' }, itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar', 'voltar', 'apagar', 'escolher'], description: 'escolher = o cliente escolheu ESTA opção (as outras do mesmo dia viram não fechou); tirar = o cliente NÃO quis: fica registrado como perdido (estatística dela), sai do total e do que vai pro cliente; voltar = ele quer de novo; apagar = só erro de digitação (some de vez)' }, item: S_('qual serviço: de preferência o NÚMERO (1, 2… na ordem do orçamento); também aceita "opção 2" ou o veículo ("minivan")'), motivo: S_('por que o cliente não quis (opcional, com tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
-  { name: 'fechar_orcamento', description: 'O cliente fechou: cada serviço do catálogo vira reserva com o sinal; registra o sinal na conta se já caiu.', input_schema: obj({ numero: S_(), sinal_recebido: { type: 'boolean' }, conta: S_() }, ['numero', 'sinal_recebido']) },
+  { name: 'editar_orcamento', description: 'MUDA um orçamento que já existe (mesmo número): cliente/WhatsApp/e-mail, pessoas_nota, bagagem, obs, idades/adultos (refaz os ingressos), e os serviços — adicionar (com preco_ref de ver_precos ou descricao), mudar (data, hora, pessoas, valor, sinal, ou trocar pela linha certa com preco_ref) ou tirar. Use SEMPRE que ela pedir uma alteração: nunca crie um segundo orçamento.', input_schema: obj({ numero: S_('número ou cliente do orçamento'), cliente: S_(), whats: S_(), email: S_(), pessoas_nota: S_(), bagagem: S_(), obs: S_(), adultos: { type: 'integer', description: 'quantos adultos (refaz as linhas de ingresso)' }, idades: { type: 'array', items: { type: 'integer' }, description: 'idades das crianças/jovens (refaz as linhas de ingresso: Roma Antiga grátis até 17; Vaticano €15 de 7 a 18, grátis até 6)' }, completar_ingressos: { type: 'boolean', description: 'orçamento ANTIGO cujo passeio não tem as linhas de ingresso/fones/gestão: true põe essas linhas (o total muda)' }, itens: { type: 'array', items: obj({ acao: { type: 'string', enum: ['adicionar', 'mudar', 'tirar', 'voltar', 'apagar', 'escolher'], description: 'escolher = o cliente escolheu ESTA opção (as outras do mesmo dia viram não fechou); tirar = o cliente NÃO quis: fica registrado como perdido (estatística dela), sai do total e do que vai pro cliente; voltar = ele quer de novo; apagar = só erro de digitação (some de vez)' }, item: S_('qual serviço: de preferência o NÚMERO (1, 2… na ordem do orçamento); também aceita "opção 2" ou o veículo ("minivan")'), motivo: S_('por que o cliente não quis (opcional, com tirar)'), preco_ref: S_(), descricao: S_(), data: S_('AAAA-MM-DD'), hora: S_(), pessoas: { type: 'integer' }, valor: N_(), sinal: N_() }, ['acao']) } }, ['numero']) },
+  { name: 'fechar_orcamento', description: 'O cliente fechou: cada serviço (da Tabela, do catálogo ou escrito com dia) vira reserva com o seu sinal; registra o sinal na conta se já caiu. Ache pelo NOME do cliente — não peça o número. Conta em palavras serve ("Wise", "Pix", "dinheiro"): se servir para duas, a ferramenta devolve as opções.', input_schema: obj({ numero: S_('número do orçamento OU nome do cliente'), sinal_recebido: { type: 'boolean' }, conta: S_('id ou nome da conta: wise-eu, "Wise Europa", "Pix"…') }, ['numero', 'sinal_recebido']) },
   { name: 'ajustar_termos', description: 'Termos e condições do orçamento e o número de plantão do voucher.', input_schema: obj({ termos: S_(), plantao: S_() }) },
   { name: 'orcamento_do_roteiro', description: 'Monta o rascunho de orçamento a partir de um pedido do "Monte seu roteiro" (veja pedidos_de_roteiro em ver_orcamentos).', input_schema: obj({ pedido: S_('id ou nome de quem pediu') }, ['pedido']) },
   { name: 'cadastrar_conta', description: 'Acrescenta ou muda uma conta onde ela recebe (define se vai para o contador do Brasil ou da Europa).', input_schema: obj({ conta: S_('id de ver_contas para mudar; vazio = nova'), nome: S_(), lado: { type: 'string', enum: ['brasil', 'europa'] }, tipo: { type: 'string', enum: ['pix', 'transfer', 'card', 'cash', 'other'] } }, ['nome', 'lado']) },
@@ -148,7 +171,7 @@ const ING_FERRAMENTAS = [
   { name: 'ingressos_comprados', description: 'Marca que os ingressos de um serviço já foram comprados (ou desmarca).', input_schema: obj({ codigo: S_(), comprados: { type: 'boolean' } }, ['codigo', 'comprados']) },
   { name: 'link_servico', description: 'Guarda um link no serviço (PDF do ingresso, QR code, voucher do parceiro).', input_schema: obj({ codigo: S_(), nome: S_(), url: S_() }, ['codigo', 'url']) },
   { name: 'follow_up', description: 'FOLLOW-UP de um orçamento (colunas "Follow-up 1, 2 e 3" e "Resultado" da PLANILHA — antes chamadas de Repescagem): grava as DATAS na Planilha E cria a tarefa de cada dia (tarefa que já existe no mesmo dia para esse cliente vira a do follow-up — não duplica). Também registra o resultado (respondeu, não respondeu, fechou…). Use SEMPRE que ela falar em follow-up, repescagem ou retorno marcado de um orçamento.', input_schema: obj({ numero: S_('número do orçamento, nome do cliente ou código da reserva'), followups: { type: 'array', items: obj({ n: { type: 'integer', description: '1, 2 ou 3' }, data: S_('AAAA-MM-DD (vazio = apagar a data)'), resultado: S_() }, ['n']) }, criar_tarefas: { type: 'boolean', description: 'padrão true: cria a tarefa no dia de cada follow-up' } }, ['numero', 'followups']) },
-  { name: 'editar_planilha', description: 'MUDA qualquer célula da PLANILHA (aba Planilha / CRM), como ela faria tocando na célula: data do pagamento, veio por, agência/indicação/influencer, WhatsApp, nome, data do serviço, hora, PAX, serviço, obs, cliente paga, Ingrid paga, cidade, parceiro, sinal, forma, em real, comissões, status, motivo, follow-up 1/2/3 e resultado, nome do arquivo e links. A linha é um orçamento (número + qual serviço) ou uma reserva (código). Datas em dd/mm/aaaa ou AAAA-MM-DD.', input_schema: obj({ linha: S_('número do orçamento (ex.: ORC-0004) ou código da reserva'), servico: { type: 'integer', description: 'orçamento com vários serviços: o NÚMERO do serviço (1, 2…) — para data, hora, PAX, serviço, obs e valores' }, coluna: { type: 'string', enum: ['data_pagamento','veio_por','agencia_indicacao_influencer','whatsapp','nome','data_servico','hora','pax','servico','obs','cliente_paga','ingrid_paga','cidade','parceiro','sinal','forma','em_real','comissao_vendor','comissao_indicacao','status','motivo','follow_up_1','resultado_1','follow_up_2','resultado_2','follow_up_3','resultado_3','nome_do_arquivo','link_pdf','link_orcamento','link_voucher','link_comprovante','link_avaliacao'] }, valor: S_() }, ['linha', 'coluna', 'valor']) },
+  { name: 'editar_planilha', description: 'MUDA qualquer célula da PLANILHA (aba Planilha / CRM), como ela faria tocando na célula: data do pagamento, veio por, agência/indicação/influencer, WhatsApp, nome, data do serviço, hora, PAX, serviço, obs, cliente paga, Ingrid paga, cidade, parceiro, sinal, forma, em real, comissões, status, motivo, follow-up 1/2/3 e resultado, nome do arquivo e links. A linha é um orçamento (número + qual serviço) ou uma reserva (código). Datas em dd/mm/aaaa ou AAAA-MM-DD. Várias colunas da mesma linha → use colunas (um cartão só). Agência: veio_por = "agência" + agencia_indicacao_influencer = nome.', input_schema: obj({ linha: S_('número do orçamento (ex.: ORC-0004) ou código da reserva'), servico: { type: 'integer', description: 'orçamento com vários serviços: o NÚMERO do serviço (1, 2…) — para data, hora, PAX, serviço, obs e valores' }, coluna: { type: 'string', enum: ['data_pagamento','veio_por','agencia_indicacao_influencer','whatsapp','nome','data_servico','hora','pax','servico','obs','cliente_paga','ingrid_paga','cidade','parceiro','sinal','forma','em_real','comissao_vendor','comissao_indicacao','status','motivo','follow_up_1','resultado_1','follow_up_2','resultado_2','follow_up_3','resultado_3','nome_do_arquivo','link_pdf','link_orcamento','link_voucher','link_comprovante','link_avaliacao'] }, valor: S_(), colunas: { type: 'object', additionalProperties: { type: 'string' }, description: 'várias colunas de uma vez, ex.: {"veio_por": "agência", "agencia_indicacao_influencer": "Lu Viaja"}' } }, ['linha']) },
   { name: 'marcar_perdido', description: 'Marca um orçamento como perdido, com o motivo.', input_schema: obj({ numero: S_(), motivo: { type: 'string', enum: MOTIVOS_PERDA } }, ['numero', 'motivo']) },
   { name: 'avaliacao_pedida', description: 'Registra que ela já pediu a avaliação ao cliente (o serviço vai para Finalizado). A mensagem ela manda pelo botão do CRM.', input_schema: obj({ codigo: S_() }, ['codigo']) },
   { name: 'cadastrar_parceiro', description: 'Cadastra ou muda um influencer/agência/parceiro com cupom, desconto e comissão.', input_schema: obj({ nome: S_(), tipo: { type: 'string', enum: TIPOS_PARCEIRO.map(t => t[0]) }, contato: S_(), cupom: S_(), desconto: N_(), comissao: N_() }, ['nome']) },
@@ -163,6 +186,16 @@ function ingServicosNum(o) {
   const ops = new Set(Orc.opcoes(o).flat());
   const num = (id) => o.itens.findIndex(y => y.id === id) + 1;
   return o.itens.map((x, k) => `${k + 1}. ${x.desc}${x.data ? ' — ' + x.data + (x.hora ? ' ' + x.hora : '') : ''} · ${eur(x.valor)}${ops.has(x) ? ' [OPÇÃO]' : ''}${(x.vinculo || []).length ? ` [acompanha o ${x.vinculo.map(num).filter(Boolean).join(' e ')} — entra/sai sozinho]` : ''}${x.perdido ? ' [não fechou]' : ''}`);
+}
+/* AS CONTAS DO ORÇAMENTO, prontas pra IA repetir (teste ao vivo de 03/10: ela inventou
+   "sinal 50% = €595,50" quando o certo era €458). Nunca deixar a IA fazer conta de dinheiro. */
+function ingContas(o) {
+  const tot = Orc.total(o), sin = Orc.sinal(o), ops = Orc.opcoes(o);
+  const C = ops.length && typeof orcCenarios === 'function' ? orcCenarios(o) : null;
+  return { total: eur(tot), sinal: eur(sin), pagar_no_dia: eur(Math.max(0, Math.round((tot - sin) * 100) / 100)),
+    ...(ops.length ? { atencao: 'há opções sem escolha: total e sinal acima são "a partir de" (a opção mais barata de cada)', ...(C && C.cenarios.length > 1 ? { por_opcao: C.cenarios.map(c => `${c.rotulo}: total ${eur(c.total)} · sinal ${eur(c.sinal)} · no dia ${eur(c.dia)}`) } : {}) } : {}),
+    situacao: o.status === 'fechado' ? 'FECHADO (virou reserva)' : `${o.status} — ainda NÃO está fechado`,
+    regra: 'repita EXATAMENTE estes valores; nunca calcule sinal, total ou porcentagem de cabeça' };
 }
 /* passeio com guia (da Tabela): põe os ingressos, os fones e a gestão junto — pedido dela de 02/10.
    Devolve quantas linhas entraram. pessoas: adultos/idades da fala dela (sem idade = adultos) */
@@ -332,7 +365,7 @@ const ING_LER = {
       hoje, clientes: Cadastro.all().length, reservas_por_vir: bs.filter(b => b.date >= hoje).length, reservas_passadas: bs.filter(b => b.date < hoje).length,
       planilha: { linhas: crmLinhas().length, em_aberto: P.abertos, confirmados: P.confirmados, fechamento: P.fecha.taxa == null ? null : Math.round(P.fecha.taxa * 100) + '%', precisa_de_voce: P.agora.length },
       orcamentos: { total: Orc.all().length, por_mandar: Orc.all().filter(o => ['novo', 'rascunho'].includes(o.status)).length, enviados: Orc.all().filter(o => o.status === 'enviado').length },
-      tarefas: { atrasadas: G.atrasadas.length, hoje: G.hoje.length, proximas: (G.proximas || []).length, anotacoes: Tarefas.notas ? Tarefas.notas().length : undefined },
+      tarefas: { atrasadas: G.atrasadas.length, hoje: G.hoje.length, proximas: (G.semana || G.proximas || []).length, anotacoes: Tarefas.notas ? Tarefas.notas().length : undefined },
       dinheiro_do_mes: { recebido_por_ela: pagosMes, devem_a_ela: Lembretes.devedores(hoje).reduce((s, d) => s + d.total, 0), comissoes_a_pagar: P.comissoes.valor },
       guias: Equipe.all('guia').length, motoristas: Equipe.all('motorista').length, parceiros: Parceiros.all().length,
       transfers: { de_roma_por_vir: tr.filter(transferEmRoma).length, falta_pedir_na_new_star: tr.filter(b => transferEmRoma(b) && !b.ncc).length, fora_de_roma: tr.filter(b => !transferEmRoma(b)).length },
@@ -446,7 +479,7 @@ const ING_PLANO = {
     const rb = ingAchaReserva(i.codigo); if (!rb.b) return rb;
     const b = rb.b, falta = Bookings.due(b);
     if (falta <= 0) return E_('essa reserva já está paga');
-    if (!contasIds().includes(i.conta)) return E_('em que conta caiu? contas: ' + contasIds().join(', '));
+    const ct = ingConta(i.conta); if (ct.erro) return E_(ct.erro); i.conta = ct.id;
     const valor = +i.valor > 0 ? Math.min(+i.valor, falta) : falta;
     return { titulo: 'Registrar pagamento', assumiu: +i.valor > 0 ? [] : [`valor: o que faltava (${eur(valor)})`],
       linhas: [['Cliente', b.name], ['Código', b.code], ['Valor', eur(valor)], ['Onde caiu', Contas.nome(i.conta)],
@@ -504,7 +537,7 @@ const ING_PLANO = {
         ...o0.itens.slice(0, 16).map(x => [x.data ? ingData(x.data) : '—', `${x.desc} · ${x.pax}p · ${x.valor ? eur(x.valor) : 'a definir'}${x.sinal ? ' · sinal ' + eur(x.sinal) : ''}`]), ['Total', eur(Orc.total(o0))], ['Sinal', eur(Orc.sinal(o0))]],
       fazer: () => { const o = Orc.cria({ origem: 'manual', status: 'rascunho', cliente: { nome: i.cliente, whats: i.whats, email: i.email }, itens: o0.itens, sinalPct: o0.sinalPct, obs: i.obs || '' });
         if (i.bagagem || i.pessoas_nota) Orc.salva({ id: o.id, bagagem: i.bagagem || '', paxNota: i.pessoas_nota || '' });
-        return { ok: true, numero: o.num, servicos_numerados: ingServicosNum(Orc.get(o.id)), lembrete: `para mudar qualquer coisa depois use editar_orcamento no ${o.num} com o NÚMERO do serviço (lista acima) — não crie outro; ela confere e manda pelo botão (você não manda nada para o cliente)` }; } };
+        return { ok: true, numero: o.num, contas: ingContas(Orc.get(o.id)), servicos_numerados: ingServicosNum(Orc.get(o.id)), lembrete: `para mudar qualquer coisa depois use editar_orcamento no ${o.num} com o NÚMERO do serviço (lista acima) — não crie outro; ela confere e manda pelo botão (você não manda nada para o cliente)` }; } };
   },
   ler_conversa(i) {
     const c = lerConversa(i.texto); const itens = rascunhoDaConversa(c);
@@ -584,6 +617,8 @@ const ING_PLANO = {
       }
     }
     if ((i.itens || []).some(x => x.acao === 'adicionar' && x.preco_ref)) Orc.marcaOpcoes({ itens });
+    /* orçamento antigo: os passeios que ainda não têm ingressos/gestão ganham agora */
+    if (i.completar_ingressos && typeof Precos !== 'undefined' && Precos.semExtras) for (const x of itens) if (!novos.includes(x) && Precos.semExtras({ itens }, x)) novos.push(x);
     /* passeio com guia novo: ingressos/fones/gestão entram junto; idades novas: refaz os ingressos */
     const tmp = { itens };
     if (novos.length && ingComExtras(tmp, novos, i)) linhas.push(['Ingressos e gestão', 'entram junto com o passeio' + (i.idades && i.idades.length ? ' (pelas idades)' : ' (sem idade = todos adultos)')]);
@@ -597,7 +632,7 @@ const ING_PLANO = {
     linhas.push(['Total', eur(Orc.total(o1))], ['Sinal', eur(Orc.sinal(o1))]);
     return { titulo: `Mudar o orçamento ${o.num}`, assumiu: [], linhas,
       fazer: () => { Orc.salva({ id: o.id, cliente: cli, itens, ...(i.obs != null ? { obs: i.obs } : {}), ...(i.bagagem != null ? { bagagem: i.bagagem } : {}), ...(i.pessoas_nota != null ? { paxNota: i.pessoas_nota } : {}) });
-        return { ok: true, numero: o.num, servicos_numerados: ingServicosNum(Orc.get(o.id)), lembrete: 'o mesmo orçamento foi atualizado — nenhum novo foi criado; para a próxima mudança use o NÚMERO do serviço (lista acima)' }; } };
+        return { ok: true, numero: o.num, contas: ingContas(Orc.get(o.id)), servicos_numerados: ingServicosNum(Orc.get(o.id)), lembrete: 'o mesmo orçamento foi atualizado — nenhum novo foi criado; para a próxima mudança use o NÚMERO do serviço (lista acima)' }; } };
   },
   apagar_orcamento(i) {
     const r = ingAchaOrc(i.numero); if (!r.o) return r;
@@ -619,8 +654,9 @@ const ING_PLANO = {
     const o = r.o; if (o.status === 'fechado') return E_('esse orçamento já foi fechado');
     if (Orc.opcoes(o).length) return E_('o orçamento tem OPÇÕES (o cliente escolhe uma): ' + Orc.opcoes(o).map(l => l.map((x, k) => (o.itens.indexOf(x) + 1) + '. ' + x.desc).join(' OU ')).join('; ') + ' — pergunte qual ele escolheu e use editar_orcamento com acao "escolher" antes de fechar');
     const semDia = Orc.itensConta(o).filter(x => !x.data && !x.sugestao && String(x.desc || '').trim()); if (semDia.length) return E_('falta o dia em: ' + semDia.map(x => x.desc).join(', '));
-    if (i.sinal_recebido && !contasIds().includes(i.conta)) return E_('em que conta caiu o sinal? contas: ' + contasIds().join(', '));
-    const n = o.itens.filter(x => x.tourId).length;
+    if (i.sinal_recebido) { const ct = ingConta(i.conta); if (ct.erro) return E_(ct.erro + ' (ou feche já com sinal_recebido: false e registre o sinal depois)'); i.conta = ct.id; }
+    /* o que vira reserva: o mesmo critério de Orc.fecha (serviço do catálogo, ou da Tabela/escrito com dia) */
+    const n = Orc.itensConta(o).filter(x => (x.tourId && Tours.get(x.tourId)) || (x.data && String(x.desc || '').trim() && !x.sugestao)).length;
     return { titulo: 'Fechar orçamento', assumiu: [], linhas: [['Orçamento', `${o.num} · ${o.cliente.nome}`], ['Vira', `${n} reserva(s)`], ['Sinal', `${eur(Orc.sinal(o))} ${i.sinal_recebido ? '— já caiu em ' + Contas.nome(i.conta) : '— ainda não caiu'}`]],
       fazer: () => { const bs = Orc.fecha(o.id, { sinalRecebido: !!i.sinal_recebido, conta: i.conta }); Tarefas.sincroniza(); return { ok: true, reservas: bs.map(b => b.code) }; } };
   },
@@ -724,21 +760,31 @@ const ING_PLANO = {
       cliente_paga: 'clientePaga', ingrid_paga: 'ingridPaga', cidade: 'cidade', parceiro: 'parceiro', sinal: 'sinal', forma: 'forma', em_real: 'emReal', comissao_vendor: 'comVendor', comissao_indicacao: 'comIndic',
       status: 'status', motivo: 'motivo', follow_up_1: 'rep1', resultado_1: 'res1', follow_up_2: 'rep2', resultado_2: 'res2', follow_up_3: 'rep3', resultado_3: 'res3', nome_do_arquivo: 'arquivo',
       link_pdf: 'lPdf', link_orcamento: 'lOrc', link_voucher: 'lVoucher', link_comprovante: 'lComprov', link_avaliacao: 'lAval' };
-    const campo = COL[i.coluna]; if (!campo) return E_('coluna desconhecida');
+    const NOME = { data_pagamento: 'Data (do pagamento)', veio_por: 'Veio por', agencia_indicacao_influencer: 'Agência / indicação / influencer', whatsapp: 'WhatsApp', data_servico: 'Data do serviço', pax: 'PAX', servico: 'Serviço', obs: 'Obs',
+      cliente_paga: 'Cliente paga', ingrid_paga: 'Ingrid paga', forma: 'Forma de pagamento', em_real: 'Em real (Pix)', comissao_vendor: 'Comissão vendor', comissao_indicacao: 'Comissão indicação', motivo: 'Motivo da perda', nome_do_arquivo: 'Nome do arquivo' };
+    const rot = (c) => NOME[c] || c.replace(/^follow_up_(\d)$/, 'Follow-up $1').replace(/^resultado_(\d)$/, 'Resultado $1').replace(/^link_/, 'Link ').replace(/_/g, ' ').replace(/^./, x => x.toUpperCase());
+    const pares = Object.entries(i.colunas && typeof i.colunas === 'object' ? i.colunas : {}).map(([k, v]) => [k, v]);
+    if (i.coluna) pares.push([i.coluna, i.valor]);
+    if (!pares.length) return E_('diga a coluna e o valor (ou colunas)');
+    for (const [c] of pares) if (!COL[c]) return E_(`coluna desconhecida: ${c} — as colunas são: ${Object.keys(COL).join(', ')}`);
+    const doServico = (c) => ['dataServ', 'hora', 'pax', 'servico', 'obs', 'clientePaga', 'ingridPaga', 'cidade'].includes(COL[c]);
     let ref = null, quem = '';
     const rb = ingAchaReserva(i.linha);
     if (rb.b) { ref = { tipo: 'reserva', id: rb.b.id }; quem = `${rb.b.code} · ${rb.b.name} · ${nomeDoServico(rb.b)}`; }
     else {
       const r = ingAchaOrc(i.linha); if (!r.o) return r;
-      const o = r.o, doServico = ['dataServ', 'hora', 'pax', 'servico', 'obs', 'clientePaga', 'ingridPaga', 'cidade'].includes(campo);
-      if (doServico && o.itens.length > 1 && !(+i.servico >= 1)) return E_(`o ${o.num} tem ${o.itens.length} serviços — diga qual (servico = número): ${ingServicosNum(o).join(' · ')}`);
-      const it = doServico ? o.itens[(+i.servico || 1) - 1] : null; if (doServico && o.itens.length && !it) return E_('não existe esse número de serviço');
-      if (o.status === 'fechado' && !/^(rep|res)\d$/.test(campo)) return E_(`o ${o.num} já fechou — mude na linha da reserva (código em ver_crm)`);
+      const o = r.o, precisa = pares.some(([c]) => doServico(c));
+      if (precisa && o.itens.length > 1 && !(+i.servico >= 1)) return E_(`o ${o.num} tem ${o.itens.length} serviços — diga qual (servico = número): ${ingServicosNum(o).join(' · ')}`);
+      const it = precisa ? o.itens[(+i.servico || 1) - 1] : null; if (precisa && o.itens.length && !it) return E_('não existe esse número de serviço');
+      if (o.status === 'fechado' && pares.some(([c]) => !/^(rep|res)\d$/.test(COL[c]))) return E_(`o ${o.num} já fechou — mude na linha da reserva (código em ver_crm)`);
       ref = { tipo: 'orcamento', id: o.id, itemId: it ? it.id : '' }; quem = `${o.num} · ${o.cliente.nome}${it ? ' · ' + it.desc : ''}`;
     }
-    const rot = String(i.coluna).replace(/_/g, ' ').replace(/^follow up/, 'Follow-up');
-    return { titulo: 'Mudar a Planilha', assumiu: [], linhas: [['Linha', quem], ['Coluna', rot], ['Fica', String(i.valor ?? '') || '(vazio)']],
-      fazer: () => { const res = crmEdita(ref, campo, i.valor, isoToday()); if (res && res.erro) return E_(res.erro); Tarefas.sincroniza && Tarefas.sincroniza(); return { ok: true, ...(res && res.reservas ? { reservas_criadas: res.reservas } : {}) }; } };
+    /* "veio por" primeiro: a agência/indicação se lê já sabendo de onde veio */
+    pares.sort((a, b) => (a[0] === 'veio_por' ? -1 : 0) - (b[0] === 'veio_por' ? -1 : 0));
+    return { titulo: 'Mudar a Planilha', assumiu: [], linhas: [['Linha', quem], ...pares.map(([c, v]) => [rot(c), String(v ?? '') || '(vazio)'])],
+      fazer: () => { const feitas = [];
+        for (const [c, v] of pares) { const res = crmEdita(ref, COL[c], v, isoToday()); if (res && res.erro) return E_(`${rot(c)}: ${res.erro}${feitas.length ? ' (já gravei: ' + feitas.join(', ') + ')' : ''}`); feitas.push(rot(c)); if (res && res.reservas) feitas.push(res.reservas + ' reserva(s) criada(s)'); }
+        Tarefas.sincroniza && Tarefas.sincroniza(); return { ok: true, gravado: feitas }; } };
   },
   marcar_perdido(i) {
     const r = ingAchaOrc(i.numero); if (!r.o) return r;
@@ -821,35 +867,36 @@ Emergência ("o cliente chegou e não acha o motorista"): use buscar e responda 
 Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. Você prepara (rascunho de orçamento, texto de mensagem, resumo) e ELA confere e envia pelos botões do app. Não existe ferramenta que mande nada para fora — é de propósito.
 
 ## VOCÊ ALCANÇA TODAS AS ABAS
-- Hoje (serviços do dia, emergência): ver_hoje, buscar, detalhes_servico, escalar, registrar_pagamento
+- Meu dia (serviços do dia, emergência): ver_hoje, buscar, detalhes_servico, escalar, registrar_pagamento; mudar uma reserva (dia, hora, pessoas, valor): alterar_reserva
 - Orçamentos (Sob consulta): ver_orcamentos, ler_conversa (conversa colada → rascunho), criar_orcamento, editar_orcamento (MUDA o que já existe: cliente, serviços, datas, valores, bagagem, pessoas), mudar_orcamento (situação/validade/% sinal), fechar_orcamento, apagar_orcamento (o repetido)
-- TABELA DE PREÇOS (as 4 abas do Excel dela: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma): ver_precos acha a linha certa por pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão e noturno, com um ref. VOCÊ LÊ ESSA TABELA — nunca peça o valor ou o sinal a ela: consulte ver_precos e passe o ref em preco_ref.
+- TABELA DE PREÇOS (as 4 abas do Excel dela: Transfer Roma, Transfer Roma 5%, Guia Roma, BV Roma): ver_precos acha a linha certa por pessoas e serviço e devolve preço, por pessoa, SINAL (= preço − custo), custo, cartão e noturno, com um ref. VOCÊ LÊ ESSA TABELA — nunca peça o valor ou o sinal a ela: consulte ver_precos e passe o ref em preco_ref. E você MUDA a Tabela: editar_tabela_precos (preço, custo, gestão, o que inclui, valor de ingresso, desconto da 5%).
 - Voucher (o texto de cada reserva, que se monta sozinho) e Pipeline (kanban dos pedidos): abrir_aba voucher / pipeline
 - Conversas (central de mensagens): ver_conversas mostra quem está esperando algo dela e o que ela já mandou; a mensagem ELA manda pelo botão da aba (abrir_aba conversas) — você só escreve o texto quando ela pedir
 - Planilha (o CRM dela, linha por serviço, igual ao Google Planilhas): ver_crm lê TODAS as colunas (filtre por cliente/mês); ver_painel dá os números e o "precisa de você"; para MUDAR qualquer célula: editar_planilha (como tocar na célula); FOLLOW-UP 1/2/3 (antes "repescagem"): follow_up — grava as datas na Planilha E cria as tarefas. Você EDITA a planilha: nunca diga que não consegue
 - Transfer (New Star Limousine — SÓ transfers de Roma; os de fora de Roma são com outro fornecedor): ver_transfers (inclui os dados prontos para colar na plataforma)
 - ⭐ Avaliações do site: ver_avaliacoes
 - Arquivos: ver_arquivos
-- NÃO SABE ONDE ESTÁ? procurar (acha em todas as abas). Pergunta geral sobre o negócio ("como estamos?", "o que tem pendente?") → ver_tudo. Você lê TUDO do app: nunca diga que não tem acesso a uma aba.
-- Tarefas e anotações: ver_tarefas (inclui lembretes do app e clientes que devem), anotar_tarefa, concluir_tarefa, ver_anotacoes, anotar
+- NÃO SABE ONDE ESTÁ? procurar (acha em todas as abas). Pergunta geral sobre o negócio ("como estamos?", "o que tem pendente?") → ver_tudo. Você lê quase tudo do app — se para alguma coisa não houver ferramenta (pontos de encontro, textos fixos do voucher), diga isso em uma linha e abra a aba certa (abrir_aba) dizendo o que tocar. Nunca finja que fez.
+- Tarefas e anotações: ver_tarefas (inclui lembretes do app e clientes que devem), anotar_tarefa (entende "todo dia 01", "toda segunda"), mudar_tarefa (mudar dia/hora/texto, adiar, fixar, reabrir, apagar — NUNCA crie outra para mudar uma que existe), concluir_tarefa, lembrete_feito, ver_anotacoes, anotar
 - Guias e motoristas: ver_guias, quem_esta_livre, marcar_disponibilidade, cadastrar_guia, mudar_guia (inclui preferência), remover_guia, escalar
 - Agenda: ver_agenda, ver_hoje com a data; tarefas com dia aparecem na Agenda sozinhas
 - Reservas: ver_reservas, criar_reserva, alterar_reserva, cancelar_reserva, registrar_pagamento
 - Clientes e ficha: ver_clientes (dashboard, filtros), ver_ficha (tudo de um cliente: viagem, serviços com quem vai, ingressos, links, histórico), cadastrar_cliente, mudar_cliente, anotar_cliente
-- CRM (a planilha dela, dentro de Clientes): ver_crm (etapas aberto/confirmado/avaliar/finalizado/perdido), marcar_perdido, avaliacao_pedida
+- Etapas do CRM (aberto/confirmado/avaliar/finalizado/perdido): ver_crm, marcar_perdido, avaliacao_pedida
 - Quem vai no passeio (ingressos nominais): quem_vai, ingressos_comprados, link_servico
 - Cupons e parcerias: ver_parceiros, cadastrar_parceiro, comissao_paga, ver_cupons, criar_cupom
 - Contabilidade: ver_contabilidade, ver_contas, registrar_pagamento (a CONTA decide Brasil ou Europa; "prestador" = pago na mão da guia, fora do caixa dela)
 - Arquivos e Google Drive: registrar_pagamento com anexo (comprovante), arquivar (outro documento). Tudo fica na ficha do cliente e na pasta EmRoma › Clientes › nome do cliente no Google Drive.
 - Meus passeios: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, mudar_tabela (preço por número de pessoas), adicionar_horario, remover_horario
 - Relatórios: ver_relatorio
-- Cupons: ver_cupons, criar_cupom, apagar_cupom · Bloqueios: bloquear_datas, liberar_datas
+- Bloqueios de datas: ver_bloqueios, bloquear_datas, liberar_datas · Pedidos do "Monte seu roteiro": orcamento_do_roteiro
 - Ajustes: ver_ajustes, alterar_ajustes, ajustar_termos (termos do orçamento e plantão do voucher), ver_backup, fazer_backup
-- Qualquer tela: abrir_aba — nunca diga "faça na aba X" sem antes tentar a ferramenta; se não houver, abra a aba e diga o que tocar.
+- Qualquer tela: abrir_aba (com item: o orçamento pelo número ou cliente, o voucher pelo código ou cliente, a ficha pelo nome) — nunca diga "faça na aba X" sem antes tentar a ferramenta; se não houver, abra a aba e diga o que tocar.
 
 ## ONDE GUARDAR CADA COISA
 - Coisa para FAZER (com ou sem dia) → anotar_tarefa. "Mandar/enviar/cobrar/responder" já cria sozinha o passo "aguardar resposta" quando ela concluir.
 - Ela conta que fez algo ("mandei o roteiro", "a cliente respondeu", "não respondeu") → concluir_tarefa com o resultado certo.
+- Cliente veio de AGÊNCIA → editar_planilha com veio_por = "agência" E agencia_indicacao_influencer = o nome da agência (as duas na mesma mudança — o nome do PDF passa a sair "Cliente (Agência)").
 - Fato que vale para sempre sobre um cliente (vegana, VIP, alergia, indicou alguém) → anotar_cliente.
 - Ideia, fornecedor, detalhe solto → anotar.
 - A guia respondeu livre/ocupada → marcar_disponibilidade (fecha sozinha a tarefa de espera).
@@ -857,7 +904,7 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Ela mandou um comprovante no chat (print do Pix, PDF do banco) → leia o valor e o nome, ache a reserva (buscar) e chame registrar_pagamento com anexo. "Pagou tudo" = sem valor (o que falta). Diga onde o comprovante ficou (a ferramenta devolve).
 - Outro arquivo do cliente (passaporte, bilhete, voucher do hotel) → arquivar.
 - Conversa de cliente colada → ler_conversa.
-- Regra de trabalho dela para você lembrar sempre → guardar_memoria.
+- Regra de trabalho dela para você lembrar sempre → guardar_memoria (vale em todos os aparelhos dela; apagar_memoria tira).
 - Follow-up de orçamento ("me lembra de cobrar a resposta dia 15/01, 15/02 e 15/03", "registra a repescagem") → follow_up: as datas vão para as colunas Follow-up 1/2/3 da Planilha E viram tarefas — sempre as duas coisas. A palavra dela é "follow-up" (a planilha antiga dizia "repescagem": é a mesma coisa).
 
 ## ORÇAMENTO — COMO ELA TRABALHA (tudo se conversa)
@@ -871,9 +918,17 @@ Você NUNCA responde cliente, nunca manda mensagem, nunca publica, nunca paga. V
 - Desconto (Transfer Roma 5%): o orçamento mostra o valor cheio riscado e o com desconto — não precisa escrever na observação.
 - A descrição vem pronta da tabela (rota – veículo (até X malas + Y de bordo) – horário). Não acrescente número de pessoas nem "Transfer Roma": as pessoas já estão no cabeçalho.
 - TRANSFER: sempre com preco_ref — a descrição sai com a QUANTIDADE e o TAMANHO das malas (regra dela: "senão o cliente acha que cabe, dá um jeitinho e vai"). Preencha também a bagagem do cabeçalho. Transfer escrito à mão sem malas é recusado.
+- Ela pediu orçamento → MONTE NA HORA (o cartão "confirma?" já é a conferência dela). Não pergunte o que dá para assumir: cliente novo entra sozinho; duração não dita = 3 h E 4 h; malas grandes ou mais malas do que o carro leva → minivan (na dúvida, carro E minivan como opção). Só pergunte o que falta de verdade (a data, quantas pessoas).
+- VALORES: repita EXATAMENTE o total, o sinal e o "pagar no dia" que a ferramenta devolve em contas. NUNCA calcule sinal, total ou porcentagem de cabeça (o sinal NÃO é 50% nem 30%: é a soma dos sinais da tabela). Com opção pendente, diga "a partir de".
+- "Fechado" só depois de fechar_orcamento. Escolher a opção do cliente NÃO fecha o orçamento — diga "anotei a escolha".
 - PASSEIO COM GUIA (Roma Antiga, Vaticano, Basílicas…): se o cliente não disse a duração, ponha as DUAS no mesmo dia — opção 1 = 3 horas, opção 2 = 4 horas (um preco_ref para cada; viram opções sozinhas). A descrição já sai com o que inclui entre parênteses: "Roma Antiga (Coliseu + Fórum Romano ou Palatino) - guia privativo 3 horas". Os INGRESSOS (comprar antecipado, "valores para N adultos"), os FONES do Vaticano (pagos no dia) e a GESTÃO E RESERVA ANTECIPADA DE INGRESSOS entram SOZINHOS — não escreva essas linhas à mão. A gestão é a taxa dela (valor do grupo), não o ingresso.
-- Ingressos: Roma Antiga €18 adulto, grátis até 17 anos; Vaticano €24 adulto, €15 de 7 a 18 anos, grátis até 6 (valores da Tabela de preços — ver_precos mostra os atuais). Idade não informada = todos adultos; quando ela disser as idades → editar_orcamento com idades (e adultos) refaz os ingressos.
+- Orçamento ANTIGO (feito antes de 02/10) com passeio sem as linhas de ingresso/gestão → editar_orcamento com completar_ingressos: true (avise que o total muda). O texto antigo das descrições o app já corrigiu sozinho.
+- Ingressos (valores de 02/10 — os ATUAIS estão em ver_precos, ela pode mudar): Roma Antiga €18 adulto, grátis até 17 anos; Vaticano €24 adulto, €15 de 7 a 18 anos, grátis até 6. Idade não informada = todos adultos; quando ela disser as idades → editar_orcamento com idades (e adultos) refaz os ingressos.
 - Nunca diga que não consegue ler a tabela ou uma aba: ver_precos, ver_crm, ver_tudo e procurar leem tudo.
+
+## Perguntas
+- Ache as coisas sozinha: orçamento e reserva pelo NOME do cliente (ver_orcamentos, buscar, procurar) — nunca peça número ou código a ela.
+- Faltou algo de verdade (ex.: "Wise Brasil ou Wise Europa?") → UMA pergunta curta, com as opções. Se na próxima fala ela pedir outra coisa, FAÇA o que ela pediu agora (tudo o que não depende da resposta) e lembre a pendência no máximo uma vez, numa linha no fim — não repita a pergunta em toda resposta.
 
 ## Gravar
 Chame a ferramenta direto: o app mostra o cartão "confirma?". Se ela cancelar, não grave e não insista. Na dúvida entre dois registros (duas "Juliana"), a ferramenta devolve as opções: pergunte qual — nunca chute. Datas em AAAA-MM-DD. Nunca invente preço, data, voo ou valor recebido.
@@ -881,7 +936,7 @@ Chame a ferramenta direto: o app mostra o cartão "confirma?". Se ela cancelar, 
 ## Formato
 Português do Brasil, curto. Texto para ela copiar vem pronto. Negrito com parcimônia; nada de tabelas.` },
     { type: 'text', text: `## SITUAÇÃO AGORA (atualizada a cada mensagem)\n${iaAgora()}` },
-    { type: 'text', text: `${linhaHoje()} Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é o protótipo em teste: os clientes, guias e valores são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
+    { type: 'text', text: `${linhaHoje()} Moeda: euro.` + (iaModo() === 'vivo' && !ING_REAL ? ' Isto é o protótipo em teste: os clientes, guias e valores são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
       (mem.length ? '\n\n## Memória (o que ela ensinou)\n' + mem.map(x => `- [${x.id}] ${x.texto}`).join('\n') : '') },
   ];
 };
@@ -1184,3 +1239,407 @@ iaFecha = function () { ingPararFala(); if (ingOuvindo) ingOuvDescarta(); return
 #iaFab{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 75%,#fff),var(--accent));color:var(--accent-ink);box-shadow:0 10px 28px -10px var(--accent)}`;
   document.head.appendChild(st);
 })();
+
+/* =====================================================
+   O LAYOUT DO ASSISTENTE DO TI ARTES (pedido do Eugênio, 03/10)
+   Em tela larga (≥1280px) o assistente fica FIXO na lateral direita — o painel
+   empurra o conteúdo (não cobre a tela) e ela mexe nas abas com ele aberto.
+   "›" recolhe; o botão "Assistente" traz de volta; o app lembra (só neste
+   aparelho). Celular e tela menor: a gaveta de sempre.
+   A MEMÓRIA DELA NÃO MUDA: histórico (guia_ia_hist), o que ela ensinou
+   (guia_mkt → memoria), "perguntar antes" (guia_ia_confirma) e a voz
+   (ingrid_voz_v1) continuam nas mesmas chaves. Chave nova: ingrid_ia_dock.
+===================================================== */
+const ING_DOCK_KEY = 'ingrid_ia_dock', ING_DOCK_MIN = 1280;
+/* o app DELA (dados reais, semExemplos): o "ao vivo" é o trabalho de verdade — nada de "protótipo"
+   nem de "módulo extra" na boas-vindas (e a IA não pode achar que os dados são de exemplo) */
+if (ING_REAL) {
+  IA_TXT.vivoTxt = { pt: 'Fale do jeito que você fala: orçamento, tarefa, follow-up, planilha, pagamento, guia… Eu leio a tabela e o app inteiro, e antes de gravar mostro um cartão para você confirmar.' };
+}
+const ingDockCabe = () => innerWidth >= ING_DOCK_MIN && iaPodeVer() && !!document.querySelector('#app > .adm');
+const ingDockLigado = () => { let v = 'on'; try { v = localStorage.getItem(ING_DOCK_KEY) || 'on'; } catch (e) {} return ingDockCabe() && v !== 'off'; };
+const ingDockGrava = (v) => { try { localStorage.setItem(ING_DOCK_KEY, v); } catch (e) {} };
+function ingDockAplica() {
+  if (!iaEl) return;
+  const b = document.body, on = ingDockLigado(), era = b.classList.contains('ia-dock');
+  b.classList.toggle('ia-dock', on);
+  b.classList.toggle('ia-dock-fechado', ingDockCabe() && !on);
+  if (on && !iaEl.g.classList.contains('aberta')) iaEl.g.classList.add('aberta');
+  if (on && !iaEl.g.querySelector('#iaMsgs') && !iaOcupado) { ingSemFoco = true; iaDesenha(); ingSemFoco = false; }
+  if (!on && era) iaEl.g.classList.remove('aberta');
+  const nb = document.getElementById('nbAssist'); if (nb) nb.classList.toggle('on', on);
+  const x = iaEl.g.querySelector('#iaFecha');
+  if (x) { x.textContent = on ? '›' : '×'; x.title = on ? 'Recolher o assistente (ele volta pelo botão Assistente)' : 'Fechar'; x.setAttribute('aria-label', x.title); }
+  iaEl.fab.classList.toggle('on', iaPodeVer() && !iaEl.g.classList.contains('aberta'));
+}
+let ingSemFoco = false;
+/* abrir com o painel já aberto: não redesenha (não perde cartão "confirma?", nem o que ela digitou) — só chama a atenção e põe o cursor */
+const _ingAbre = iaAbre;
+iaAbre = function () {
+  if (ingDockCabe()) { ingDockGrava('on'); ingDockAplica(); }
+  if (iaEl && iaEl.g.classList.contains('aberta') && iaEl.g.querySelector('#iaMsgs')) {
+    const g = iaEl.g; g.classList.remove('iaPisca'); void g.offsetWidth; g.classList.add('iaPisca');
+    const ta = g.querySelector('#iaTxt'); if (ta) ta.focus();
+    return;
+  }
+  return _ingAbre();
+};
+const _ingFecha2 = iaFecha;
+iaFecha = function () {
+  if (document.body.classList.contains('ia-dock')) { ingPararFala(); if (ingOuvindo) ingOuvDescarta(); ingDockGrava('off'); ingDockAplica(); return; }
+  return _ingFecha2();
+};
+const _ingAtualiza = iaAtualizaFab;
+iaAtualizaFab = function () { _ingAtualiza(); ingDockAplica(); };
+/* ao desenhar: a fileira de atalhos (como a do TI ARTES), "nova conversa" pergunta antes, e no painel fixo o cursor não é roubado */
+const _ingDesenha2 = iaDesenha;
+iaDesenha = function () {
+  const foco = document.activeElement;
+  _ingDesenha2();
+  const g = iaEl && iaEl.g; if (!g) return;
+  if ((ingSemFoco || document.body.classList.contains('ia-dock')) && document.activeElement && document.activeElement.id === 'iaTxt' && foco && foco.id !== 'iaTxt') { try { document.activeElement.blur(); if (foco && foco.focus) foco.focus(); } catch (e) {} }
+  const f = g.querySelector('#iaForm');
+  if (f && !g.querySelector('.iaBarra') && !iaMostrandoChave) {
+    f.insertAdjacentHTML('beforebegin', `<div class="iaBarra" role="group" aria-label="Atalhos">${ingAtalhos().map((a, k) => `<button type="button" class="iaBarraB${a.novo ? ' novo' : ''}" data-at="${k}">${esc(a.rot)}</button>`).join('')}</div>`);
+    const lista = ingAtalhos();
+    g.querySelectorAll('.iaBarraB').forEach(bt => bt.onclick = () => {
+      const a = lista[+bt.dataset.at]; if (!a || iaOcupado) return;
+      const ta = g.querySelector('#iaTxt');
+      if (a.escreve) { ta.value = a.escreve; ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); ta.dispatchEvent(new Event('input', { bubbles: true })); return; }
+      if (iaModo() === 'demo' && typeof iaCenarios === 'function') { const c = iaCenarios().find(x => x.pede === a.pede); if (c && typeof iaRodaCenario === 'function') return iaRodaCenario(c); }
+      iaConversa(a.pede);
+    });
+  }
+  const lb = g.querySelector('#iaLimpa');
+  if (lb && !lb.dataset.pergunta) { const orig = lb.onclick; lb.dataset.pergunta = '1';
+    lb.onclick = (e) => { if (confirm('Começar uma conversa nova?\n\nA memória continua — o que você me ensinou (as regras, os passeios, os ingressos) eu não esqueço.')) return orig && orig.call(lb, e); }; }
+  const ta = g.querySelector('#iaTxt');
+  if (ta && f && !ta.dataset.temTxt) { ta.dataset.temTxt = '1'; const marca = () => f.classList.toggle('tem-txt', !!ta.value.trim()); ta.addEventListener('input', marca); marca(); }
+};
+/* os atalhos dela (com o número do dia, como o "Hoje N" do TI ARTES) */
+function ingAtalhos() {
+  const hoje = hojeIso(); let nHoje = 0, nTar = 0, nDev = 0;
+  try { nHoje = Op.doDia(hoje).length; } catch (e) {}
+  try { const G = Tarefas.grupos(hoje); nTar = G.atrasadas.length + G.hoje.length; } catch (e) {}
+  try { nDev = Lembretes.devedores(hoje).length; } catch (e) {}
+  return [
+    { rot: `Hoje${nHoje ? ' ' + nHoje : ''}`, pede: 'O que tenho hoje?' },
+    { rot: `Tarefas${nTar ? ' ' + nTar : ''}`, pede: 'Quais tarefas e follow-ups eu tenho para hoje e para esta semana?' },
+    { rot: 'Livre amanhã', pede: 'Quem está livre amanhã de manhã em Roma?' },
+    { rot: `Quem me deve${nDev ? ' ' + nDev : ''}`, pede: 'Quem está me devendo e quanto?' },
+    { rot: 'Orçamentos abertos', pede: 'Quais orçamentos estão em aberto esperando resposta?' },
+    { rot: '+ Orçamento', escreve: 'Monta um orçamento para ', novo: 1 },
+    { rot: '+ Tarefa', escreve: 'Anota: ', novo: 1 },
+  ];
+}
+/* a nuvem não espera ela terminar de digitar no assistente: o painel fica fora da tela que se redesenha */
+(function () {
+  if (!iaEl) return;
+  iaEl.fab.onclick = () => iaAbre();                 // o motor tinha guardado a função antiga
+  iaEl.g.querySelector('#iaFecha').onclick = () => iaFecha();
+  let t = 0; addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => iaAtualizaFab(), 120); });
+  addEventListener('hashchange', () => setTimeout(ingDockAplica, 60));
+  setInterval(ingDockAplica, 1500);
+  setTimeout(ingDockAplica, 50);
+  const st = document.createElement('style');
+  st.textContent = `
+/* ===== painel fixo à direita (TI ARTES: 392px, borda à esquerda, fundo da barra lateral) ===== */
+@media (min-width:1280px){
+  body.ia-dock #app{margin-right:392px}
+  body.ia-dock #iaGaveta{width:392px;transform:none;transition:none;box-shadow:none;z-index:50;border-left:1px solid var(--line-2);background:var(--rail)}
+  body.ia-dock #iaGaveta #iaMsgs,body.ia-dock #iaGaveta #iaPe{background:transparent}
+  body.ia-dock #iaFab{display:none!important}
+  body.ia-dock .novabar{right:412px}
+  body.ia-dock .toast{left:calc(50% - 196px)}
+  body.ia-dock .iaB.assistant{max-width:calc(100% - 38px)} body.ia-dock .iaB.user{max-width:88%}
+  body.ia-dock .ingPalco{flex-direction:row;justify-content:center;padding:0 14px 6px}
+  body.ia-dock .ingOrbe{width:34px;height:34px;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent)}
+  body.ia-dock-fechado #iaFab{right:22px;bottom:22px!important;height:48px;padding:0 18px 0 14px;font-weight:750}
+}
+#iaGaveta.iaPisca{animation:iaPisca .9s var(--ease,ease)}
+@keyframes iaPisca{0%,100%{box-shadow:inset 3px 0 0 transparent}30%{box-shadow:inset 3px 0 0 var(--accent)}}
+#iaGaveta header .iaAv{width:28px;height:28px;border-radius:9px;font-size:13px}
+#iaGaveta header b{font:700 17px var(--f-display);letter-spacing:-.2px}
+#iaCtx{font-size:11px;font-weight:600}
+#iaGaveta .x{min-width:36px;min-height:36px;border-radius:10px;border:1px solid var(--line);font-size:19px}
+/* fileira de atalhos acima do campo (o .barra do TI ARTES) */
+.iaBarra{display:flex;gap:7px;overflow-x:auto;padding:2px 12px 8px;scrollbar-width:none;flex-shrink:0}
+.iaBarra::-webkit-scrollbar{display:none}
+.iaBarraB{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap;padding:7px 12px;border-radius:999px;font:600 12.5px var(--f-ui);
+  background:var(--surface);border:1px solid var(--line);color:var(--ink-2);cursor:pointer;transition:background .2s,border-color .2s}
+.iaBarraB:hover{background:var(--surface-2);border-color:var(--accent-line);color:var(--ink)}
+.iaBarraB.novo{color:var(--accent);border-color:var(--accent-line);background:var(--accent-wash)}
+.iaBarraB:disabled{opacity:.5;cursor:default}
+/* o cartão "confirma?" vira uma fala do assistente (avatar, pílulas, Confirmar primeiro) */
+.iaCard{position:relative;margin-left:38px;border:1px solid var(--line);border-radius:18px;border-top-left-radius:6px;padding:12px 14px;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 8%,var(--surface)),var(--surface))}
+.iaCard::before{content:'✦';position:absolute;left:-38px;top:0;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-size:13px;
+  background:linear-gradient(140deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#000));color:var(--accent-ink);box-shadow:0 5px 16px -6px var(--accent)}
+.iaCard h4{font:700 14px var(--f-ui);margin:0 0 8px}
+.iaCard dl{font-size:13px;gap:3px 10px}
+.iaCard .bts{justify-content:flex-start;gap:8px}
+.iaCard .bts button{flex:none;min-height:36px;border-radius:999px;padding:0 18px;font-size:13.5px}
+.iaCard .bts .sim{order:-1}
+.iaCard.feito{opacity:.7}
+@media (pointer:coarse){.iaCard .bts button{min-height:44px}}
+/* celular: tela cheia, campo com 16px (o iPhone não dá zoom) e o campo inteiro na 1ª linha */
+@media (max-width:820px){
+  #iaGaveta{width:100vw}
+  #iaTxt{font-size:16px}
+  #iaForm{flex-wrap:wrap}
+  #iaForm #iaTxt{order:-1;flex:1 1 100%}
+  #iaForm #iaMic{margin-left:auto}
+  #iaForm.tem-txt #iaMic{display:none}
+  .iaBarraB{min-height:40px;padding:0 14px;font-size:13px}
+}
+@media print{ body.ia-dock #app{margin-right:0!important} }
+${ING_REAL ? '.iaDemoExtra{display:none}' : ''}
+/* a bola: pequena e só com a conversa vazia (no TI ARTES o topo some no painel) */
+.ingPalco{flex-direction:row;justify-content:center;padding:0 14px 6px}
+.ingOrbe{width:34px;height:34px;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent)}
+#iaGaveta:has(#iaMsgs .iaB.user) .ingPalco{display:none}`;
+  document.head.appendChild(st);
+})();
+
+/* =====================================================
+   REVISÃO COMPLETA DO ASSISTENTE (03/10) — ela pede TUDO por aqui
+===================================================== */
+/* ---- 1. MUDAR RESERVA: grava na nuvem (antes ia como reserva nova, o banco recusava calado
+   e a mudança voltava na próxima sincronia) e não zera o valor do serviço da Tabela ---- */
+(function () {
+  const t = IA_FERRAMENTAS.find(x => x.name === 'alterar_reserva');
+  if (t && t.input_schema && t.input_schema.properties) {
+    t.input_schema.properties.valor = { type: 'number', description: 'valor total novo (só se mudou)' };
+    t.input_schema.properties.codigo = { type: 'string', description: 'código da reserva OU nome do cliente' };
+    t.description = 'Muda uma reserva: dia, hora, pessoas, nome, contato ou valor. Serviço que veio da Tabela de preços não muda de valor sozinho: se mudou, passe valor.';
+  }
+  const c = IA_FERRAMENTAS.find(x => x.name === 'criar_reserva');
+  if (c && c.input_schema && c.input_schema.properties && c.input_schema.properties.recebido) {
+    delete c.input_schema.properties.recebido;
+    c.description += ' Pagamento: registre depois com registrar_pagamento (com a conta — é a conta que decide Brasil ou Europa).';
+  }
+})();
+function ingAchaReservaNome(q) {
+  const rb = ingAchaReserva(q); if (rb.b) return rb;
+  const n = ingN(q); if (!n) return rb;
+  const l = (DB.bookings || []).filter(x => x.status !== 'cancelled' && ingN(x.name).includes(n)).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (l.length === 1) return { b: l[0] };
+  if (l.length > 1) return { erro: 'mais de uma reserva desse cliente — diga qual (código): ' + l.slice(0, 10).map(x => `${x.code} ${x.date} ${x.time} ${nomeDoServico(x)}`).join(' · ') };
+  return rb;
+}
+ING_PLANO.alterar_reserva = function (i) {
+  const r = ingAchaReservaNome(i.codigo); if (!r.b) return r;
+  const b = r.b; if (b.status === 'cancelled') return E_('essa reserva está cancelada');
+  const x = Tours.get(b.tourId), muda = {}, assumiu = [], linhas = [['Reserva', `${b.code} · ${b.name} · ${nomeDoServico(b)}`]];
+  if (isoOk(i.data) && i.data !== b.date) { muda.date = i.data; linhas.push(['Dia', `${ingData(b.date)} → ${ingData(i.data)}`]); }
+  const h = i.hora ? _horaDigitada(i.hora) : ''; if (h && h !== b.time) { muda.time = h; linhas.push(['Hora', `${b.time} → ${h}`]); }
+  if (+i.pessoas > 0 && +i.pessoas !== +b.pax) { muda.pax = +i.pessoas; linhas.push(['Pessoas', `${b.pax} → ${+i.pessoas}`]); }
+  if (i.nome && String(i.nome).trim() !== b.name) { muda.name = String(i.nome).trim(); linhas.push(['Nome', `${b.name} → ${muda.name}`]); }
+  if (i.whats) { muda.whats = String(i.whats).trim(); linhas.push(['WhatsApp', muda.whats]); }
+  if (i.email) { muda.email = String(i.email).trim(); linhas.push(['E-mail', muda.email]); }
+  const daTabela = !x || /^avulso-/.test(x.id);
+  if (+i.valor > 0) { muda.total = Math.round(+i.valor * 100) / 100; linhas.push(['Valor', `${eur(+b.total || 0)} → ${eur(muda.total)}`]); }
+  else if (muda.pax && !daTabela) { const novo = Bookings.precoDe(x, b.tourId, muda.date || b.date, muda.time || b.time, muda.pax).total; if (novo > 0) { muda.total = novo; assumiu.push(`valor pela tabela do passeio: ${eur(novo)}`); } }
+  else if (muda.pax) assumiu.push('o valor NÃO muda sozinho (serviço da Tabela de preços) — se mudou, diga o valor novo');
+  if (muda.time && daTabela && /transfer|aeroporto|↔/i.test(nomeDoServico(b)) && typeof Precos !== 'undefined' && Precos.ehNoturno(muda.time) !== Precos.ehNoturno(b.time))
+    assumiu.push(`mudou para horário ${Precos.ehNoturno(muda.time) ? 'NOTURNO (+€30 por veículo)' : 'diurno'} — o valor da reserva não muda sozinho: confira`);
+  if (linhas.length === 1) return E_('nada para mudar');
+  return { titulo: 'Mudar reserva', assumiu, linhas,
+    fazer: () => { Object.assign(b, muda); _opSaveBooking(b); if (Tarefas.sincroniza) Tarefas.sincroniza(); return { ok: true, reserva: `${b.code} · ${b.date} ${b.time} · ${b.pax}p · ${eur(+b.total || 0)}` }; } };
+};
+/* ---- 2. AJUSTES: a bio e o texto da página são {pt, en} — antes viravam texto e a bio sumia do site ---- */
+ING_PLANO.alterar_ajustes = function (i) {
+  const p = _ingPlano('alterar_ajustes', i); if (!p || !p.fazer) return p;
+  const st = DB.settings, antes = { bio: st.bio, homeText: st.homeText }, f = p.fazer;
+  p.fazer = () => { const r = f();
+    for (const k of ['bio', 'homeText']) if (typeof st[k] === 'string') { const txt = st[k]; st[k] = Object.assign({}, antes[k] && typeof antes[k] === 'object' ? antes[k] : {}, { pt: txt }); }
+    save(); return r; };
+  return p;
+};
+/* ---- 3. PREÇO DO CATÁLOGO: quase tudo é por tabela de pessoas — mudar_preco não serve ---- */
+ING_PLANO.mudar_preco = function (i) {
+  const x = Tours.get(i.passeio_id); if (!x) return E_('passeio não encontrado — use ver_passeios');
+  if (x.priceMode === 'tabela') return E_(`${nomeTour(x)} cobra pelo NÚMERO DE PESSOAS (tabela): use mudar_tabela (de_pessoas, ate_pessoas, valor).`);
+  if (x.priceMode === 'transfer') return E_(`${nomeTour(x)} é transfer: o preço vem da Tabela de preços — use editar_tabela_precos (ver_precos dá o ref).`);
+  return _ingPlano('mudar_preco', i);
+};
+ING_LER.ver_passeios = function (i) {
+  const l = _ingLer('ver_passeios', i);
+  return Array.isArray(l) ? l.map(p => { const x = Tours.get(p.id) || {};
+    const modo = x.priceMode === 'tabela' ? 'por número de pessoas (mudar_tabela)' : x.priceMode === 'transfer' ? 'transfer (Tabela de preços: editar_tabela_precos)' : p.por;
+    const tb = Array.isArray(x.tabela) ? x.tabela : [];
+    return Object.assign({}, p, { por: modo, ...(x.priceMode === 'tabela' && tb.length ? { tabela_grupo: tb.slice(0, 8).map((v, k) => `${k + 1}p: ${eur(+v || 0)}`).join(' · ') + (tb.length > 8 ? ' …' : '') } : {}),
+      ...((x.ingressos || []).length ? { ingressos: x.ingressos.map(g => `${(g.nome && g.nome.pt) || 'ingresso'} €${+g.inteiro || 0}${+g.reduzido ? ' / reduzido €' + g.reduzido + ' até ' + g.reduzidoAte : ''}${g.gratisAte != null && g.gratisAte !== '' ? ' / grátis até ' + g.gratisAte : ''}${g.noDia ? ' (pago no dia)' : ''}`) } : {}) }); }) : l;
+};
+/* ---- 4. A TABELA DE PREÇOS: o assistente agora MUDA (antes só lia) ---- */
+IA_FERRAMENTAS.push(
+  { name: 'editar_tabela_precos', description: 'MUDA a Tabela de preços dela (o que valer pra ela tocar na Tabela): preço, custo ou gestão em compra de ingressos de uma linha (ref de ver_precos); o "o que inclui" de um passeio do Guia; o valor de um ingresso (adulto, reduzido, idades); ou o desconto da Transfer Roma 5%. O sinal (= preço − custo), o cartão e o noturno se recalculam sozinhos.', input_schema: { type: 'object', properties: {
+    ref: { type: 'string', description: 'ref da linha (de ver_precos) — para preco, custo ou gestao' },
+    campo: { type: 'string', enum: ['preco', 'custo', 'gestao'] }, valor: { type: 'number' },
+    secao: { type: 'string', description: 'passeio do Guia (ex.: "roma antiga", "vaticano") — para inclui ou ingresso' },
+    duracao: { type: 'string', description: '"3 horas" ou "4 horas" — para inclui' }, inclui: { type: 'string', description: 'o texto que vai entre parênteses no orçamento' },
+    ingresso: { type: 'string', description: 'nome do ingresso (ex.: "Museus do Vaticano")' },
+    adulto: { type: 'number' }, reduzido: { type: 'number' }, reduzido_ate: { type: 'integer' }, gratis_ate: { type: 'integer' },
+    desconto_pct: { type: 'number', description: 'desconto da Transfer Roma 5% (ex.: 5)' } } } },
+  { name: 'mudar_tarefa', description: 'MUDA uma tarefa que já existe (não cria outra): dia, hora, texto, detalhe, adiar N dias, fixar/desafixar, reabrir uma feita, ou apagar de vez. Ache pelo pedaço do texto ou pelo id.', input_schema: { type: 'object', properties: {
+    tarefa: { type: 'string', description: 'pedaço do texto ou tarefa_id' }, dia: { type: 'string', description: 'AAAA-MM-DD ("sem" tira o dia)' }, hora: { type: 'string' },
+    texto: { type: 'string' }, detalhe: { type: 'string' }, adiar_dias: { type: 'integer' }, fixar: { type: 'boolean' }, reabrir: { type: 'boolean' }, apagar: { type: 'boolean' } }, required: ['tarefa'] } }
+);
+ING_PLANO.editar_tabela_precos = function (i) {
+  if (typeof Precos === 'undefined') return E_('a Tabela de preços não carregou');
+  const linhas = [], acoes = [];
+  if (i.ref && i.campo) {
+    const p = String(i.ref).split('|'), t = Precos.get(p[0]), b = t && Precos.base(t); if (!b) return E_('ref não existe — use ver_precos');
+    if (t.derivaDe) return E_('a Transfer Roma 5% acompanha a Transfer Roma: mude a linha na Transfer Roma (ou o desconto com desconto_pct)');
+    const s = (b.secoes || []).find(x => x.id === p[1]), l = s && s.linhas.find(x => x.id === p[2]); if (!l) return E_('linha não existe — use ver_precos');
+    if (!(+i.valor >= 0)) return E_('diga o valor novo');
+    const campo = i.campo === 'gestao' ? 'ingressos' : i.campo;
+    if (campo === 'ingressos' && b.tipo !== 'guia') return E_('gestão de ingressos só existe no Guia Roma');
+    const novo = Object.assign({}, l, { [campo]: +i.valor }), c0 = Precos.calc(b.tipo, l, 1), c1 = Precos.calc(b.tipo, novo, 1);
+    const rot = { preco: 'Preço (cliente)', custo: 'Custo', ingressos: 'Gestão em compra de ingressos' }[campo];
+    linhas.push(['Linha', `${b.nome} · ${s.titulo} · ${l.pax}${l.veic ? ' · ' + l.veic : ''}${l.dur ? ' · ' + l.dur : ''}`], [rot, `${eur(+l[campo] || 0)} → ${eur(+i.valor)}`]);
+    if (campo !== 'ingressos') linhas.push(['Sinal (preço − custo)', `${eur(c0.sinal)} → ${eur(c1.sinal)}`]);
+    if (b.tipo === 'transfer' && campo === 'preco') linhas.push(['Noturno', `${eur(c0.noturno)} → ${eur(c1.noturno)}`]);
+    acoes.push(() => Precos.editaValor(t.id, s.id, l.id, campo, String(i.valor)));
+  }
+  const acharSecao = () => { const g = Precos.get('guia-roma'), b = g && Precos.base(g); const n = ingN(i.secao || ''); return b && n ? (b.secoes || []).find(s => ingN(s.titulo).includes(n)) : null; };
+  if (i.inclui !== undefined) {
+    const s = acharSecao(); if (!s) return E_('qual passeio do Guia? (secao: roma antiga, vaticano, walking, basilicas, audiencia)');
+    const dur = String(i.duracao || '').trim(); if (dur && !s.linhas.some(l => (l.dur || '') === dur)) return E_(`duração "${dur}" não existe em ${s.titulo} — use "3 horas" ou "4 horas"`);
+    linhas.push(['O que inclui', `${Precos.rotaBonita(s.titulo)}${dur ? ' · ' + dur : ''}: "${(s.inclui || {})[dur] || ''}" → "${String(i.inclui).trim()}"`]);
+    acoes.push(() => Precos.editaInclui('guia-roma', s.id, dur, i.inclui));
+  }
+  if (i.ingresso) {
+    const s = acharSecao() || (Precos.base(Precos.get('guia-roma')).secoes || []).find(x => Precos.ingressosDaSecao(x).some(e => ingN(e.nome).includes(ingN(i.ingresso))));
+    const e = s && Precos.ingressosDaSecao(s).find(x => ingN(x.nome).includes(ingN(i.ingresso))); if (!e) return E_('não achei esse ingresso — veja os ingressos em ver_precos (guia)');
+    for (const [k, campo, rot] of [['adulto', 'inteiro', 'Adulto'], ['reduzido', 'reduzido', 'Reduzido'], ['reduzido_ate', 'reduzidoAte', 'Reduzido até (anos)'], ['gratis_ate', 'gratisAte', 'Grátis até (anos)']])
+      if (i[k] !== undefined && i[k] !== null) { linhas.push([`${e.nome} — ${rot}`, `${e.g[campo] ?? '—'} → ${i[k]}`]); acoes.push(() => Precos.editaIngresso('guia-roma', s.id, e.nome, campo, String(i[k]))); }
+  }
+  if (i.desconto_pct !== undefined) { const t5 = Precos.get('transfer-roma-5'); linhas.push(['Desconto da Transfer Roma 5%', `${Precos.descontoPct(t5)}% → ${+i.desconto_pct}%`]); acoes.push(() => Precos.setDesconto('transfer-roma-5', +i.desconto_pct)); }
+  if (!acoes.length) return E_('o que mudar? (ref + campo + valor, inclui, ingresso ou desconto_pct)');
+  return { titulo: 'Mudar a Tabela de preços', assumiu: ['os próximos orçamentos já saem com o valor novo (os que já existem não mudam)'], linhas,
+    fazer: () => { for (const a of acoes) a(); return { ok: true, mudou: linhas.map(l => l.join(': ')) }; } };
+};
+ING_PLANO.mudar_tarefa = function (i) {
+  let t = Tarefas.get(i.tarefa);
+  if (!t) { const n = ingN(i.tarefa); const l = Tarefas.all().filter(x => x.tipo === 'tarefa' && ingN(x.texto).includes(n) && (i.reabrir ? x.feita : !x.feita));
+    if (l.length > 1) return { erro: 'mais de uma tarefa parecida — pergunte qual', opcoes: l.slice(0, 8).map(x => ({ tarefa_id: x.id, texto: x.texto, dia: x.prazo })) };
+    t = l[0]; }
+  if (!t) return E_('tarefa não encontrada — use ver_tarefas');
+  const d = {}, linhas = [['Tarefa', t.texto]];
+  if (i.apagar) return { titulo: 'Apagar tarefa', assumiu: [], linhas: [...linhas, ['Some de vez', 'sim']], fazer: () => { Tarefas.remove(t.id); return { ok: true, apagada: t.texto }; } };
+  if (i.dia !== undefined) { const sem = /^(sem|nenhum|tirar|-)?$/i.test(String(i.dia).trim()); if (!sem && !isoOk(i.dia)) return E_('dia em AAAA-MM-DD (ou "sem")'); d.prazo = sem ? '' : i.dia; if (sem) d.hora = ''; linhas.push(['Dia', `${t.prazo ? ingData(t.prazo) : 'sem'} → ${d.prazo ? ingData(d.prazo) : 'sem dia'}`]); }
+  if (+i.adiar_dias > 0) { d.prazo = addDays(t.prazo && t.prazo > hojeIso() ? t.prazo : hojeIso(), +i.adiar_dias); linhas.push(['Adia para', ingData(d.prazo)]); }
+  if (i.hora !== undefined) { const h = i.hora ? _horaDigitada(i.hora) : ''; d.hora = h; linhas.push(['Hora', h || 'sem hora']); }
+  if (i.texto) { d.texto = String(i.texto).trim(); linhas.push(['Texto', d.texto]); }
+  if (i.detalhe !== undefined) { d.detalhe = String(i.detalhe || ''); linhas.push(['Detalhe', d.detalhe || '(vazio)']); }
+  if (i.fixar !== undefined) { d.fixa = !!i.fixar; linhas.push(['Fixada', i.fixar ? 'sim' : 'não']); }
+  const reabre = !!i.reabrir && t.feita; if (reabre) linhas.push(['Reabrir', 'volta para as abertas']);
+  if (linhas.length === 1) return E_('nada para mudar');
+  return { titulo: 'Mudar tarefa', assumiu: [], linhas, fazer: () => { Tarefas.salva(t.id, d); if (reabre) Tarefas.marca(t.id, false); return { ok: true, tarefa: Tarefas.get(t.id) && { texto: Tarefas.get(t.id).texto, dia: Tarefas.get(t.id).prazo, hora: Tarefas.get(t.id).hora } }; } };
+};
+/* ---- 5. ABRIR UMA TELA NO ITEM: orçamento pelo número/cliente, voucher pelo código/cliente, ficha pelo nome ---- */
+const _ingAbrirAba = ING_LER.abrir_aba;
+ING_LER.abrir_aba = function (i) {
+  if (!i || !i.item) return _ingAbrirAba(i || {});
+  let item = String(i.item).trim();
+  if (i.aba === 'consulta') { const r = ingAchaOrc(item); if (!r.o) return r; item = r.o.id; }
+  else if (i.aba === 'voucher') { const r = ingAchaReservaNome(item); if (!r.b) return r; item = r.b.id; }
+  else if (i.aba === 'clients') { const r = ingAchaCliente(item); if (r.c && r.c.key) item = r.c.key; else if (r.opcoes || r.erro) return r; }
+  return _ingAbrirAba({ aba: i.aba, item });
+};
+/* ---- 6. TAREFA QUE SE REPETE ("todo dia 01 pagar o contador") ---- */
+const _ingAnotar = ING_PLANO.anotar_tarefa;
+ING_PLANO.anotar_tarefa = function (i) {
+  const p = _ingAnotar(i); if (!p || !p.fazer) return p;
+  const rep = lerPrazo(String(i.texto || '')).repete; if (!rep) return p;
+  const f = p.fazer; p.linhas.push(['Repete', { diario: 'todo dia', semanal: 'toda semana', mensal: 'todo mês' }[rep] || rep]);
+  p.fazer = () => { const r = f(); const t = r && r.tarefa_id && Tarefas.get(r.tarefa_id); if (t) { t.repete = rep; _opSave(); } return r; };
+  return p;
+};
+/* ---- 7. A MEMÓRIA DELA VAI PARA A NUVEM (antes só no aparelho onde foi ensinada) ----
+   Nada se perde: na 1ª vez em cada aparelho junta o que estava aqui com o que está no
+   banco; depois o banco manda (apagar num aparelho apaga nos outros). */
+const ING_MEM_JUNTOU = 'ingrid_mem_junta_v1';
+function ingMemSobe() {
+  try { const m = Mkt.get().memoria || []; DB.iaMemoria = m.map(x => ({ id: String(x.id), texto: x.texto, criado: x.criado || '' })); _opSave(); } catch (e) {}
+}
+function ingMemDesce() {
+  try {
+    if (!Array.isArray(DB.iaMemoria)) return; const m = Mkt.get(), loc = m.memoria || [];
+    const ids = new Set(DB.iaMemoria.map(x => String(x.id)));
+    if (loc.length === DB.iaMemoria.length && loc.every(x => ids.has(String(x.id)))) return;
+    m.memoria = DB.iaMemoria.map(x => ({ id: x.id, texto: x.texto, criado: x.criado })); Mkt.salva();
+  } catch (e) {}
+}
+(function () {
+  try {
+    let ja = false; try { ja = localStorage.getItem(ING_MEM_JUNTOU) === '1'; } catch (e) {}
+    if (ja) return ingMemDesce();
+    const m = Mkt.get(), loc = m.memoria || [], nuvem = Array.isArray(DB.iaMemoria) ? DB.iaMemoria : [];
+    const ids = new Set(nuvem.map(x => String(x.id)));
+    const junta = nuvem.concat(loc.filter(x => !ids.has(String(x.id))).map(x => ({ id: String(x.id), texto: x.texto, criado: x.criado || '' })));
+    DB.iaMemoria = junta; _opSave();
+    m.memoria = junta.map(x => ({ id: x.id, texto: x.texto, criado: x.criado })); Mkt.salva();
+    try { localStorage.setItem(ING_MEM_JUNTOU, '1'); } catch (e) {}
+  } catch (e) {}
+})();
+for (const nome of ['guardar_memoria', 'apagar_memoria']) {
+  ING_PLANO[nome] = function (i) { const p = _ingPlano(nome, i); if (!p || !p.fazer) return p; const f = p.fazer; p.fazer = () => { const r = f(); ingMemSobe(); return r; }; return p; };
+}
+/* ---- 8. NO APP DELA: limite do dia sem "exemplo pronto" rodando nos dados reais ---- */
+if (ING_REAL) {
+  IA_TXT.vivoAcabou = { pt: 'Acabaram as mensagens do assistente por hoje (é um limite diário). Amanhã ele volta sozinho — enquanto isso, tudo funciona pelas abas. Se isso acontecer sempre, avise o Eugênio.' };
+  IA_TXT.demoTit = { get pt() { return typeof cofreEsgotado === 'function' && cofreEsgotado('claude') ? 'Limite de hoje acabou' : 'Conectando…'; } };
+  IA_TXT.demoTxt = { get pt() { return typeof cofreEsgotado === 'function' && cofreEsgotado('claude')
+    ? 'Acabaram as mensagens do assistente por hoje. Amanhã ele volta sozinho — o app continua funcionando normal pelas abas.'
+    : 'Conectando ao assistente… Se demorar, pode ser a internet — o app continua funcionando normal pelas abas.'; } };
+  iaCenarios = function () { return []; };
+}
+/* ---- 9. A CHAMADA AO COFRE: resposta maior (2000) e arquivo grande avisado antes ----
+   (o cofre recusa pedido acima de ~2 milhões de caracteres: PDF de mais de ~1,4 MB) */
+/* com CHAVE própria (o "Gasto aqui"): também o modelo mais inteligente. Se a chave não tiver
+   acesso a ele, volta sozinho para o modelo de antes e lembra. */
+const ING_MODELO_CHAVE = 'claude-opus-5-5', ING_SEM_PRO = 'ingrid_ia_sem_pro';
+async function ingChamarChave(mensagens) {
+  let modelo = ING_MODELO_CHAVE; try { if (localStorage.getItem(ING_SEM_PRO) === '1') modelo = IA_MODELO; } catch (e) {}
+  const vai = (m) => fetch('https://api.anthropic.com/v1/messages', { method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-api-key': iaChave(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: m, max_tokens: 8000, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagensParaEnvio(mensagens) }) });
+  let r;
+  try { r = await vai(modelo); } catch (e) { throw new Error(iaTraduzErro(0)); }
+  let corpo = await r.json().catch(() => null);
+  if (!r.ok && modelo !== IA_MODELO && (r.status === 404 || (corpo && corpo.error && /model/i.test(corpo.error.message || '')))) {
+    try { localStorage.setItem(ING_SEM_PRO, '1'); } catch (e) {}
+    modelo = IA_MODELO; r = await vai(modelo); corpo = await r.json().catch(() => null);
+  }
+  if (!r.ok) throw new Error(iaTraduzErro(r.status, corpo));
+  /* o "Gasto aqui" na conta do modelo usado (US$ por milhão de tokens; Opus ≈ 5 entrada / 25 saída) */
+  if (modelo === ING_MODELO_CHAVE) { IA_PRECO.in = 5; IA_PRECO.out = 25; } else { IA_PRECO.in = 1; IA_PRECO.out = 5; }
+  iaSomaGasto(corpo.usage);
+  return corpo;
+}
+const _ingChamar = iaChamar;
+iaChamar = async function (mensagens) {
+  if (iaModo() === 'chave') return ingChamarChave(mensagens);
+  if (iaModo() !== 'vivo') return _ingChamar(mensagens);
+  /* o app dela se identifica no cofre (cliente + o login dela): o cofre confere que é a dona e
+     usa o modelo mais inteligente com o limite dela (cofre: _comum/pro.js). Sem login = demo. */
+  const cliente = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.clienteCofre) || '';
+  const tok = typeof authToken === 'function' ? authToken() : null;
+  const body = JSON.stringify({ max_tokens: 4000, ...(cliente ? { cliente } : {}), system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagensParaEnvio(mensagens) });
+  if (body.length > 1950000) throw new Error('Esse arquivo é grande demais para o assistente (máx. ~1,4 MB). Mande um print, uma foto ou um PDF menor.');
+  let r;
+  try { r = await fetch(COFRE + '/api/claude', { method: 'POST', headers: { 'content-type': 'application/json', ...(cliente && tok ? { authorization: 'Bearer ' + tok } : {}) }, body }); }
+  catch (e) { throw new Error(iaTraduzErro(0)); }
+  const corpo = await r.json().catch(() => null);
+  if (r.status === 429 && corpo && corpo.error && corpo.error.type === 'limite') { marcaEsgotado('claude'); throw Object.assign(new Error(ia('vivoAcabou')), { acabou: true }); }
+  if (!r.ok) throw new Error(iaTraduzErro(r.status, corpo));
+  /* cortou no meio (resposta longa demais): não roda ação pela metade — avisa */
+  if (corpo && corpo.stop_reason === 'max_tokens' && Array.isArray(corpo.content)) {
+    corpo.content = corpo.content.filter(b => b.type !== 'tool_use');
+    corpo.content.push({ type: 'text', text: '\n\n(A resposta ficou grande demais e foi cortada — me peça em partes menores.)' });
+    corpo.stop_reason = 'end_turn';
+  }
+  return corpo;
+};

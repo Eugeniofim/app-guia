@@ -3137,7 +3137,9 @@ function isBusyEditing() {
   if (/^#\/adm\/tours\//.test(h)) return true;                      // editando passeio
   if (/^#\/adm\/consulta\/./.test(h)) return true;                  // montando orcamento
   const ae = document.activeElement;
-  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true; // digitando
+  /* digitando — menos no assistente: o painel dele fica FORA da tela que se redesenha
+     (fixo na lateral, v1.95), então a nuvem pode atualizar sem apagar o que ela escreve */
+  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && !(ae.closest && ae.closest('#iaGaveta'))) return true;
   return false;
 }
 /* quando o usuário sai do que estava fazendo, aplica o que ficou pendente */

@@ -1429,6 +1429,7 @@ function admOrcEditor(id) {
       ${i.sugestao ? '<span class="pill warn">sugestão do app — confira</span>' : ''}
       <input class="orc-obs" data-k="obs" value="${esc(i.obs)}" placeholder="observação para o cliente">
       ${i.tourId ? `<button class="mini" data-recalc="${esc(i.id)}">preço da tabela</button>` : ''}
+      ${o.status !== 'fechado' && typeof Precos !== 'undefined' && Precos.semExtras && Precos.semExtras(o, i) ? `<button class="mini strong" data-extras="${esc(i.id)}" title="põe os ingressos (comprar antecipado), os fones e a gestão deste passeio">🎟 pôr ingressos e gestão</button>` : ''}
       ${!i.perdido && Orc.opcoes(o).some(l => l.includes(i)) ? `<button class="mini strong" data-escolhe="${esc(i.id)}" title="as outras opções deste dia ficam registradas como 'não fechou'">✓ o cliente escolheu esta</button>` : ''}
       ${i.perdido
         ? `<span class="pill bad" title="o cliente não quis — fica registrado, fora do total e do que vai pro cliente">não fechou${i.perdidoEm ? ' · ' + crmData(i.perdidoEm) : ''}</span><button class="mini" data-volta="${esc(i.id)}" title="o cliente quer de novo">voltar</button><button class="mini ghost danger" data-apaga="${esc(i.id)}" title="apagar de vez (sem registro)">apagar</button>`
@@ -1437,8 +1438,13 @@ function admOrcEditor(id) {
   </div>`;
   /* 1 orçamento por cliente: avisa se este cliente já tem outro em aberto */
   const dup = ['novo', 'rascunho', 'enviado'].includes(o.status) && (o.cliente.nome || o.cliente.whats) ? Orc.abertosDoCliente(o) : [];
+  /* orçamento de antes da v1.94: passeio sem as linhas de ingresso e gestão — ela decide pôr (muda o total) */
+  const semEx = o.status !== 'fechado' && typeof Precos !== 'undefined' && Precos.semExtras ? o.itens.filter(i => Precos.semExtras(o, i)) : [];
   admShell('consulta', `
     <a class="linkbtn" href="#/adm/consulta">← Orçamentos</a>
+    ${semEx.length ? `<div class="alert warn orc-dup"><div><b>${semEx.length === 1 ? 'Um passeio deste orçamento ainda não tem' : semEx.length + ' passeios deste orçamento ainda não têm'} as linhas de ingresso e gestão</b> (orçamento do formato antigo).
+        <br><small>Toque para pôr: entram os ingressos (comprar antecipado, valores para adultos), os fones do Vaticano e a gestão — <b>o total muda</b>. Se o cliente já recebeu este orçamento, avise.</small></div>
+      <div class="orc-dup-acts"><button class="mini strong" data-extras="todos">🎟 pôr ingressos e gestão</button></div></div>` : ''}
     ${dup.length ? `<div class="alert warn orc-dup"><div><b>${esc(opPrimeiro(o.cliente.nome) || 'Este cliente')} já tem ${dup.length === 1 ? 'outro orçamento em aberto' : dup.length + ' outros orçamentos em aberto'}:</b>
         ${dup.map(x => `${esc(x.num)} (${esc(x.status)}, ${x.itens.filter(i => !i.perdido).length} serviço(s), ${eur(Orc.total(x))})`).join(' · ')}
         <br><small>O certo é <b>1 orçamento por cliente</b> até ele pagar e receber o voucher. Junte aqui ou apague o repetido.</small></div>
@@ -1545,6 +1551,11 @@ function admOrcEditor(id) {
   $('#orLkAdd').onclick = () => { lerTela(); const r = Orc.linkAdd(id, $('#orLkNome').value, $('#orLkUrl').value); if (r && r.erro) return toast(r.erro); re(); };
   $('#orAvulso').onclick = () => { lerTela(); o.itens.push(Orc._item({ desc: 'Roteiro com consultoria de especialista', pax: o.pax || 2 })); Orc.salva(o); re(); };
   /* o cliente escolheu uma das opções: as outras do mesmo dia viram "não fechou" (fica a estatística) */
+  /* orçamento antigo: põe os ingressos/fones/gestão do passeio (sem idade = adultos) */
+  $$('[data-extras]').forEach(b => b.onclick = () => { lerTela();
+    const alvo = b.dataset.extras === 'todos' ? o.itens.filter(i => Precos.semExtras(o, i)) : o.itens.filter(i => i.id === b.dataset.extras);
+    const antes = o.itens.length; for (const i of alvo) Orc.comExtras(o, i, { pax: i.pax }); Orc.salva(o);
+    toast(`${o.itens.length - antes} linha(s) de ingresso e gestão entraram · confira o total`); re(); });
   $$('[data-escolhe]').forEach(b => b.onclick = () => { lerTela(); Orc.escolheOpcao(o, b.dataset.escolhe); Orc.salva(o); toast('Opção escolhida · a outra ficou registrada como "não fechou"'); re(); });
   /* "não fechou": o item vira perdido (fica registrado, sai do total); "voltar" desfaz; "apagar" some de vez */
   $$('[data-rmi]').forEach(b => b.onclick = () => { lerTela(); const i = o.itens.find(z => z.id === b.dataset.rmi); if (i) { i.perdido = true; i.perdidoEm = isoToday(); } Orc.salva(o); re(); });

@@ -1712,6 +1712,8 @@ function pacoteBackup() {
     clientes: DB.clientes || [], parceiros: DB.parceiros || [], pontos: DB.pontos || [], interesse: DB.interesse || {},
     /* a Tabela de preços editada (com os custos dela) e as Conversas também voltam no backup */
     precos: DB.precos || [], conversas: DB.conversas || {},
+    /* a ficha dos arquivos (comprovantes, documentos — o arquivo mesmo fica no Drive) */
+    arquivos: DB.arquivos || [],
   };
 }
 function resumoBackup(p) {
@@ -1736,6 +1738,7 @@ function restauraBackup(txt) {
     fichas: p.fichas || {}, tarefas: p.tarefas || [], lembretesVistos: p.lembretesVistos || {},
     clientes: p.clientes || [], parceiros: p.parceiros || [], pontos: p.pontos || [], interesse: p.interesse || {},
     precos: Array.isArray(p.precos) ? p.precos : [], conversas: (p.conversas && typeof p.conversas === 'object') ? p.conversas : {},
+    arquivos: Array.isArray(p.arquivos) ? p.arquivos : [],
   });
   novo.cadastroFeito = Array.isArray(p.clientes) ? 1 : 0; novo.parceirosSeed = 1; novo.pontosSeed = 1;
   novo.settings = fillSettings(p.configuracoes || {});

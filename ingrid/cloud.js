@@ -282,6 +282,8 @@ async function cloudPull() {
       const aindaNaoSubiu = DB.bookings.filter(b => !cloudIds.has(b.id) && !b.naNuvem);
       bk.forEach(b => { b.naNuvem = true; });
       DB.bookings = bk.concat(aindaNaoSubiu);
+      /* reserva antiga com o texto "Guia Roma — … · 4 pessoas" → o de hoje (v1.94) */
+      if (typeof Precos !== 'undefined' && Precos.migraTextos) try { Precos.migraTextos({ reservas: true }); } catch (e) {}
     }
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
     nuvemJaCarregada = true;   /* agora sim sabemos o que a nuvem tem */

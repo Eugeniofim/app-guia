@@ -176,10 +176,12 @@ const Precos = {
      ("(caso o hotel não seja no centro…)" é recado dela, não do cliente). */
   rotaBonita(titulo) {
     const ACENTO = { ESTACOES: 'Estações', BASILICAS: 'Basílicas', AUDIENCIA: 'Audiência', NAPOLES: 'Nápoles', VESUVIO: 'Vesúvio', NECROPOLE: 'Necrópole', CASSIA: 'Cássia' };
-    const SIGLA = /^(FCO|CIA|LIN|MXP|BGY|VCE|TSF|NAP|FLR|PSA|BRI|BDS|BLQ|VRN)$/, MINUSC = /^(DE|DA|DO|DAS|DOS|E|OU|EM|COM|A|O|AO|NA|NO)$/;
+    const SIGLA = /^(FCO|CIA|LIN|MXP|BGY|VCE|TSF|NAP|FLR|PSA|BRI|BDS|BLQ|VRN)$/, MINUSC = /^(DE|DA|DO|DAS|DOS|E|OU|EM|COM|A|O|AO|NA|NO|DI|DEL|DELLA)$/;
     let t = String(titulo || '').replace(/\s*\((?:caso|obs|n[aã]o passar|avisar)[^)]*\)/gi, '').trim();
     let primeira = true;
     t = t.split(/([\s\/,()\-]+)/).map(w => {
+      /* "BATE E VOLTA" → "Bate e Volta": o "e"/"o"/"a" sozinho no meio fica minúsculo */
+      if (/^[EOA]$/.test(w) && !primeira) return w.toLowerCase();
       if (!/[A-ZÀ-Ú]{2,}/.test(w) || w !== w.toUpperCase()) { if (/\w/.test(w)) primeira = false; return w; }
       let r = SIGLA.test(w) ? w : ACENTO[w] ? ACENTO[w] : w === 'ETC' ? 'etc.' : (MINUSC.test(w) && !primeira) ? w.toLowerCase() : w.charAt(0) + w.slice(1).toLowerCase();
       primeira = false; return r;
@@ -309,6 +311,68 @@ const Precos = {
   /* o grupo da linha (tabela + seção): duas linhas do mesmo grupo no mesmo dia = OPÇÕES (carro OU minivan) */
   grupoDe(ref) { const p = String(ref || '').split('|'); return p.length === 3 ? p[0].replace(/-5$/, '') + '|' + p[1] : ''; },
 
+  /* ---------- TEXTO ANTIGO → NOVO (orçamentos e reservas de antes da v1.94) ----------
+     v1.82–v1.88: "Guia Roma — ROMA ANTIGA · 4 pessoas · 3 horas" / "Transfer Roma — … · 3 pessoas · minivan"
+     v1.89–v1.93: "Roma Antiga - visita guiada - 3 horas"
+     → a descrição de hoje (o que inclui entre parênteses, malas no transfer, sem nº de
+     pessoas). Só troca o que o APP escreveu — texto que ela digitou fica como está.
+     x = { precoRef, hora, valor, turno } (o que se souber). Devolve o texto novo ou null. */
+  _velho: /^(Transfer Roma|Guia Roma|BV Roma)(?: 5%)? — (.+?) · ([^·]+?)(?: · ([^·]+))?$/,
+  descNova(desc, x) {
+    x = x || {};
+    const d = String(desc || '').trim(), A = d.match(Precos._velho), B = !A && d.match(/^(.+?) - visita guiada(?: - (.+))?$/);
+    if (!A && !B) return null;
+    let t = null, s = null, l = null;
+    const p = String(x.precoRef || '').split('|');
+    if (p.length === 3) { t = Precos.get(p[0]); const b = t && Precos.base(t); s = b && (b.secoes || []).find(y => y.id === p[1]); l = s && s.linhas.find(y => y.id === p[2]); }
+    if (!l && A) {
+      t = Precos.all().find(y => !y.derivaDe && y.nome === A[1]); const b = t && Precos.base(t);
+      s = b && (b.secoes || []).find(y => y.titulo.trim() === A[2].trim());
+      const comp = String(A[4] || '').trim();
+      l = s && s.linhas.find(y => y.pax.trim() === A[3].trim() && (!comp || (y.veic ? new RegExp('\\(' + comp.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\)\\s*$', 'i').test(y.veic) : (y.dur || '') === comp)));
+    }
+    if (!l && B) {
+      t = Precos.get('guia-roma'); const b = t && Precos.base(t);
+      s = b && (b.secoes || []).find(y => Precos.rotaBonita(y.titulo) === B[1].trim());
+      l = s && s.linhas.find(y => (y.dur || '') === String(B[2] || '').trim());
+    }
+    if (!t || !s || !l) return null;
+    const b = Precos.base(t);
+    let noturno = false;
+    if (b.tipo === 'transfer') {
+      if (x.turno) noturno = x.turno === 'noturno';
+      else { const c = Precos.calc('transfer', l, Precos.fator(t)); noturno = Precos.ehNoturno(x.hora) && +x.valor > c.preco + 0.01; }
+    }
+    return Precos.descLinha(t, s, Precos.calc(b.tipo, l, 1), noturno);
+  },
+  /* a obs antiga "ingressos à parte: €30/pessoa" era a GESTÃO com nome errado */
+  _obsVelha: /^ingressos à parte: .*\/pessoa$/i,
+  /* roda ao abrir e depois de receber da nuvem; idempotente (texto novo não casa).
+     reservas: true só logo depois de a nuvem entregar as reservas (ou sem nuvem) — mandar
+     uma reserva velha do aparelho por cima da nuvem apagaria pagamento feito em outro lugar */
+  migraTextos(op) {
+    if (typeof DB !== 'object' || !DB) return 0;
+    op = op || {};
+    let n = 0;
+    for (const o of DB.orcamentos || []) for (const i of o.itens || []) {
+      const nd = Precos.descNova(i.desc, { precoRef: i.precoRef, hora: i.hora, valor: i.valor, turno: i.turno });
+      if (nd && nd !== i.desc) { i.desc = nd; n++; }
+      if (Precos._obsVelha.test(String(i.obs || '').trim())) { i.obs = ''; n++; }
+    }
+    if (n) Precos._save();
+    for (const b of op.reservas ? (DB.bookings || []) : []) {
+      let m = false;
+      const nd = b.servicoTxt && Precos.descNova(b.servicoTxt, { hora: b.time, valor: b.total });
+      if (nd && nd !== b.servicoTxt) { b.servicoTxt = nd; m = true; }
+      if (Precos._obsVelha.test(String(b.obsOp || '').trim())) { b.obsOp = ''; m = true; }
+      if (m) { n++; if (typeof _opSaveBooking === 'function') _opSaveBooking(b); }
+    }
+    return n;
+  },
+  /* passeio da Tabela que ainda não tem as linhas de ingresso/gestão (orçamento antigo) */
+  semExtras(o, i) {
+    return !!(i && i.precoRef && !i.perdido && !(o.itens || []).some(x => (x.vinculo || []).includes(i.id)) && Precos.extrasGuia(i.precoRef, { pax: i.pax }).length);
+  },
   /* ---------- pro ASSISTENTE ler a tabela ---------- */
   /* o que existe (nomes das tabelas e seções) */
   resumo() {
@@ -341,3 +405,10 @@ const Precos = {
     return out;
   },
 };
+/* ao abrir: o texto antigo dos orçamentos vira o de hoje (v1.94). Com a nuvem logada
+   espera o "ritual de abrir" (nuvem-itens.js) ler o banco primeiro — senão subiria a cópia
+   velha do aparelho por cima do que foi mudado em outro aparelho. */
+try {
+  const comNuvem = typeof temNuvem === 'function' && temNuvem();
+  if (typeof DB === 'object' && DB && !(typeof itPronto === 'function' && itPronto())) Precos.migraTextos({ reservas: !comNuvem });
+} catch (e) {}
