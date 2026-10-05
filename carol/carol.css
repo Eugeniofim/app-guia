@@ -28,7 +28,10 @@
 .splash .sp-role{margin-top:10px;animation-delay:1800ms}
 
 /* ---------- PRIMEIRA TELA ---------- */
-.hub.carol .hub-bg::after{background:linear-gradient(175deg,rgba(112,4,32,.55),rgba(35,6,12,.86))}
+.hub.carol .hub-bg::after{background:linear-gradient(180deg,rgba(112,4,32,.18),rgba(90,3,24,.42))}
+/* textura oficial da marca: o traço de Londres e a caligrafia já vêm nela */
+.hub-textura{background-position:center top!important}
+@media(max-width:620px){.hub-textura{background-image:url(arte/textura-bordo-vert.jpg)!important}}
 .hub.carol .vcard{padding:24px 20px 18px}
 .hub.carol .hub-brand{display:flex;justify-content:center;margin:4px 0 2px}
 .hub.carol .hub-brand .lg-img{height:auto!important;width:min(250px,70%)}

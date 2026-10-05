@@ -101,7 +101,7 @@ function viewHub() {
   const bt = (id, ic, tit, sub, cls = '') => `<button class="lk ${cls}" id="${id}"><span class="ic">${ic}</span><span><b>${tit}</b><small>${sub}</small></span><span class="go" aria-hidden="true">→</span></button>`;
   app.innerHTML = `
   <div class="hub carol">
-    <div class="hub-bg" style="background-image:url(${esc(st.homePhoto || 'fotos/home-westminster.jpg')})"></div>
+    <div class="hub-bg hub-textura" style="background-image:url(${esc(st.homePhoto || 'arte/textura-bordo.jpg')})"></div>
     <div class="hub-in">
       <div class="vcard">
         <div class="hub-brand">${logoImg(96, 'escuro')}</div>
