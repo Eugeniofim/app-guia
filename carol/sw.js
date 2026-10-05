@@ -4,13 +4,13 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'lovely-v0.1.23';
+const VERSION = 'lovely-v0.1.24';
 /* o essencial para abrir sem internet. Fotos das paradas NÃO entram aqui:
    são 120 e o app baixa conforme a pessoa navega (e guarda na volta). */
 const CORE = [
   './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './idiomas.js',
   './pontos.js', './catalogo.js', './demo-carol.js', './store.js', './cores.js', './pedidos.js', './parceiros.js', './depoimentos.js',
-  './cloud.js', './i18n.js', './avisos.js', './carol.js', './roteiro.js', './imersivo.js', './assistente.js', './creditos.js', './carol-adm.js', './fichas.js', './carol-ia.js', './assistente-voz.js', './boas-vindas.js',
+  './cloud.js', './i18n.js', './avisos.js', './carol.js', './ebooks.js', './roteiro.js', './imersivo.js', './assistente.js', './creditos.js', './carol-adm.js', './fichas.js', './carol-ia.js', './assistente-voz.js', './boas-vindas.js',
   './auth.js', './logo.js', './tokens.css', './carol.css', './fontes/fontes-livres.css', './fontes/giften-sans.woff2', './fontes/buvera-regular.woff2', './fontes/buvera-medium.woff2', './fontes/buvera-semibold.woff2', './fontes/buvera-bold.woff2', './fontes/gastela.woff2', './manifest.webmanifest',
   './arte/logo-claro.png', './arte/logo-escuro.png', './arte/monograma.png', './arte/faixa-bordo.jpg', './arte/fundo-tower-bridge.jpg', './arte/textura-bordo.jpg', './arte/textura-bordo-vert.jpg', './arte/textura-fog.jpg',
   './fotos/home-westminster.jpg', './fotos/carol.jpg', './icon-192.png',

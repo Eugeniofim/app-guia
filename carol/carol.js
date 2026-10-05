@@ -18,6 +18,7 @@ const exemploTag = () => (typeof APP_TABELA_EXEMPLO !== 'undefined' && APP_TABEL
 
 /* ---------- ícones de linha (mesmo traço dos do app) ---------- */
 const IC = {
+  livro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2 2 0 0 1 6 4h6v15H6a2 2 0 0 0-2 2V5.5Z"/><path d="M20 5.5A2 2 0 0 0 18 4h-6v15h6a2 2 0 0 1 2 2V5.5Z"/></svg>',
   consulta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="11" rx="2"/><path d="m16 9 5-3v10l-5-3"/><path d="M7 20h6"/></svg>',
   imersivo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>',
   ingresso: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 0 4v0a2 2 0 0 1 0 4v2h18v-2a2 2 0 0 1 0-4 2 2 0 0 0 0-4V6H3z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg>',
@@ -133,6 +134,7 @@ function viewHub() {
 
       <p class="hubRot">Ingressos e presentes</p>
       ${bt('goIngressos', IC.ingresso, 'Ingressos antecipados', 'Abadia, Torre, Windsor… compre antes, sem fila')}
+      ${bt('goEbooks', IC.livro, 'Guias de Londres', 'eBooks grátis: dicas de quem vive aqui')}
       ${bt('goPresente', IC.presente, 'Vale-presente', 'Dê um tour com a Carol de presente')}
       ${typeof secaoViagem === 'function' ? secaoViagem() : ''}
       <button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>
@@ -144,6 +146,7 @@ function viewHub() {
   $('#goImersivo').onclick = () => go('/imersivo/city');
   $('#goTransfer').onclick = () => go('/transfer');
   $('#goIngressos').onclick = () => go('/ingressos');
+  $('#goEbooks').onclick = () => go('/ebooks');
   $('#goPresente').onclick = () => go('/presente');
   $('#goAbout').onclick = () => go('/about');
   $('#goAval').onclick = () => go('/avaliacoes');
