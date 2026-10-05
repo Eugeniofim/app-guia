@@ -4,15 +4,18 @@
    FONTES — dentro do app (pasta fontes/), sem Google Fonts (LGPD/GDPR:
    fonte do Google carregada sem consentimento já deu multa na Europa).
 
-   As da MARCA são as mesmas do site lovelylondon.uk: Giften Sans (títulos),
-   Buvera (texto) e Gastela (a manuscrita do "by Carol"). São comerciais:
-   ficam em fontes/marca/ SÓ na cópia local e só vão ao ar com licença WEB.
-   Sem elas, entram as equivalentes livres (SIL OFL): Playfair Display,
-   Outfit e Allura — mesmo desenho geral, contraste e largura.
+   As da MARCA (pacote oficial da agência, 05/10/2026): Giften Sans (títulos),
+   Buvera (texto) e Gastela (a manuscrita do "by Carol"). A agência entregou
+   em formato WEB (woff2) — licenciado para publicar —, ficam em fontes/ e
+   vão ao ar. Se alguma não carregar, entram as livres (SIL OFL): Playfair
+   Display, Outfit e Allura, de fallback (fontes-livres.css).
    ========================================================= */
-@font-face{font-family:"Giften Sans";src:url(fontes/marca/giften-sans.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:"Buvera";src:url(fontes/marca/buvera.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:"Gastela";src:url(fontes/marca/gastela.ttf) format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Giften Sans";src:url(fontes/giften-sans.woff2) format("woff2");font-weight:400 700;font-style:normal;font-display:swap}
+@font-face{font-family:"Buvera";src:url(fontes/buvera-regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Buvera";src:url(fontes/buvera-medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:"Buvera";src:url(fontes/buvera-semibold.woff2) format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"Buvera";src:url(fontes/buvera-bold.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Gastela";src:url(fontes/gastela.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
 
 /* =========================================================
    LOVELY LONDON BY CAROL — Design tokens
