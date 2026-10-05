@@ -108,7 +108,7 @@ function viewHub() {
         <p class="lema">Come with me! London is lovely.</p>
         <p class="tagline">${esc(noIdioma(st.homeText) || t('tagline'))}</p>
         <a class="bbFaixa" href="${esc(st.blueBadge || G.blueBadge || '#')}" target="_blank" rel="noopener">
-          ${IC.selo}<span><b>Guia oficial Blue Badge</b><small>Institute of Tourist Guiding · APTG · ver credencial ↗</small></span></a>
+          ${IC.selo}<span><b>Guia oficial Blue Badge</b><small>Institute of Tourist Guiding · APTG<br><span class="vcred">ver credencial ↗</span></small></span></a>
         ${redes.length ? `<nav class="redes" aria-label="Redes da Carol">${redes.map(r =>
           `<a class="rede ${r.c}" href="${esc(r.u)}" target="_blank" rel="noopener" aria-label="${r.n}" title="${r.n}">${r.ic}</a>`).join('')}</nav>` : ''}
       </div>

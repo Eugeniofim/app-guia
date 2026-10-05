@@ -16,7 +16,7 @@
 
 /* títulos na serifada da marca; nada de negrito falso */
 .pageh,.thin h1,.ab-cap h1,.logincard h1,.vgTopo h2,.depoTopo h2{font-family:var(--f-titulo);font-weight:500;letter-spacing:-.005em}
-.lema{font-family:var(--f-script);font-size:clamp(26px,7vw,34px);line-height:1.05;color:var(--brand-dourado);margin:6px 0 2px;text-align:center}
+.lema{font-family:var(--f-script);font-size:clamp(27px,7vw,35px);line-height:1.15;color:var(--brand-dourado);margin:16px 0 4px;text-align:center;text-shadow:0 1px 10px rgba(0,0,0,.25)}
 .lema.escuro{color:var(--highlight-text)}
 .exTag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:var(--r-pill);background:var(--highlight-wash);color:var(--highlight-text);
   font:600 10px/1.5 var(--f-ui);font-style:normal;letter-spacing:.06em;text-transform:uppercase;vertical-align:1px}
@@ -28,7 +28,15 @@
 .splash .sp-role{margin-top:10px;animation-delay:1800ms}
 
 /* ---------- PRIMEIRA TELA ---------- */
-.hub.carol .hub-bg::after{background:linear-gradient(180deg,rgba(112,4,32,.18),rgba(90,3,24,.42))}
+/* UI/UX (05/10): a textura oficial já tem caligrafia; o conteúdo precisa de um
+   palco calmo para ler. O card ganha corpo (bordô mais sólido) e a textura
+   respira AO REDOR, não atrás do texto. */
+.hub.carol .vcard{padding:30px 22px 22px;
+  background:color-mix(in srgb,var(--brand-primaria) 86%,#1a0008)!important;
+  -webkit-backdrop-filter:blur(10px) saturate(1.1);backdrop-filter:blur(10px) saturate(1.1);
+  border:1px solid rgba(218,181,154,.22)!important;box-shadow:0 18px 50px -20px rgba(0,0,0,.6)!important}
+/* textura mais presente fora do card, e um véu de cima pra baixo pra assentar */
+.hub.carol .hub-bg::after{background:linear-gradient(180deg,rgba(60,2,18,.30),rgba(90,3,24,.55))}
 /* textura oficial da marca: o traço de Londres e a caligrafia já vêm nela */
 .hub-textura{background-position:center top!important}
 @media(max-width:620px){.hub-textura{background-image:url(arte/textura-bordo-vert.jpg)!important}}
@@ -36,11 +44,12 @@
 .hub.carol .hub-brand{display:flex;justify-content:center;margin:4px 0 2px}
 .hub.carol .hub-brand .lg-img{height:auto!important;width:min(250px,70%)}
 .hub.carol .tagline{margin-top:6px}
-.bbFaixa{display:flex;align-items:center;gap:12px;margin:14px auto 2px;max-width:330px;padding:10px 14px;border-radius:var(--r-lg);
-  background:rgba(234,179,108,.14);box-shadow:inset 0 0 0 1px rgba(234,179,108,.4);color:var(--vd-tx,#fff);text-align:left;text-decoration:none}
+.bbFaixa{display:flex;align-items:center;gap:12px;margin:18px auto 2px;max-width:340px;padding:12px 15px;border-radius:var(--r-lg);
+  background:rgba(218,181,154,.16);box-shadow:inset 0 0 0 1px rgba(218,181,154,.45);color:#FDEFE6;text-align:left;text-decoration:none}
 .bbFaixa svg{width:30px;height:30px;flex:none;color:var(--brand-dourado)}
 .bbFaixa b{display:block;font:600 var(--fs-4)/1.2 var(--f-ui)}
-.bbFaixa small{display:block;font-size:var(--fs-2);opacity:.78;margin-top:2px}
+.bbFaixa small{display:block;font-size:var(--fs-2);color:rgba(253,239,230,.82);margin-top:3px;line-height:1.35}
+.bbFaixa small u,.bbFaixa small .vcred{color:var(--brand-dourado);text-decoration:underline;text-underline-offset:2px}
 .hubRot{margin:12px 4px 0;font:600 var(--fs-1)/1 var(--f-ui);letter-spacing:var(--track-label);text-transform:uppercase;color:rgba(246,243,239,.78)}
 .hub .rede.yt{background:#FF0000;color:#fff}
 .hub .rede.mail{background:var(--brand-dourado);color:#292828}
