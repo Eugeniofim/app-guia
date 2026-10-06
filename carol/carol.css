@@ -659,3 +659,17 @@
 /* o eBook é um documento em "papel" — sempre claro, independente do tema (lê e imprime melhor) */
 .ebDoc{background:#FFF8F5;color:#292828;--ink:#292828;--ink-2:#5B5354;--ink-3:#8A7F7C;--line:#E7D6CC;--surface:#FFF8F5}
 .ebDoc .ebIntro{color:#4A4546}
+/* eBook: trava da prévia (liberado ao fechar tour) */
+.ebLock{margin:8px 22px 4px;padding:22px 18px;border-radius:14px;text-align:center;background:linear-gradient(180deg,var(--highlight-wash),#fff);border:1px dashed var(--eb,var(--accent))}
+.ebLockIc{font-size:30px;display:block;margin-bottom:6px}
+.ebLock h3{font-family:var(--f-titulo);font-weight:400;font-size:1.4rem;color:var(--eb,var(--accent));margin:0 0 6px}
+.ebLock p{color:#4A4546;font-size:14px;line-height:1.5;max-width:40ch;margin:0 auto 14px}
+.ebLock .cta{display:inline-flex}
+.ebCod{margin-top:14px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto}
+.ebCod summary{cursor:pointer;font-size:12.5px;color:var(--ink-3);text-align:center;list-style:none}
+.ebCod summary::-webkit-details-marker{display:none}
+.ebCodIn{display:flex;gap:6px;margin-top:10px}
+.ebCodIn input{flex:1;min-height:42px;padding:0 12px;border:1px solid var(--line);border-radius:10px;font:15px var(--f-ui);background:#fff;color:#292828}
+.ebCodMsg{font-size:12px;color:var(--danger);margin:6px 0 0;text-align:center}
+/* a prévia some um pouco no fim, insinuando que tem mais */
+.ebDoc .ebCap:last-of-type:not(:only-of-type){}

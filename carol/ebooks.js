@@ -68,6 +68,24 @@ const EBOOKS = [
 
 const ebook = (id) => EBOOKS.find(e => e.id === id);
 
+/* ---------- liberação (prévia × completo) ----------
+   Na vitrine o cliente vê ~20% de cada guia. O resto é liberado quando ele
+   fecha um tour com a Carol: ela entrega o código do voucher, e com ele o
+   cliente desbloqueia TODOS os guias neste aparelho. */
+const EB_OK = (typeof DB_KEY !== 'undefined' ? String(DB_KEY).replace(/_db_v\d+$/, '') : 'lovely') + '_ebooks_ok';
+function ebLiberado() { try { return localStorage.getItem(EB_OK) === '1'; } catch (e) { return false; } }
+function ebLibera() { try { localStorage.setItem(EB_OK, '1'); } catch (e) {} }
+/* quantos capítulos entram na prévia (~20%, no mínimo 1) */
+const ebPreviaN = (e) => Math.max(1, Math.round(e.caps.length * 0.2));
+/* o código do voucher/reserva vale como chave de desbloqueio */
+function ebCodigoVale(codigo) {
+  const c = String(codigo || '').trim().toUpperCase();
+  if (!c) return false;
+  const naReserva = (DB.bookings || []).some(b => String(b.code || '').toUpperCase() === c && b.status !== 'cancelled');
+  const noVale = (DB.giftcards || []).some(g => String(g.codigo || '').toUpperCase() === c && g.pago);
+  return naReserva || noVale;
+}
+
 /* ---------- o menu ---------- */
 function viewEbooks() {
   app.innerHTML = `${topoCarol()}
@@ -78,10 +96,10 @@ function viewEbooks() {
       ${EBOOKS.map(e => `<a class="ebCard" href="#/ebook/${e.id}" style="--eb:${e.cor}">
         <span class="ebCapa" style="background-image:url(${esc(e.capa)})"><em>eBook</em></span>
         <span class="ebTx"><b>${esc(e.titulo)}</b><small>${esc(e.sub)}</small>
-          <span class="ebMeta">${e.caps.length} capítulos · grátis</span></span>
+          <span class="ebMeta">${ebLiberado() ? e.caps.length + ' capítulos · liberado ✓' : 'prévia · completo com um tour'}</span></span>
       </a>`).join('')}
     </div>
-    <p class="ebNota">🎁 Estes guias são o presente da Carol para quem viaja com ela — e você pode baixar quantos quiser.</p>
+    <p class="ebNota">${ebLiberado() ? '🎉 Seus guias estão liberados — leia e salve em PDF quantos quiser.' : '🔒 Dê uma espiada à vontade. Os guias <b>completos</b> são um presente da Carol para quem fecha um tour com ela.'}</p>
   </main>`;
   ligaVoltar('/');
 }
@@ -93,7 +111,7 @@ function viewEbook(id) {
   const cred = (ph) => { const p = (typeof PONTOS !== 'undefined') && PONTOS.find(x => x.ph === ph); return p && p.cr ? p.cr : ''; };
   app.innerHTML = `${topoCarol()}
   <main class="wrap ebRead" style="--eb:${e.cor}">
-    <div class="ebAcoes noprint"><button class="cta sm" id="ebPdf">🖨 Salvar em PDF / imprimir</button>
+    <div class="ebAcoes noprint">${ebLiberado() ? '<button class="cta sm" id="ebPdf">🖨 Salvar em PDF / imprimir</button>' : ''}
       <a class="mini" href="#/ebooks">← Todos os guias</a></div>
     <article class="ebDoc" id="ebDoc">
       <header class="ebCab" style="background-image:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.72)),url(${esc(e.capa)})">
@@ -101,11 +119,20 @@ function viewEbook(id) {
         <div class="ebCabTx"><small>Guia de Londres</small><h1>${esc(e.titulo)}</h1><p>${esc(e.sub)}</p></div>
       </header>
       <p class="ebIntro">${esc(e.resumo)}</p>
-      ${e.caps.map((c, i) => `<section class="ebCap">
+      ${(ebLiberado() ? e.caps : e.caps.slice(0, ebPreviaN(e))).map((c, i) => `<section class="ebCap">
         <h2><span class="ebNum">${i + 1}</span>${esc(c.h)}</h2>
         ${c.ph ? `<figure class="ebFoto"><img src="${esc(c.ph)}" alt="" loading="lazy">${cred(c.ph) ? `<figcaption>${esc(cred(c.ph))}</figcaption>` : ''}</figure>` : ''}
         <div class="ebTexto">${ebHtml(c.t)}</div>
       </section>`).join('')}
+      ${ebLiberado() ? '' : `<section class="ebLock noprint">
+        <span class="ebLockIc">🔒</span>
+        <h3>Continue este guia com a Carol</h3>
+        <p>Você viu uma prévia. O guia <b>completo</b> (mais ${esc(String(e.caps.length - ebPreviaN(e)))} capítulos) é um presente de quem fecha um tour com a Carol.</p>
+        <a class="cta sm" href="#/tours">Ver os passeios da Carol</a>
+        <details class="ebCod"><summary>Já fechei um tour — tenho o código</summary>
+          <div class="ebCodIn"><input id="ebCodTxt" placeholder="código do seu voucher (ex.: LL-3147)" autocomplete="off">
+          <button class="mini" id="ebCodOk">Liberar</button></div><p class="ebCodMsg" id="ebCodMsg"></p></details>
+      </section>`}
       <footer class="ebFim">
         <p class="ebAss">Feito com carinho pela <b>Carol</b> — sua guia Blue Badge em Londres.</p>
         <p class="ebCta noprint">Quer conhecer Londres comigo de verdade? <a href="#/tours">Veja os passeios →</a></p>
@@ -116,6 +143,12 @@ function viewEbook(id) {
   ligaVoltar('/ebooks');
   const b = document.getElementById('ebPdf');
   if (b) b.onclick = () => { document.body.classList.add('imprimeEbook'); window.print(); setTimeout(() => document.body.classList.remove('imprimeEbook'), 600); };
+  const ok = document.getElementById('ebCodOk');
+  if (ok) ok.onclick = () => {
+    const txt = document.getElementById('ebCodTxt').value, msg = document.getElementById('ebCodMsg');
+    if (ebCodigoVale(txt)) { ebLibera(); if (typeof toast === 'function') toast('Guias liberados ✓'); viewEbook(id); }
+    else { msg.textContent = 'Código não encontrado. Confira no seu voucher, ou fale com a Carol.'; }
+  };
 }
 /* **negrito** e quebras de linha simples */
 function ebHtml(t) {
