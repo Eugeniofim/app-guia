@@ -9,8 +9,11 @@
    Para um cliente novo: criar o projeto no Supabase, rodar SEGURANCA.sql
    no editor SQL, preencher os dois campos do banco e o bloco "guia". */
 var APP_CONFIG = {
-  supabaseUrl: '',   /* ex.: 'https://SEU-PROJETO.supabase.co' */
-  supabaseKey: '',   /* a chave "publishable" do projeto; nunca a secreta */
+  /* 06/10/2026: o app mora no banco da Ti Artes, numa sala so dele (schema "dulcineia").
+     A chave e a publicavel: quem protege os dados e a regra de acesso (RLS) da sala. */
+  supabaseUrl: 'https://uopfqlogjzuqpabptxkb.supabase.co',
+  supabaseKey: 'sb_publishable_VKIdd2RNpMf3e4IEDprxJw_TOKPIHT2',
+  sala: 'dulcineia',     /* schema do banco; vazio = public (projeto proprio) */
 
   /* Cofre do demo (repositório guia-cofre, no Netlify): guarda as chaves do
      Claude e do Gemini no servidor e deixa o demo público usar a IA de
