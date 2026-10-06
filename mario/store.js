@@ -332,10 +332,10 @@ function _seed() {
           d: { pt: "A Feldherrnhalle e a igreja dos Teatinos, no começo da Ludwigstrasse.", en: "The Feldherrnhalle and the Theatine Church, at the start of Ludwigstrasse." } },
         { t: '', ph: "fotos/hofbrauhaus.jpg", lat: 0, lng: 0,
           n: { pt: "Cervejaria Hofbräuhaus", en: "Hofbräuhaus" },
-          d: { pt: "A cervejaria mais famosa de Munique.", en: "Munich’s most famous beer hall." } },
+          d: { pt: "A cervejaria mais famosa de Munique.", en: "Munich’s most famous beer hall." }, cr: "Bayreuth2009 · CC BY 3.0 · Wikimedia Commons" },
         { t: '', ph: "fotos/viktualienmarkt.jpg", lat: 0, lng: 0,
           n: { pt: "Mercado de Vitualhas", en: "Viktualienmarkt" },
-          d: { pt: "O mercado ao ar livre de Munique, com frutas, queijos, especialidades bávaras e cerveja.", en: "Munich’s open-air market, with fruit, cheese, Bavarian specialities and beer." } },
+          d: { pt: "O mercado ao ar livre de Munique, com frutas, queijos, especialidades bávaras e cerveja.", en: "Munich’s open-air market, with fruit, cheese, Bavarian specialities and beer." }, cr: "Jan Czeczotka · CC BY-SA 4.0 · Wikimedia Commons" },
       ],
       photo: "fotos/mario-marienplatz.jpg",
       tagline: { pt: "Da Marienplatz à Hofbräuhaus, a pé", en: "From Marienplatz to the Hofbräuhaus, on foot" },
@@ -366,7 +366,7 @@ function _seed() {
           d: { pt: "A praça com seus edifícios neoclássicos.", en: "The square with its neoclassical buildings." } },
         { t: '', ph: "fotos/pinakothek.jpg", lat: 0, lng: 0,
           n: { pt: "Distrito dos Museus", en: "Museum Quarter" },
-          d: { pt: "Antiga Pinacoteca, Nova Pinacoteca, Pinacoteca de Arte Contemporânea, Galeria Estatal Lenbachhaus e Museu Egípcio.", en: "Alte Pinakothek, Neue Pinakothek, Pinakothek der Moderne, the Lenbachhaus gallery and the Egyptian Museum." } },
+          d: { pt: "Antiga Pinacoteca, Nova Pinacoteca, Pinacoteca de Arte Contemporânea, Galeria Estatal Lenbachhaus e Museu Egípcio.", en: "Alte Pinakothek, Neue Pinakothek, Pinakothek der Moderne, the Lenbachhaus gallery and the Egyptian Museum." }, cr: "AuHaidhausen · CC BY 4.0 · Wikimedia Commons" },
       ],
       photo: "fotos/mario-carro.jpg",
       tagline: { pt: "Parque Olímpico, BMW, Nymphenburg e os museus", en: "Olympic Park, BMW, Nymphenburg and the museums" },
@@ -388,7 +388,7 @@ function _seed() {
           d: { pt: "Local histórico ligado ao partido nazista quando ele ainda existia como DAP.", en: "A historic site tied to the Nazi party when it still existed as the DAP." }, cr: "Ute Schröder · CC BY-SA 3.0 · Wikimedia Commons" },
         { t: '', ph: "fotos/hofbrauhaus.jpg", lat: 0, lng: 0,
           n: { pt: "Hofbräuhaus", en: "Hofbräuhaus" },
-          d: { pt: "Os primeiros anos do movimento nazista em Munique.", en: "The early years of the Nazi movement in Munich." } },
+          d: { pt: "Os primeiros anos do movimento nazista em Munique.", en: "The early years of the Nazi movement in Munich." }, cr: "Bayreuth2009 · CC BY 3.0 · Wikimedia Commons" },
         { t: '', ph: "fotos/feldherrnhalle.jpg", lat: 0, lng: 0,
           n: { pt: "Odeonsplatz e Feldherrnhalle", en: "Odeonsplatz and Feldherrnhalle" },
           d: { pt: "O cenário do Putsch de 1923.", en: "The scene of the 1923 Putsch." } },
@@ -397,7 +397,7 @@ function _seed() {
           d: { pt: "Manifestações e propaganda do regime nazista.", en: "Rallies and propaganda of the Nazi regime." } },
         { t: '', ph: "fotos/fuehrerbau.jpg", lat: 0, lng: 0,
           n: { pt: "Führerbau", en: "Führerbau" },
-          d: { pt: "Edifício ligado ao poder nazista e ao Acordo de Munique de 1938.", en: "A building tied to Nazi power and to the 1938 Munich Agreement." }, cr: "OlivierCotton · CC BY 3.0 · Wikimedia Commons" },
+          d: { pt: "Edifício ligado ao poder nazista e ao Acordo de Munique de 1938.", en: "A building tied to Nazi power and to the 1938 Munich Agreement." }, cr: "G. Reck · CC BY-SA 4.0 · Wikimedia Commons (recorte)" },
         { t: '', ph: "fotos/ns-doku.jpg", lat: 0, lng: 0,
           n: { pt: "NS-Dokumentationszentrum", en: "NS Documentation Centre" },
           d: { pt: "No lugar onde se encontrava a central do partido nazista NSDAP, conta hoje a história do nacional-socialismo em Munique.", en: "On the site of the former NSDAP party headquarters, it now tells the history of National Socialism in Munich." }, cr: "Raimond Spekking · CC BY-SA 4.0 · Wikimedia Commons" },
@@ -883,7 +883,8 @@ let DB = null;
 
    So vale para a DEMONSTRACAO e sem nuvem: dados de verdade nunca sao
    trocados por exemplo. Os pedidos de roteiro feitos no aparelho ficam. */
-const SEED_VER = 8;   /* 8: pedidos do Mario de 22/09 (sem Áustria, sem roteiro, sem cupom, site) */
+const SEED_VER = 9;   /* 8: pedidos do Mario de 22/09 (sem Áustria, sem roteiro, sem cupom, site)
+                         9: fotos novas nos 3 passeios no ar, com os créditos (06/10) */
 
 function load() {
   try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
