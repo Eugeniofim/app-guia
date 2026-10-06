@@ -4,7 +4,7 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'mari-v0.4.1';
+const VERSION = 'mari-v0.4.2';
 const CORE = [
   './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './idiomas.js', './store.js', './assistente.js', './auth.js', './logo.js', './cloud.js', './i18n.js', './prospecto.js', './tokens.css', './nuvem-itens.js', './agenda-mari.js', './brindes.js', './orcamento-mari.js', './publico-mari.js', './agencias-mari.js', './fatura-mari.js', './contrato-mari.js', './parceiros-mari.js', './equipe-mari.js', './voucher-mari.js', './pontos-mari.js', './roteiro-mari.js', './mudanca-mari.js', './ligar-mari.js', './ficha.js', './assistente-voz.js', './assistente-voz.css', './assistente-mari.js',
   './manifest.webmanifest', './capa.jpg', './home.jpg', './og.jpg', './og-mari.jpg', './guia.jpg', './exemplo-1.jpg', './exemplo-2.jpg', './exemplo-3.jpg',

@@ -204,6 +204,10 @@ const Coach = {
   steps: [], i: 0, el: null, keyFlag: '',
   start(steps, flag) {
     if (!DB.settings[flag]) return;
+    /* App de verdade (banco ligado): o tutorial da primeira tela ("Seu cliente começa aqui…", "esta é a
+       SUA porta") é de protótipo — o cliente dela não vê. E segurava o redesenho quando o banco chegava:
+       a primeira visita ficava com a frase genérica no lugar da dela (06/10/2026). O do painel continua. */
+    if (flag === 'tutorialClient' && typeof temNuvem === 'function' && temNuvem()) return;
     this.steps = steps.filter(s => $(s.sel)); this.i = 0; this.keyFlag = flag;
     if (this.steps.length) this.show();
   },
