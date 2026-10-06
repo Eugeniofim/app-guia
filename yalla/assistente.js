@@ -676,6 +676,9 @@ function iaPlano(nome, i) {
       fazer: () => { const b = Bookings.criarManual({ tourId: x.id, date: i.data, time: hora, name: i.nome, whats: i.whats || '', email: i.email || '',
         pax, total, recebido, metodo: i.metodo || 'pix' }); return { ok: true, codigo: b.code }; } };
   }
+  /* reserva que JÁ EXISTE sobe como atualização (PATCH, igual Bookings.payBalance/cancel).
+     O POST de reserva nova levava 409, o cloud.js trata 409 como sucesso e a mudança ou o
+     pagamento nunca chegava na nuvem — sumia no próximo cloudPull. Vale para registrar_pagamento. */
   if (nome === 'alterar_reserva') {
     const b = Bookings.byCode(String(i.codigo || '').toUpperCase()); if (!b) return E_('reserva não encontrada — use ver_reservas');
     const x = Tours.get(b.tourId), muda = {}, linhas = [[ia('cCliente'), b.name], [ia('cCodigo'), b.code]];
@@ -690,7 +693,7 @@ function iaPlano(nome, i) {
     if (muda.pax) { const novo = Bookings.precoDe(x, b.tourId, muda.date || b.date, muda.time || b.time, muda.pax).total;
       muda.total = novo; assumiu.push(`${ia('cTotal')} ${eur(novo)}`); }
     return { titulo: ia('cAlterarReserva'), assumiu, linhas,
-      fazer: () => { Object.assign(b, muda); save(); if (typeof cloudPushBooking === 'function') cloudPushBooking(b); return { ok: true }; } };
+      fazer: () => { Object.assign(b, muda); save(); if (typeof cloudUpdateBooking === 'function') cloudUpdateBooking(b); return { ok: true }; } };
   }
   if (nome === 'cancelar_reserva') {
     const b = Bookings.byCode(String(i.codigo || '').toUpperCase()); if (!b) return E_('reserva não encontrada');
@@ -710,7 +713,7 @@ function iaPlano(nome, i) {
       linhas: [[ia('cCliente'), b.name], [ia('cCodigo'), b.code], [ia('cValor'), eur(valor)], [ia('cComo'), metodo],
         [ia('cFalta'), eur(Math.max(0, falta - valor))]],
       fazer: () => { b.payments.push({ amount: valor, date: hojeIso(), method: metodo, kind: Bookings.paid(b) ? 'balance' : 'deposit' });
-        save(); if (typeof cloudPushBooking === 'function') cloudPushBooking(b); return { ok: true }; } };
+        save(); if (typeof cloudUpdateBooking === 'function') cloudUpdateBooking(b); return { ok: true }; } };
   }
   /* ---- perfil do guia ---- */
   if (nome === 'alterar_ajustes') {
