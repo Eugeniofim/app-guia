@@ -24,8 +24,8 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=0.2.1">
-<link rel="stylesheet" href="assistente-voz.css?v=0.2.1">
+<link rel="stylesheet" href="tokens.css?v=0.3.0">
+<link rel="stylesheet" href="assistente-voz.css?v=0.3.0">
 <link rel="icon" type="image/png" href="arte/selo-mari-circ.png">
 <style>
 /* ============ base ============ */
@@ -355,7 +355,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
 .tourcard .ph::after{content:"";position:absolute;inset:0;
   background:linear-gradient(to top,rgba(6,32,26,.34),transparent 46%)}
 .tbadge{position:absolute;left:10px;top:10px;z-index:2;font-family:var(--f-mono);font-size:9px;
-  letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.94);color:var(--accent);
+  letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.94);color:#1D2A44;
   padding:5px 9px;border-radius:100px;font-weight:600}
 .tourcard .bd{display:flex;flex-direction:column;gap:5px;padding:14px 16px 15px;flex:1}
 .tourcard .bd b{font-family:var(--f-display);font-weight:700;font-size:16px;line-height:1.25;
@@ -1098,6 +1098,8 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 .rede:active{transform:scale(.92)}
 .rede:focus-visible{outline:2px solid var(--brand-primaria);outline-offset:3px}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .hub .lk .ic,:root:not([data-theme="light"]) .parceira{color:var(--brand-assinatura)}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ico-btn.wa{color:var(--ok)}}
+:root[data-theme="dark"] .ico-btn.wa{color:var(--ok)}
 :root[data-theme="dark"] .hub .lk .ic,:root[data-theme="dark"] .parceira{color:var(--brand-assinatura)}
 .hub .lk.destaque .ic.ic{color:var(--brand-primaria)!important}
 .pers .pbloco{margin:12px 0}
@@ -1163,28 +1165,39 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=0.2.1"></script>
-<script src="auth.js?v=0.2.1"></script>
-<script src="logo.js?v=0.2.1"></script>
-<script src="fx.js?v=0.2.1"></script>
-<script src="qrcode.js?v=0.2.1"></script>
-<script src="qr.js?v=0.2.1"></script>
-<script src="pix.js?v=0.2.1"></script>
-<script src="traduz.js?v=0.2.1"></script>
-<script src="idiomas.js?v=0.2.1"></script>
-<script src="store.js?v=0.2.1"></script>
-<script src="cloud.js?v=0.2.1"></script>
-<script src="i18n.js?v=0.2.1"></script>
-<script src="nuvem-itens.js?v=0.2.1"></script>
-<script src="app.js?v=0.2.1"></script>
-<script src="agenda-mari.js?v=0.2.1"></script>
-<script src="ficha.js?v=0.2.1"></script>
-<script src="brindes.js?v=0.2.1"></script>
-<script src="orcamento-mari.js?v=0.2.1"></script>
-<script src="prospecto.js?v=0.2.1"></script>
-<script src="assistente.js?v=0.2.1"></script>
-<script src="assistente-voz.js?v=0.2.1"></script>
-<script src="assistente-mari.js?v=0.2.1"></script>
+<script src="config.js?v=0.3.0"></script>
+<script src="auth.js?v=0.3.0"></script>
+<script src="logo.js?v=0.3.0"></script>
+<script src="fx.js?v=0.3.0"></script>
+<script src="qrcode.js?v=0.3.0"></script>
+<script src="qr.js?v=0.3.0"></script>
+<script src="pix.js?v=0.3.0"></script>
+<script src="traduz.js?v=0.3.0"></script>
+<script src="idiomas.js?v=0.3.0"></script>
+<script src="store.js?v=0.3.0"></script>
+<script src="cloud.js?v=0.3.0"></script>
+<script src="i18n.js?v=0.3.0"></script>
+<script src="nuvem-itens.js?v=0.3.0"></script>
+<script src="app.js?v=0.3.0"></script>
+<script src="agenda-mari.js?v=0.3.0"></script>
+<script src="ficha.js?v=0.3.0"></script>
+<script src="brindes.js?v=0.3.0"></script>
+<script src="orcamento-mari.js?v=0.3.0"></script>
+<script src="publico-mari.js?v=0.3.0"></script>
+<script src="agencias-mari.js?v=0.3.0"></script>
+<script src="fatura-mari.js?v=0.3.0"></script>
+<script src="contrato-mari.js?v=0.3.0"></script>
+<script src="parceiros-mari.js?v=0.3.0"></script>
+<script src="equipe-mari.js?v=0.3.0"></script>
+<script src="voucher-mari.js?v=0.3.0"></script>
+<script src="pontos-mari.js?v=0.3.0"></script>
+<script src="roteiro-mari.js?v=0.3.0"></script>
+<script src="mudanca-mari.js?v=0.3.0"></script>
+<script src="ligar-mari.js?v=0.3.0"></script>
+<script src="prospecto.js?v=0.3.0"></script>
+<script src="assistente.js?v=0.3.0"></script>
+<script src="assistente-voz.js?v=0.3.0"></script>
+<script src="assistente-mari.js?v=0.3.0"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

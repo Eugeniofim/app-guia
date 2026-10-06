@@ -24,7 +24,8 @@
    - privado: ajustes que não podem ser públicos (a ponte com o Google Agenda);
    - orcamentos: os orçamentos montados no painel;
    - iaMemoria / iaDiario: o que ela ensinou ao assistente e o diário dele. */
-const ITENS_COLS = ['fichas', 'clientes', 'tarefas', 'pedidos', 'brindes', 'brindesEnvios', 'privado', 'orcamentos', 'iaMemoria', 'iaDiario'];
+/* 06/10 (tarde): agências e empresas, faturas, contratos, equipe/escala e roteiros — todos privados */
+const ITENS_COLS = ['fichas', 'clientes', 'tarefas', 'pedidos', 'brindes', 'brindesEnvios', 'privado', 'orcamentos', 'iaMemoria', 'iaDiario', 'agencias', 'faturas', 'contratos', 'equipe', 'roteiros', 'pontosMari'];
 /* estas sao "dicionarios" no DB (chave -> valor); as outras sao listas com id */
 const ITENS_DIC = ['fichas', 'privado'];
 const IT_SOMBRA = 'mari_sombra_v1', IT_FILA = 'mari_fila_v1', IT_MARCA = 'mari_marca_v1', IT_EMDIA = 'mari_emdia_v1';

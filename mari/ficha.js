@@ -256,8 +256,8 @@
         ${CAD.map(([g, l]) => `<p class="fc-grupo">${g}</p><div class="fc-cad">${l.map(x => campoHtml(x, F)).join('')}</div>`).join('')}
         <div class="fc-acoes"><button class="cta sm" id="fcCadSalvar">Salvar a ficha</button><small id="fcCadQuando" style="align-self:center;opacity:.7">${nota.cadastroEm ? 'salva em ' + dataF(String(nota.cadastroEm).slice(0, 10)) : ''}</small></div>
       </section>
-      ${F.pedidos.length ? `<section class="card"><h3>Pedidos do "Personalize" (${F.pedidos.length})</h3>
-        ${F.pedidos.map(p => `<div class="fc-ped"><b>${esc(dataF(String(p.criadoEm || '').slice(0, 10)))}${p.quando ? ' · viagem ' + esc(p.quando) : ''}</b>
+      ${F.pedidos.length ? `<section class="card"><h3>Pedidos do site (${F.pedidos.length})</h3>
+        ${F.pedidos.map(p => `<div class="fc-ped"><b>${p.tipo === 'mudanca' ? 'Consultoria de mudança · ' : ''}${esc(dataF(String(p.criadoEm || '').slice(0, 10)))}${p.quando ? (p.tipo === 'mudanca' ? ' · pretende vir ' : ' · viagem ') + esc(p.quando) : ''}</b>
           <small>${esc([p.pessoas ? p.pessoas + ' pessoa(s)' : '', p.idades ? 'crianças: ' + p.idades : '', (p.gostos || []).join(', ')].filter(Boolean).join(' · '))}</small>
           ${(p.precisaTxt || []).length ? `<small>Precisa: ${esc(p.precisaTxt.join(', '))}</small>` : ''}
           ${(p.kidsTxt || []).length ? `<small>Para as crianças: ${esc(p.kidsTxt.join(', '))}</small>` : ''}

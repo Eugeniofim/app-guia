@@ -74,9 +74,10 @@ function orcCss() {
   if (document.getElementById('orcCss')) return;
   const s = document.createElement('style'); s.id = 'orcCss';
   s.textContent = `
-  .orcDoc{--od-verde:#1E3329;--od-verde2:#2A4639;--od-verm:#B03A2E;--od-creme:#FBF8F2;--od-linha:#E3DCD0;--od-ink:#1D2320;--od-ink2:#5C635F;--od-ink3:#8A908C;
+  .orcDoc{--od-verde:#1E3329;--od-verde2:#2A4639;--od-verm:#B03A2E;--od-creme:#FBF8F2;--od-linha:#E3DCD0;--od-ink:#1D2320;--od-ink2:#5C635F;--od-ink3:#6F7571;
     font-family:var(--f-ui);color:var(--od-ink);background:var(--od-creme);width:100%;max-width:794px;margin:0 auto;box-shadow:0 20px 60px -30px rgba(0,0,0,.45);overflow:hidden}
   .orcDoc .serif{font-family:"Playfair Display",Georgia,serif}
+  .orcDoc small{color:inherit}   /* a regra geral do app (small = cinza do tema) não entra no documento: a paleta dele é fixa */
   .od-top{background:var(--od-verde);color:#F6F2E9;display:flex;gap:18px;align-items:center;padding:26px 34px}
   .od-top img{width:62px;height:62px;border-radius:50%;flex:none}
   .od-top small{display:block;font-size:10px;letter-spacing:.32em;text-transform:uppercase;opacity:.8}
@@ -120,7 +121,7 @@ function orcCss() {
   .od-total b{display:block;font-family:"Playfair Display",Georgia,serif;font-size:27px;margin:6px 0 2px;color:#fff}
   .od-total b span{font-family:var(--f-ui);font-size:14px;font-weight:400;opacity:.8;margin-left:4px}
   .od-cond{background:#EFEBE3;border-left:4px solid var(--od-verde);border-radius:8px;padding:12px 16px;font-size:12.5px;line-height:1.5}
-  .od-cond small{display:block;font-size:10px;letter-spacing:.26em;text-transform:uppercase;font-weight:600;margin-bottom:4px}
+  .od-cond small{display:block;font-size:10px;letter-spacing:.26em;text-transform:uppercase;font-weight:600;margin-bottom:4px;color:var(--od-ink2)}
   .od-rod{text-align:center;font-size:10.5px;color:var(--od-ink3);margin:12px 0 0}
   .od-pe{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--od-linha);padding:12px 34px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--od-ink2)}
   .od-pe span:first-child{display:flex;gap:8px;align-items:center;font-weight:600}
@@ -138,13 +139,14 @@ function orcCss() {
   .orcLista .linha{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
   .orcLista .linha .tx{flex:1;min-width:200px}.orcLista .linha small{display:block;color:var(--ink-3)}
   .orcBarra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;max-width:794px;margin:0 auto 14px}
+  /* SÓ enquanto o documento está na tela (body:has): sem isso, depois de abrir Orçamentos, imprimir
+     qualquer outra tela (o extrato, por exemplo) saía em branco. A folha sem margem idem (orcPagina). */
   @media print{
-    body *{visibility:hidden!important}
+    body:has(#orcPrint) *{visibility:hidden!important}
     #orcPrint,#orcPrint *{visibility:visible!important}
     #orcPrint{position:absolute;left:0;top:0;width:100%}
     .orcDoc{box-shadow:none;max-width:none}
-    .orcBarra,#iaFab,#iaGaveta,.protobar,.toast{display:none!important}
-    @page{size:A4;margin:0}
+    body:has(#orcPrint) :is(.orcBarra,#iaFab,#iaGaveta,.protobar,.toast){display:none!important}
     .od-it,.od-opc,.od-cards,.od-total,.od-cond{break-inside:avoid}
     /* no papel, mais justo: o modelo dela cabe numa folha A4 */
     .od-top{padding:16px 26px}.od-top img{width:52px;height:52px}.od-top h1{font-size:21px;margin:2px 0 4px}
@@ -158,6 +160,12 @@ function orcCss() {
     .od-pe{padding:9px 26px}
   }`;
   document.head.appendChild(s);
+  /* a folha A4 sem margem: só enquanto o documento do orçamento está aberto */
+  const pagina = () => { const tem = !!document.getElementById('orcPrint'), st = document.getElementById('orcPagina');
+    if (tem && !st) { const x = document.createElement('style'); x.id = 'orcPagina'; x.textContent = '@media print{@page{size:A4;margin:0}}'; document.head.appendChild(x); }
+    if (!tem && st) st.remove(); };
+  if (typeof MutationObserver !== 'undefined') new MutationObserver(pagina).observe(document.getElementById('app') || document.body, { childList: true });
+  pagina();
 }
 function orcDocHtml(o) {
   const T = Orc.totais(o), st = DB.settings || {};

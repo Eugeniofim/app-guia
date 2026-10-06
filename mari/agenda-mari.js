@@ -218,7 +218,8 @@ const GCal = {
     try { localStorage.setItem(this.cacheChave(), JSON.stringify(c)); } catch (e) {}
     return c[mes].eventos;
   },
-  eventosDoDia(dia) { const c = this.eventosDoCache()[dia.slice(0, 7)]; return c ? (c.eventos || []).filter(e => e.data === dia || (e.ate && e.data <= dia && dia < e.ate)) : []; },
+  /* "ate" (dia inteiro) é o ÚLTIMO dia, inclusive — a ponte manda assim (fim do Google − 12 h) */
+  eventosDoDia(dia) { const c = this.eventosDoCache()[dia.slice(0, 7)]; return c ? (c.eventos || []).filter(e => e.data === dia || (e.ate && e.data <= dia && dia <= e.ate)) : []; },
 };
 const IA_NS_AG = (typeof DB_KEY !== 'undefined' ? String(DB_KEY).replace(/_db_v\d+$/, '') : 'guia') + '_';
 
@@ -234,13 +235,14 @@ function doPost(e) {
   try { p = JSON.parse(e.postData.contents); } catch (x) {}
   if (p.token !== TOKEN) return saida({ erro: 'token' });
   const cal = CalendarApp.getDefaultCalendar();
+  TZ = cal.getTimeZone() || Session.getScriptTimeZone();
   const props = PropertiesService.getScriptProperties();
-  if (p.acao === 'teste') return saida({ ok: true, calendario: cal.getName(), fuso: Session.getScriptTimeZone() });
+  if (p.acao === 'teste') return saida({ ok: true, calendario: cal.getName(), fuso: TZ });
   if (p.acao === 'listar') {
     const meus = new Set(Object.values(props.getProperties()));
-    const evs = cal.getEvents(dia(p.de), fimDoDia(p.ate)).filter(ev => !meus.has(ev.getId()));
+    const evs = cal.getEvents(inicioDoDia(p.de), fimDoDia(p.ate)).filter(ev => !meus.has(ev.getId()));
     return saida({ ok: true, eventos: evs.slice(0, 300).map(ev => ({
-      titulo: ev.getTitle(), data: iso(ev.getStartTime()), ate: ev.isAllDayEvent() ? iso(ev.getEndTime()) : '',
+      titulo: ev.getTitle(), data: ev.isAllDayEvent() ? isoDia(ev.getAllDayStartDate()) : iso(ev.getStartTime()), ate: ev.isAllDayEvent() ? isoDia(new Date(ev.getAllDayEndDate().getTime() - 43200000)) : '',
       hora: ev.isAllDayEvent() ? '' : hm(ev.getStartTime()), horaFim: ev.isAllDayEvent() ? '' : hm(ev.getEndTime()), local: ev.getLocation() })) });
   }
   if (p.acao === 'sincronizar') {
@@ -280,12 +282,16 @@ function repeticao(o) {
   if (o.ate) regra = regra.until(fimDoDia(o.ate));
   return regra;
 }
-function dia(s) { const [a, m, d] = s.split('-').map(Number); return new Date(a, m - 1, d); }
-function fimDoDia(s) { const [a, m, d] = s.split('-').map(Number); return new Date(a, m - 1, d, 23, 59, 59); }
-function quando(s, h) { const [a, m, d] = s.split('-').map(Number); const [hh, mm] = h.split(':').map(Number); return new Date(a, m - 1, d, hh, mm); }
+/* as horas são as de Copenhague (o fuso da SUA agenda), seja qual for o fuso deste projeto */
+let TZ = 'Europe/Copenhagen';
+function dia(s) { const [a, m, d] = s.split('-').map(Number); return new Date(a, m - 1, d, 12, 0); }   /* meio-dia: o dia certo em qualquer fuso */
+function inicioDoDia(s) { return Utilities.parseDate(s + ' 00:00', TZ, 'yyyy-MM-dd HH:mm'); }
+function fimDoDia(s) { return Utilities.parseDate(s + ' 23:59', TZ, 'yyyy-MM-dd HH:mm'); }
+function quando(s, h) { const [hh, mm] = h.split(':').map(Number); return Utilities.parseDate(s + ' ' + ('0' + hh).slice(-2) + ':' + ('0' + mm).slice(-2), TZ, 'yyyy-MM-dd HH:mm'); }
 function mais(h, min) { const [hh, mm] = h.split(':').map(Number); const t = Math.min(1439, hh * 60 + mm + min); return Math.floor(t / 60) + ':' + ('0' + t % 60).slice(-2); }
-function iso(d) { return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
-function hm(d) { return Utilities.formatDate(d, Session.getScriptTimeZone(), 'HH:mm'); }
+function iso(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); }
+function hm(d) { return Utilities.formatDate(d, TZ, 'HH:mm'); }
+function isoDia(d) { return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); }   /* dia inteiro: o Google entrega no fuso do projeto */
 function saida(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 `;
 }
@@ -579,7 +585,7 @@ function admTodayMari() {
   const resumo = [hj.length ? `${hj.length} passeio${hj.length > 1 ? 's' : ''} hoje` : 'nenhum passeio hoje',
     receberHoje.length ? `receber ${eur(receberHoje.reduce((s, b) => s + Bookings.due(b), 0))} no dia` : '',
     (G.hoje.filter(o => !o.feita).length + G.atrasadas.length) ? `${G.hoje.filter(o => !o.feita).length + G.atrasadas.length} tarefa(s)` : '',
-    pedidos.length ? `${pedidos.length} pedido(s) do Personalize` : ''].filter(Boolean).join(' · ');
+    pedidos.length ? `${pedidos.length} pedido(s) do site` : ''].filter(Boolean).join(' · ');
   admShell('today', `
     <h1 class="pageh">${ola}</h1>
     <p class="desc lead" style="margin-top:-6px">${esc(fmtDate(hoje))} · ${esc(resumo)}</p>
@@ -595,10 +601,10 @@ function admTodayMari() {
       <section class="card hj-sec"><h3>Amanhã <small>${esc(agDataCurta(amanha))}</small></h3>
         ${am.length ? am.map(linhaRes).join('') : '<p class="empty">Nenhum passeio amanhã.</p>'}
         ${G.amanha.length ? `<p class="tfGrupo">Tarefas</p>${G.amanha.map(o => `<div class="hj-item"><span class="hr">${esc(o.x.hora || '—')}</span><div class="tx"><b>${esc(o.x.texto)}</b></div></div>`).join('')}` : ''}</section>
-      ${pedidos.length ? `<section class="card hj-sec"><h3>Pedidos do "Personalize" <small>${pedidos.length} sem resposta</small></h3>
-        ${pedidos.slice(0, 6).map(p => `<div class="hj-item"><div class="tx"><b>${esc(p.nome || 'Cliente')}</b><small>${esc([p.quando, p.pessoas ? p.pessoas + ' pessoa(s)' : '', (p.gostos || []).slice(0, 3).join(', ')].filter(Boolean).join(' · '))}</small></div>
+      ${pedidos.length ? `<section class="card hj-sec"><h3>Pedidos do site <small>${pedidos.length} sem resposta</small></h3>
+        ${pedidos.slice(0, 6).map(p => `<div class="hj-item"><div class="tx"><b>${esc(p.nome || 'Cliente')} <span class="tag">${p.tipo === 'mudanca' ? 'Mudança' : 'Personalize'}</span></b><small>${esc([p.quando, p.pessoas ? p.pessoas + ' pessoa(s)' : '', (p.gostos || []).slice(0, 3).join(', ')].filter(Boolean).join(' · '))}</small></div>
           ${p.whats ? `<a class="mini" target="_blank" rel="noopener" href="${esc(waLink('Oi ' + String(p.nome || '').split(' ')[0] + '! Recebi o seu pedido do passeio personalizado. ', String(p.whats).replace(/\D/g, '')))}">Responder</a>` : ''}
-          ${typeof Orc !== 'undefined' ? `<button type="button" class="mini" data-porc="${esc(p.id)}">Orçamento</button>` : ''}
+          ${typeof Orc !== 'undefined' && p.tipo !== 'mudanca' ? `<button type="button" class="mini" data-porc="${esc(p.id)}">Orçamento</button>` : ''}
           <button type="button" class="mini ghost" data-resp="${esc(p.id)}">✓ respondido</button></div>`).join('')}</section>` : ''}
       ${aniv.length ? `<section class="card hj-sec"><h3>Aniversários <small>próximos 7 dias</small></h3>
         ${aniv.map(a => `<div class="hj-item"><span class="hr">🎂</span><div class="tx"><b>${esc(a.nome)}</b><small>${a.dia === hoje ? 'hoje' : esc(agData(a.dia))}</small></div><a class="mini" href="#/adm/clients/${encodeURIComponent(a.chave)}">Ficha</a></div>`).join('')}</section>` : ''}

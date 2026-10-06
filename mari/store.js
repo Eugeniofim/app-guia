@@ -791,7 +791,18 @@ function save() {
 function resetDemo() { DB = _seed(); save(); }
 
 const uid = () => Math.random().toString(36).slice(2, 9);
-const bookCode = () => PREFIXO + '-' + Math.floor(1000 + Math.random() * 9000);
+/* código da reserva SEM repetir (revisão 06/10: 4 dígitos ao acaso repetiam, e Bookings.byCode achava
+   a reserva errada — voucher, pagamento e link de outra pessoa) */
+const bookCode = () => {
+  const usados = new Set(((typeof DB !== 'undefined' && DB && DB.bookings) || []).map(b => b.code));
+  /* 5 caracteres sem os que se confundem (0/O, 1/I/L, 5/S, 8/B, 2/Z): ~10 milhões de códigos. Com 4 dígitos
+     (9 mil) a chance de repetir era ~42% em 100 reservas — e o checkout do visitante não vê as reservas dela.
+     As telas procuram a reserva pelo id; o código é só para as pessoas (revisão de 06/10). */
+  const ABC = 'ACDEFGHJKMNPQRTUVWXY34679';
+  const sorteia = () => { const n = new Uint32Array(5); try { crypto.getRandomValues(n); } catch (e) { for (let i = 0; i < 5; i++) n[i] = Math.floor(Math.random() * 1e9); } return [...n].map(x => ABC[x % ABC.length]).join(''); };
+  for (let k = 0; k < 200; k++) { const c = PREFIXO + '-' + sorteia(); if (!usados.has(c)) return c; }
+  return PREFIXO + '-' + Date.now().toString().slice(-6);
+};
 
 /* ---------- passeios ---------- */
 const Tours = {

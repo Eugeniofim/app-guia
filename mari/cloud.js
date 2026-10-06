@@ -247,7 +247,8 @@ async function cloudPull() {
          tudo que ela tinha acabado de apagar no laptop. */
       if (!DB.tours.length && !DB.bookings.length) return { ok: true, vazio: true };
       cloudPushState();
-      for (const b of DB.bookings) cloudPushBooking(b);
+      /* os exemplos da demonstração (id demo…) NUNCA sobem: são do aparelho, não da Mari */
+      for (const b of DB.bookings) if (!String(b.id).startsWith('demo')) cloudPushBooking(b);
       return { ok: true, bootstrap: true };
     }
 
@@ -272,9 +273,12 @@ async function cloudPull() {
       const cloudIds = new Set(bk.map(b => b.id));
       /* Se a reserva ja confirmou subida e agora nao esta mais la, ela foi
          APAGADA — nao e pendente. Reinserir seria desfazer a exclusao. */
-      const aindaNaoSubiu = DB.bookings.filter(b => !cloudIds.has(b.id) && !b.naNuvem);
+      let aindaNaoSubiu = DB.bookings.filter(b => !cloudIds.has(b.id) && !b.naNuvem);
       bk.forEach(b => { b.naNuvem = true; });
-      DB.bookings = bk.concat(aindaNaoSubiu);
+      /* depois de "Começar de verdade" (settings.semExemplos), exemplo nenhum volta — nem da nuvem, nem de outro aparelho */
+      let nuvemBk = bk;
+      if (DB.settings && DB.settings.semExemplos) { const real = (b) => !String(b.id).startsWith('demo'); nuvemBk = bk.filter(real); aindaNaoSubiu = aindaNaoSubiu.filter(real); DB.demo = false; }
+      DB.bookings = nuvemBk.concat(aindaNaoSubiu);
     }
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
     nuvemJaCarregada = true;   /* agora sim sabemos o que a nuvem tem */

@@ -277,6 +277,11 @@ function route() {
   const h = location.hash.slice(2) || '';
   const p = h.split('/');
   document.documentElement.lang = LANG === 'pt' ? 'pt-BR' : LANG;
+  /* rotas dos módulos da Mari (link de voucher, roteiro, escala, mudança…): publico-mari.js */
+  if (window.ROTAS_EXTRA && typeof ROTAS_EXTRA[p[0]] === 'function') {
+    ROTAS_EXTRA[p[0]](p.slice(1));
+    document.body.classList.toggle('em-adm', false); faixaAcimaDaBarra(); scrollTo(0, 0); return;
+  }
   if (p[0] === 'novasenha') viewNewPass();
   else if (p[0] === 'login') viewLogin();
   else if (p[0] === 'adm') {
