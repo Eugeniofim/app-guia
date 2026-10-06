@@ -19,8 +19,12 @@ var APP_CONFIG = {
      Claude e do Gemini no servidor e deixa o demo público usar a IA de
      verdade, com limite por pessoa e por dia. Vazio = só a demonstração
      pronta. Num app de cliente fica vazio: lá o guia usa a chave dele. */
-  /* Cofre dela (Claude): fica vazio ate existir a funcao no Supabase DELA */
-  cofre: '',
+  /* 06/10/2026: a IA dos clientes roda na conta da Ti Artes (decisao do
+     Eugenio): o assistente usa o cofre do estudio, com a chave dele. Ela nao
+     cria conta na Anthropic nem ve tela de credito — ve "IA incluida". */
+  cofre: 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre',
+  clienteCofre: 'dulcineia',
+  iaIncluida: true,
   /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
   agenteInstagram: 'conexaoberlim',
   /* número do WhatsApp do agente do demo (só dígitos; o de teste da Meta não entrega para o Brasil) */

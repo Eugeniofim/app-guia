@@ -47,7 +47,10 @@ function crRegistraLocal(valor) {
 function crMarcaSemCreditoLocal() { crGrava(CR_SEM, new Date().toISOString()); }
 
 let crCache = null;
+/* IA incluida no plano (a Ti Artes paga): nada de chave, saldo ou recarga */
+const crIncluida = () => !!(typeof APP_CONFIG !== 'undefined' && APP_CONFIG.iaIncluida);
 async function crResumo(forca) {
+  if (crIncluida()) return { conectada: true, incluida: true, onde: 'servidor' };
   if (!forca && crCache && Date.now() - crCache.em < 20000) return crCache.r;
   let r;
   if (crNoServidor()) {
@@ -115,6 +118,7 @@ async function crDesconectar() {
 
 /* ---- o que mostrar ---- */
 function crSituacao(r) {
+  if (r && r.incluida) return { classe: 'ok', curto: 'IA incluída', titulo: 'Incluída no seu plano' };
   if (!r || !r.conectada) return { classe: 'off', curto: 'IA desligada', titulo: 'Desligado' };
   if (r.semCredito) return { classe: 'fim', curto: 'IA sem crédito', titulo: 'Crédito acabou' };
   if (r.saldo != null && r.saldo < 1) return { classe: 'baixo', curto: 'IA · resta ' + usd(r.saldo), titulo: 'Está acabando' };
@@ -130,6 +134,11 @@ async function ligaCartaoCreditos() {
   if (!el) return;
   const r = await crResumo(true);
   const s = crSituacao(r);
+  if (r.incluida) {
+    el.innerHTML = `<h3>✦ Inteligência artificial <span class="crTag ok">${s.titulo}</span></h3>
+      <p class="why">O Assistente usa o Claude, da Anthropic, e já está incluído no seu app: você não precisa criar conta, pôr crédito nem colar chave. É só usar.</p>`;
+    return;
+  }
   const alcance = r.onde === 'servidor'
     ? 'Vale para o <b>Assistente</b> e para o <b>Atendimento do Instagram</b>, em todos os seus aparelhos.'
     : 'Neste aparelho, liga o <b>Assistente</b>. O Atendimento do Instagram liga quando a nuvem do app estiver ativa — e aí a mesma chave vale para os dois.';
