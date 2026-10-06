@@ -67,6 +67,9 @@ function _blank() {
               sem eles o banco recusa o codigo. */
            apresentacao: [],
            pixKey: '', pixName: '', pixCity: '', iban: '', ibanName: '', payNote: '',
+           /* Wise (link de pagamento em euro) e a regra da Mari: 50% na reserva e o
+              restante em euro, em dinheiro, no dia do passeio (06/10/2026) */
+           wiseLink: '', wiseNome: '', saldoNoDia: GUIA_CFG.saldoNoDia !== false,
            /* para onde vai o aviso de reserva nova. Vazio = ela ainda nao
               preencheu; quem manda o e-mail e o robo, fora do navegador. */
            admEmail: '',
@@ -100,6 +103,71 @@ function _blank() {
            } } };
 }
 
+/* Bike em família — o roteiro que ela faz com crianças (PDF "Roteiro-bike-familia",
+   06/10/2026: "CRIAR ESSE PASSEIO LÁ DENTRO PRA MARI"). 16 paradas, o texto é o dela. */
+const TOUR_BIKE_FAMILIA = { id: "bike-familia", type: "bike", region: "copenhague",
+      name: { pt: "Copenhague de bicicleta com crianças", en: "Copenhagen by bike with kids" },
+      desc: { pt: "Um dia de bicicleta em Copenhague com as crianças: jardins reais, playgrounds criativos, parques, a Pequena Sereia, o barco do porto com as bicicletas a bordo e a volta a Nyhavn iluminado. O ritmo é o dos pequenos, com paradas para lanche e para brincar.",
+              en: "A day by bike in Copenhagen with the kids: royal gardens, creative playgrounds, parks, the Little Mermaid, the harbour bus with the bikes on board and the ride back to Nyhavn all lit up. The pace is the little ones’, with stops to eat and to play." },
+      meeting: { pt: "Saímos da sua hospedagem", en: "We start at your accommodation" },
+      duration: "Dia inteiro", distance: '', effort: 'easy',
+      includes: { pt: ["Guia brasileira em português", "Roteiro pensado para crianças"], en: ["Brazilian guide, in Portuguese", "Route planned for children"] },
+      notIncludes: { pt: ["Aluguel das bicicletas", "Ingressos das atrações", "Refeições"], en: ["Bike rental", "Attraction tickets", "Meals"] },
+      stops: [
+        { t: '', ph: "fotos/bikefam/kongenshave.jpg", lat: 55.6855, lng: 12.5797,
+          n: { pt: "Kings Garden (Kongens Have)", en: "King’s Garden (Kongens Have)" },
+          d: { pt: "O jardim mais real da cidade — considere assistir também à troca da guarda às 12h. O jardim abriga o Castelo Rosenborg e uma estátua do escritor H.C. Andersen.", en: "The most royal garden in town — consider watching the changing of the guard at noon too. It is home to Rosenborg Castle and a statue of H.C. Andersen." } },
+        { t: '', ph: "fotos/bikefam/botanisk.jpg", lat: 55.6869, lng: 12.5737,
+          n: { pt: "Botanisk Have", en: "Botanical Garden (Botanisk Have)" },
+          d: { pt: "Quase uma floresta mágica no meio da cidade, perfeita para explorar com os pequenos. Entrada gratuita, estufas com plantas tropicais, trilhas tranquilas e um lago com peixes.", en: "Almost a magic forest in the middle of the city, perfect to explore with the little ones. Free entry, tropical glasshouses, quiet trails and a pond with fish." } },
+        { t: '', ph: "fotos/bikefam/torvehallerne.jpg", lat: 55.6838, lng: 12.5698,
+          n: { pt: "Torvehallerne", en: "Torvehallerne" },
+          d: { pt: "Parada para um lanche ou almoço com gostinho local: mercado com comidas dinamarquesas, cafés e opções para crianças. Mesas ao ar livre.", en: "A stop for a snack or lunch with local flavour: a market with Danish food, cafés and options for kids. Outdoor tables." } },
+        { t: '', ph: "", lat: 55.6911, lng: 12.549,
+          n: { pt: "Assistens Kirkegård", en: "Assistens Cemetery" },
+          d: { pt: "Onde o silêncio conta histórias. Mais do que um cemitério, um parque urbano tranquilo com trilhas arborizadas — aqui descansam H.C. Andersen e Søren Kierkegaard.", en: "Where silence tells stories. More than a cemetery, a peaceful urban park with tree-lined paths — H.C. Andersen and Søren Kierkegaard rest here." } },
+        { t: '', ph: "fotos/bikefam/norrebroparken.jpg", lat: 55.6984, lng: 12.5404,
+          n: { pt: "Nørrebroparken", en: "Nørrebroparken" },
+          d: { pt: "Playground criativo num dos bairros mais vibrantes de Copenhague. Não deixe de visitar o playground com aviões.", en: "A creative playground in one of Copenhagen’s liveliest districts. Don’t miss the aeroplane playground." } },
+        { t: '', ph: "fotos/bikefam/rodeplads.jpg", lat: 55.6997, lng: 12.5427,
+          n: { pt: "Den Røde Plads", en: "The Red Square (Den Røde Plads)" },
+          d: { pt: "Cor, cultura e arquitetura moderna num só lugar. O ícone de Nørrebro, parte do Superkilen Park.", en: "Colour, culture and modern architecture in one place. Nørrebro’s icon, part of Superkilen Park." } },
+        { t: '', ph: "fotos/bikefam/superkilen.jpg", lat: 55.7008, lng: 12.5418,
+          n: { pt: "Superkilen Park", en: "Superkilen Park" },
+          d: { pt: "Parque urbano com escorregadores, fontes, bancos e arte de diversas culturas: objetos de mais de 60 países, como um ringue de boxe da Tailândia e bancos do Brasil.", en: "An urban park with slides, fountains, benches and art from many cultures: objects from over 60 countries, like a Thai boxing ring and benches from Brazil." } },
+        { t: '', ph: "fotos/bikefam/faelledparken.jpg", lat: 55.7003, lng: 12.5718,
+          n: { pt: "Fælledparken", en: "Fælledparken" },
+          d: { pt: "O maior parque da cidade. Aproveite os três playgrounds temáticos: Store Legeplads, Tårnlegepladsen e Trafiklegepladsen.", en: "The city’s biggest park. Enjoy its three themed playgrounds: Store Legeplads, Tårnlegepladsen and Trafiklegepladsen." } },
+        { t: '', ph: "fotos/bikefam/konditaget.jpg", lat: 55.7106, lng: 12.5985,
+          n: { pt: "Nordhavn: Konditaget Lüders", en: "Nordhavn: Konditaget Lüders" },
+          d: { pt: "Um playground nas alturas com vista para o mar: rooftop com brinquedos, trampolins, escorregadores e vista do porto. Acesso gratuito por elevador ou escada.", en: "A playground up high with sea views: a rooftop with play equipment, trampolines, slides and harbour views. Free access by lift or stairs." } },
+        { t: '', ph: "fotos/bikefam/kastellet.jpg", lat: 55.6912, lng: 12.5949,
+          n: { pt: "Kastellet", en: "Kastellet" },
+          d: { pt: "Caminhe pelas muralhas da fortaleza do século XVII.", en: "Walk along the ramparts of the 17th-century fortress." } },
+        { t: '', ph: "fotos/sereia.jpg", lat: 55.6929, lng: 12.5993,
+          n: { pt: "A Pequena Sereia", en: "The Little Mermaid" },
+          d: { pt: "Encontre a famosa estátua da pequena sereia.", en: "Find the famous Little Mermaid statue." } },
+        { t: '', ph: "fotos/bikefam/havnebus.jpg", lat: 55.6889, lng: 12.5987,
+          n: { pt: "Harbour Bus", en: "Harbour Bus" },
+          d: { pt: "Quase um mini cruzeiro! Leve as bicicletas a bordo do barco 991 ou 992 e cruze o canal.", en: "Almost a mini cruise! Take the bikes on board boat 991 or 992 and cross the harbour." } },
+        { t: '', ph: "", lat: 55.6818, lng: 12.6007,
+          n: { pt: "Opera House (opcional)", en: "Opera House (optional)" },
+          d: { pt: "Cruze o canal até a parada da Opera House, um símbolo da cidade. Atrás do edifício fica o Opera Parken, que também vale a visita.", en: "Cross to the Opera House stop, a city landmark. Behind it is Opera Parken, also worth a visit." } },
+        { t: '', ph: "fotos/bikefam/copenhill.jpg", lat: 55.6826, lng: 12.62,
+          n: { pt: "CopenHill (opcional)", en: "CopenHill (optional)" },
+          d: { pt: "A montanha mais sustentável do mundo, em cima de uma usina de energia: pista de esqui no topo, trilha com mirante, playground e café no térreo. Além de esquiar, dá para descer deslizando de “pneu”.", en: "The world’s most sustainable mountain, on top of a power plant: a ski slope on the roof, a trail with a viewpoint, a playground and a café downstairs. You can also slide down on a tube." } },
+        { t: '', ph: "", lat: 55.693, lng: 12.608,
+          n: { pt: "Reffen (opcional)", en: "Reffen (optional)" },
+          d: { pt: "Mercado de comida de rua com vista para o canal, espaço para crianças e food trucks com pratos do mundo todo.", en: "A street-food market by the water, with space for kids and food trucks from all over the world." } },
+        { t: '', ph: "fotos/bikefam/nyhavn-noite.jpg", lat: 55.6798, lng: 12.5912,
+          n: { pt: "Retorno a Nyhavn", en: "Back to Nyhavn" },
+          d: { pt: "Pedale de volta pela ciclovia beira-rio e chegue a Nyhavn iluminado.", en: "Ride back along the waterfront cycle path and arrive at Nyhavn all lit up." } },
+      ],
+      photo: "fotos/bikefam/faelledparken.jpg",
+      tagline: { pt: "Um dia de parques, playgrounds e canais", en: "A day of parks, playgrounds and canals" },
+      price: 0, priceMode: 'pp',
+      min: 1, max: 20, payPolicy: 'split', status: 'live', order: 3.5,
+    };
 function _seed() {
   const db = _blank();
   db.demo = true;
@@ -220,6 +288,7 @@ function _seed() {
       price: 0, priceMode: 'pp',
       min: 1, max: 20, payPolicy: 'split', status: 'live', order: 3,
     },
+    TOUR_BIKE_FAMILIA,
     { id: "rosenborg", type: "walk", region: "copenhague",
       name: { pt: "Castelo de Rosenborg", en: "Rosenborg Castle" },
       desc: { pt: "As joias da coroa da família real dinamarquesa e o belíssimo Jardim do Rei (Kongens Have).",
@@ -705,11 +774,19 @@ function load() {
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
   }
   DB.settings = fillSettings(DB.settings);
+  /* catálogo novo de 06/10/2026: o bike em família entra UMA vez (se ela apagar, não volta) */
+  if (!(+DB.settings.catalogoV >= 2)) {
+    if (!temNuvem() && Array.isArray(DB.tours) && DB.tours.length && !DB.tours.some(x => x.id === TOUR_BIKE_FAMILIA.id)) DB.tours.push(JSON.parse(JSON.stringify(TOUR_BIKE_FAMILIA)));
+    DB.settings.catalogoV = 2;
+    try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); } catch (e) {}
+  }
   return DB;
 }
 function save() {
   localStorage.setItem(DB_KEY, JSON.stringify(DB));
   if (typeof cloudPushState === 'function') cloudPushState();
+  /* o que é privado (fichas, tarefas, pedidos, brindes…) sobe linha a linha (nuvem-itens.js) */
+  if (typeof itAgendar === 'function') itAgendar();
 }
 function resetDemo() { DB = _seed(); save(); }
 
@@ -874,7 +951,9 @@ const Bookings = {
       id: uid(), code: bookCode(), tourId, date, time,
       name, email: email || '', whats: whats || '', insta: '',
       pax: +pax || 1, total: Math.max(0, +total || 0),
-      coupon: null, discount: 0, policy: 'full',
+      /* regra da Mari: metade na reserva, o restante no dia — a reserva fechada pelo
+         WhatsApp segue a mesma (o link de pagamento pede o sinal) */
+      coupon: null, discount: 0, policy: (DB.settings && DB.settings.saldoNoDia) ? 'split' : 'full',
       consent: { ok: false },
       payments: [], status: 'confirmed',
       createdAt: new Date().toISOString(), origin: 'manual',
@@ -927,6 +1006,8 @@ const Bookings = {
   /* Cada passeio tem seu prazo. O de Natal cobra o saldo 30 dias antes,
      nao na vespera — usar um numero fixo aqui cobraria tarde demais. */
   dueDate(b){
+    /* o restante se paga no dia do passeio (regra da Mari): o prazo é o próprio dia */
+    if (DB && DB.settings && DB.settings.saldoNoDia) return b.date;
     const x = Tours.get(b.tourId);
     const dias = (x && +x.balanceDays) || 1;
     return addDays(b.date, -dias);

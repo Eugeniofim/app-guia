@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tour na Dinamarca</title>
 <meta name="description" content="Passeios guiados em português. Reserva online em três toques.">
-<meta name="theme-color" content="#064c3f">
+<meta name="theme-color" content="#1D2A44">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Reservas de passeios">
 <meta property="og:description" content="Reserve seu passeio em três toques.">
@@ -24,8 +24,9 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=0.1.7">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23064c3f'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23FFD23F' stroke-width='8'/%3E%3Ccircle cx='50' cy='50' r='9' fill='%23FFD23F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="tokens.css?v=0.2.0">
+<link rel="stylesheet" href="assistente-voz.css?v=0.2.0">
+<link rel="icon" type="image/png" href="arte/selo-mari-circ.png">
 <style>
 /* ============ base ============ */
 *{box-sizing:border-box;margin:0}
@@ -505,17 +506,17 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
   align-items:flex-end;border:1px solid var(--line)}
 .lookprev i{display:block;flex:1;border-radius:3px}
 .lookprev.light{background:#FBF8F3}
-.lookprev.light i:nth-child(1){height:100%;background:#064c3f}
-.lookprev.light i:nth-child(2){height:64%;background:#FFD23F}
+.lookprev.light i:nth-child(1){height:100%;background:#1D2A44}
+.lookprev.light i:nth-child(2){height:64%;background:#F2C230}
 .lookprev.light i:nth-child(3){height:40%;background:#E8E0D3}
 .lookprev.dark{background:#0E1512}
 .lookprev.dark i:nth-child(1){height:100%;background:#4FB89B}
-.lookprev.dark i:nth-child(2){height:64%;background:#FFD23F}
+.lookprev.dark i:nth-child(2){height:64%;background:#F2C230}
 .lookprev.dark i:nth-child(3){height:40%;background:#25332D}
 /* automatico: metade clara, metade escura */
 .lookprev.auto{background:linear-gradient(105deg,#FBF8F3 0 50%,#0E1512 50% 100%)}
-.lookprev.auto i:nth-child(1){height:100%;background:#064c3f}
-.lookprev.auto i:nth-child(2){height:64%;background:#FFD23F}
+.lookprev.auto i:nth-child(1){height:100%;background:#1D2A44}
+.lookprev.auto i:nth-child(2){height:64%;background:#F2C230}
 .lookprev.auto i:nth-child(3){height:40%;background:#25332D}
 .totalgeral{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-6)}
 .totalgeral b{font-family:var(--f-display);font-size:var(--fs-6)}
@@ -660,7 +661,8 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
 .splash{position:fixed;inset:0;z-index:999;display:grid;place-items:center;
   background:var(--brand-verde);
   /* leve profundidade: um halo quente atrás da marca */
-  background-image:radial-gradient(120% 80% at 50% 38%, #0a6957 0%, #064c3f 46%, #043a30 100%);
+  /* azul-marinho da Mari, com um halo quente atrás do selo (06/10/2026) */
+  background-image:radial-gradient(120% 80% at 50% 38%, #2F4372 0%, #1D2A44 46%, #121A2C 100%);
   perspective:1200px;perspective-origin:50% 42%;
   animation:spOut 760ms var(--ease) 3950ms forwards}
 .splash.gone{display:none}
@@ -680,6 +682,10 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
   background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,.5) 50%,transparent 62%);
   mix-blend-mode:overlay;animation:spSheen 2600ms var(--ease) both}
 .sp-mark svg{filter:drop-shadow(0 18px 40px rgba(0,0,0,.45))}
+.sp-mark{display:inline-block;line-height:0}
+.sp-selo{position:absolute;left:50%;top:50%;margin:-80px 0 0 -80px;width:160px;height:160px;border-radius:50%;opacity:0;transform:scale(.86);
+  animation:spSelo 900ms var(--ease) 700ms forwards;box-shadow:0 18px 40px -12px rgba(0,0,0,.55)}
+@keyframes spSelo{to{opacity:1;transform:scale(1)}}
 .s-p{stroke-dasharray:var(--len,600);stroke-dashoffset:var(--len,600);
   animation:spDraw 950ms var(--ease) both}
 .s-x1{--len:340;animation-delay:340ms}
@@ -1033,7 +1039,7 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 
 /* faixa de painel destravado — precisa incomodar sem gritar */
 .alert.nolog{display:block;margin-bottom:var(--s-9)}
-.alert.demo{background:var(--ok-wash);color:var(--ok)}
+.alert.demo{background:var(--accent-wash);color:var(--brand-primaria);border-left:4px solid var(--brand-assinatura)}
 /* faixa de proposta do prototipo — fixa embaixo, por cima de tudo */
 .protobar{position:fixed;left:0;right:0;bottom:0;z-index:998;padding:9px 14px;
   background:var(--highlight-wash);color:var(--ink);border-top:1px solid var(--line);
@@ -1098,6 +1104,18 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 .pers textarea{width:100%;min-height:80px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
   background:var(--surface);color:var(--ink);font:inherit;font-size:var(--fs-2)}
 .pchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+/* ideias para as crianças (06/10/2026) */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:10px}
+.kcard{position:relative;display:flex;gap:10px;align-items:flex-start;text-align:left;padding:8px;border:1.5px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;transition:border-color var(--d-fast),box-shadow var(--d-fast)}
+.kcard .kph{width:64px;height:64px;flex:none;border-radius:10px;background:var(--surface-2) center/cover no-repeat}
+.kcard .ktx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.kcard .ktx b{font-size:var(--fs-3);font-weight:700;color:var(--brand-primaria)}
+.kcard .ktx small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.kcard .ktx span{font-size:12.5px;line-height:1.4;color:var(--ink-2)}
+.kcard i{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;background:var(--surface-2);color:transparent}
+.kcard.on{border-color:var(--brand-assinatura);box-shadow:0 0 0 1px var(--brand-assinatura) inset}
+.kcard.on i{background:var(--brand-assinatura);color:var(--brand-primaria)}
+.kcard:focus-visible{outline:2px solid var(--brand-primaria);outline-offset:2px}
 .pchip{border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:20px;
   padding:8px 14px;font-size:var(--fs-3);cursor:pointer;line-height:1.2}
 .pchip:hover{border-color:var(--accent)}
@@ -1131,14 +1149,12 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 <div id="splash" class="splash">
   <div class="sp-stage">
     <div class="sp-mark">
+      <!-- o anel amarelo se desenha e o selo dela aparece dentro -->
       <svg viewBox="0 0 200 200" width="190" height="190" fill="none"
-           stroke="#FFD23F" stroke-width="14" stroke-linecap="round" aria-hidden="true">
-        <path class="s-p s-x1" d="M100 20 a80 80 0 1 1 -0.1 0" style="--len:510"/>
-        <path class="s-p s-x2" d="M100 52 L100 148" style="--len:100"/>
-        <path class="s-p s-v1" d="M52 100 L148 100" style="--len:100"/>
-        <path class="s-p s-v2" d="M66 66 L134 134" style="--len:100"/>
-        <path class="s-p s-h"  d="M134 66 L66 134" style="--len:100"/>
+           stroke="#F2C230" stroke-width="8" stroke-linecap="round" aria-hidden="true">
+        <path class="s-p s-x1" d="M100 8 a92 92 0 1 1 -0.1 0" style="--len:580"/>
       </svg>
+      <img class="sp-selo" src="arte/selo-mari-circ.png" alt="" width="160" height="160">
     </div>
     <!-- o nome do negocio e a credencial vem do config.js (app.js preenche) -->
     <div class="sp-word" id="spWord"></div>
@@ -1147,22 +1163,27 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=0.1.7"></script>
-<script src="auth.js?v=0.1.7"></script>
-<script src="logo.js?v=0.1.7"></script>
-<script src="fx.js?v=0.1.7"></script>
-<script src="qrcode.js?v=0.1.7"></script>
-<script src="qr.js?v=0.1.7"></script>
-<script src="pix.js?v=0.1.7"></script>
-<script src="traduz.js?v=0.1.7"></script>
-<script src="idiomas.js?v=0.1.7"></script>
-<script src="store.js?v=0.1.7"></script>
-<script src="cloud.js?v=0.1.7"></script>
-<script src="i18n.js?v=0.1.7"></script>
-<script src="app.js?v=0.1.7"></script>
-<script src="ficha.js?v=0.1.7"></script>
-<script src="prospecto.js?v=0.1.7"></script>
-<script src="assistente.js?v=0.1.7"></script>
+<script src="config.js?v=0.2.0"></script>
+<script src="auth.js?v=0.2.0"></script>
+<script src="logo.js?v=0.2.0"></script>
+<script src="fx.js?v=0.2.0"></script>
+<script src="qrcode.js?v=0.2.0"></script>
+<script src="qr.js?v=0.2.0"></script>
+<script src="pix.js?v=0.2.0"></script>
+<script src="traduz.js?v=0.2.0"></script>
+<script src="idiomas.js?v=0.2.0"></script>
+<script src="store.js?v=0.2.0"></script>
+<script src="cloud.js?v=0.2.0"></script>
+<script src="i18n.js?v=0.2.0"></script>
+<script src="nuvem-itens.js?v=0.2.0"></script>
+<script src="app.js?v=0.2.0"></script>
+<script src="agenda-mari.js?v=0.2.0"></script>
+<script src="ficha.js?v=0.2.0"></script>
+<script src="brindes.js?v=0.2.0"></script>
+<script src="prospecto.js?v=0.2.0"></script>
+<script src="assistente.js?v=0.2.0"></script>
+<script src="assistente-voz.js?v=0.2.0"></script>
+<script src="assistente-mari.js?v=0.2.0"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

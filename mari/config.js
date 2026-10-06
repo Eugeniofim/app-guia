@@ -16,9 +16,14 @@ var APP_CONFIG = {
      Claude e do Gemini no servidor e deixa o demo público usar a IA de
      verdade, com limite por pessoa e por dia. Vazio = só a demonstração
      pronta. Num app de cliente fica vazio: lá o guia usa a chave dele. */
-  /* A Mari NAO quer robo de atendimento: o contato com ela e humano.
-     Cofre vazio = assistente e atendimento desligados. */
-  cofre: '',
+  /* A Mari NAO quer robo de atendimento: o contato com o cliente e humano.
+     O cofre liga SO o assistente do painel (presente do pacote, 06/10/2026):
+     Atendimento e Marketing seguem com cadeado (assistente-mari.js).
+     Sem o banco dela, o cofre atende no modo demonstracao (modelo simples,
+     limite diario); com o banco + login dela, o cofre confere que e a dona
+     e usa o modelo forte (guia-cofre/_comum/pro.js, APPS_PRO.mari). */
+  cofre: 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre',
+  clienteCofre: 'mari',
   /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
   agenteInstagram: '',
   /* número do WhatsApp do agente do demo (só dígitos; o de teste da Meta não entrega para o Brasil) */

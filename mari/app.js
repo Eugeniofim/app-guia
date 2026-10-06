@@ -284,6 +284,7 @@ function route() {
     viewAdm(p[1] || 'today', p[2]);
   }
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
+  else if (p[0] === 'pagar') viewPagar(p[1], p[2], p[3], p[4]);
   else if (p[0] === 'about') viewAbout();
   else if (p[0] === 'apresentacao') viewApresentacao();
   else if (p[0] === 'personalizar') viewPersonalizar();
@@ -417,9 +418,29 @@ const PERS_PRECISA = [
   ['volta',     'Levar a gente de volta ao aeroporto','Drop-off at the airport'],
 ];
 
+/* AS IDEIAS DA MARI PARA AS CRIANÇAS (PDF "Opções de atividades tour com crianças",
+   06/10/2026). Aparecem quando o grupo tem criança ou marcou "Programas com crianças". */
+const PERS_CRIANCAS = [
+  ['tivoli', 'Tivoli Gardens', 'Um dos parques de diversões mais antigos do mundo, no centro de Copenhague.', 'One of the oldest amusement parks in the world, in central Copenhagen.', 'Copenhague'],
+  ['zoo', 'Copenhagen Zoo', 'Um dos zoológicos mais antigos da Europa (1859), em Frederiksberg, com animais em espaços modernos.', 'One of Europe’s oldest zoos (1859), in Frederiksberg, with modern animal habitats.', 'Copenhague'],
+  ['blaaplanet', 'Den Blå Planet', 'O Aquário Nacional da Dinamarca, perto do aeroporto, a 20 minutos do centro.', 'Denmark’s National Aquarium, near the airport, 20 minutes from the centre.', 'Kastrup'],
+  ['experimentarium', 'Experimentarium', 'Museu de ciência interativo: tudo é feito para tocar, testar e experimentar.', 'An interactive science museum: everything is made to touch, test and try.', 'Hellerup'],
+  ['ilusoes', 'Museum of Illusions', 'Ilusões de ótica, salas “malucas” e fotos divertidas.', 'Optical illusions, “crazy” rooms and fun photos.', 'Copenhague'],
+  ['ikono', 'IKONO Copenhagen', 'Museu imersivo de salas temáticas, cores e luzes — perfeito para fotos.', 'An immersive museum of themed rooms, colours and lights — perfect for photos.', 'Copenhague'],
+  ['planetario', 'Planetário', 'Espaço, ciência e cinema imersivo, perto dos lagos. Ótimo para crianças de 6+ e para dias de chuva.', 'Space, science and immersive cinema, by the lakes. Great for kids 6+ and rainy days.', 'Copenhague'],
+  ['trolls', 'Caça aos Trolls', 'Esculturas gigantes de madeira reciclada do artista Thomas Dambo, escondidas nas florestas.', 'Giant recycled-wood sculptures by artist Thomas Dambo, hidden in the forests.', 'Arredores'],
+  ['bakken', 'Bakken (Dyrehavsbakken)', 'O parque de diversões mais antigo do mundo ainda funcionando (1583), dentro de uma floresta com cervos soltos.', 'The world’s oldest operating amusement park (1583), inside a forest with free-roaming deer.', 'Klampenborg'],
+  ['vikingeskib', 'Museu dos Navios Vikings', 'Cinco navios vikings originais e réplicas em tamanho real; no verão dá para navegar num barco viking.', 'Five original Viking ships and full-size replicas; in summer you can sail a Viking boat.', 'Roskilde'],
+  ['legoland', 'LEGOLAND Billund', 'O primeiro LEGOLAND do mundo (1968), ao lado da fábrica original da LEGO.', 'The world’s first LEGOLAND (1968), next to the original LEGO factory.', 'Billund'],
+  ['legohouse', 'LEGO House', 'Experiência interativa na cidade onde a LEGO nasceu: criar, explorar e aprender brincando.', 'An interactive experience in LEGO’s home town: build, explore and learn through play.', 'Billund'],
+  ['hcandersen', 'Museu H.C. Andersen', 'Uma experiência imersiva dentro dos contos de Andersen, com arquitetura, luz e som.', 'An immersive walk into Andersen’s fairy tales, with architecture, light and sound.', 'Odense'],
+];
+
 function viewPersonalizar() {
   const P = viewPersonalizar._p = viewPersonalizar._p
-    || { nome: '', ini: '', fim: '', adultos: 2, criancas: 0, gosto: [], precisa: [], obs: '' };
+    || { nome: '', whats: '', ini: '', fim: '', adultos: 2, criancas: 0, idades: '', gosto: [], precisa: [], kids: [], obs: '' };
+  P.kids = P.kids || []; if (P.whats === undefined) P.whats = '';
+  const comCriancas = P.criancas > 0 || P.gosto.includes('criancas');
   const chip = (grupo, lista) => lista.map(([cod, pt, en]) =>
     `<button class="pchip ${P[grupo].includes(cod) ? 'on' : ''}" data-g="${grupo}" data-v="${cod}">${LANG === 'en' ? en : pt}</button>`).join('');
 
@@ -436,6 +457,7 @@ function viewPersonalizar() {
     <section class="card pbloco">
       <span class="seclabel">${t('persQuem')}</span>
       <label class="fld">${t('persNome')}<input id="pNome" value="${esc(P.nome)}" placeholder="${t('persNomePh')}"></label>
+      <label class="fld">${LANG === 'en' ? 'Your WhatsApp (optional)' : 'Seu WhatsApp (opcional)'}<input id="pWhats" type="tel" inputmode="tel" autocomplete="tel" value="${esc(P.whats)}" placeholder="+55 11 9…"></label>
       <div class="frow">
         <label class="fld">${t('persIni')}<input id="pIni" type="date" value="${P.ini}"></label>
         <label class="fld">${t('persFim')}<input id="pFim" type="date" value="${P.fim}"></label>
@@ -444,12 +466,22 @@ function viewPersonalizar() {
         <label class="fld">${t('persAd')}<input id="pAd" type="number" min="1" max="40" value="${P.adultos}"></label>
         <label class="fld">${t('persCri')}<input id="pCri" type="number" min="0" max="20" value="${P.criancas}"></label>
       </div>
+      ${P.criancas > 0 ? `<label class="fld">${LANG === 'en' ? 'Children’s ages' : 'Idade das crianças'}<input id="pIdades" value="${esc(P.idades || '')}" placeholder="${LANG === 'en' ? 'e.g. 4 and 9' : 'ex.: 4 e 9 anos'}"></label>` : ''}
     </section>
 
     <section class="card pbloco">
       <span class="seclabel">${t('persGosto')}</span>
       <div class="pchips">${chip('gosto', PERS_GOSTO)}</div>
     </section>
+
+    ${comCriancas ? `<section class="card pbloco pkids">
+      <span class="seclabel">${LANG === 'en' ? 'Ideas for the kids' : 'Ideias para as crianças'}</span>
+      <p class="why">${LANG === 'en' ? 'Mari’s favourites with children of all ages. Tap the ones you’d like — she fits them into the days.' : 'Os preferidos da Mari com crianças de todas as idades. Toque nos que vocês querem — ela encaixa nos dias.'}</p>
+      <div class="kgrid">${PERS_CRIANCAS.map(([cod, nome, pt, en, onde]) => `<button type="button" class="kcard ${P.kids.includes(cod) ? 'on' : ''}" data-k="${cod}" aria-pressed="${P.kids.includes(cod)}">
+        <span class="kph" style="background-image:url(fotos/kids/${cod}.jpg)"></span>
+        <span class="ktx"><b>${esc(nome)}</b><small>${esc(onde)}</small><span>${esc(LANG === 'en' ? en : pt)}</span></span><i aria-hidden="true">✓</i></button>`).join('')}</div>
+      ${Tours.live().some(x => x.id === 'bike-familia') ? `<button type="button" class="mini" id="pBikeFam" style="margin-top:10px">🚲 ${LANG === 'en' ? 'See the family bike day' : 'Ver o dia de bicicleta com crianças'} →</button>` : ''}
+    </section>` : ''}
 
     <section class="card pbloco">
       <span class="seclabel">${t('persPrecisa')}</span>
@@ -468,9 +500,17 @@ function viewPersonalizar() {
   bindLang(app);
   $('#bk').onclick = () => go('/');
   const guarda = () => {
-    P.nome = $('#pNome').value.trim(); P.ini = $('#pIni').value; P.fim = $('#pFim').value;
+    P.nome = $('#pNome').value.trim(); P.whats = $('#pWhats').value.trim(); P.ini = $('#pIni').value; P.fim = $('#pFim').value;
     P.adultos = +$('#pAd').value || 1; P.criancas = +$('#pCri').value || 0; P.obs = $('#pObs').value.trim();
+    if ($('#pIdades')) P.idades = $('#pIdades').value.trim();
   };
+  /* mudou o número de crianças: a tela mostra (ou tira) as ideias para elas */
+  $('#pCri').onchange = () => { guarda(); viewPersonalizar(); };
+  $$('.kcard').forEach(b => b.onclick = () => {
+    guarda(); const i = P.kids.indexOf(b.dataset.k); i < 0 ? P.kids.push(b.dataset.k) : P.kids.splice(i, 1);
+    b.classList.toggle('on', i < 0); b.setAttribute('aria-pressed', i < 0);
+  });
+  if ($('#pBikeFam')) $('#pBikeFam').onclick = () => { guarda(); go('/tour/bike-familia'); };
   $$('.pchip').forEach(b => b.onclick = () => {
     guarda();
     const g = P[b.dataset.g], i = g.indexOf(b.dataset.v);
@@ -483,15 +523,23 @@ function viewPersonalizar() {
     const dia = (d) => d ? fmtDate(d) : '';
     const L = [t('persMsgOi', { nome: P.nome || '' })];
     if (P.ini || P.fim) L.push('🗓 ' + [dia(P.ini), dia(P.fim)].filter(Boolean).join(' → '));
-    L.push('👥 ' + t('persMsgQuem', { a: P.adultos, c: P.criancas }));
+    L.push('👥 ' + t('persMsgQuem', { a: P.adultos, c: P.criancas }) + (P.criancas && P.idades ? ' (' + P.idades + ')' : ''));
+    if (P.kids.length) L.push('🧒 ' + (LANG === 'en' ? 'For the kids: ' : 'Para as crianças: ') + P.kids.map(k => (PERS_CRIANCAS.find(z => z[0] === k) || [])[1]).filter(Boolean).join(', '));
     if (P.gosto.length) L.push('❤️ ' + nome(P.gosto, PERS_GOSTO));
     if (P.precisa.length) L.push('✅ ' + nome(P.precisa, PERS_PRECISA));
     if (P.obs) L.push('📝 ' + P.obs);
     const texto = L.join('\n');
     try {
+      const pedido = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), criadoEm: new Date().toISOString(), ...P,
+        quando: [dia(P.ini), dia(P.fim)].filter(Boolean).join(' → '), pessoas: P.adultos + P.criancas,
+        gostos: P.gosto.map(c => (PERS_GOSTO.find(z => z[0] === c) || [])[1]).filter(Boolean),
+        precisaTxt: P.precisa.map(c => (PERS_PRECISA.find(z => z[0] === c) || [])[1]).filter(Boolean),
+        kidsTxt: P.kids.map(k => (PERS_CRIANCAS.find(z => z[0] === k) || [])[1]).filter(Boolean) };
       DB.pedidos = DB.pedidos || [];
-      DB.pedidos.unshift({ id: 'p' + Date.now(), criadoEm: new Date().toISOString(), ...P });
+      DB.pedidos.unshift(pedido);
       save();
+      /* com a nuvem dela ligada, o pedido chega no painel da Mari (o visitante só CRIA, não lê nada) */
+      if (typeof itPedidoPublico === 'function') itPedidoPublico('pedidos', pedido);
     } catch (e) {}
     window.open(waLink(texto), '_blank', 'noopener');
     toast(t('persEnviado'));
@@ -821,6 +869,7 @@ function miniMap(stops, x) {
    mostra so o que ela preencheu no ADM. Sem nada preenchido, diz a verdade
    em vez de inventar um meio de pagamento. */
 function prazoSaldo(b, saldo) {
+  if (DB.settings.saldoNoDia) return t('balanceDia', { v: eur(saldo), d: fmtDate(b.date) });
   const d = Bookings.dueDate(b);
   return d > isoToday()
     ? t('balanceNote', { v: eur(saldo), d: fmtDate(d) })
@@ -887,6 +936,34 @@ async function viewPago(codigo) {
   }
 }
 
+/* LINK DE PAGAMENTO (06/10/2026): quando ela fecha pelo WhatsApp, manda este link e o
+   cliente paga o sinal por Pix (com o valor em real já dentro do código) ou Wise.
+   O link leva só o código da reserva, o valor e o dia — nada de nome nem contato.
+   Se alguém mexer no valor do link, só paga menos: quem confirma o pagamento é ela. */
+function linkPagamento(b, valor) {
+  const v = Math.round((+valor || Bookings.due(b)) * 100) / 100;
+  const base = location.href.split('#')[0];
+  return base + '#/pagar/' + encodeURIComponent(b.code) + '/' + v + '/' + (b.date || '') + '/' + Math.round(Math.max(0, (+b.total || 0) - Bookings.paid(b) - v) * 100) / 100;
+}
+function viewPagar(code, valor, data, resto) {
+  const v = Math.max(0, Math.round((+valor || 0) * 100) / 100);
+  const b = { code: decodeURIComponent(code || ''), total: v + Math.max(0, +resto || 0), policy: 'full', date: /^\d{4}-\d{2}-\d{2}$/.test(data || '') ? data : '' };
+  app.innerHTML = `
+  <header class="topbar"><span class="tbrand">${logoMark(24, 'var(--brand-amarelo)')}<b>${esc(guiaNome())}</b></span>${langBar('right')}</header>
+  <main class="wrap">
+    <h1 class="pageh">${t('pagarTit')}</h1>
+    <p class="desc lead">${t('pagarSub', { code: esc(b.code), data: b.date ? ' · ' + esc(fmtDate(b.date)) : '' })}</p>
+    ${v > 0 ? comoPagar({ ...b, total: v }, null).replace(/<p class="due">[\s\S]*?<\/p>/, '') : `<p class="why">${t('howPayNone')}</p>`}
+    ${+resto > 0 && b.date ? `<p class="why">${t('balanceDia', { v: eur(+resto), d: fmtDate(b.date) })}</p>` : ''}
+    <a class="cta" style="text-decoration:none;text-align:center;margin-top:12px" target="_blank" rel="noopener" href="${waLink(t('payProof') + ' (' + b.code + ')')}">✆ WhatsApp</a>
+  </main>`;
+  bindLang(app);
+  $$('[data-cp]', app).forEach(btn => btn.onclick = async () => {
+    try { await navigator.clipboard.writeText(btn.dataset.cp); toast(t('copiedOk')); }
+    catch (e) { const i = btn.previousElementSibling; if (i && i.select) { i.select(); document.execCommand('copy'); } toast(t('copiedOk')); }
+  });
+}
+
 function comoPagar(b, x) {
   const st = DB.settings || {};
   const agora = b.policy === 'split' ? Math.round(b.total / 2) : b.total;
@@ -925,7 +1002,14 @@ function comoPagar(b, x) {
       <small class="why">${t('cardComo')}</small>
     </div>` : '';
 
-  const meios = blocoCartao + blocoPix
+  /* Wise: link de pagamento dela, em euro (o cliente digita o valor; o app mostra qual) */
+  const blocoWise = /^https:\/\/(www\.)?wise\.com\//i.test(st.wiseLink || '') ? `
+    <div class="cardbox wisebox">
+      <b class="pixtit">${t('wiseTit')}</b>
+      <a class="cta sm" target="_blank" rel="noopener" href="${esc(st.wiseLink)}">${t('wiseBtn', { v: eur(agora) })}</a>
+      <small class="why">${t('wiseComo', { v: eur(agora) })}${st.wiseNome ? ' · ' + t('inNameOf') + ' ' + esc(st.wiseNome) : ''}</small>
+    </div>` : '';
+  const meios = blocoCartao + blocoPix + blocoWise
               + (st.pixKey && !codigoPix ? linha(t('pixLbl'), st.pixKey, st.pixName) : '')
               + (st.iban ? linha(t('ibanLbl'), st.iban, st.ibanName) : '');
   return `
@@ -1055,7 +1139,7 @@ function renderBook() {
       ${splitAllowed ? `
       <div class="payopts">
         <button class="popt ${S.policy === 'full' ? 'on' : ''}" data-p="full"><b>${t('payFull')}</b><small>${t('payFullSub')} · ${eur(total)}</small></button>
-        <button class="popt ${S.policy === 'split' ? 'on' : ''}" data-p="split"><b>${t('paySplit')}</b><small>${t('paySplitSub', { half: eur(half), d: (+x.balanceDays || 1) })}</small></button>
+        <button class="popt ${S.policy === 'split' ? 'on' : ''}" data-p="split"><b>${t(DB.settings.saldoNoDia ? 'paySplitDia' : 'paySplit')}</b><small>${DB.settings.saldoNoDia ? t('paySplitDiaSub', { half: eur(half) }) : t('paySplitSub', { half: eur(half), d: (+x.balanceDays || 1) })}</small></button>
       </div>` : ''}
       <button class="cta" id="payBtn">${S.policy === 'split' && splitAllowed ? t('payNowBtn', { v: eur(half) }) : t('payBtn', { v: eur(total) })}</button>
       <p class="fine">${cancelaTxt(x)} · ${t('noHidden')}</p>
@@ -1169,6 +1253,8 @@ function onCloudRejected() {
 }
 
 function admShell(tab, inner) {
+  /* a sincronia por linha (nuvem-itens.js) liga na primeira tela do painel com ela logada */
+  if (typeof itLigar === 'function') itLigar(() => { if (isBusyEditing()) pendingSync = true; else route(); });
   app.innerHTML = `
   <div class="adm">
     <aside class="rail">
@@ -1746,7 +1832,7 @@ function admBookings() {
       <p class="why">${t('nrValorAuto')}</p>
       <label class="fld">${t('nrComo')}<select id="nrComo">
         <option value="">${t('nrNada')}</option>
-        ${[['pix','mPix'],['transfer','mTransfer'],['cash','mCash'],['card','mCard'],['other','mOther']]
+        ${[['pix','mPix'],['wise','mWise'],['transfer','mTransfer'],['cash','mCash'],['card','mCard'],['other','mOther']]
           .map(([v, k]) => `<option value="${v}">${t(k)}</option>`).join('')}
       </select></label>
       <button class="cta sm" id="nrSalvar">${t('nrSalvar')}</button>
@@ -1837,7 +1923,7 @@ function admBookings() {
     const id = btn.dataset.got;
     const cx = document.getElementById('ta-' + id);
     if (!cx) return;
-    const formas = [['pix','mPix'],['card','mCard'],['cash','mCash'],['transfer','mTransfer'],['other','mOther']];
+    const formas = [['pix','mPix'],['wise','mWise'],['cash','mCash'],['card','mCard'],['transfer','mTransfer'],['other','mOther']];
     cx.innerHTML = `<span class="howgot">${t('howGot')}:</span>`
       + formas.map(([v, k]) => `<button class="mini" data-m="${v}">${t(k)}</button>`).join('')
       + `<button class="mini ghost" data-m="">${t('cancelSm')}</button>`;
@@ -2084,6 +2170,12 @@ function admSettings() {
         <label class="fld">${t('admIban')}<input id="pgIban" value="${esc(DB.settings.iban || '')}" placeholder="FR76 …"></label>
         <label class="fld">${t('admIbanName')}<input id="pgIbanName" value="${esc(DB.settings.ibanName || '')}" placeholder="Nome como no banco"></label>
       </div>
+      <div class="frow">
+        <label class="fld">${t('admWise')}<input id="pgWise" inputmode="url" value="${esc(DB.settings.wiseLink || '')}" placeholder="https://wise.com/pay/me/…"></label>
+        <label class="fld">${t('admWiseNome')}<input id="pgWiseNome" value="${esc(DB.settings.wiseNome || '')}" placeholder="Mariane Miorim"></label>
+      </div>
+      <label class="optin"><input type="checkbox" id="pgSaldoDia" ${DB.settings.saldoNoDia ? 'checked' : ''}>
+        <span><b>${t('admSaldoDia')}</b><small>${t('admSaldoDiaHelp')}</small></span></label>
       <label class="fld">${t('admPayNote')}<textarea id="pgNote" rows="3">${esc(DB.settings.payNote || '')}</textarea></label>
       <div class="rulesep"></div>
       <label class="optin"><input type="checkbox" id="pgCard" ${DB.settings.stripeAtivo ? 'checked' : ''}>
@@ -2289,6 +2381,10 @@ function admSettings() {
     DB.settings.iban     = $('#pgIban').value.trim();
     DB.settings.ibanName = $('#pgIbanName').value.trim();
     DB.settings.payNote  = $('#pgNote').value.trim();
+    const wise = $('#pgWise').value.trim();
+    if (wise && !/^https:\/\/(www\.)?wise\.com\//i.test(wise)) { $('#pgWise').focus(); return toast('O link do Wise começa com https://wise.com/'); }
+    DB.settings.wiseLink = wise; DB.settings.wiseNome = $('#pgWiseNome').value.trim();
+    DB.settings.saldoNoDia = $('#pgSaldoDia').checked;
     DB.settings.stripeAtivo   = $('#pgCard').checked;
     DB.settings.exibirCotacao = $('#pgFx').checked;
     DB.settings.fxMargem = Math.max(0, Math.min(30, +$('#pgMargem').value || 0));
@@ -2627,9 +2723,10 @@ function admClients() {
       </div></div>
     <section class="card">
       ${list.length ? `<table class="tbl"><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
-      <tbody>${list.map(c => `<tr class="cli" data-cli="${esc((c.email || c.whats || c.name).toLowerCase())}" title="abrir a ficha">
-        <td><b>${esc(c.name)}</b><br><small class="mono">${esc(c.email || '')}</small><br><a class="mini" href="#/adm/clients/${encodeURIComponent((c.email || c.whats || c.name).toLowerCase())}">ficha →</a></td>
-        <td>${c.tours > 1 ? `<span class="pill ok">${t('clRepeat', { n: c.tours })}</span>`
+      <tbody>${list.map(c => `<tr class="cli" data-cli="${esc(c.chave || (c.email || c.whats || c.name).toLowerCase())}" title="abrir a ficha">
+        <td><b>${esc(c.name)}</b><br><small class="mono">${esc(c.email || '')}</small><br><a class="mini" href="#/adm/clients/${encodeURIComponent(c.chave || (c.email || c.whats || c.name).toLowerCase())}">ficha →</a></td>
+        <td>${c.semReserva ? `<span class="pill">${[...(c.origins || [])][0] === 'personalize' ? 'veio pelo Personalize' : 'sem reserva ainda'}</span>`
+                          : c.tours > 1 ? `<span class="pill ok">${t('clRepeat', { n: c.tours })}</span>`
                           : `<span class="pill">${t('clNew')}</span>`}
           <br><span class="pill ${c.consent ? 'ok' : ''}" title="${c.consentAt ? c.consentAt.slice(0,10) : ''}">${c.consent ? '✓ ' + t('consentYes') : t('consentNo')}</span></td>
         <td class="mono right">${eur(c.spent)}</td>

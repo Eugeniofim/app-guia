@@ -26,13 +26,25 @@
    para fora: o assistente escreve, quem envia é o guia. */
 'use strict';
 
-const IA_CHAVE = 'guia_ia_chave';
-const IA_HIST = 'guia_ia_hist';
-const IA_GASTO = 'guia_ia_gasto';
-const IA_CONFIRMA = 'guia_ia_confirma';
+/* cada app tem as SUAS chaves: no mesmo endereço (guia.eugeniofim.com) moram o demo e
+   outros clientes — sem o prefixo, a conversa e a memória de um apareciam no outro */
+const IA_NS = (typeof DB_KEY !== 'undefined' ? String(DB_KEY).replace(/_db_v\d+$/, '') : 'guia') + '_';
+const IA_CHAVE = IA_NS + 'ia_chave';
+const IA_HIST = IA_NS + 'ia_hist';
+const IA_GASTO = IA_NS + 'ia_gasto';
+const IA_CONFIRMA = IA_NS + 'ia_confirma';
 const IA_MODELO = 'claude-haiku-4-5';
 const IA_PRECO = { in: 1, out: 5, cacheW: 1.25, cacheR: 0.10 };  /* US$ por milhão de tokens */
 const IA_MAX_VOLTAS = 10;
+/* o histórico guardado: resultado de ferramenta maior que isto é encolhido ao gravar (a resposta
+   já foi dada; a próxima mensagem não precisa reenviar 150 linhas da planilha), e o total tem teto */
+const IA_RESULT_MAX = 3500, IA_HIST_MAX_CHARS = 120000;
+/* toda chamada à IA tem prazo — sem isto, rede ruim no celular era "pensando…" para sempre */
+const IA_PRAZO_MS = 90000;
+function iaFetch(url, opts, ms) {
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms || IA_PRAZO_MS);
+  return fetch(url, { ...(opts || {}), signal: ac.signal }).finally(() => clearTimeout(t));
+}
 
 const iaLe = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
 const iaGrava = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
@@ -43,7 +55,11 @@ const iaChave = () => { try { return (localStorage.getItem(IA_CHAVE) || '').trim
               servidor, limite por pessoa e por dia) — ver guia-cofre;
    - 'demo':  sem nada disso, pedidos prontos que rodam as ferramentas. */
 const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
-const COFRE_FIM = 'guia_cofre_fim';
+/* De qual cliente é este app. Sem isto, a tela de treino de TODO app
+   escreveria por cima do treino do demo — um cliente apagaria o outro. */
+const CLIENTE_COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.clienteCofre) || 'demo';
+const urlEnsino = () => COFRE + '/api/ensino?cliente=' + encodeURIComponent(CLIENTE_COFRE);
+const COFRE_FIM = IA_NS + 'cofre_fim';
 let cofreEstado = { claude: false, imagem: false, instagram: false, whatsapp: false };
 const cofreEsgotado = (tipo) => { try { return sessionStorage.getItem(COFRE_FIM + tipo) === new Date().toISOString().slice(0, 10); } catch (e) { return false; } };
 const marcaEsgotado = (tipo) => { try { sessionStorage.setItem(COFRE_FIM + tipo, new Date().toISOString().slice(0, 10)); } catch (e) {} };
@@ -181,6 +197,13 @@ const IA_TXT = {
   inboxTxt: { pt: 'WhatsApp e Instagram num lugar só. O agente lê a pergunta, consulta as vagas de verdade e escreve a resposta no idioma do cliente.', en: 'WhatsApp and Instagram in one place. The agent reads the question, checks the real availability and writes the reply in the client’s language.' },
   inboxDemo: { pt: 'Demonstração: no app real, estas mensagens chegam do WhatsApp e do Instagram do guia.', en: 'Demo: in the real app, these messages arrive from the guide’s WhatsApp and Instagram.' },
   aoVivo: { pt: 'Ao vivo agora', en: 'Live now' },
+  sdBom:      { pt: 'Bom dia, {nome}.', en: 'Good morning, {nome}.', fr: 'Bonjour, {nome}.', it: 'Buongiorno, {nome}.', de: 'Guten Morgen, {nome}.', es: 'Buenos días, {nome}.' },
+  sdBoa:      { pt: 'Boa tarde, {nome}.', en: 'Good afternoon, {nome}.', fr: 'Bon après-midi, {nome}.', it: 'Buon pomeriggio, {nome}.', de: 'Guten Tag, {nome}.', es: 'Buenas tardes, {nome}.' },
+  sdNoite:    { pt: 'Boa noite, {nome}.', en: 'Good evening, {nome}.', fr: 'Bonsoir, {nome}.', it: 'Buonasera, {nome}.', de: 'Guten Abend, {nome}.', es: 'Buenas noches, {nome}.' },
+  sdHoje:     { pt: 'Hoje: {n} saída(s), {p} pessoas.', en: 'Today: {n} departure(s), {p} people.', fr: 'Aujourd’hui : {n} départ(s), {p} personnes.', it: 'Oggi: {n} partenza/e, {p} persone.', de: 'Heute: {n} Termin(e), {p} Personen.', es: 'Hoy: {n} salida(s), {p} personas.' },
+  sdHojeVazio:{ pt: 'Hoje não há saída marcada.', en: 'No departures today.', fr: 'Aucun départ aujourd’hui.', it: 'Oggi nessuna partenza.', de: 'Heute keine Termine.', es: 'Hoy no hay salidas.' },
+  sdFalta:    { pt: 'A receber: {v} em {n} reserva(s).', en: 'Still due: {v} across {n} booking(s).', fr: 'À recevoir : {v} sur {n} réservation(s).', it: 'Da incassare: {v} su {n} prenotazione/i.', de: 'Offen: {v} bei {n} Buchung(en).', es: 'Por cobrar: {v} en {n} reserva(s).' },
+  sdConvite:  { pt: 'Me diga o que precisa — eu preencho no app e mostro antes de gravar.', en: 'Tell me what you need — I fill it in the app and show you before saving.', fr: 'Dites-moi ce qu’il vous faut — je remplis l’app et vous montre avant d’enregistrer.', it: 'Dimmi di cosa hai bisogno — riempio l’app e ti mostro prima di salvare.', de: 'Sag mir, was du brauchst — ich trage es ein und zeige es dir vor dem Speichern.', es: 'Dime qué necesitas — lo relleno en la app y te lo muestro antes de guardar.' },
   aoVivoTit: { pt: 'Teste o agente de verdade', en: 'Try the real agent' },
   aoVivoTxt: { pt: 'Mande uma mensagem perguntando sobre um passeio: datas, vagas, preço. Em segundos chega a resposta, escrita pelo agente no seu idioma, com as vagas deste demo.', en: 'Send a message asking about a tour: dates, seats, price. Within seconds the agent replies in your language, with this demo’s availability.' },
   aoVivoNota: { pt: 'Enquanto a Meta analisa o app, o seu Instagram ou número precisa ser liberado antes — peça ao seu contato da Ti Artes (1 minuto).', en: 'While Meta reviews the app, your Instagram or number must be enabled first — ask your Ti Artes contact (1 minute).' },
@@ -322,7 +345,7 @@ const naLingua = (lang, fn) => { const a = LANG; LANG = lang; try { return fn();
 /* ---------- dados do marketing e do atendimento ----------
    Protótipo: guardados neste navegador. No app de um cliente viram linhas
    no Supabase dele, para celular e laptop verem o mesmo. */
-const MKT_KEY = 'guia_mkt';
+const MKT_KEY = IA_NS + 'mkt';
 const KIT_PADRAO = { cores: { principal: '#E8A33D', destaque: '#C4553B', escura: '#1E3A4C', neutra: '#6B6B73' },
   voz: '', frases: '', proibidas: 'imperdível, incrível, experiência única, o melhor', hashtags: '' };
 const Mkt = {
@@ -394,7 +417,7 @@ function guardaFoto(src, nome) {
 }
 
 /* ---------- imagem por IA: Gemini, com a chave do guia (fica só no aparelho) ---------- */
-const IMG_CHAVE = 'guia_gemini_chave';
+const IMG_CHAVE = IA_NS + 'gemini_chave';
 const IMG_MODELOS = ['gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview'];
 const PROPORCAO = { story: '9:16', post: '1:1', flyer: '4:5' };
 const imgChave = () => { try { return (localStorage.getItem(IMG_CHAVE) || '').trim(); } catch (e) { return ''; } };
@@ -498,10 +521,25 @@ const IA_FERRAMENTAS = [
   { name: 'apagar_criativo', description: 'Apaga um criativo.', input_schema: obj({ criativo_id: S_() }, ['criativo_id']) },
   { name: 'gerar_imagem', description: 'Gera uma imagem por IA (Gemini) para fundo, ilustração, conceito ou textura — nunca para fingir foto de um lugar real, do passeio ou de pessoas. Descreva em inglês, sem texto na imagem. Fica em Suas fotos com o selo IA; a ref volta no resultado para usar em criar_criativo.',
     input_schema: obj({ descricao: S_('em inglês'), formato: { type: 'string', enum: Object.keys(FORMATOS_CRIATIVO) } }, ['descricao']) },
+  { name: 'ver_clientes', description: 'Clientes que já reservaram: nome, contato, idioma, quantas reservas, total gasto e a última data.', input_schema: obj() },
+  { name: 'ver_relatorio', description: 'Números do período (AAAA-MM-DD): recebido, saídas, pessoas, a receber, e por passeio as visitas, reservas, conversão e receita.', input_schema: obj({ de: S_(), ate: S_() }) },
+  { name: 'ver_ajustes', description: 'Perfil do guia: nome, negócio, cidade, bio, texto da home, WhatsApp e Instagram.', input_schema: obj() },
+  { name: 'ver_ensino', description: 'Como o agente de atendimento está treinado: tom, respostas prontas, limites.', input_schema: obj() },
+  { name: 'criar_reserva', description: 'Cria uma reserva fechada fora do app (WhatsApp, Instagram, na rua). Só o que o guia informou; nunca invente valor recebido.',
+    input_schema: obj({ passeio_id: S_(), data: S_('AAAA-MM-DD'), hora: S_('HH:MM'), nome: S_(), pessoas: { type: 'integer' }, whats: S_(), email: S_(),
+      total: N_('total combinado; sem isto usa a tabela do passeio'), recebido: N_('quanto já entrou'), metodo: { type: 'string', enum: ['pix', 'card', 'cash', 'transfer'] } }, ['passeio_id', 'data', 'nome', 'pessoas']) },
+  { name: 'alterar_reserva', description: 'Muda data, hora, pessoas ou contato de uma reserva (código de ver_reservas).', input_schema: obj({ codigo: S_(), data: S_(), hora: S_(), pessoas: { type: 'integer' }, nome: S_(), whats: S_(), email: S_() }, ['codigo']) },
+  { name: 'cancelar_reserva', description: 'Cancela uma reserva (a vaga volta para a agenda).', input_schema: obj({ codigo: S_(), motivo: S_() }, ['codigo']) },
+  { name: 'registrar_pagamento', description: 'Registra dinheiro que entrou numa reserva. Sem valor, registra o que falta.', input_schema: obj({ codigo: S_(), valor: N_(), metodo: { type: 'string', enum: ['pix', 'card', 'cash', 'transfer'] } }, ['codigo']) },
+  { name: 'alterar_ajustes', description: 'Muda o perfil do guia: nome, negócio, cidade, bio, texto da home, WhatsApp, Instagram.', input_schema: obj({ nome: S_(), negocio: S_(), cidade: S_(), bio: S_(), texto_home: S_(), whats: S_(), insta: S_() }) },
+  { name: 'ensinar_agente', description: 'Treina o agente do WhatsApp/Instagram: tom, respostas prontas (pergunta e resposta), o que nunca dizer, quando passar a conversa para o guia.',
+    input_schema: obj({ tom: { type: 'string', enum: ['simp', 'formal', 'leve', 'direto'] }, detalhe: S_(), respostas: { type: 'array', items: obj({ pergunta: S_(), resposta: S_() }, ['pergunta', 'resposta']) },
+      nunca: S_(), passar: { type: 'array', items: { type: 'string', enum: ['hReclama', 'hDesconto', 'hGrupo', 'hEspecial'] } } }) },
   { name: 'guardar_memoria', description: 'Guarda uma regra ou preferência que vale para sempre.', input_schema: obj({ texto: S_() }, ['texto']) },
   { name: 'apagar_memoria', description: 'Apaga um item da memória.', input_schema: obj({ memoria_id: S_() }, ['memoria_id']) },
 ];
-const IA_LEITURA = new Set(['ver_passeios', 'ver_agenda', 'ver_reservas', 'ver_cupons', 'ver_bloqueios', 'ver_fotos', 'ver_marketing']);
+const IA_LEITURA = new Set(['ver_passeios', 'ver_agenda', 'ver_reservas', 'ver_cupons', 'ver_bloqueios', 'ver_fotos', 'ver_marketing',
+  'ver_clientes', 'ver_relatorio', 'ver_ajustes', 'ver_ensino']);
 
 function iaLeitura(nome, i) {
   if (nome === 'ver_passeios') return Tours.all().map(x => ({
@@ -524,6 +562,37 @@ function iaLeitura(nome, i) {
       codigo: b.code, cliente: b.name, idioma: b.lang || null, passeio: nomeTour(Tours.get(b.tourId)), data: b.date, hora: b.time,
       pessoas: b.pax, situacao: b.status, total: b.total, pago: Bookings.paid(b) }));
     return l.length ? l : 'nenhuma reserva neste período';
+  }
+  if (nome === 'ver_clientes') {
+    const m = {};
+    for (const b of DB.bookings) {
+      if (b.status === 'cancelled') continue;
+      const k = (b.email || b.whats || b.name || '?').toLowerCase();
+      const c = m[k] = m[k] || { nome: b.name, contato: b.email || b.whats || '', idioma: b.lang || null, reservas: 0, pessoas: 0, gasto: 0, ultima: '' };
+      c.reservas++; c.pessoas += b.pax; c.gasto += Bookings.paid(b);
+      if (b.date > c.ultima) c.ultima = b.date;
+    }
+    const l = Object.values(m).sort((a, b) => b.gasto - a.gasto).slice(0, 60);
+    return l.length ? l : 'nenhum cliente ainda';
+  }
+  if (nome === 'ver_relatorio') {
+    const de = isoOk(i.de) ? i.de : hojeIso().slice(0, 8) + '01', ate = isoOk(i.ate) ? i.ate : hojeIso();
+    const T = Reports.totals(de, ate);
+    return { periodo: { de, ate }, recebido: T.revenue, saidas: T.deps, pessoas: T.pax, a_receber: T.due, media_por_pessoa: T.ticket,
+      por_passeio: Reports.interesse(de, ate).map(r => ({ passeio: nomeTour(r.tour), visitas: r.visitas, quase_reservaram: r.quase,
+        reservas: r.reservas, conversao_pct: r.conv, receita: r.receita })),
+      de_onde_vieram: Reports.byOrigin(de, ate) };
+  }
+  if (nome === 'ver_ajustes') {
+    const st = DB.settings || {};
+    return { nome: st.admName || '', negocio: st.negocio || '', cidade: st.base || '', bio: st.bio || '', texto_home: st.homeText || '',
+      whats: st.whats || '', insta: st.insta || '', moeda: 'euro' };
+  }
+  if (nome === 'ver_ensino') {
+    const e = typeof ensino === 'function' ? ensino() : null;
+    if (!e) return 'o agente ainda usa o treino padrão';
+    return { tom: e.tom, detalhe: e.tomExtra || '', respostas: e.faq.filter(f => f.p && f.r).map(f => ({ pergunta: f.p, resposta: f.r })),
+      nunca: e.nunca || '', passa_para_o_guia: (e.passa || []).map(k => ia(k)) };
   }
   if (nome === 'ver_cupons') return DB.coupons.length ? DB.coupons.map(c => ({ codigo: c.code, desconto: c.pct + '%', validade: c.until })) : 'nenhum cupom';
   if (nome === 'ver_bloqueios') return DB.blocks.length ? DB.blocks.map(b => ({ id: b.id, de: b.from, ate: b.until, motivo: b.note || '' })) : 'nenhum bloqueio';
@@ -596,6 +665,92 @@ function iaPlano(nome, i) {
   if (nome === 'liberar_datas') {
     const b = DB.blocks.find(b => b.id === i.bloqueio_id); if (!b) return E_('bloqueio não encontrado');
     return { titulo: ia('cLiberar'), assumiu: [], linhas: [[ia('cPeriodo'), `${dataCurta(b.from)} – ${dataCurta(b.until)}`]], fazer: () => { Cal.removeBlock(b.id); return { ok: true }; } };
+  }
+  /* ---- reservas: o guia fecha por fora e o assistente registra ---- */
+  if (nome === 'criar_reserva') {
+    const x = Tours.get(i.passeio_id); if (!x) return E_('passeio não encontrado — use ver_passeios');
+    if (!isoOk(i.data)) return E_('data em AAAA-MM-DD');
+    const pax = Math.max(1, +i.pessoas || 1);
+    const hora = /^\d{2}:\d{2}$/.test(i.hora || '') ? i.hora : (Cal.rulesFor(x.id)[0] || {}).time;
+    if (!hora) return E_('falta a hora (o passeio não tem horário fixo)');
+    const livres = Cal.seatsLeft(x.id, i.data, hora, (Cal.rulesFor(x.id).find(r => r.time === hora) || {}).capacity || x.max);
+    if (livres < pax) return E_(`só há ${livres} lugar(es) em ${dataCurta(i.data)} ${hora}`);
+    const total = +i.total > 0 ? +i.total : Bookings.precoDe(x, x.id, i.data, hora, pax).total;
+    const recebido = Math.max(0, +i.recebido || 0);
+    const assumiu = [];
+    if (!i.hora) assumiu.push(`${ia('cHora')} ${hora}`);
+    if (!(+i.total > 0)) assumiu.push(`${ia('cPreco')} ${eur(total)}`);
+    return { titulo: ia('cCriarReserva'), assumiu,
+      linhas: [[ia('cCliente'), i.nome], [ia('xPasseio'), nomeTour(x)], [ia('cQuando'), `${dataCurta(i.data)} ${hora}`],
+        [ia('cPessoas'), String(pax)], [ia('cTotal'), eur(total)], ...(recebido ? [[ia('cRecebido'), eur(recebido)]] : [])],
+      fazer: () => { const b = Bookings.criarManual({ tourId: x.id, date: i.data, time: hora, name: i.nome, whats: i.whats || '', email: i.email || '',
+        pax, total, recebido, metodo: i.metodo || 'pix' }); return { ok: true, codigo: b.code }; } };
+  }
+  if (nome === 'alterar_reserva') {
+    const b = Bookings.byCode(String(i.codigo || '').toUpperCase()); if (!b) return E_('reserva não encontrada — use ver_reservas');
+    const x = Tours.get(b.tourId), muda = {}, linhas = [[ia('cCliente'), b.name], [ia('cCodigo'), b.code]];
+    if (isoOk(i.data) && i.data !== b.date) { muda.date = i.data; linhas.push([ia('cQuando'), `${dataCurta(b.date)} → ${dataCurta(i.data)}`]); }
+    if (/^\d{2}:\d{2}$/.test(i.hora || '') && i.hora !== b.time) { muda.time = i.hora; linhas.push([ia('cHora'), `${b.time} → ${i.hora}`]); }
+    if (+i.pessoas > 0 && +i.pessoas !== b.pax) { muda.pax = +i.pessoas; linhas.push([ia('cPessoas'), `${b.pax} → ${+i.pessoas}`]); }
+    if (i.nome && i.nome !== b.name) { muda.name = i.nome; linhas.push([ia('cNome'), `${b.name} → ${i.nome}`]); }
+    if (i.whats) { muda.whats = i.whats; linhas.push(['WhatsApp', i.whats]); }
+    if (i.email) { muda.email = i.email; linhas.push([ia('cEmail'), i.email]); }
+    if (!Object.keys(muda).length) return E_('nada para mudar');
+    const assumiu = [];
+    if (muda.pax) { const novo = Bookings.precoDe(x, b.tourId, muda.date || b.date, muda.time || b.time, muda.pax).total;
+      muda.total = novo; assumiu.push(`${ia('cTotal')} ${eur(novo)}`); }
+    return { titulo: ia('cAlterarReserva'), assumiu, linhas,
+      fazer: () => { Object.assign(b, muda); save(); if (typeof cloudPushBooking === 'function') cloudPushBooking(b); return { ok: true }; } };
+  }
+  if (nome === 'cancelar_reserva') {
+    const b = Bookings.byCode(String(i.codigo || '').toUpperCase()); if (!b) return E_('reserva não encontrada');
+    if (b.status === 'cancelled') return E_('essa reserva já está cancelada');
+    return { titulo: ia('cCancelarReserva'), assumiu: [],
+      linhas: [[ia('cCliente'), b.name], [ia('xPasseio'), nomeTour(Tours.get(b.tourId))], [ia('cQuando'), `${dataCurta(b.date)} ${b.time}`],
+        [ia('cPessoas'), String(b.pax)], ...(Bookings.paid(b) ? [[ia('cRecebido'), eur(Bookings.paid(b))]] : [])],
+      fazer: () => { Bookings.cancel(b.id); return { ok: true, aviso: 'quem avisa o cliente é o guia' }; } };
+  }
+  if (nome === 'registrar_pagamento') {
+    const b = Bookings.byCode(String(i.codigo || '').toUpperCase()); if (!b) return E_('reserva não encontrada');
+    const falta = Bookings.due(b);
+    const valor = +i.valor > 0 ? +i.valor : falta;
+    if (!(valor > 0)) return E_('essa reserva já está paga');
+    const metodo = ['pix', 'card', 'cash', 'transfer'].includes(i.metodo) ? i.metodo : 'pix';
+    return { titulo: ia('cPagamento'), assumiu: +i.valor > 0 ? [] : [`${ia('cValor')} ${eur(valor)}`],
+      linhas: [[ia('cCliente'), b.name], [ia('cCodigo'), b.code], [ia('cValor'), eur(valor)], [ia('cComo'), metodo],
+        [ia('cFalta'), eur(Math.max(0, falta - valor))]],
+      fazer: () => { b.payments.push({ amount: valor, date: hojeIso(), method: metodo, kind: Bookings.paid(b) ? 'balance' : 'deposit' });
+        save(); if (typeof cloudPushBooking === 'function') cloudPushBooking(b); return { ok: true }; } };
+  }
+  /* ---- perfil do guia ---- */
+  if (nome === 'alterar_ajustes') {
+    const st = DB.settings, mapa = [['nome', 'admName'], ['negocio', 'negocio'], ['cidade', 'base'], ['bio', 'bio'], ['texto_home', 'homeText'], ['whats', 'whats'], ['insta', 'insta']];
+    const muda = {}, linhas = [];
+    for (const [de, para] of mapa) if (i[de] !== undefined && String(i[de]).trim() && String(i[de]) !== String(st[para] || '')) {
+      muda[para] = String(i[de]).trim();
+      linhas.push([de === 'texto_home' ? ia('cTextoHome') : de === 'bio' ? ia('cBio') : de, String(i[de]).slice(0, 120)]);
+    }
+    if (!linhas.length) return E_('nada para mudar');
+    return { titulo: ia('cAjustes'), assumiu: [], linhas,
+      fazer: () => { Object.assign(st, muda); save(); if (typeof cloudPushState === 'function') cloudPushState(); return { ok: true }; } };
+  }
+  /* ---- treino do agente de atendimento ---- */
+  if (nome === 'ensinar_agente') {
+    if (typeof ensino !== 'function') return E_('esta parte não existe neste app');
+    const e = ensino(), linhas = [], novo = {};
+    if (i.tom && ENS_TONS[i.tom]) { novo.tom = i.tom; linhas.push([ia('ensP1'), ia('tom_' + i.tom)]); }
+    if (i.detalhe) { novo.tomExtra = String(i.detalhe).slice(0, 300); linhas.push([ia('ensP1'), novo.tomExtra]); }
+    const novas = (Array.isArray(i.respostas) ? i.respostas : []).filter(r => r && r.pergunta && r.resposta);
+    if (novas.length) linhas.push([ia('ensP2'), novas.map(r => '• ' + r.pergunta).join('\n')]);
+    if (i.nunca) { novo.nunca = String(i.nunca).slice(0, 500); linhas.push([ia('ensLimTit'), novo.nunca]); }
+    if (Array.isArray(i.passar) && i.passar.length) { novo.passa = i.passar.filter(k => ENS_PASSA.includes(k)); linhas.push([ia('ensPassaTit'), novo.passa.map(k => ia(k)).join(', ')]); }
+    if (!linhas.length) return E_('diga o que mudar no treino');
+    return { titulo: ia('cEnsinar'), assumiu: [], linhas,
+      fazer: () => { Object.assign(e, novo);
+        for (const r of novas) { const j = e.faq.findIndex(f => f.p.toLowerCase() === String(r.pergunta).toLowerCase());
+          const item = { k: '', p: String(r.pergunta).slice(0, 200), r: String(r.resposta).slice(0, 600) };
+          if (j >= 0) e.faq[j] = item; else e.faq.push(item); }
+        Mkt.salva(); return { ok: true, aviso: 'para valer no Instagram de verdade, use o botão Aplicar na aba Atendimento' }; } };
   }
   if (nome === 'criar_cupom') {
     const code = String(i.codigo || '').toUpperCase().replace(/\s+/g, ''), pct = +i.desconto;
@@ -780,8 +935,11 @@ async function iaRodaFerramenta(nome, input) {
     if (IA_LEITURA.has(nome)) return iaLeitura(nome, input);
     const plano = iaPlano(nome, input);
     if (plano.erro) return plano;
-    if (iaPerguntaAntes()) {
-      if (!(await iaPedeConfirmacao(plano))) return { cancelado: true, aviso: 'cancelou; não grave nada e não insista' };
+    /* IA_SEMPRE_CONFIRMA (definido pelo app): ferramentas que mostram o cartão mesmo com a
+       confirmação desligada — memória, tabela de preços, apagar, backup: um texto malicioso
+       colado numa conversa não pode gravar nada disso sozinho */
+    if (iaPerguntaAntes() || (typeof IA_SEMPRE_CONFIRMA !== 'undefined' && IA_SEMPRE_CONFIRMA.has(nome))) {
+      if (!(await iaPedeConfirmacao(plano))) return { cancelado: true, aviso: 'cancelou: nada foi gravado. Não insista nem refaça. Em UMA linha, pergunte o que ela quer diferente; se ela corrigir, faça do jeito dela e termine perguntando "Guardo isso como regra para sempre?"' };
     } else iaCartaoFeito(plano);
     const r = await plano.fazer();
     iaRedesenhaTela();
@@ -795,6 +953,45 @@ function iaRedesenhaTela() {
 }
 
 /* ---------- instruções do Claude de verdade ---------- */
+/* O que está acontecendo no app AGORA — vai junto em toda mensagem, para ele
+   falar do dia dela sem precisar chamar ferramenta para o básico. */
+/* a primeira linha da conversa: o dia dela em uma frase, e o convite */
+function iaSaudacao() {
+  const h = new Date().getHours();
+  const parte = h < 12 ? 'sdBom' : h < 19 ? 'sdBoa' : 'sdNoite';
+  const hoje = hojeIso();
+  const bs = DB.bookings.filter(b => b.status !== 'cancelled');
+  const hj = bs.filter(b => b.date === hoje);
+  const pax = hj.reduce((n, b) => n + b.pax, 0);
+  const devendo = bs.filter(b => b.date >= hoje && Bookings.due(b) > 0);
+  const falta = devendo.reduce((n, b) => n + Bookings.due(b), 0);
+  const linhas = [ia(parte, { nome: guiaNome() })];
+  linhas.push(hj.length ? ia('sdHoje', { n: hj.length, p: pax }) : ia('sdHojeVazio'));
+  if (devendo.length) linhas.push(ia('sdFalta', { v: eur(falta), n: devendo.length }));
+  linhas.push(ia('sdConvite'));
+  return linhas.join('\n');
+}
+
+function iaAgora() {
+  const hoje = hojeIso(), fim = addDays(hoje, 7);
+  const bs = DB.bookings.filter(b => b.status !== 'cancelled');
+  const hojeSai = bs.filter(b => b.date === hoje);
+  const semana = bs.filter(b => b.date > hoje && b.date <= fim);
+  const devendo = bs.filter(b => b.date >= hoje && Bookings.due(b) > 0);
+  const vazias = (typeof saidasVazias === 'function' ? saidasVazias(7) : [])
+    .filter(x => x.livres >= Math.ceil(x.capacity / 2)).slice(0, 4);
+  const novas = bs.filter(b => (b.createdAt || '').slice(0, 10) >= addDays(hoje, -2));
+  const linha = (b) => `${dataCurta(b.date)} ${b.time} · ${nomeTour(Tours.get(b.tourId))} · ${b.name} (${b.pax})`;
+  return [
+    linhaHoje(),
+    hojeSai.length ? `Saídas de hoje: ${hojeSai.map(linha).join(' | ')}` : 'Hoje não há saída.',
+    semana.length ? `Próximos 7 dias: ${semana.length} reserva(s) — ${semana.slice(0, 5).map(linha).join(' | ')}` : 'Próximos 7 dias sem reserva.',
+    devendo.length ? `A receber: ${devendo.map(b => `${b.code} ${b.name} ${eur(Bookings.due(b))}`).join(' | ')}` : 'Nada a receber nas próximas saídas.',
+    vazias.length ? `Saídas com vaga sobrando: ${vazias.map(x => `${dataCurta(x.date)} ${x.time} ${nomeTour(x.x)} (${x.livres} de ${x.capacity})`).join(' | ')}` : '',
+    novas.length ? `Reservas novas (48 h): ${novas.length}` : '',
+  ].filter(Boolean).join('\n');
+}
+
 function iaSistema() {
   const k = Mkt.get().kit, mem = Mkt.get().memoria;
   const lingua = (LANGS.find(l => l[0] === LANG) || [0, 0, 'Português'])[2];
@@ -802,6 +999,19 @@ function iaSistema() {
     { type: 'text', cache_control: { type: 'ephemeral' }, text: `${linhaHoje()}
 
 Você é o assistente de ${guiaNome()} (${guiaNegocio()}), guia de turismo baseado em ${guiaBase()}. Trabalha dentro do app de reservas: conhece os passeios, a agenda, as vagas e as reservas, e escreve como a equipe de marketing da casa.
+
+## Como você é
+Inteligente, elegante e gentil, como uma pessoa de confiança que trabalha com ela há anos. Fala pouco e resolve: frase curta, sem jargão, sem "como posso ajudar?". Chama ela pelo nome de vez em quando, não em toda linha. Nada de emoji em excesso — no máximo um, quando couber.
+Você é PROPOSITIVO: depois de responder, ofereça o próximo passo mais útil em uma linha ("quer que eu já ponha isso no plano?", "posso mandar o link do Pedro?"), e pare. Uma pergunta por vez.
+Você enxerga o app inteiro em tempo real — o bloco "SITUAÇÃO AGORA" abaixo vem atualizado a cada mensagem. Use esses números em vez de perguntar o óbvio; chame as ferramentas quando precisar de detalhe.
+Quando ela contar algo solto, você mesmo transforma em ação no app e mostra o cartão de confirmação. O trabalho dela é falar; o de preencher é seu.
+Se um pedido tiver várias partes, faça todas e confirme uma por uma, na ordem que faz sentido.
+Se algo estiver estranho no app (vaga sobrando perto da data, reserva sem pagamento, passeio muito visto que não vende), diga em uma linha, sem alarme.
+
+## O que você faz dentro do app
+Você é o painel inteiro em forma de conversa. Lê: passeios, agenda, vagas, reservas, clientes, cupons, bloqueios, fotos, marketing, relatório (visitas, conversão e receita por passeio), ajustes e o treino do agente de atendimento. Grava, sempre com cartão de confirmação: passeio, preço, horário, bloqueio, cupom, plano de postagem, criativo, anúncio, memória, **reserva (criar, mudar, cancelar), pagamento recebido, perfil do guia e o treino do agente**.
+Quando o guia contar algo que cabe no app ("fechei com o Pedro no dia 10", "recebi 150 do João por Pix", "mudei o ponto de encontro", "o cliente sempre pergunta X"), ofereça gravar você mesmo, em uma frase, e chame a ferramenta. Vários pedidos numa mensagem: resolva todos, um cartão por ação.
+O que você não sabe (o dado só existe na cabeça dele), pergunte — uma pergunta por vez, a mais importante primeiro.
 
 ## Regra absoluta
 Você nunca fala com ninguém de fora: não contata cliente, não publica, não manda mensagem nem e-mail, não liga nem paga anúncio. Você escreve; quem envia e publica é o guia. Não existe ferramenta para mandar nada para fora — é de propósito.
@@ -829,6 +1039,7 @@ Anúncio (Meta): objetivo, público, verba diária e duração com o porquê em 
 
 ## Formato
 Responda em ${lingua}, curto. Texto para copiar vem pronto, sem comentário em volta. Negrito com parcimônia; nada de tabelas.` },
+    { type: 'text', text: `## SITUAÇÃO AGORA (atualizada a cada mensagem)\n${iaAgora()}` },
     { type: 'text', text: `${linhaHoje()} Moeda: euro.` + (iaModo() === 'vivo' ? ' Isto é a demonstração pública do app: quem conversa é um guia conhecendo o produto, e os passeios e reservas são de exemplo.' : '') + (iaContexto() ? ` Tela aberta: ${iaContexto().txt}.` : '') +
       (mem.length ? '\n\n## Memória (o que o guia ensinou)\n' + mem.map(x => `- [${x.id}] ${x.texto}`).join('\n') : '') },
   ];
@@ -848,9 +1059,9 @@ async function iaChamar(mensagens) {
   let r;
   try {
     r = vivo
-      ? await fetch(COFRE + '/api/claude', { method: 'POST', headers: { 'content-type': 'application/json' },
+      ? await iaFetch(COFRE + '/api/claude', { method: 'POST', headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ max_tokens: 1500, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagensParaEnvio(mensagens) }) })
-      : await fetch('https://api.anthropic.com/v1/messages', { method: 'POST',
+      : await iaFetch('https://api.anthropic.com/v1/messages', { method: 'POST',
           headers: { 'content-type': 'application/json', 'x-api-key': iaChave(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
           body: JSON.stringify({ model: IA_MODELO, max_tokens: 4000, system: iaSistema(), tools: IA_FERRAMENTAS, messages: mensagensParaEnvio(mensagens) }) });
   } catch (e) { throw new Error(iaTraduzErro(0)); }
@@ -868,28 +1079,54 @@ function iaSomaGasto(u) {
   iaMostraGasto();
 }
 const ehPergunta = (m) => m.role === 'user' && (typeof m.content === 'string' || (Array.isArray(m.content) && m.content.some(b => b.type === 'text') && !m.content.some(b => b.type === 'tool_result')));
+/* resultado de ferramenta já respondido: guarda só o começo (a próxima mensagem não reenvia tudo) */
+function iaEncolheResultado(b) {
+  if (!b || b.type !== 'tool_result' || typeof b.content !== 'string' || b.content.length <= IA_RESULT_MAX) return b;
+  return { ...b, content: b.content.slice(0, IA_RESULT_MAX) + ' …[resultado encolhido — chame a ferramenta de novo se precisar do resto]' };
+}
 function iaAparaHist(h) {
   let x = h.slice(-40);
   while (x.length && !ehPergunta(x[0])) x.shift();
-  return x.map(m => Array.isArray(m.content) && m.content.some(b => b.type === 'image')
-    ? { ...m, content: m.content.map(b => b.type === 'image' ? { type: 'text', text: '[foto]' } : b) } : m);
+  x = x.map(m => Array.isArray(m.content) && m.content.some(b => b.type === 'image' || b.type === 'document' || b.type === 'tool_result')
+    ? { ...m, content: m.content.map(b => (b.type === 'image' || b.type === 'document') ? { type: 'text', text: b.type === 'document' ? '[documento]' : '[foto]' } : iaEncolheResultado(b)) } : m);
+  /* teto por tamanho: solta as conversas mais antigas (sempre a partir de uma pergunta dela) */
+  while (x.length > 2 && JSON.stringify(x).length > IA_HIST_MAX_CHARS) { x.shift(); while (x.length && !ehPergunta(x[0])) x.shift(); }
+  return x;
+}
+/* o histórico que fica depois de um erro no meio: nunca termina numa ação sem resposta
+   (tool_use sem tool_result dá erro 400 na próxima chamada) */
+function iaHistSeguro(h) {
+  const x = h.slice();
+  while (x.length) {
+    const u = x[x.length - 1];
+    if (u.role === 'user' && Array.isArray(u.content) && u.content.some(b => b.type === 'tool_result')) { x.pop(); continue; }
+    if (u.role === 'assistant' && Array.isArray(u.content) && u.content.some(b => b.type === 'tool_use')) { x.pop(); continue; }
+    break;
+  }
+  return x;
 }
 
-let iaOcupado = false;
+let iaOcupado = false, iaAbortar = false;
 async function iaConversa(texto, fotos) {
   fotos = !fotos ? [] : Array.isArray(fotos) ? fotos : [fotos];
   if (iaOcupado) return;
-  iaOcupado = true; iaTravado(true);
+  iaOcupado = true; iaAbortar = false; iaTravado(true);
   const hist = iaAparaHist(iaLe(IA_HIST, []));
   const refs = fotos.map(f => guardaFoto(f)).filter(Boolean).map(f => f.id);
   const nota = refs.length ? `\n\n[${refs.length > 1 ? 'fotos guardadas' : 'foto guardada'}; refs (para criativo ou capa de passeio): ${refs.join(', ')}]` : '';
   const pergunta = texto || (fotos.length > 1 ? 'O que dá para fazer com estas fotos?' : 'Escreva uma legenda para esta foto.');
-  hist.push({ role: 'user', dia: hojeLocalIso(), content: fotos.length ? [...fotos.map(f => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f.split(',')[1] } })), { type: 'text', text: pergunta + nota }] : pergunta });
+  hist.push({ role: 'user', dia: hojeLocalIso(), content: fotos.length ? [...fotos.map(f => {
+    const mt = (String(f).match(/^data:([^;]+)/) || [])[1] || 'image/jpeg';
+    return /pdf/.test(mt)
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.split(',')[1] } }
+      : { type: 'image', source: { type: 'base64', media_type: /^image\//.test(mt) ? mt : 'image/jpeg', data: f.split(',')[1] } };
+  }), { type: 'text', text: pergunta + nota }] : pergunta });
   iaBolha('user', pergunta, null, false, fotos);
   const pensando = iaBolha('pensa', ia('pensando'));
   try {
     for (let volta = 0; volta < IA_MAX_VOLTAS; volta++) {
       const resp = await iaChamar(hist);
+      if (iaAbortar) return;                           // ela limpou a conversa no meio: para aqui
       hist.push({ role: 'assistant', content: resp.content });
       const txt = resp.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
       if (txt) iaBolha('assistant', txt, pensando);
@@ -901,6 +1138,8 @@ async function iaConversa(texto, fotos) {
     if (hist[hist.length - 1].role === 'user') { hist.pop(); hist.pop(); }
     iaGrava(IA_HIST, iaAparaHist(hist));
   } catch (e) {
+    /* erro no meio (rede, limite): o que já foi feito fica na conversa, sem ação pela metade */
+    if (!iaAbortar) iaGrava(IA_HIST, iaAparaHist(iaHistSeguro(hist)));
     /* acabou o limite do ao vivo: a gaveta vira demonstração e diz por quê */
     if (e.acabou) setTimeout(() => { iaAtualizaFab(); iaDesenha(); iaBolha('assistant', ia('vivoAcabou'), null, true); }, 50);
     else iaBolha('erro', e.message);
@@ -1787,14 +2026,14 @@ let ensAplMsg = '', ensCofreTemCodigo = null;
 function ensSondaCodigo() {
   if (ensCofreTemCodigo !== null || !COFRE) return;
   ensCofreTemCodigo = false;
-  fetch(COFRE + '/api/ensino', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+  fetch(urlEnsino(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
     .then(r => { ensCofreTemCodigo = r.status === 401 || r.status === 200; if (ensCofreTemCodigo && $('.ensForm') && !$('.ensApl')) admEnsinar(); }).catch(() => {});
 }
 function ensAplicarCartao() {
   const conta = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.agenteInstagram;
   ensSondaCodigo();
   if (!COFRE || !conta || !cofreEstado.instagram || !ensCofreTemCodigo) return '';
-  let cod = ''; try { cod = sessionStorage.getItem('guia_admin_codigo') || ''; } catch (e) {}
+  let cod = ''; try { cod = sessionStorage.getItem(IA_NS + 'admin_codigo') || ''; } catch (e) {}
   return `<section class="ensCard ensApl"><h3>📲 ${ia('ensAplTit')}</h3><p class="ensSub">${esc(ia('ensAplTxt').replace('{c}', conta))}</p>
     <form id="ensAplForm" class="ensAplLinha"><input type="password" id="ensCodigo" value="${esc(cod)}" placeholder="${ia('ensCodigo')}" autocomplete="current-password" aria-label="${ia('ensCodigo')}">
       <button class="ibBt" type="submit">${ia('ensAplBt')}</button></form>
@@ -1802,17 +2041,17 @@ function ensAplicarCartao() {
     ${ensAplMsg ? `<p class="ensAplMsg">${ensAplMsg}</p>` : ''}</section>`;
 }
 async function ensAplicar(codigo) {
-  try { sessionStorage.setItem('guia_admin_codigo', codigo); } catch (e) {}
+  try { sessionStorage.setItem(IA_NS + 'admin_codigo', codigo); } catch (e) {}
   const e = ensino();
-  let r; try { r = await fetch(COFRE + '/api/ensino', { method: 'POST', headers: { 'content-type': 'application/json', 'x-codigo': codigo }, body: JSON.stringify({ ensino: e }) }); } catch (x) { r = null; }
+  let r; try { r = await fetch(urlEnsino(), { method: 'POST', headers: { 'content-type': 'application/json', 'x-codigo': codigo }, body: JSON.stringify({ ensino: e }) }); } catch (x) { r = null; }
   const hora = new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
   ensAplMsg = r && r.ok ? '✓ ' + ia('ensAplOk') + ' (' + hora + ')' : r && r.status === 401 ? '⚠ ' + ia('ensAplErro') : r && r.status === 503 ? '⚠ ' + ia('ensAplSem') : '⚠ ' + ia('ensAplFalhou');
-  if (r && r.status === 401) try { sessionStorage.removeItem('guia_admin_codigo'); } catch (x) {}
+  if (r && r.status === 401) try { sessionStorage.removeItem(IA_NS + 'admin_codigo'); } catch (x) {}
   admEnsinar();
 }
 async function ensTrazer() {
   try {
-    const j = await fetch(COFRE + '/api/ensino', { cache: 'no-store' }).then(r => r.json());
+    const j = await fetch(urlEnsino(), { cache: 'no-store' }).then(r => r.json());
     if (j && j.ensino) { const m = Mkt.get(); m.ensino = { ...ensino(), ...j.ensino, faq: j.ensino.faq.map(f => ({ k: '', p: f.p, r: f.r })) }; Mkt.salva(); ensAplMsg = '✓ ' + ia('ensTrouxe'); }
     else ensAplMsg = ia('ensNadaNoAr');
   } catch (x) { ensAplMsg = '⚠ ' + ia('ensAplFalhou'); }
@@ -1842,48 +2081,58 @@ body:has(.coach) #iaFab{display:none!important}
 #iaGaveta.aberta{transform:none}
 body.iaSolta #iaGaveta{outline:3px dashed var(--accent,#064c3f);outline-offset:-6px}
 body.iaSolta #iaGaveta::after{content:'Solta aqui — vai pro assistente';position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:rgba(6,76,63,.10);font-weight:800;pointer-events:none}
-#iaGaveta header{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--line,#e5e5e5)}
-#iaGaveta header b{flex:1;font-size:16px}
-#iaGaveta .x{border:0;background:none;font-size:26px;line-height:1;cursor:pointer;color:inherit;min-width:44px;min-height:44px}
-#iaCtx{padding:6px 16px;font-size:12.5px;color:var(--ink-3,#777);border-bottom:1px solid var(--line,#eee)}
-#iaMsgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-.iaB{max-width:92%;padding:10px 13px;border-radius:14px;font-size:14.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
-.iaB img{display:block;max-width:100%;border-radius:10px;margin-bottom:6px}
+#iaGaveta header{display:flex;align-items:center;gap:12px;padding:12px 8px 12px 16px;border-bottom:1px solid var(--line,#e5e5e5)}
+#iaGaveta .iaAv{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--accent,#064c3f);color:#fff;font-size:16px}
+#iaGaveta .iaCab{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+#iaGaveta header b{font-size:15.5px;display:flex;align-items:center;gap:8px}
+.iaModo{font:700 10.5px var(--f-ui);letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--surface-2,#f1efec);color:var(--ink-2,#555)}
+#iaCtx{font-size:12px;color:var(--ink-3,#888);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#iaCtx:empty{display:none}
+#iaGaveta .x{border:0;background:none;font-size:24px;line-height:1;cursor:pointer;color:var(--ink-3,#888);min-width:44px;min-height:44px;border-radius:50%}
+#iaGaveta .x:hover{background:var(--surface-2,#f1efec);color:inherit}
+#iaMsgs{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;background:var(--surface-2,#f7f5f2)}
+.iaB{position:relative;max-width:86%;padding:11px 14px;border-radius:18px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.iaB img{display:block;max-width:100%;border-radius:12px;margin-bottom:6px}
 .iaFotos{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:4px;margin-bottom:6px} .iaFotos img{margin:0;aspect-ratio:1;object-fit:cover;width:100%}
-.iaB.user{align-self:flex-end;background:var(--accent,#064c3f);color:#fff;border-bottom-right-radius:4px}
-.iaB.assistant{align-self:flex-start;background:var(--surface-2,#f4f2ef);border-bottom-left-radius:4px}
-.iaB.pensa{align-self:flex-start;color:var(--ink-3,#888);font-style:italic;background:none;padding:4px 2px}
-.iaB.erro{align-self:stretch;background:var(--danger-wash,#fde8e8);color:var(--danger,#a00)}
-.iaB .cp{display:block;margin-top:8px;border:0;background:none;color:var(--accent,#064c3f);font:600 12.5px inherit;cursor:pointer;padding:6px 0}
+.iaB.user{align-self:flex-end;background:var(--accent,#064c3f);color:#fff;border-bottom-right-radius:6px}
+.iaB.assistant{align-self:flex-start;background:var(--surface,#fff);border-bottom-left-radius:6px}
+.iaB.pensa{align-self:flex-start;color:var(--ink-3,#888);font-style:italic;background:none;box-shadow:none;padding:4px 2px}
+.iaB.erro{align-self:stretch;background:var(--danger-wash,#fde8e8);color:var(--danger,#a00);box-shadow:none}
+.iaB .cp{display:flex;width:fit-content;margin:10px 0 0 auto;align-items:center;gap:5px;border:1px solid var(--line,#e2e0dc);background:none;color:var(--ink-2,#555);font:600 12px var(--f-ui);cursor:pointer;padding:5px 11px;border-radius:999px}
+.iaB .cp:hover{border-color:var(--accent,#064c3f);color:var(--accent,#064c3f)}
 .iaDemo{align-self:stretch;border:1px dashed var(--line-2,#ccc);border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.45;color:var(--ink-2,#555)}
 .iaDemo b{display:block;margin-bottom:4px;color:var(--ink,#222)}
 .iaSug{align-self:stretch;display:flex;flex-direction:column;gap:6px}
 .iaSug small{color:var(--ink-3,#888)}
-.iaSug button{text-align:left;min-height:44px;padding:10px 12px;border-radius:12px;border:1px solid var(--line,#ddd);background:var(--surface,#fff);color:inherit;font:14px inherit;cursor:pointer}
+.iaSug button{text-align:left;min-height:44px;padding:10px 13px;border-radius:14px;border:1px solid var(--line,#ddd);background:var(--surface,#fff);color:inherit;font:14px var(--f-ui);cursor:pointer}
 .iaSug button:hover{border-color:var(--accent,#064c3f)}
-.iaCard{align-self:stretch;border:2px solid var(--highlight,#FFD23F);border-radius:14px;padding:12px 14px;background:var(--surface,#fff)}
+.iaCard{align-self:stretch;border:2px solid var(--highlight,#FFD23F);border-radius:16px;padding:14px;background:var(--surface,#fff)}
 .iaCard h4{margin:0 0 8px;font-size:15px}
 .iaCard dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
 .iaCard dt{color:var(--ink-3,#777)} .iaCard dd{margin:0;font-weight:600;white-space:pre-wrap}
 .iaCard .ass{margin:8px 0 0;font-size:12.5px;color:var(--ink-3,#777)}
 .iaCard .bts{display:flex;gap:8px;margin-top:12px}
-.iaCard .bts button,.iaChave button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line,#ddd);background:var(--surface,#fff);font:600 14.5px inherit;cursor:pointer;color:inherit}
+.iaCard .bts button,.iaChave button{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line,#ddd);background:var(--surface,#fff);font:600 14.5px var(--f-ui);cursor:pointer;color:inherit}
 .iaCard .bts .sim,.iaChave .sim{background:var(--accent,#064c3f);color:#fff;border-color:transparent}
 .iaCard.feito{border-color:var(--line,#ddd);opacity:.75}
-#iaForm{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line,#e5e5e5);align-items:flex-end}
-#iaTxt{flex:1;resize:none;min-height:44px;max-height:140px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:12px;font:15px inherit;background:var(--surface,#fff);color:inherit}
-#iaEnviar{min-width:64px;min-height:44px;border:0;border-radius:12px;background:var(--accent,#064c3f);color:#fff;font:600 14.5px inherit;cursor:pointer}
-#iaEnviar:disabled{opacity:.5}
-#iaClip{min-width:44px;min-height:44px;border:1px solid var(--line,#ddd);border-radius:12px;background:none;color:inherit;font-size:18px;cursor:pointer}
-#iaAnexo{display:none;padding:0 12px 6px;font-size:12.5px;color:var(--ink-3,#888)} #iaAnexo.on{display:flex;gap:8px;align-items:center}
-#iaAnexo img{height:44px;width:44px;object-fit:cover;border-radius:6px;margin-right:2px} #iaAnexo button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
-#iaPe{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:space-between;align-items:center;padding:0 16px 10px;font-size:12px;color:var(--ink-3,#888)}
-#iaPe button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit;padding:6px 0}
-#iaPe label{display:flex;gap:6px;align-items:center;cursor:pointer}
+#iaForm{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line,#e5e5e5);align-items:flex-end;background:var(--surface,#fff)}
+#iaTxt{flex:1;min-width:0;resize:none;min-height:44px;max-height:140px;padding:11px 16px;border:1px solid var(--line,#ddd);border-radius:22px;font:15px var(--f-ui);background:var(--surface-2,#f7f5f2);color:inherit;box-sizing:border-box}
+#iaTxt:focus{outline:2px solid color-mix(in srgb,var(--accent,#064c3f) 40%,transparent);outline-offset:1px}
+#iaEnviar{flex:none;width:44px;height:44px;border:0;border-radius:50%;background:var(--accent,#064c3f);color:#fff;font-size:19px;line-height:1;cursor:pointer;display:grid;place-items:center}
+#iaEnviar:disabled{opacity:.45}
+#iaClip{flex:none;width:44px;height:44px;border:1px solid var(--line,#ddd);border-radius:50%;background:none;color:var(--ink-3,#888);cursor:pointer;display:grid;place-items:center;transition:color .12s,border-color .12s}
+#iaClip:hover{color:var(--accent,#064c3f);border-color:var(--accent,#064c3f)}
+#iaAnexo{display:none;padding:0 12px 6px;font-size:12.5px;color:var(--ink-3,#888)} #iaAnexo.on{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#iaAnexo img{height:44px;width:44px;object-fit:cover;border-radius:8px;margin-right:2px} #iaAnexo button{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
+#iaPe{display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:space-between;align-items:center;padding:8px 16px calc(10px + env(safe-area-inset-bottom));font-size:12px;color:var(--ink-3,#888);border-top:1px solid var(--line,#eee);background:var(--surface,#fff)}
+#iaPe button{border:0;background:none;color:var(--ink-2,#555);cursor:pointer;font:600 12px var(--f-ui);padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+#iaPe label{display:flex;gap:7px;align-items:center;cursor:pointer;line-height:1.3}
+#iaPe input[type=checkbox]{width:16px;height:16px;flex:none;accent-color:var(--accent,#064c3f)}
+#iaGasto{font-variant-numeric:tabular-nums;white-space:nowrap}
 .iaChave{padding:18px 16px;display:flex;flex-direction:column;gap:10px;font-size:14.5px;line-height:1.45;overflow-y:auto}
 .iaChave input{min-height:44px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font:14px var(--f-mono,monospace);background:var(--surface,#fff);color:inherit}
 .iaChave ol{margin:0;padding-left:20px} .iaChave .volta{background:none;border:0;text-decoration:underline;flex:none}
-@media (max-width:640px){#iaGaveta{width:100vw}}
+@media (max-width:640px){#iaGaveta{width:100vw} .iaB{max-width:90%}}
 .mkHead{display:flex;gap:12px;align-items:center;flex-wrap:wrap} .mkLead{margin:0;flex:1 1 240px}
 .mkNav{display:flex;gap:10px;align-items:center;flex:1} .mkNav b{min-width:170px;text-align:center}
 .mkDia{display:flex;gap:16px;align-items:flex-start}
@@ -2134,7 +2383,7 @@ function iaMonta() {
   const st = document.createElement('style'); st.textContent = IA_CSS; document.head.appendChild(st);
   const fab = document.createElement('button'); fab.id = 'iaFab'; fab.type = 'button'; fab.onclick = iaAbre;
   const g = document.createElement('aside'); g.id = 'iaGaveta';
-  g.innerHTML = `<header><b id="iaTit"></b><button class="x" id="iaFecha">×</button></header><div id="iaCtx"></div>
+  g.innerHTML = `<header><span class="iaAv" aria-hidden="true">✦</span><span class="iaCab"><b id="iaTit"></b><small id="iaCtx"></small></span><button class="x" id="iaFecha" aria-label="${esc(ia('fechar'))}">×</button></header>
     <div id="iaCorpo" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>`;
   document.body.append(fab, g);
   g.querySelector('#iaFecha').onclick = iaFecha;
@@ -2156,9 +2405,9 @@ function iaAtualizaFab() {
   const mostra = iaPodeVer();
   if (!mostra) iaEl.g.classList.remove('aberta');
   iaEl.fab.classList.toggle('on', mostra && !iaEl.g.classList.contains('aberta'));
-  /* No app da Mari o assistente é PRESENTE: nada de selo "extra" nele. */
-  iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}<small class="iaExtra">${LANG === 'en' ? 'gift' : 'presente'}</small>`;
-  iaEl.g.querySelector('#iaTit').textContent = ia('assistente') + ({ demo: ' · ' + ia('demoTit'), vivo: ' · ⚡ ' + ia('vivoTit') }[iaModo()] || '');
+  iaEl.fab.innerHTML = `<span class="dot"></span>${ia('assistente')}<small class="iaExtra">${ia('extra')}</small>`;
+  const selo = { demo: ia('demoTit'), vivo: '⚡ ' + ia('vivoTit') }[iaModo()] || '';
+  iaEl.g.querySelector('#iaTit').innerHTML = esc(ia('assistente')) + (selo ? ` <span class="iaModo">${esc(selo)}</span>` : '');
   iaEl.g.querySelector('#iaFecha').setAttribute('aria-label', ia('fechar'));
   const c = iaContexto();
   iaEl.g.querySelector('#iaCtx').textContent = c ? ia('vendo') + ': ' + c.txt : '';
@@ -2187,14 +2436,14 @@ function iaDesenha() {
   }
   const demo = iaDemo(), vivo = iaModo() === 'vivo';
   corpo.innerHTML = `<div id="iaMsgs"></div><div id="iaAnexo"></div>
-    ${demo ? '' : `<form id="iaForm"><button type="button" id="iaClip" title="${esc(ia('foto'))}" aria-label="${esc(ia('foto'))}">📷</button>
+    ${demo ? '' : `<form id="iaForm"><button type="button" id="iaClip" title="${esc(ia('foto'))}" aria-label="${esc(ia('foto'))}"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8-8a3.5 3.5 0 1 1 5 5l-8 8a2 2 0 0 1-3-3l7.5-7.5"/></svg></button>
       <input type="file" id="iaArq" accept="image/*" multiple hidden><textarea id="iaTxt" rows="1" placeholder="${esc(ia('ph'))}"></textarea>
-      <button id="iaEnviar" type="submit">${ia('enviar')}</button></form>`}
+      <button id="iaEnviar" type="submit" aria-label="${esc(ia('enviar'))}" title="${esc(ia('enviar'))}">↑</button></form>`}
     <div id="iaPe"><label><input type="checkbox" id="iaConf" ${iaPerguntaAntes() ? 'checked' : ''}> ${ia('perguntar')}</label>
       ${demo ? `<button type="button" id="iaConecta">${ia('conectar')}</button>` : vivo ? '' : `<span id="iaGasto"></span>`}
       <span><button type="button" id="iaLimpa">${ia('nova')}</button>${demo || vivo ? '' : ` · <button type="button" id="iaTiraChave">${ia('trocarChave')}</button>`}</span></div>`;
   const msgs = corpo.querySelector('#iaMsgs');
-  iaBolha('assistant', ia('oi'), null, true);
+  iaBolha('assistant', iaSaudacao(), null, true);
   if (demo) {
     const d = document.createElement('div'); d.className = 'iaDemo'; d.innerHTML = `<b>${ia('demoTit')}</b>${esc(ia('demoTxt'))}<span class="iaDemoExtra">✦ ${esc(ia('extraAviso'))}</span>`; msgs.appendChild(d);
     iaMostraSugestoes();
@@ -2230,7 +2479,7 @@ function iaDesenha() {
     if (!('ontouchstart' in window)) ta.focus();
   }
   corpo.querySelector('#iaConf').onchange = (e) => iaGrava(IA_CONFIRMA, e.target.checked);
-  corpo.querySelector('#iaLimpa').onclick = () => { iaGrava(IA_HIST, []); iaDesenha(); };
+  corpo.querySelector('#iaLimpa').onclick = () => { if (iaOcupado) { iaAbortar = true; iaCancelaCartaoPendente(); } iaGrava(IA_HIST, []); iaDesenha(); };
   const cn = corpo.querySelector('#iaConecta'); if (cn) cn.onclick = () => { iaMostrandoChave = true; iaDesenha(); };
   msgs.scrollTop = msgs.scrollHeight;
 }
@@ -2309,11 +2558,19 @@ function iaFechaCartao(c, sim) {
   const h = c.querySelector('h4'); h.textContent = h.textContent.replace(' — ' + ia('confirma'), '');
   c.querySelector('.bts').outerHTML = `<p class="ass">${sim ? ia('feito') : ia('cancelado')}</p>`;
 }
+/* o cartão que espera o toque dela. Se ele sumir da tela (nova conversa, painel redesenhado)
+   a espera termina como "cancelou" — antes ficava pendurada e o assistente travava para sempre */
+let iaCartaoPendente = null;
+function iaCancelaCartaoPendente() { if (iaCartaoPendente) { const p = iaCartaoPendente; iaCartaoPendente = null; p(false); } }
 function iaPedeConfirmacao(plano) {
   return new Promise((ok) => {
     const c = iaCartao(plano);
-    c.querySelector('.sim').onclick = () => { iaFechaCartao(c, true); ok(true); };
-    c.querySelector('.nao').onclick = () => { iaFechaCartao(c, false); ok(false); };
+    let fim = false;
+    const vigia = setInterval(() => { if (!fim && !c.isConnected) termina(false); }, 500);
+    const termina = (sim) => { if (fim) return; fim = true; clearInterval(vigia); iaCartaoPendente = null; if (c.isConnected) iaFechaCartao(c, sim); ok(sim); };
+    iaCartaoPendente = termina;
+    c.querySelector('.sim').onclick = () => termina(true);
+    c.querySelector('.nao').onclick = () => termina(false);
   });
 }
 function iaCartaoFeito(plano) { iaFechaCartao(iaCartao(plano), true); }
@@ -2331,53 +2588,17 @@ if (!ADM_TABS.some(([id]) => id === 'marketing')) {
   const i = ADM_TABS.findIndex(([id]) => id === 'coupons');
   ADM_TABS.splice(i < 0 ? ADM_TABS.length : i + 1, 0, ['marketing', 'admMarketing']);
 }
-/* NO APP DA MARI (23/09/2026): o ASSISTENTE é presente e fica ligado. As abas
-   Atendimento e Marketing ficam com CADEADO — existem, dá para ver o que fazem,
-   mas só abrem quando ela contratar. Assim ela conhece sem a gente prometer o
-   que não entregou. */
-const ABAS_TRANCADAS = ['inbox', 'marketing'];
 const _viewAdmOriginal = viewAdm;
 viewAdm = function (tab, arg) {
-  if (ABAS_TRANCADAS.includes(tab)) admTrancada(tab);
-  else if (tab === 'marketing') admMarketing(arg);
+  if (tab === 'marketing') admMarketing(arg);
   else if (tab === 'inbox') admAtendimento(arg);
   else _viewAdmOriginal(tab, arg);
   marcaExtras();
 };
-
-function admTrancada(tab) {
-  const T = {
-    inbox: {
-      tit: { pt: 'Atendimento automático', en: 'Automatic replies' },
-      sub: { pt: 'O agente responde no WhatsApp e no Instagram com as suas datas, vagas e preços — e passa para você o que não souber.',
-             en: 'The agent answers on WhatsApp and Instagram with your dates, availability and prices — and hands over anything it does not know.' },
-      itens: { pt: ['Responde na hora, no idioma de quem escreveu', 'Nunca inventa: usa a sua agenda de verdade', 'Você escolhe o tom e escreve as respostas de sempre', 'Modo “eu aprovo antes de enviar”'],
-               en: ['Answers instantly, in the writer’s language', 'Never invents: uses your real calendar', 'You choose the tone and write the usual answers', '“I approve before sending” mode'] },
-    },
-    marketing: {
-      tit: { pt: 'Marketing da semana', en: 'This week’s marketing' },
-      sub: { pt: 'O app mostra onde sobra vaga e sugere o post ou o story daquele dia, com imagem e legenda prontas.',
-             en: 'The app shows where seats are left and suggests the post or story for the day, with image and caption ready.' },
-      itens: { pt: ['Vagas sobrando viram sugestão de post', 'Legenda e imagem prontas, no seu tom', 'Plano da semana por formato', 'Anúncios no Meta e no Google, se você quiser'],
-               en: ['Empty seats become post suggestions', 'Caption and image ready, in your tone', 'Weekly plan by format', 'Meta and Google ads, if you want'] },
-    },
-  }[tab];
-  const L = (o) => (o && (o[LANG] || o.pt)) || '';
-  admShell(tab, `
-    <div class="trancada">
-      <div class="trIcone" aria-hidden="true">🔒</div>
-      <h1 class="pageh">${esc(L(T.tit))}</h1>
-      <p class="desc lead">${esc(L(T.sub))}</p>
-      <ul class="trLista">${(T.itens[LANG] || T.itens.pt).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-      <p class="why">${LANG === 'en' ? 'Extra module — not included in your app yet. Talk to Eugênio to switch it on.'
-                                     : 'Módulo extra — ainda não está no seu app. Fale com o Eugênio para ligar.'}</p>
-    </div>`);
-}
-
 function marcaExtras() {
   for (const id of ['nb-inbox', 'nb-marketing']) {
     const b = document.getElementById(id);
-    if (b && !b.querySelector('.iaCad')) b.insertAdjacentHTML('beforeend', ' <small class="iaCad" aria-label="bloqueado">🔒</small>');
+    if (b && !b.querySelector('.iaExtra')) b.insertAdjacentHTML('beforeend', ` <small class="iaExtra">${ia('extra')}</small>`);
   }
 }
 /* francês, italiano, alemão e espanhol dos textos do assistente */
@@ -2388,3 +2609,24 @@ addEventListener('hashchange', () => setTimeout(iaAtualizaFab, 30));
 addEventListener('resize', iaAtualizaFab);
 setInterval(iaAtualizaFab, 1500);
 if (location.hash.startsWith('#/adm')) route();
+
+/* rótulos dos cartões novos (reservas, pagamento, perfil e treino) */
+IA_TXT.cCriarReserva = { pt: 'Criar reserva', en: 'Create booking', fr: 'Créer une réservation', it: 'Crea prenotazione', de: 'Buchung anlegen', es: 'Crear reserva' };
+IA_TXT.cAlterarReserva = { pt: 'Mudar reserva', en: 'Change booking', fr: 'Modifier la réservation', it: 'Modifica prenotazione', de: 'Buchung ändern', es: 'Cambiar reserva' };
+IA_TXT.cCancelarReserva = { pt: 'Cancelar reserva', en: 'Cancel booking', fr: 'Annuler la réservation', it: 'Annulla prenotazione', de: 'Buchung stornieren', es: 'Cancelar reserva' };
+IA_TXT.cPagamento = { pt: 'Registrar pagamento', en: 'Record payment', fr: 'Enregistrer un paiement', it: 'Registra pagamento', de: 'Zahlung erfassen', es: 'Registrar pago' };
+IA_TXT.cAjustes = { pt: 'Mudar o perfil', en: 'Update profile', fr: 'Modifier le profil', it: 'Aggiorna profilo', de: 'Profil ändern', es: 'Cambiar el perfil' };
+IA_TXT.cEnsinar = { pt: 'Treinar o agente', en: 'Train the agent', fr: 'Former l’agent', it: 'Istruisci l’agente', de: 'Agenten anlernen', es: 'Entrenar al agente' };
+IA_TXT.cCliente = { pt: 'Cliente', en: 'Guest', fr: 'Client', it: 'Cliente', de: 'Gast', es: 'Cliente' };
+IA_TXT.cQuando = { pt: 'Quando', en: 'When', fr: 'Quand', it: 'Quando', de: 'Wann', es: 'Cuándo' };
+IA_TXT.cHora = { pt: 'Hora', en: 'Time', fr: 'Heure', it: 'Ora', de: 'Uhrzeit', es: 'Hora' };
+IA_TXT.cPessoas = { pt: 'Pessoas', en: 'People', fr: 'Personnes', it: 'Persone', de: 'Personen', es: 'Personas' };
+IA_TXT.cTotal = { pt: 'Total', en: 'Total', fr: 'Total', it: 'Totale', de: 'Gesamt', es: 'Total' };
+IA_TXT.cRecebido = { pt: 'Já recebido', en: 'Already received', fr: 'Déjà reçu', it: 'Già ricevuto', de: 'Bereits erhalten', es: 'Ya recibido' };
+IA_TXT.cValor = { pt: 'Valor', en: 'Amount', fr: 'Montant', it: 'Importo', de: 'Betrag', es: 'Importe' };
+IA_TXT.cComo = { pt: 'Como', en: 'Method', fr: 'Moyen', it: 'Metodo', de: 'Art', es: 'Método' };
+IA_TXT.cFalta = { pt: 'Ainda falta', en: 'Still due', fr: 'Reste à payer', it: 'Ancora da pagare', de: 'Noch offen', es: 'Aún falta' };
+IA_TXT.cCodigo = { pt: 'Código', en: 'Code', fr: 'Code', it: 'Codice', de: 'Code', es: 'Código' };
+IA_TXT.cEmail = { pt: 'E-mail', en: 'Email', fr: 'E-mail', it: 'E-mail', de: 'E-Mail', es: 'Correo' };
+IA_TXT.cBio = { pt: 'Quem sou eu', en: 'About you', fr: 'Qui je suis', it: 'Chi sono', de: 'Über dich', es: 'Quién soy' };
+IA_TXT.cTextoHome = { pt: 'Texto da capa', en: 'Home text', fr: 'Texte d’accueil', it: 'Testo della home', de: 'Startseitentext', es: 'Texto de portada' };
