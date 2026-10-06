@@ -8,8 +8,12 @@
    Para ligar a nuvem: criar o projeto no Supabase NA CONTA DELE, rodar
    SEGURANCA.sql no editor SQL e preencher os dois campos abaixo. */
 var APP_CONFIG = {
-  supabaseUrl: '',   /* ex.: 'https://SEU-PROJETO.supabase.co' */
-  supabaseKey: '',   /* a chave "publishable" do projeto; nunca a secreta */
+  /* 06/10/2026: o Mario nao quis criar conta. O app mora no banco da Ti Artes,
+     numa sala so dele (schema "mario", ver SALA.sql). A chave e a publicavel:
+     quem protege os dados e a regra de acesso (RLS) da sala. */
+  supabaseUrl: 'https://uopfqlogjzuqpabptxkb.supabase.co',
+  supabaseKey: 'sb_publishable_VKIdd2RNpMf3e4IEDprxJw_TOKPIHT2',
+  sala: 'mario',     /* schema do banco; vazio = public (projeto proprio) */
 
   guia: {
     nome: 'Mario',
