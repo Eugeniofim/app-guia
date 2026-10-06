@@ -287,17 +287,44 @@ function iavFalar(texto) {
 /* =====================================================
    A GAVETA
    ===================================================== */
+/* SUGESTÕES PROATIVAS (padrão Ingrid): o assistente abre já sabendo o que é
+   urgente, lido dos DADOS reais dela — não frases fixas. Mostra só o que tem
+   fato; completa com atalhos úteis; sem gastar IA. Degrada sozinho quando uma
+   coleção não existe. */
 function iavSugestoes() {
-  const amanha = typeof addDays === 'function' ? addDays(isoToday(), 1) : '';
-  const temAmanha = (DB.bookings || []).some(b => b.date === amanha && b.status === 'confirmed');
-  return [
-    ['💷', 'Quem pagou esta semana?'],
-    ['🗓', temAmanha ? 'Me passa a ficha de quem eu guio amanhã' : 'Qual é o meu próximo tour?'],
-    ['✉️', 'Tem e-mail de agência esperando resposta?'],
-    ['🧾', 'Qual invoice eu preciso mandar?'],
-    ['✅', 'Anota: ligar para o hotel sexta às 10h'],
-    ['💬', 'Escreve a resposta para quem perguntou o preço do Londres Clássica'],
+  const hoje = typeof isoToday === 'function' ? isoToday() : '';
+  const amanha = typeof addDays === 'function' ? addDays(hoje, 1) : '';
+  const prox = [];   /* urgências, em ordem */
+  try {
+    const toursAmanha = (DB.bookings || []).filter(b => b.date === amanha && b.status === 'confirmed');
+    if (toursAmanha.length) prox.push(['🗓', `Me passa a ficha de quem eu guio amanhã (${toursAmanha.length})`]);
+    const novas = (typeof fichasTodas === 'function' ? fichasTodas() : []).filter(f => f.nova);
+    if (novas.length) prox.push(['💷', `Quem pagou agora? (${novas.length}) — abre a ficha`]);
+    const emails = (DB.emails || []).filter(e => !e.tratado && e.tipo !== 'ignorado');
+    if (emails.length) prox.push(['✉️', `Responder o e-mail da ${emails[0].nome || 'agência'}`]);
+    if (typeof prazoInvoice === 'function') {
+      const inv = (DB.trabalhosAgencia || []).map(j => ({ j, p: prazoInvoice(j) })).filter(x => ['mandar', 'atrasada', 'vencida'].includes(x.p.st));
+      if (inv.length) prox.push(['🧾', `Qual invoice eu preciso mandar? (${inv.length})`]);
+    }
+    const rot = (DB.roteiros || []).filter(r => r.pago && r.status !== 'publicado');
+    if (rot.length) prox.push(['🗺️', `Validar o roteiro da ${primeiroNome ? primeiroNome(rot[0].nome) : rot[0].nome}`]);
+    const tr = (DB.pedidos || []).filter(p => p.tipo === 'transfer' && !p.respondido);
+    if (tr.length) prox.push(['🚘', `Cotar o transfer de ${primeiroNome ? primeiroNome(tr[0].nome) : tr[0].nome}`]);
+    const av = (DB.avaliacoes || []).filter(a => !a.publicar && !a.vista && a.autorizou !== false);
+    if (av.length) prox.push(['⭐', `Aprovar ${av.length} ${av.length > 1 ? 'avaliações novas' : 'avaliação nova'}`]);
+    const tf = (DB.tarefas || []).filter(t => !t.feita && t.data && t.data <= hoje);
+    if (tf.length) prox.push(['✅', `Minhas tarefas de hoje (${tf.length})`]);
+  } catch (e) {}
+  /* atalhos sempre úteis, pra completar até 6 */
+  const atalhos = [
+    ['📅', 'Qual é o meu próximo tour?'],
+    ['💬', 'Escreve a resposta pra quem perguntou o preço do Londres Clássica'],
+    ['✅', 'Anota: ligar pro hotel sexta às 10h'],
+    ['💷', 'Quanto entrou este mês?'],
   ];
+  const out = prox.slice(0, 6);
+  for (const a of atalhos) { if (out.length >= 6) break; if (!out.some(x => x[1] === a[1])) out.push(a); }
+  return out;
 }
 function iavHero(demo) {
   const nome = (typeof guiaNome === 'function' && guiaNome()) || 'Carol';
