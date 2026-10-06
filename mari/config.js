@@ -33,8 +33,15 @@ var APP_CONFIG = {
     whats: '+4552765827',
     insta: 'tournadinamarca',
     badge: 'Experiências autênticas na terra do hygge',
-    logo:       'arte/selo-mari.png',
-    logoEscuro: 'arte/selo-mari.png',
+    /* o selo recortado em circulo, fundo transparente (o original vinha num
+       quadrado cinza e aparecia como uma bolinha cinza na abertura) */
+    logo:       'arte/selo-mari-circ.png',
+    logoEscuro: 'arte/selo-mari-circ.png',
+    /* redes da primeira tela: vazio = o icone nao aparece. Ela edita em Ajustes. */
+    youtube:  '',
+    facebook: '',
+    tiktok:   '',
+    site:     '',
     prefixo: 'TD',
     regioes: [
       ['copenhague', 'Copenhague',        'Copenhagen'],

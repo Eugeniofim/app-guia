@@ -24,7 +24,7 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=0.1.6">
+<link rel="stylesheet" href="tokens.css?v=0.1.7">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23064c3f'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23FFD23F' stroke-width='8'/%3E%3Ccircle cx='50' cy='50' r='9' fill='%23FFD23F'/%3E%3C/svg%3E">
 <style>
 /* ============ base ============ */
@@ -1062,9 +1062,38 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 .trLista li{position:relative;padding-left:22px;color:var(--ink-2);font-size:var(--fs-2);line-height:1.45}
 .trLista li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
 /* --- a Mari como parceira do grupo, e o "personalize seu passeio" --- */
-.parceira{margin:10px auto 0;max-width:30ch;font-size:var(--fs-3);line-height:1.45;color:var(--brand-assinatura);
-  text-align:center;font-style:italic}
-.lk.destaque{border-color:var(--brand-assinatura);box-shadow:0 0 0 1px var(--brand-assinatura) inset}
+/* amarelo como texto no branco dava 1.6:1 (a regra 1 dos tokens): a frase
+   vai em marinho e o amarelo fica num traço acima dela */
+.parceira{margin:12px auto 0;max-width:30ch;font-size:var(--fs-3);line-height:1.45;color:var(--brand-destaque);
+  text-align:center;font-style:italic;font-weight:500}
+.parceira::before{content:"";display:block;width:28px;height:3px;border-radius:2px;background:var(--brand-assinatura);margin:0 auto 10px}
+.lk.destaque{border-color:var(--brand-assinatura);box-shadow:0 0 0 1.5px var(--brand-assinatura) inset}
+.lk.destaque .ic{background:var(--brand-assinatura);color:var(--brand-primaria)}
+/* --- primeira tela no nível da Dulcineia e da Carol (06/10/2026) ---
+   selo grande no lugar da bolinha; o nome ja esta escrito no selo, entao
+   o cartao mostra so a cidade embaixo */
+.hub .vcard .vi-logo{gap:14px}
+.hub .vcard .vi-mark img{box-shadow:0 0 0 4px var(--surface),0 0 0 5px var(--line),0 18px 34px -16px rgba(29,42,68,.55)}
+.hub .vcard .vi-word b{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.hub .vcard .vi-word small{color:var(--ink-3);font-size:10px;letter-spacing:.2em;text-transform:uppercase;margin-top:0}
+.hub .vcard .tagline{margin-top:14px}
+/* ícones de linha: marinho sobre areia; no botão principal, amarelo */
+.hub .lk .ic{color:var(--brand-primaria)}
+.hub .lk.main .ic{color:var(--brand-assinatura)}
+.redes{display:flex;justify-content:center;gap:12px;margin-top:16px}
+.rede{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);color:var(--ink);transition:transform var(--d-fast) var(--spring),background var(--d-base)}
+.rede svg{width:21px;height:21px;display:block}
+.rede.ig{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fdf497 5%,#fd5949 45%,#d6249f 60%,#285AEB 90%);color:#fff}
+.rede.yt{background:#FF0000;color:#fff}
+.rede.tt{background:#111;color:#fff}
+.rede.fb{background:#1877F2;color:#fff}
+.rede.wa{background:#25D366;color:#fff}
+.rede.site{background:var(--brand-primaria);color:#fff}
+.rede:active{transform:scale(.92)}
+.rede:focus-visible{outline:2px solid var(--brand-primaria);outline-offset:3px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .hub .lk .ic,:root:not([data-theme="light"]) .parceira{color:var(--brand-assinatura)}}
+:root[data-theme="dark"] .hub .lk .ic,:root[data-theme="dark"] .parceira{color:var(--brand-assinatura)}
+.hub .lk.destaque .ic.ic{color:var(--brand-primaria)!important}
 .pers .pbloco{margin:12px 0}
 .pers textarea{width:100%;min-height:80px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
   background:var(--surface);color:var(--ink);font:inherit;font-size:var(--fs-2)}
@@ -1118,22 +1147,22 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=0.1.6"></script>
-<script src="auth.js?v=0.1.6"></script>
-<script src="logo.js?v=0.1.6"></script>
-<script src="fx.js?v=0.1.6"></script>
-<script src="qrcode.js?v=0.1.6"></script>
-<script src="qr.js?v=0.1.6"></script>
-<script src="pix.js?v=0.1.6"></script>
-<script src="traduz.js?v=0.1.6"></script>
-<script src="idiomas.js?v=0.1.6"></script>
-<script src="store.js?v=0.1.6"></script>
-<script src="cloud.js?v=0.1.6"></script>
-<script src="i18n.js?v=0.1.6"></script>
-<script src="app.js?v=0.1.6"></script>
-<script src="ficha.js?v=0.1.6"></script>
-<script src="prospecto.js?v=0.1.6"></script>
-<script src="assistente.js?v=0.1.6"></script>
+<script src="config.js?v=0.1.7"></script>
+<script src="auth.js?v=0.1.7"></script>
+<script src="logo.js?v=0.1.7"></script>
+<script src="fx.js?v=0.1.7"></script>
+<script src="qrcode.js?v=0.1.7"></script>
+<script src="qr.js?v=0.1.7"></script>
+<script src="pix.js?v=0.1.7"></script>
+<script src="traduz.js?v=0.1.7"></script>
+<script src="idiomas.js?v=0.1.7"></script>
+<script src="store.js?v=0.1.7"></script>
+<script src="cloud.js?v=0.1.7"></script>
+<script src="i18n.js?v=0.1.7"></script>
+<script src="app.js?v=0.1.7"></script>
+<script src="ficha.js?v=0.1.7"></script>
+<script src="prospecto.js?v=0.1.7"></script>
+<script src="assistente.js?v=0.1.7"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

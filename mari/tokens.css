@@ -12,6 +12,10 @@
   --brand-destaque:   #2F4372;   /* azul médio */
   --brand-neutro:     #54607A;
   --brand-preto:      #111111;
+  /* a base do app-guia chama as cores de "verde" e "amarelo": sem estes dois
+     nomes a cor de acao do app inteiro sumia (06/10/2026) */
+  --brand-verde:      var(--brand-primaria);
+  --brand-amarelo:    var(--brand-assinatura);
 
   /* ---------- FUNDOS ---------- */
   --paper:     #FBF7EC;  /* marfim quente — o fundo do app, nunca branco puro */
@@ -28,9 +32,9 @@
 
   /* ---------- AÇÃO ---------- */
   --accent:       var(--brand-verde);
-  --accent-ink:   #FFFFFF;          /* texto sobre o verde */
-  --accent-wash:  #e2e7e1;          /* fundo de pílula · verde por cima = 7.9:1 */
-  --accent-line:  #b9c8c2;
+  --accent-ink:   #FFFFFF;          /* texto sobre o azul-marinho */
+  --accent-wash:  #E4E8F1;          /* fundo de pílula · marinho por cima = 12:1 */
+  --accent-line:  #C3CADB;
 
   /* O amarelo é a assinatura da marca: preenchimento, nunca texto claro */
   --highlight:      var(--brand-amarelo);
@@ -39,10 +43,10 @@
   --highlight-text: #7e6308;        /* versão escura para texto · 5.4:1 */
 
   /* ---------- ESTADOS (separados da paleta de marca) ---------- */
-  --ok:        #064c3f;  --ok-wash:    #e2e7e1;   /* pago, confirmado */
+  --ok:        #1F6B4F;  --ok-wash:    #E1EFE8;   /* pago, confirmado */
   --warn:      #7e6308;  --warn-wash:  #f6edd3;   /* pendente, vence */
   --danger:    #a3053f;  --danger-wash:#f2e0e1;   /* vencido, cancelado */
-  --neutral:   #4A4045;  --neutral-wash:#ece6e4;
+  --neutral:   #4A4045;  --neutral-wash:#ECE8E0;
 
   /* ---------- TIPOGRAFIA ---------- */
   /* Montserrat = a fonte do logotipo. Karla = leitura. Mono = números. */
@@ -93,32 +97,32 @@
    data-theme fixa e o media query abaixo nao se aplica. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --paper:#0E1512; --surface:#151E1A; --surface-2:#1C2823; --surface-3:#25332D;
-    --line:#25332D; --line-2:#33453D;
-    --ink:#F2F5F2; --ink-2:#B4C0BA; --ink-3:#8A9690;
-    --accent:#4FB89B; --accent-ink:#06231C; --accent-wash:#122C25; --accent-line:#1E4A3E;
-    --highlight:#FFD23F; --highlight-ink:#1A1405; --highlight-wash:#332912; --highlight-text:#FFD23F;
-    --ok:#4FB89B;  --ok-wash:#122C25;
+    --paper:#0E1320; --surface:#161D2E; --surface-2:#1D2539; --surface-3:#273149;
+    --line:#273149; --line-2:#35415C;
+    --ink:#F3F4F7; --ink-2:#B8BFCE; --ink-3:#8C95A8;
+    --accent:#F2C230; --accent-ink:#141A2A; --accent-wash:#2A2A1E; --accent-line:#4A4228;
+    --highlight:#F2C230; --highlight-ink:#141A2A; --highlight-wash:#2E2915; --highlight-text:#F2C230;
+    --ok:#5CC49A;  --ok-wash:#132A22;
     --warn:#FFD23F; --warn-wash:#332912;
     --danger:#F0708F; --danger-wash:#331520;
-    --neutral:#B4C0BA; --neutral-wash:#22302A;
+    --neutral:#B8BFCE; --neutral-wash:#222A3D;
     --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
     --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
     --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
   }
 }
 
-/* Tema escuro — o painel dela à noite. Verde clareia, amarelo se mantém. */
+/* Tema escuro — o painel dela à noite. Marinho escurece, o amarelo vira a ação. */
 :root[data-theme="dark"]{
-  --paper:#0E1512; --surface:#151E1A; --surface-2:#1C2823; --surface-3:#25332D;
-  --line:#25332D; --line-2:#33453D;
-  --ink:#F2F5F2; --ink-2:#B4C0BA; --ink-3:#8A9690;
-  --accent:#4FB89B; --accent-ink:#06231C; --accent-wash:#122C25; --accent-line:#1E4A3E;
-  --highlight:#FFD23F; --highlight-ink:#1A1405; --highlight-wash:#332912; --highlight-text:#FFD23F;
-  --ok:#4FB89B;  --ok-wash:#122C25;
+  --paper:#0E1320; --surface:#161D2E; --surface-2:#1D2539; --surface-3:#273149;
+  --line:#273149; --line-2:#35415C;
+  --ink:#F3F4F7; --ink-2:#B8BFCE; --ink-3:#8C95A8;
+  --accent:#F2C230; --accent-ink:#141A2A; --accent-wash:#2A2A1E; --accent-line:#4A4228;
+  --highlight:#F2C230; --highlight-ink:#141A2A; --highlight-wash:#2E2915; --highlight-text:#F2C230;
+  --ok:#5CC49A;  --ok-wash:#132A22;
   --warn:#E8BC33; --warn-wash:#332912;
   --danger:#F0708F; --danger-wash:#331520;
-  --neutral:#B4C0BA; --neutral-wash:#22302A;
+  --neutral:#B8BFCE; --neutral-wash:#222A3D;
   --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
   --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
   --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
@@ -127,7 +131,7 @@
 /* =========================================================
    REGRAS QUE NÃO SE QUEBRAM
    1. Amarelo nunca é texto sobre fundo claro. Use --highlight-text.
-   2. Verde é a ação principal. Um botão verde por tela.
+   2. Azul-marinho é a ação principal. Um botão de ação por tela.
    3. Vinho é urgência (vencido, últimas vagas). Não decora.
    4. Cinza é legenda, nunca título.
    5. Números sempre em --f-mono com font-variant-numeric: tabular-nums.
