@@ -11,9 +11,9 @@
 var APP_CONFIG = {
   /* 06/10/2026: o app mora no banco da Ti Artes, numa sala so dele (schema "mari").
      A chave e a publicavel: quem protege os dados e a regra de acesso (RLS) da sala. */
-  supabaseUrl: '',
-  supabaseKey: '',
-  sala: '',     /* schema do banco; vazio = public (projeto proprio) */
+  supabaseUrl: 'https://uopfqlogjzuqpabptxkb.supabase.co',
+  supabaseKey: 'sb_publishable_VKIdd2RNpMf3e4IEDprxJw_TOKPIHT2',
+  sala: 'mari',     /* schema do banco; vazio = public (projeto proprio) */
 
   /* Cofre do demo (repositório guia-cofre, no Netlify): guarda as chaves do
      Claude e do Gemini no servidor e deixa o demo público usar a IA de
