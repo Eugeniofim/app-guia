@@ -294,7 +294,7 @@ function route() {
   if (p[0] === 'novasenha') viewNewPass();
   else if (p[0] === 'login') viewLogin();
   else if (p[0] === 'adm') {
-    if (DB.settings.authRequired && !isLoggedIn()) return viewLogin('in');
+    if (painelTrancado() && !isLoggedIn()) return viewLogin('in');
     viewAdm(p[1] || 'today', p[2]);
   }
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
@@ -1322,7 +1322,7 @@ function viewAdm(tab, arg) {
 
 /* ---- Hoje ---- */
 function admToday() {
-  if (temNuvem() && !DB.settings.authRequired && !isLoggedIn() && !admToday._asked) {
+  if (temNuvem() && !painelTrancado() && !isLoggedIn() && !admToday._asked) {
     admToday._asked = true;
     setTimeout(() => {
       if (confirm(t('protectWhy') + '\n\n' + t('protectNow') + '?')) go('/login');
@@ -2822,8 +2822,14 @@ function viewNewPass() {
   $('#npA').focus();
 }
 
+/* O painel pede senha quando a dona já criou a conta (authRequired) — OU quando o app mora numa "sala"
+   do banco da Ti Artes: lá a dona é cadastrada à mão (não existe "a primeira conta vira a dona"), então o
+   painel nasce trancado e a tela de entrar não oferece "criar conta" (06/10/2026: um visitante abria o
+   painel da Mari, e o app ainda perguntava "Criar minha senha agora?"). */
+function painelSala() { return typeof temNuvem === 'function' && temNuvem() && !!(typeof APP_CONFIG !== 'undefined' && APP_CONFIG.sala); }
+function painelTrancado() { return !!DB.settings.authRequired || painelSala(); }
 function viewLogin(mode) {
-  const m = mode || viewLogin._m || 'in';
+  const m = painelSala() ? 'in' : (mode || viewLogin._m || 'in');
   viewLogin._m = m;
   app.innerHTML = `
   <div class="loginwrap">
@@ -2837,7 +2843,7 @@ function viewLogin(mode) {
         <input id="lgPass" type="password" autocomplete="${m === 'up' ? 'new-password' : 'current-password'}"></label>
       <p class="lgerro" id="lgErro" hidden></p>
       <button class="cta" id="lgGo">${m === 'up' ? t('loginCreate') : t('loginBtn')}</button>
-      <button class="linkbtn center" id="lgSwap">${m === 'up' ? t('loginBack') : t('loginFirst')}</button>
+      ${painelSala() ? '' : `<button class="linkbtn center" id="lgSwap">${m === 'up' ? t('loginBack') : t('loginFirst')}</button>`}
       ${m === 'in' ? `<button class="linkbtn center" id="lgForgot">${t('loginForgot')}</button>` : ''}
       <p class="fine center">🔒 ${t('loginSafe')}</p>
       <button class="linkbtn center" id="lgHome">← ${t('viewSite')}</button>
@@ -2903,7 +2909,7 @@ function viewLogin(mode) {
     toast(t('loginHi'));
     go('/adm/today');
   };
-  $('#lgSwap').onclick = () => viewLogin(m === 'up' ? 'in' : 'up');
+  if ($('#lgSwap')) $('#lgSwap').onclick = () => viewLogin(m === 'up' ? 'in' : 'up');
   const fg = $('#lgForgot');
   if (fg) fg.onclick = async () => {
     const email = $('#lgEmail').value.trim();

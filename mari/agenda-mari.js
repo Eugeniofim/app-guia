@@ -561,7 +561,7 @@ function agAniversarios(hoje, dias) {
 }
 function admTodayMari() {
   agCss();
-  if (temNuvem() && !DB.settings.authRequired && !isLoggedIn() && !admTodayMari._asked) {
+  if (temNuvem() && !(typeof painelTrancado === 'function' ? painelTrancado() : DB.settings.authRequired) && !isLoggedIn() && !admTodayMari._asked) {
     admTodayMari._asked = true;
     setTimeout(() => { if (confirm(t('protectWhy') + '\n\n' + t('protectNow') + '?')) go('/login'); }, 900);
   }
