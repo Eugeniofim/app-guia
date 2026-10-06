@@ -40,6 +40,7 @@ function supaFetch(path, opts = {}) {
          o cliente via "Esta reservado" e o guia nunca recebia.
          Conflito de id vira 409 e e tratado como sucesso mais abaixo. */
       Prefer: 'return=minimal',
+      ...(typeof salaHeaders === 'function' ? salaHeaders(opts.method) : {}),
       ...(opts.headers || {}),
     },
   }).finally(() => clearTimeout(corta));
@@ -117,6 +118,12 @@ function cloudPushState() {
   /* Modo prototipo: nao existe nuvem. Sem esta saida, cada edicao do prospect
      cairia no catch e empilharia um item na fila do localStorage, para sempre. */
   if (!SUPA_URL) return;
+  /* So o dono escreve o catalogo (a RLS recusa qualquer outro). Sem esta
+     saida, o visitante que fechava o tutorial guardava na fila um envio do
+     catalogo inteiro que falhava para sempre — e, se depois o PROPRIO dono
+     entrasse naquele aparelho, a fila mandava essa copia velha por cima do
+     que ele tinha mudado em outro aparelho. 06/10/2026. */
+  if (typeof isLoggedIn === 'function' && !isLoggedIn()) return;
   /* TRAVA CONTRA PERDA TOTAL
      Aparelho sem passeio nenhum + nuvem ainda nao lida = navegador recem
      limpo, nao "ela apagou tudo". Publicar isso apagaria o catalogo dela.

@@ -63,11 +63,15 @@ async function brSobeNuvem(b, file) {
   if (!(typeof temNuvem === 'function' && temNuvem() && typeof isLoggedIn === 'function' && isLoggedIn() && typeof SUPA_URL !== 'undefined' && SUPA_URL)) return '';
   const slug = String(file.name || b.titulo || 'brinde').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'brinde.pdf';
   const caminho = b.id + '-' + Math.random().toString(36).slice(2, 10) + '-' + (slug.endsWith('.pdf') ? slug : slug + '.pdf');
+  /* banco compartilhado (projeto da Ti Artes, uma "sala" por cliente): a pasta é da sala — "mari-brindes" —,
+     nunca a "brindes" de todos. Projeto próprio dela: "brindes" (SEGURANCA.sql). */
+  const sala = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.sala) || '';
+  const pasta = (sala ? sala + '-' : '') + 'brindes';
   try {
-    const r = await fetch(SUPA_URL + '/storage/v1/object/brindes/' + caminho, { method: 'POST',
+    const r = await fetch(SUPA_URL + '/storage/v1/object/' + pasta + '/' + caminho, { method: 'POST',
       headers: { apikey: SUPA_KEY, authorization: 'Bearer ' + authToken(), 'content-type': file.type || 'application/pdf', 'x-upsert': 'true' }, body: file });
     if (!r.ok) return '';
-    return SUPA_URL + '/storage/v1/object/public/brindes/' + caminho;
+    return SUPA_URL + '/storage/v1/object/public/' + pasta + '/' + caminho;
   } catch (e) { return ''; }
 }
 
