@@ -27,7 +27,7 @@ const MARI_FORA = new Set(['ver_marketing', 'salvar_posts', 'mudar_post', 'apaga
 for (let k = IA_FERRAMENTAS.length - 1; k >= 0; k--) if (MARI_FORA.has(IA_FERRAMENTAS[k].name)) IA_FERRAMENTAS.splice(k, 1);
 for (const n of MARI_FORA) IA_LEITURA.delete(n);
 /* estas mostram o cartão "confirma?" MESMO com a confirmação desligada: um texto colado não grava sozinho */
-const IA_SEMPRE_CONFIRMA = new Set(['guardar_memoria', 'apagar_memoria', 'cancelar_reserva', 'apagar_registro', 'alterar_ajustes', 'registrar_pagamento', 'google_agenda']);
+const IA_SEMPRE_CONFIRMA = new Set(['guardar_memoria', 'apagar_memoria', 'cancelar_reserva', 'apagar_registro', 'alterar_ajustes', 'registrar_pagamento', 'google_agenda', 'criar_orcamento']);
 
 /* o botão do assistente diz "presente" (é presente no pacote dela), e o aviso do modo ao vivo também */
 IA_TXT.extra = { pt: 'presente', en: 'gift' };
@@ -93,13 +93,25 @@ function mariAchaReserva(q, servico) {
   if (l.length > 1) return { erro: 'mais de uma reserva — pergunte qual', opcoes: l.slice(0, 8).map(b => `${b.code}: ${b.name} · ${nomeTour(Tours.get(b.tourId))} · ${dataCurta(b.date)} ${b.time || ''}`) };
   return { erro: 'reserva não encontrada', dica: 'use ver_reservas' };
 }
+/* O SINAL, numa regra só (revisão 06/10): com a regra dela (saldoNoDia), reserva fechada por fora
+   ou "metade agora" = metade do total; quem escolheu pagar tudo no site paga tudo. Antes, reserva
+   manual antiga ('full') fazia "o sinal caiu" registrar o valor inteiro. */
+function mariEhSinal(b) { return b.policy === 'split' || (!!(DB.settings && DB.settings.saldoNoDia) && b.origin === 'manual'); }
+function mariSinalFalta(b) {
+  const falta = Bookings.due(b), pago = Bookings.paid(b);
+  return mariEhSinal(b) ? Math.max(0, Math.min(falta, Math.round((+b.total || 0) / 2) - pago)) : falta;
+}
+window.mariSinalFalta = mariSinalFalta; window.mariEhSinal = mariEhSinal;
+/* reserva que JÁ existe vai para a nuvem como ATUALIZAÇÃO (POST de reserva existente dá 409 e o
+   cloud.js trata como sucesso: o pagamento sumia na próxima leitura da nuvem) */
+function mariSobeReserva(b) { save(); if (typeof cloudUpdateBooking === 'function') cloudUpdateBooking(b); else if (typeof cloudPushBooking === 'function') cloudPushBooking(b); }
+
 /* o que o cliente deve, serviço por serviço — os números que o assistente REPETE (nunca soma de cabeça) */
 function mariContas(chave) {
   const F = typeof fichaDe === 'function' ? fichaDe(chave) : null; if (!F) return E_('cliente não encontrado');
   const linhas = F.vivas.filter(b => b.status === 'confirmed').map(b => {
     const pago = Bookings.paid(b), falta = Bookings.due(b);
-    const sinal = b.policy === 'split' ? Math.round((+b.total || 0) / 2) : +b.total || 0;
-    const sinalFalta = Math.max(0, Math.min(falta, sinal - pago));
+    const sinalFalta = mariSinalFalta(b);
     return { codigo: b.code, servico: nomeTour(Tours.get(b.tourId)), dia: b.date, hora: b.time, pessoas: b.pax,
       total: eur(b.total || 0), pago: eur(pago), falta: eur(falta),
       sinal_que_falta: sinalFalta > 0 ? eur(sinalFalta) : 'sinal pago',
@@ -116,18 +128,25 @@ function mariContas(chave) {
    Dia da semana sozinho = o próximo (nunca hoje). "que vem"/"próxima" = o da semana que vem quando o
    próximo ainda cai nesta semana (seg–dom): numa terça, "quinta que vem" = quinta da outra semana. */
 const MARI_DIAS = [['domingo', 'dom'], ['segunda', 'seg'], ['terca', 'ter'], ['quarta', 'qua'], ['quinta', 'qui'], ['sexta', 'sex'], ['sabado', 'sab']];
+/* a data existe? (31/11, 15/10 com mês trocado e 30/02 não existem) */
+function mariDataOk(y, m, d) { const dt = new Date(y, m - 1, d, 12); return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d; }
+const mariIso = (y, m, d) => y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
 function mariResolveDia(txt, base) {
   const s = mN(txt).replace(/-feira/g, ''); if (!s) return '';
   const hoje = base || hojeLocalIso();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y, mo, d] = s.split('-').map(Number); return mariDataOk(y, mo, d) ? s : ''; }
   if (/\bdepois de amanha\b/.test(s)) return addDays(hoje, 2);
   if (/\bamanha\b/.test(s)) return addDays(hoje, 1);
   if (/\bhoje\b/.test(s)) return hoje;
   let m = s.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
-  if (m) { let y = m[3] ? +m[3] : +hoje.slice(0, 4); if (y < 100) y += 2000; let iso = y + '-' + String(+m[2]).padStart(2, '0') + '-' + String(+m[1]).padStart(2, '0');
-    if (!m[3] && iso < hoje) iso = (y + 1) + iso.slice(4); return iso; }
+  if (m) { let y = m[3] ? +m[3] : +hoje.slice(0, 4); if (y < 100) y += 2000; const mo = +m[2], d = +m[1];
+    if (!m[3] && mariIso(y, mo, d) < hoje) y += 1;
+    return mariDataOk(y, mo, d) ? mariIso(y, mo, d) : ''; }
   m = s.match(/\bdia (\d{1,2})\b/);
-  if (m) { const d = +m[1]; let iso = hoje.slice(0, 8) + String(d).padStart(2, '0'); if (iso < hoje) { const dt = new Date(+hoje.slice(0, 4), +hoje.slice(5, 7), d); iso = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); } return iso; }
+  if (m) { const d = +m[1]; let y = +hoje.slice(0, 4), mo = +hoje.slice(5, 7);
+    /* o próximo dia d que EXISTE: hoje ou depois (dia 31 dito em novembro = 31 de dezembro) */
+    for (let k = 0; k < 14; k++) { if (mariDataOk(y, mo, d) && mariIso(y, mo, d) >= hoje) return mariIso(y, mo, d); mo++; if (mo > 12) { mo = 1; y++; } }
+    return ''; }
   const k = MARI_DIAS.findIndex(([l, c]) => new RegExp('\\b(' + l + '|' + c + ')\\b').test(s));
   if (k >= 0) {
     const dHoje = new Date(hoje + 'T12:00:00').getDay();
@@ -152,7 +171,7 @@ const MX = {
   txtOuNada: (v) => String(v == null ? '' : v).trim().slice(0, 2000),
   num: (v) => { const n = +String(v).replace(',', '.').replace(/[€\s]/g, ''); if (!isFinite(n) || n < 0) throw new Error('número inválido: ' + v); return n; },
   bool: (v) => { if (typeof v === 'boolean') return v; const s = String(v).toLowerCase(); if (/^(sim|s|true|1|yes)$/.test(s)) return true; if (/^(n[aã]o|n|false|0|no)$/.test(s)) return false; throw new Error('sim ou não?'); },
-  data: (v) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v))) throw new Error('data AAAA-MM-DD'); return String(v); },
+  data: (v) => { const t = String(v); if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) throw new Error('data AAAA-MM-DD'); const [y, m, d] = t.split('-').map(Number); if (!mariDataOk(y, m, d)) throw new Error('essa data não existe: ' + t); return t; },
   dataOuNada: (v) => { const s = String(v == null ? '' : v).trim(); if (!s || /^sem/i.test(s)) return ''; return MX.data(s); },
   horaOuNada: (v) => { const s = String(v == null ? '' : v).trim(); if (!s || /^sem/i.test(s)) return ''; if (!/^\d{1,2}:\d{2}$/.test(s)) throw new Error('hora HH:MM'); return s.padStart(5, '0'); },
   um: (lista) => (v) => { const s = String(v == null ? '' : v).toLowerCase().trim(); if (!lista.includes(s)) throw new Error('use um de: ' + lista.join(', ')); return s; },
@@ -239,7 +258,7 @@ const mariMostra = (k, v) => {
 };
 
 /* ---------- 4. as ferramentas novas ---------- */
-const AB_NOMES = 'today=Hoje · agenda=Agenda · tarefas=Tarefas · tours=Meus passeios · bookings=Reservas · money=Extrato · reports=Relatórios · clients=Clientes (fichas) · coupons=Cupons e brindes · look=Aparência · settings=Ajustes';
+const AB_NOMES = 'today=Hoje · agenda=Agenda · tarefas=Tarefas · tours=Meus passeios · bookings=Reservas · money=Extrato · reports=Relatórios · clients=Clientes (fichas) · orcamentos=Orçamentos · coupons=Cupons e brindes · look=Aparência · settings=Ajustes';
 IA_FERRAMENTAS.push(
   { name: 'ver_hoje', description: 'O dia dela: passeios de hoje e de amanhã (com cliente, ponto de encontro e quanto cada um paga no dia), tarefas atrasadas e de hoje, pedidos do Personalize sem resposta, aniversários e brindes para mandar. Use para "o que tenho hoje", "bom dia", "e amanhã?".', input_schema: obj() },
   { name: 'ver_ficha', description: 'Tudo de UM cliente pelo NOME (primeiro nome serve), WhatsApp ou código: ficha cadastral, reservas, quanto falta, pedidos do Personalize, brindes recebidos, anotações.', input_schema: obj({ cliente: S_('nome, WhatsApp, e-mail ou código da reserva') }, ['cliente']) },
@@ -253,9 +272,17 @@ IA_FERRAMENTAS.push(
   { name: 'google_agenda', description: 'Ponte com o Google Agenda dela: estado (ligada? quando sincronizou?) ou sincronizar agora (manda tarefas e passeios reservados).', input_schema: obj({ acao: { type: 'string', enum: ['estado', 'sincronizar'] } }, ['acao']) },
   { name: 'anotar_diario', description: 'Anota no DIÁRIO uma decisão ou combinado da conversa que não virou ação no app ("esperar a agência responder", "subir preço no verão"), com o porquê. O que ela confirma nos cartões já entra sozinho.', input_schema: obj({ texto: S_('uma linha, com o porquê') }, ['texto']) },
   { name: 'ver_diario', description: 'Lê o DIÁRIO (o que foi feito e decidido, dia a dia): mais dias para trás ou buscando uma palavra.', input_schema: obj({ dias: N_('quantos dias (padrão 60)'), busca: S_() }) },
-  { name: 'abrir_aba', description: 'Leva a Mari até uma tela quando a coisa se faz tocando. Abas: ' + AB_NOMES + '. item = cliente (para clients) ou passeio_id (para tours).', input_schema: obj({ aba: { type: 'string', enum: ['today', 'agenda', 'tarefas', 'tours', 'bookings', 'money', 'reports', 'clients', 'coupons', 'look', 'settings'] }, item: S_() }, ['aba']) },
+  { name: 'abrir_aba', description: 'Leva a Mari até uma tela quando a coisa se faz tocando. Abas: ' + AB_NOMES + '. item = cliente (para clients), passeio_id (para tours) ou número/cliente do orçamento (para orcamentos).', input_schema: obj({ aba: { type: 'string', enum: ['today', 'agenda', 'tarefas', 'tours', 'bookings', 'money', 'reports', 'clients', 'orcamentos', 'coupons', 'look', 'settings'] }, item: S_() }, ['aba']) },
+  { name: 'ver_orcamentos', description: 'Os orçamentos (propostas de serviços no modelo dela): número, cliente, período, situação, serviços e as contas (total, com opcionais). busca = cliente ou número.', input_schema: obj({ busca: S_() }) },
+  { name: 'criar_orcamento', description: 'Monta o RASCUNHO de um orçamento no modelo dela (proposta de serviços para cliente ou agência). Valor de cada serviço = o que ELA disse; sem valor = "sob consulta" (nunca invente preço). dia de cada serviço do jeito que ela falou ("29/1", "dia 31") — o app calcula. rotulo = a linha vermelha em maiúsculas ("TRANSFER DE CHEGADA · GRUPO", "CITY TOUR · DIA INTEIRO · 9H ÀS 17H"). Ela edita e salva o PDF na aba Orçamentos.',
+    input_schema: obj({ cliente: S_('nome do cliente ou da agência'), titulo: S_('o título do topo, ex.: Judy & Associates Tour Operator'), destaque: S_('a palavra em itálico, ex.: Copenhagen'), ini: S_('chegada (como ela falou ou AAAA-MM-DD)'), fim: S_('volta'), pessoas: S_('ex.: até 14 passageiros + 1 staff'), hotel: S_(),
+      itens: { type: 'array', items: obj({ dia: S_(), rotulo: S_(), titulo: S_(), texto: S_(), valor: N_('EUR; vazio = sob consulta'), unidade: S_('EUR ou EUR/h'), nota: S_('linha pequena embaixo do preço'), opcional: { type: 'boolean' } }, ['titulo']) },
+      sugestoes: obj({ titulo: S_(), nota: S_(), cartoes: { type: 'array', items: obj({ tag: S_(), nome: S_(), texto: S_() }, ['nome']) } }),
+      resumo: S_('a linha embaixo de "Total da proposta"'), rotuloOpc: S_('o nome do opcional no total, ex.: minibus opcional'), resumoOpc: S_('a linha do total com opcional'), condicoes: S_('condições de pagamento (padrão: 50% na reserva, o resto na viagem)') }, ['cliente']) },
+  { name: 'editar_orcamento', description: 'Muda um orçamento que existe (pelo número ou pelo nome do cliente): acao campos (cliente, titulo, destaque, ini, fim, pessoas, hotel, resumo, resumoOpc, condicoes, rodape), adicionar (um serviço novo em item), mudar_item / tirar_item (qual = número do serviço na lista ou parte do título), status (rascunho, enviado, aceito, perdido).',
+    input_schema: obj({ orcamento: S_('número (ORC-0001) ou cliente'), acao: { type: 'string', enum: ['campos', 'adicionar', 'mudar_item', 'tirar_item', 'status'] }, campos: { type: 'object', additionalProperties: true }, item: obj({ dia: S_(), rotulo: S_(), titulo: S_(), texto: S_(), valor: N_(), unidade: S_(), nota: S_(), opcional: { type: 'boolean' } }), qual: S_(), status: { type: 'string', enum: ['rascunho', 'enviado', 'aceito', 'perdido'] } }, ['orcamento', 'acao']) },
 );
-for (const n of ['ver_hoje', 'ver_ficha', 'contas_do_cliente', 'link_pagamento', 'ver_dados', 'ver_diario', 'abrir_aba']) IA_LEITURA.add(n);
+for (const n of ['ver_hoje', 'ver_ficha', 'contas_do_cliente', 'link_pagamento', 'ver_dados', 'ver_diario', 'abrir_aba', 'ver_orcamentos']) IA_LEITURA.add(n);
 /* registrar pagamento aceita Wise; e a regra da Mari aparece no cartão */
 for (const f of IA_FERRAMENTAS) if (f.name === 'registrar_pagamento') {
   f.description = 'Registra dinheiro que entrou numa reserva (reserva = código OU nome do cliente). tipo: "sinal" ("o sinal caiu", "pagou a metade") · "resto" ("pagou o resto", "quitou", "pagou no dia") · "outro" (um valor que ela disse). Sem valor, o APP sabe quanto é o sinal ou o resto — nunca calcule nem pergunte. "pagou no dia" = metodo cash.';
@@ -266,6 +293,47 @@ for (const f of IA_FERRAMENTAS) if (['alterar_reserva', 'cancelar_reserva'].incl
 for (const f of IA_FERRAMENTAS) if (['criar_reserva', 'alterar_reserva'].includes(f.name) && f.input_schema && f.input_schema.properties) {
   f.input_schema.properties.quando = S_('o dia como ela falou: "dia 15", "15/10", "sexta que vem" — o app calcula a data');
   if (f.name === 'criar_reserva') f.description = 'Cria a reserva que ela fechou fora do app (WhatsApp, Instagram). total = o valor que ELA disse (passeio sob consulta). "fechou por 600" = total 600: crie NA HORA, sem perguntar se inclui o sinal — o sinal de 50% e o restante no dia saem sozinhos. recebido = só se ela disse que o sinal já caiu.';
+}
+
+/* ---------- orçamentos: achar, converter e as contas prontas ---------- */
+function mariAchaOrc(q) {
+  const s = mN(q); if (!s) return { erro: 'qual orçamento? (número ou cliente)' };
+  const l = Orc.all(); const ex = l.find(o => mN(o.num) === s || o.id === q); if (ex) return { o: ex };
+  const a = l.filter(o => mN(o.cliente.nome + ' ' + o.titulo).includes(s));
+  if (a.length === 1) return { o: a[0] };
+  if (a.length > 1) { const vivos = a.filter(o => !['aceito', 'perdido'].includes(o.status)); if (vivos.length === 1) return { o: vivos[0] };
+    return { erro: 'mais de um orçamento — pergunte qual', opcoes: a.slice(-8).map(o => `${o.num} · ${o.cliente.nome} · ${orcPeriodo(o)} · ${o.status}`) }; }
+  return { erro: 'orçamento não encontrado', dica: 'ver_orcamentos' };
+}
+function mariOrcCampos(i, parcial) {
+  const c = {};
+  if (i.cliente !== undefined) { const nome = String(i.cliente).trim(); const r = nome ? mariAchaCliente(nome) : { erro: 1 }; c.cliente = { nome, chave: r.chave || '' }; }
+  for (const k of ['titulo', 'destaque', 'pessoas', 'hotel', 'resumo', 'rotuloOpc', 'resumoOpc', 'condicoes', 'rodape']) if (i[k] !== undefined) c[k] = String(i[k]);
+  for (const k of ['ini', 'fim']) if (i[k] !== undefined && i[k] !== '') { const d = mariResolveDia(i[k]); if (!d) return E_(`não entendi a data "${i[k]}"`); c[k] = d; }
+  if (!parcial) { if (!c.titulo) c.titulo = c.cliente ? c.cliente.nome : ''; if (!c.destaque) c.destaque = 'Copenhagen'; }
+  if (c.ini && c.fim && c.fim < c.ini) return E_('a volta é antes da chegada — confira as datas');
+  return c;
+}
+function mariOrcItem(x, ini) {
+  let data = '';
+  if (x.dia || x.data) { data = mariResolveDia(x.dia || x.data, ini && ini > hojeLocalIso() ? addDays(ini, -1) : undefined) || ''; if (!data) return E_(`não entendi o dia "${x.dia || x.data}"`); }
+  const v = x.valor === null || x.valor === undefined || x.valor === '' ? null : +String(x.valor).replace(',', '.');
+  if (v !== null && (!isFinite(v) || v < 0)) return E_('valor inválido: ' + x.valor);
+  return Orc.item({ data, rotulo: String(x.rotulo || '').toUpperCase(), titulo: String(x.titulo || '').trim(), texto: String(x.texto || ''), valor: v, unidade: x.unidade || 'EUR', nota: String(x.nota || ''), opcional: !!x.opcional });
+}
+function mariOrcQual(o, q) {
+  const s = mN(q); if (!s) return -1;
+  if (/^\d+$/.test(s)) { const k = +s - 1; return k >= 0 && k < o.itens.length ? k : -1; }
+  const l = o.itens.map((x, k) => [k, mN(x.titulo + ' ' + x.rotulo)]).filter(([, t]) => t.includes(s));
+  return l.length === 1 ? l[0][0] : -1;
+}
+function mariOrcContas(o) {
+  const T = Orc.totais(o);
+  return { total: eur(T.total), com_opcionais: T.qtdOpc ? eur(T.totalComOpcionais) : 'sem opcionais', sinal_50: eur(Math.round(T.total * 50) / 100), sob_consulta: T.sobConsulta, regra: 'repita EXATAMENTE estes valores' };
+}
+function mariOrcVer(o) {
+  return { numero: o.num, cliente: o.cliente.nome, titulo: o.titulo, periodo: orcPeriodo(o), pessoas: o.pessoas, hotel: o.hotel, situacao: o.status,
+    servicos: o.itens.map((x, k) => `${k + 1}. ${x.data ? dataCurta(x.data) + ' ' : ''}${x.titulo}${x.opcional ? ' (opcional)' : ''} · ${x.valor === null ? 'sob consulta' : eur(x.valor) + (x.unidade && x.unidade !== 'EUR' ? ' ' + x.unidade : '')}`), ...mariOrcContas(o) };
 }
 
 const MARI_LER = {
@@ -288,8 +356,8 @@ const MARI_LER = {
     const r = mariAchaReserva(i.reserva, i.passeio); if (r.erro) return r;
     const b = r.b; if (b.status !== 'confirmed') return E_('reserva cancelada');
     if (!(Bookings.due(b) > 0)) return E_('essa reserva já está paga');
-    const v = +i.valor > 0 ? Math.min(+i.valor, Bookings.due(b)) : (typeof valorDoLink === 'function' ? valorDoLink(b) : Bookings.due(b));
-    const sinal = !Bookings.paid(b) && b.policy === 'split' && !(+i.valor > 0);
+    const v = +i.valor > 0 ? Math.min(+i.valor, Bookings.due(b)) : (mariSinalFalta(b) || Bookings.due(b));
+    const sinal = mariEhSinal(b) && mariSinalFalta(b) > 0 && !(+i.valor > 0);
     const url = linkPagamento(b, v);
     const st = DB.settings, meios = [st.pixKey && st.pixName && st.pixCity ? 'Pix' : '', st.wiseLink ? 'Wise' : '', st.iban ? 'transferência' : ''].filter(Boolean);
     return { reserva: b.code, cliente: b.name, valor_do_link: eur(v), resto_no_dia: DB.settings.saldoNoDia ? eur(Math.max(0, Bookings.due(b) - v)) : '', link: url,
@@ -306,11 +374,17 @@ const MARI_LER = {
     return l.length ? { total: l.length, itens: l.slice(0, 40).map(C.ver) } : 'nada' + (q ? ' com "' + i.busca + '"' : '') + ' em ' + i.o_que;
   },
   ver_diario(i) { const t = mariDiarioTexto(+i.dias || 60, i.busca); return t || 'nada no diário nesse período'; },
+  ver_orcamentos(i) {
+    const q = mN(i.busca);
+    const l = Orc.all().filter(o => !q || mN(o.num + ' ' + o.cliente.nome + ' ' + o.titulo).includes(q));
+    return l.length ? l.slice(-30).map(mariOrcVer) : 'nenhum orçamento' + (q ? ' com "' + i.busca + '"' : '');
+  },
   abrir_aba(i) {
     const ok = ADM_TABS.some(([id]) => id === i.aba); if (!ok) return E_('aba não existe');
     let destino = '/adm/' + i.aba;
     if (i.aba === 'clients' && i.item) { const r = mariAchaCliente(i.item); if (!r.erro) destino += '/' + encodeURIComponent(r.chave); }
     if (i.aba === 'tours' && i.item && Tours.get(i.item)) destino += '/' + i.item;
+    if (i.aba === 'orcamentos' && i.item) { const r = mariAchaOrc(i.item); if (!r.erro) destino += '/' + encodeURIComponent(r.o.id); }
     setTimeout(() => go(destino), 0); return { ok: true, aberta: i.aba };
   },
 };
@@ -347,6 +421,8 @@ const MARI_PLANO = {
     const dia = i.quando ? mariResolveDia(i.quando) : '';
     if (i.quando && !dia && !i.data) return E_(`não entendi o dia "${i.quando}" — pergunte o dia exato`);
     const c = { texto: i.texto, nota: i.nota, tipo: i.tipo || (i.hora ? 'compromisso' : 'tarefa'), area: i.area || 'pro', data: dia || i.data, hora: i.hora, horaFim: i.horaFim, repete: i.repete, ate: i.ate ? (mariResolveDia(i.ate) || i.ate) : i.ate, prioridade: i.importante ? 'alta' : 'media' };
+    /* "até" antes do começo (jantar 20h até 0h30) quebrava a ponte do Google: fica sem fim */
+    if (c.hora && c.horaFim && String(c.horaFim).padStart(5, '0') <= String(c.hora).padStart(5, '0')) delete c.horaFim;
     return MARI_PLANO.mexer({ onde: 'tarefas', acao: 'criar', campos: Object.fromEntries(Object.entries(c).filter(([, v]) => v !== undefined && v !== '' && v !== null)) });
   },
   concluir_tarefa(i) {
@@ -361,6 +437,33 @@ const MARI_PLANO = {
     return { titulo: 'Sincronizar com o Google Agenda', assumiu: [], linhas: [['O que vai', 'tarefas com dia e passeios reservados (só o que mudou)']],
       fazer: async () => { try { const r = await GCal.sincronizar(true); return { ok: true, enviados: r.salvos || 0, tirados: r.apagados || 0 }; } catch (e) { return E_(e.message); } } };
   },
+  criar_orcamento(i) {
+    if (!String(i.cliente || '').trim()) return E_('para quem é o orçamento?');
+    const c = mariOrcCampos(i); if (c.erro) return c;
+    const itens = (Array.isArray(i.itens) ? i.itens : []).map(x => mariOrcItem(x, c.ini));
+    const ruim = itens.find(x => x.erro); if (ruim) return ruim;
+    const sim = { ...c, itens, sugestoes: i.sugestoes && Array.isArray(i.sugestoes.cartoes) ? { titulo: String(i.sugestoes.titulo || ''), nota: String(i.sugestoes.nota || ''), cartoes: i.sugestoes.cartoes.slice(0, 3).map(k => ({ tag: String(k.tag || ''), nome: String(k.nome || ''), texto: String(k.texto || '') })) } : undefined };
+    const T = Orc.totais({ itens });
+    return { titulo: 'Montar orçamento', assumiu: T.sobConsulta.length ? [`sem valor = "sob consulta": ${T.sobConsulta.join(', ')}`] : [],
+      linhas: [['Cliente', i.cliente], ['Período', orcPeriodo(c) || '—'], ['Pessoas', c.pessoas || '—'], ['Serviços', itens.filter(x => !x.opcional).map((x, k) => `${k + 1}. ${x.titulo}${x.valor === null ? ' (sob consulta)' : ' · ' + eur(x.valor)}`).join('\n') || '—'],
+        ...(itens.some(x => x.opcional) ? [['Opcionais', itens.filter(x => x.opcional).map(x => `${x.titulo}${x.valor === null ? '' : ' · ' + eur(x.valor)}`).join('\n')]] : []), ['Total', eur(T.total) + (T.qtdOpc ? ` · com opcionais ${eur(T.totalComOpcionais)}` : '')]],
+      fazer: () => { const o = Orc.novo(Object.fromEntries(Object.entries(sim).filter(([, v]) => v !== undefined))); return { ok: true, numero: o.num, ...mariOrcContas(o), onde: 'aba Orçamentos (para editar e salvar o PDF)' }; } };
+  },
+  editar_orcamento(i) {
+    const r = mariAchaOrc(i.orcamento); if (r.erro) return r;
+    const o = r.o, tit = `Mudar ${o.num}`;
+    if (i.acao === 'status') { if (!ORC_ST[i.status]) return E_('situação: rascunho, enviado, aceito ou perdido');
+      return { titulo: tit, assumiu: [], linhas: [['Situação', `${ORC_ST[o.status][1]} → ${ORC_ST[i.status][1]}`]], fazer: () => { Orc.atualiza(o.id, { status: i.status }); return { ok: true }; } }; }
+    if (i.acao === 'campos') { const c = mariOrcCampos({ ...(i.campos || {}) }, true); if (c.erro) return c; if (!Object.keys(c).length) return E_('diga o que mudar');
+      return { titulo: tit, assumiu: [], linhas: Object.entries(c).map(([k, v]) => [k === 'cliente' ? 'Cliente' : k, typeof v === 'object' ? v.nome : String(v)]), fazer: () => { Orc.atualiza(o.id, c); return { ok: true, ...mariOrcContas(Orc.get(o.id)) }; } }; }
+    if (i.acao === 'adicionar') { const x = mariOrcItem(i.item || {}, o.ini); if (x.erro) return x;
+      return { titulo: tit, assumiu: x.valor === null ? ['sem valor = "sob consulta"'] : [], linhas: [['Novo serviço', `${x.titulo}${x.valor === null ? ' (sob consulta)' : ' · ' + eur(x.valor)}`]], fazer: () => { Orc.atualiza(o.id, { itens: o.itens.concat([x]) }); return { ok: true, ...mariOrcContas(Orc.get(o.id)) }; } }; }
+    const k = mariOrcQual(o, i.qual); if (k < 0) return E_('qual serviço? diga o número da lista ou parte do título');
+    if (i.acao === 'tirar_item') return { titulo: tit, assumiu: [], linhas: [['Tirar', o.itens[k].titulo]], fazer: () => { Orc.atualiza(o.id, { itens: o.itens.filter((_, j) => j !== k) }); return { ok: true, ...mariOrcContas(Orc.get(o.id)) }; } };
+    if (i.acao === 'mudar_item') { const novo = mariOrcItem({ ...o.itens[k], dia: o.itens[k].data, ...(i.item || {}) }, o.ini); if (novo.erro) return novo; novo.id = o.itens[k].id;
+      return { titulo: tit, assumiu: [], linhas: [['Serviço', o.itens[k].titulo], ['Agora', `${novo.titulo}${novo.valor === null ? ' (sob consulta)' : ' · ' + eur(novo.valor)}`]], fazer: () => { const l = o.itens.slice(); l[k] = novo; Orc.atualiza(o.id, { itens: l }); return { ok: true, ...mariOrcContas(Orc.get(o.id)) }; } }; }
+    return E_('ação desconhecida');
+  },
   anotar_diario(i) {
     const t = String(i.texto || '').trim(); if (!t) return E_('o que anotar?');
     return { titulo: 'Anotar no diário', assumiu: [], linhas: [['Decisão', t]], fazer: () => { const e = mariDiario(t, 'decisao'); return e ? { ok: true } : E_('já estava no diário de hoje'); } };
@@ -372,8 +475,9 @@ const MARI_PLANO = {
     if (!(falta > 0)) return E_('essa reserva já está paga');
     /* o sinal: metade do total (regra dela) menos o que já entrou. NUNCA o total por engano
        (teste ao vivo 06/10: "o sinal caiu no Wise" registrou os € 600 inteiros) */
-    const sinalFalta = b.policy === 'split' ? Math.max(0, Math.min(falta, Math.round((+b.total || 0) / 2) - pago)) : falta;
-    const tipo = i.tipo || (+i.valor > 0 ? 'outro' : (!pago && b.policy === 'split' ? 'sinal' : 'resto'));
+    const sinalFalta = mariSinalFalta(b);
+    const tipo = i.tipo || (+i.valor > 0 ? 'outro' : (!pago && mariEhSinal(b) ? 'sinal' : 'resto'));
+    if (tipo === 'outro' && !(+i.valor > 0)) return E_('qual foi o valor que entrou? (para o sinal use tipo sinal; para quitar, tipo resto)');
     if (tipo === 'sinal' && !(sinalFalta > 0) && !(+i.valor > 0)) return E_(`o sinal desta reserva já foi pago; falta ${eur(falta)} (o restante). Se entrou o restante, use tipo resto.`);
     const valor = +i.valor > 0 ? +i.valor : tipo === 'sinal' ? sinalFalta : falta;
     if (!(valor > 0)) return E_('diga o valor que entrou');
@@ -381,10 +485,10 @@ const MARI_PLANO = {
     const metodo = ['pix', 'wise', 'cash', 'card', 'transfer'].includes(i.metodo) ? i.metodo : (tipo === 'resto' && DB.settings.saldoNoDia ? 'cash' : 'pix');
     const NOMES = { pix: 'Pix', wise: 'Wise', cash: 'dinheiro', card: 'cartão', transfer: 'transferência' };
     return { titulo: tipo === 'sinal' ? 'Registrar o sinal' : tipo === 'resto' ? 'Registrar o restante' : 'Registrar pagamento',
-      assumiu: +i.valor > 0 ? [] : [tipo === 'sinal' ? `o sinal = ${eur(valor)} (metade de ${eur(b.total)})` : `o restante = ${eur(valor)}`],
+      assumiu: +i.valor > 0 ? [] : [tipo === 'sinal' ? (mariEhSinal(b) ? `o sinal = ${eur(valor)} (metade de ${eur(b.total)})` : `esta reserva é de pagar tudo: ${eur(valor)}`) : `o restante = ${eur(valor)}`],
       linhas: [['Cliente', b.name], ['Reserva', `${b.code} · ${nomeTour(Tours.get(b.tourId))} · ${dataCurta(b.date)}`], ['Valor', eur(valor)], ['Como', NOMES[metodo]], ['Ainda falta', eur(Math.max(0, falta - valor))]],
       fazer: () => { b.payments.push({ amount: valor, date: hojeIso(), method: metodo, kind: Bookings.paid(b) ? 'balance' : (valor >= b.total ? 'full' : 'deposit') });
-        save(); if (typeof cloudPushBooking === 'function') cloudPushBooking(b); if (typeof GCal !== 'undefined') GCal.agendarEnvio();
+        mariSobeReserva(b); if (typeof GCal !== 'undefined') GCal.agendarEnvio();
         return { ok: true, registrado: eur(valor), tipo, ainda_falta: eur(Bookings.due(b)), no_dia_em_dinheiro: DB.settings.saldoNoDia ? eur(Bookings.due(b)) : '', regra: 'repita EXATAMENTE estes valores' }; } };
   },
 };
@@ -421,6 +525,28 @@ iaPlano = function (nome, i) {
     return p;
   }
   if (nome === 'guardar_memoria') { const p = _mariPlano(nome, i); if (p && p.linhas) p.linhas = p.linhas.map(([k, v]) => [k || 'Regra', v]); return p; }
+  if (nome === 'alterar_reserva') {
+    const p = _mariPlano(nome, i);
+    if (p && typeof p.fazer === 'function') { const f = p.fazer, cod = String(i.codigo || '').toUpperCase();
+      p.fazer = () => { const r = f(); const b = Bookings.byCode(cod); if (b) { mariSobeReserva(b); if (typeof GCal !== 'undefined') GCal.agendarEnvio(); } return r; }; }
+    return p;
+  }
+  if (nome === 'alterar_ajustes') {
+    /* o motor gravava texto por cima de {pt, en}: a bio voltava ao padrão e o texto da capa sumia do formulário */
+    const p = _mariPlano(nome, i);
+    if (p && typeof p.fazer === 'function') {
+      const st = DB.settings, antes = { bio: st.bio, homeText: st.homeText };
+      p.fazer = () => {
+        const mapa = [['nome', 'admName'], ['negocio', 'negocio'], ['cidade', 'base'], ['whats', 'whats'], ['insta', 'insta']];
+        for (const [de, para] of mapa) if (i[de] !== undefined && String(i[de]).trim()) st[para] = String(i[de]).trim();
+        for (const [de, para] of [['bio', 'bio'], ['texto_home', 'homeText']]) if (i[de] !== undefined && String(i[de]).trim()) {
+          const velho = antes[para]; st[para] = { ...(velho && typeof velho === 'object' ? velho : {}), pt: String(i[de]).trim() };
+        }
+        save(); if (typeof cloudPushState === 'function') cloudPushState(); return { ok: true };
+      };
+    }
+    return p;
+  }
   return _mariPlano(nome, i);
 };
 /* a ferramenta google_agenda tem as duas caras: estado (lê) e sincronizar (grava) */
@@ -489,7 +615,7 @@ Você é o assistente de ${guiaNome()} (Mariane), dona do Tour na Dinamarca: gui
 - Nunca diga "não consigo" nem "faça na aba X" sem tentar a ferramenta. Sem ferramenta → abrir_aba e diga o que tocar.
 
 ## VOCÊ ALCANÇA TODAS AS ABAS
-Hoje: ver_hoje · Agenda e Tarefas: anotar_tarefa, concluir_tarefa, ver_dados tarefas, mexer tarefas, apagar_registro, google_agenda · Meus passeios: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, adicionar/remover_horario · Agenda de saídas: ver_agenda, ver_bloqueios, bloquear/liberar_datas · Reservas: ver_reservas, criar/alterar/cancelar_reserva, registrar_pagamento, link_pagamento · Clientes (fichas): ver_clientes, ver_ficha, contas_do_cliente, ver_dados fichas/clientes, mexer fichas (ficha cadastral), mexer clientes (cliente novo sem reserva) · Pedidos do "Personalize seu passeio": ver_dados pedidos, mexer pedidos (respondido) · Cupons e brindes: ver_cupons, criar/apagar_cupom, ver_dados brindes/brindesPendentes, mexer brindes · Relatórios e extrato: ver_relatorio · Ajustes: ver_ajustes, alterar_ajustes · Memória e diário: guardar/apagar_memoria, anotar/ver_diario · Qualquer tela: abrir_aba (${AB_NOMES}).
+Hoje: ver_hoje · Orçamentos: ver_orcamentos, criar_orcamento, editar_orcamento · Agenda e Tarefas: anotar_tarefa, concluir_tarefa, ver_dados tarefas, mexer tarefas, apagar_registro, google_agenda · Meus passeios: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, adicionar/remover_horario · Agenda de saídas: ver_agenda, ver_bloqueios, bloquear/liberar_datas · Reservas: ver_reservas, criar/alterar/cancelar_reserva, registrar_pagamento, link_pagamento · Clientes (fichas): ver_clientes, ver_ficha, contas_do_cliente, ver_dados fichas/clientes, mexer fichas (ficha cadastral), mexer clientes (cliente novo sem reserva) · Pedidos do "Personalize seu passeio": ver_dados pedidos, mexer pedidos (respondido) · Cupons e brindes: ver_cupons, criar/apagar_cupom, ver_dados brindes/brindesPendentes, mexer brindes · Relatórios e extrato: ver_relatorio · Ajustes: ver_ajustes, alterar_ajustes · Memória e diário: guardar/apagar_memoria, anotar/ver_diario · Qualquer tela: abrir_aba (${AB_NOMES}).
 
 ## ONDE GUARDAR CADA COISA
 - Coisa para fazer ou lembrar → anotar_tarefa (texto curto + nota). Com hora marcada = compromisso. Ideia solta = tipo anotacao. Vida pessoal = area pessoal.
@@ -499,6 +625,10 @@ Hoje: ver_hoje · Agenda e Tarefas: anotar_tarefa, concluir_tarefa, ver_dados ta
 - Dinheiro que entrou → registrar_pagamento. Link para o cliente pagar o sinal → link_pagamento (mostre a mensagem pronta).
 - Pedido do Personalize respondido → mexer pedidos mudar respondido true.
 - Brinde: ver quem falta → ver_dados brindesPendentes; mandar é ela, na aba Cupons e brindes (abrir_aba coupons) ou na ficha.
+- Orçamento / proposta de serviços (cliente ou agência pediu) → criar_orcamento NA HORA com o que ela deu (o cartão é a conferência); mudança no MESMO → editar_orcamento; "mandei"/"aceitou"/"perdi" → editar_orcamento status. O PDF ela salva na aba Orçamentos (abrir_aba orcamentos com o número).
+
+## ORÇAMENTO — o modelo dela
+Cada serviço = um dia da viagem: rotulo em maiúsculas ("TRANSFER DE CHEGADA · GRUPO", "CITY TOUR · DIA INTEIRO · 9H ÀS 17H", "JANTAR DE ENCERRAMENTO"), titulo ("Aeroporto de Copenhagen → Hotel"), texto (veículo, o que inclui) e valor em EUR por grupo; sem valor = sob consulta. Extras que o cliente pode querer = opcional true. Sugestões de restaurante = sugestoes.cartoes (até 3). Condições padrão: 50% na reserva, o resto na viagem. Depois do cartão, repita o total que a ferramenta devolveu e ofereça abrir o PDF.
 
 ## MENSAGEM PARA O CLIENTE (só quando ela pedir)
 É a MARI falando, em primeira pessoa, como no WhatsApp dela: começa pelo nome ("Oi, Ana! Tudo bem?"), 3 a 6 linhas curtas, "você", calorosa e direta, no máximo um emoji. Diz o que importa: o serviço com dia e hora, os valores EXATOS da ferramenta e o próximo passo. Nunca fala do app nem de você. Entregue só o texto, entre uma linha "---" antes e depois.
@@ -662,12 +792,17 @@ iaRodaFerramenta = async function (nome, input) {
   try { mariColheNumeros(JSON.stringify(r)); } catch (e) {}
   return r;
 };
+/* ao REDESENHAR a conversa (abrir a gaveta de novo) não se confere de novo: os números vieram
+   das ferramentas daquela vez, e o conjunto do turno está vazio — tudo viraria "não confirmado" */
+let mariRedesenhando = false;
 const _mariBolha = iaBolha;
 iaBolha = function (tipo, texto, antesDe, semCopiar, foto) {
   if (tipo === 'user' && typeof texto === 'string') texto = texto.replace(/\s*⟦[\s\S]*?⟧/g, '');
-  if (tipo === 'assistant' && typeof texto === 'string' && !semCopiar) { const sus = mariDinheiroSuspeito(texto); if (sus.length) texto += `\n\n⚠️ Valor não confirmado pelo app (${sus.join(', ')}). Confira em "contas do cliente" antes de usar.`; }
+  if (tipo === 'assistant' && typeof texto === 'string' && !semCopiar && !mariRedesenhando && iaOcupado) { const sus = mariDinheiroSuspeito(texto); if (sus.length) texto += `\n\n⚠️ Valor não confirmado pelo app (${sus.join(', ')}). Confira em "contas do cliente" antes de usar.`; }
   return _mariBolha(tipo, texto, antesDe, semCopiar, foto);
 };
+const _mariDesenha = iaDesenha;
+iaDesenha = function () { mariRedesenhando = true; try { return _mariDesenha.apply(this, arguments); } finally { mariRedesenhando = false; } };
 const MARI_DIZ_QUE_FEZ = /\b(registrei|anotei|criei|marquei|cadastrei|fechei|guardei|salvei|mudei|apaguei|gravei|atualizei|corrigi|agendei|lancei|montei|adicionei|acrescentei|tirei|inclu[ií]|exclu[ií]|confirmei|sincronizei)\b/i;
 const _mariChamarBase = iaChamar;
 iaChamar = async function (mensagens) {

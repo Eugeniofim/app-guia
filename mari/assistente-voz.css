@@ -130,3 +130,8 @@
 /* o selo no botão "presente" e o modo ao vivo */
 #iaGaveta.iav .iaModo{background:rgba(242,194,48,.14);color:var(--v-sky)}
 body.iaSolta::after{content:"Solte aqui: vai para o assistente";position:fixed;inset:12px;border:2px dashed #F2C230;border-radius:18px;background:rgba(20,27,46,.55);color:#fff;display:grid;place-items:center;font:600 18px var(--f-ui);z-index:9999;pointer-events:none}
+
+/* o orbe é o avatar do topo: a estrela do motor antigo sai; o selo "ao vivo" não quebra */
+#iaGaveta.iav .iaAv{display:none}
+#iaGaveta.iav .iaModo{white-space:nowrap}
+#iaGaveta.iav header .iaCab{min-width:0}

@@ -530,7 +530,7 @@ function viewPersonalizar() {
     if (P.obs) L.push('📝 ' + P.obs);
     const texto = L.join('\n');
     try {
-      const pedido = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), criadoEm: new Date().toISOString(), ...P,
+      const pedido = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), criadoEm: new Date().toISOString(), ...P, gosto: [...P.gosto], precisa: [...P.precisa], kids: [...P.kids],
         quando: [dia(P.ini), dia(P.fim)].filter(Boolean).join(' → '), pessoas: P.adultos + P.criancas,
         gostos: P.gosto.map(c => (PERS_GOSTO.find(z => z[0] === c) || [])[1]).filter(Boolean),
         precisaTxt: P.precisa.map(c => (PERS_PRECISA.find(z => z[0] === c) || [])[1]).filter(Boolean),
@@ -1937,7 +1937,7 @@ function admBookings() {
   });
 }
 
-const METODO = { pix: 'mPix', card: 'mCard', cash: 'mCash', transfer: 'mTransfer',
+const METODO = { pix: 'mPix', wise: 'mWise', card: 'mCard', cash: 'mCash', transfer: 'mTransfer',
                  applepay: 'mApple', other: 'mOther' };
 function formaPg(m) { return METODO[m] ? t(METODO[m]) : (m || '—'); }
 

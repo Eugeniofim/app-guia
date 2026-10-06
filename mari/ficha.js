@@ -41,8 +41,37 @@
     }
     return String(e || c.whats || c.nome || '').toLowerCase().trim();
   }
+  /* A MESMA PESSOA, DUAS CHAVES (revisão 06/10): o contato entrou pelo Personalize com o WhatsApp e
+     depois reservou com o e-mail — a reserva tem outra chave. Aqui a ficha antiga muda para a chave
+     da reserva (cadastro, anotações, brindes, pedidos e orçamentos juntos) e o contato extra sai. */
+  function unificaClientes() {
+    let mudou = false;
+    for (const x of clientesExtras().slice()) {
+      const w = digitos(x.whats), e = String(x.email || '').toLowerCase().trim();
+      const cad = ((DB.fichas || {})[x.chave] || {}).cadastro || {};
+      const w2 = digitos(cad.whats), e2 = String(cad.email || '').toLowerCase().trim();
+      const b = DB.bookings.find(b => { const bw = digitos(b.whats), be = String(b.email || '').toLowerCase();
+        return ((w.length >= 8 && bw.endsWith(w.slice(-9))) || (w2.length >= 8 && bw.endsWith(w2.slice(-9))) || (e && be === e) || (e2 && be === e2)); });
+      if (!b) continue;
+      const nova = chaveDe(b); if (nova === x.chave) { DB.clientes = clientesExtras().filter(z => z !== x); mudou = true; continue; }
+      DB.fichas = DB.fichas || {};
+      const velha = DB.fichas[x.chave];
+      if (velha) {
+        const atual = DB.fichas[nova] || {};
+        DB.fichas[nova] = Object.assign({}, velha, atual, { cadastro: Object.assign({}, velha.cadastro || {}, atual.cadastro || {}),
+          texto: [velha.texto, atual.texto].filter(Boolean).join('\n') });
+        delete DB.fichas[x.chave];
+      }
+      for (const en of DB.brindesEnvios || []) if (en.chave === x.chave) en.chave = nova;
+      for (const p of DB.pedidos || []) if (p.clienteChave === x.chave) p.clienteChave = nova;
+      for (const o of DB.orcamentos || []) if (o.cliente && o.cliente.chave === x.chave) o.cliente.chave = nova;
+      DB.clientes = clientesExtras().filter(z => z !== x); mudou = true;
+    }
+    if (mudou) save();
+  }
   /* pedido do Personalize que chegou → a pessoa passa a ter ficha (uma vez) */
   function clientesDosPedidos() {
+    unificaClientes();
     let mudou = false;
     for (const p of DB.pedidos || []) {
       if (!p || !p.nome || p.clienteChave) continue;
@@ -146,8 +175,9 @@
   }
   /* quanto pedir no link: sem nada pago e reserva "metade agora" = o sinal; senão, o que falta */
   window.valorDoLink = function (b) {
-    const pago = Bookings.paid(b), due = Bookings.due(b);
-    if (!pago && b.policy === 'split') return Math.min(due, Math.round((+b.total || 0) / 2));
+    const due = Bookings.due(b);
+    if (typeof mariSinalFalta === 'function') return mariSinalFalta(b) || due;
+    if (!Bookings.paid(b) && b.policy === 'split') return Math.min(due, Math.round((+b.total || 0) / 2));
     return due;
   };
 
@@ -217,7 +247,9 @@
           ${cobrar ? `<a class="cta sm" target="_blank" rel="noopener" href="${cobrar}">Lembrar do saldo pelo WhatsApp</a>` : ''}
           ${pedeFicha && c.ok < c.de ? `<a class="mini" target="_blank" rel="noopener" href="${pedeFicha}">Pedir os dados que faltam</a>` : ''}
           ${F.vivas.length ? '<a class="mini" href="#/adm/bookings">Reservas</a>' : ''}
+          ${typeof Orc !== 'undefined' ? '<button class="mini" id="fcOrc">Novo orçamento</button>' : ''}
         </div>
+        ${typeof Orc !== 'undefined' && Orc.all().some(o => o.cliente.chave === F.key || o.cliente.nome === F.nome) ? `<p class="why" style="margin-top:8px">Orçamentos: ${Orc.all().filter(o => o.cliente.chave === F.key || o.cliente.nome === F.nome).map(o => `<a href="#/adm/orcamentos/${encodeURIComponent(o.id)}">${esc(o.num)} (${esc(o.status)})</a>`).join(' · ')}</p>` : ''}
       </section>
       <section class="card" id="fcCad">
         <h3>Ficha cadastral <small class="why" style="font-weight:500">· ${c.ok} de ${c.de} essenciais preenchidos</small></h3>
@@ -260,10 +292,16 @@
       save(); toast('Ficha salva'); window.admFichaCliente(F.key);
     };
     if (typeof brindesLigaFicha === 'function') brindesLigaFicha(F);
+    const bo = document.getElementById('fcOrc');
+    if (bo) bo.onclick = () => {
+      const c = F.cad || {}, pax = [c.adultos ? c.adultos + ' adulto(s)' : '', c.criancas ? c.criancas + ' criança(s)' : ''].filter(Boolean).join(' + ');
+      const o = Orc.novo({ cliente: { nome: F.nome, chave: F.key }, titulo: F.nome, ini: c.chegada || '', fim: c.partida || '', pessoas: pax, hotel: c.hotel || '' });
+      go('/adm/orcamentos/' + o.id);
+    };
     document.querySelectorAll('[data-linkpg]').forEach(bt => bt.onclick = () => {
       const b = DB.bookings.find(z => z.id === bt.dataset.linkpg); if (!b) return;
       const v = window.valorDoLink(b), url = linkPagamento(b, v);
-      const sinal = !Bookings.paid(b) && b.policy === 'split';
+      const sinal = typeof mariEhSinal === 'function' ? (mariEhSinal(b) && mariSinalFalta(b) > 0) : (!Bookings.paid(b) && b.policy === 'split');
       const msg = `Oi ${primeiro(b.name)}! Para garantir a sua reserva (${nomeTour(b)}, ${dataF(b.date)}), ${sinal ? 'o sinal é de ' : 'falta '}${dinheiro(v)}. Por este link você paga por Pix ou Wise:\n${url}${sinal && DB.settings.saldoNoDia ? `\n\nO restante (${dinheiro(Bookings.due(b) - v)}) você paga em euro, em dinheiro, no dia do passeio.` : ''}`;
       if (digitos(b.whats).length >= 8) window.open(waLink(msg, digitos(b.whats)), '_blank', 'noopener');
       else { try { navigator.clipboard.writeText(url); } catch (e) {} toast('Link copiado (o cliente não tem WhatsApp na reserva)'); }

@@ -13,7 +13,7 @@
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Karla:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Karla:wght@400;600&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,8 +24,8 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=0.2.0">
-<link rel="stylesheet" href="assistente-voz.css?v=0.2.0">
+<link rel="stylesheet" href="tokens.css?v=0.2.1">
+<link rel="stylesheet" href="assistente-voz.css?v=0.2.1">
 <link rel="icon" type="image/png" href="arte/selo-mari-circ.png">
 <style>
 /* ============ base ============ */
@@ -1039,7 +1039,7 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 
 /* faixa de painel destravado — precisa incomodar sem gritar */
 .alert.nolog{display:block;margin-bottom:var(--s-9)}
-.alert.demo{background:var(--accent-wash);color:var(--brand-primaria);border-left:4px solid var(--brand-assinatura)}
+.alert.demo{background:var(--accent-wash);color:var(--ink);border-left:4px solid var(--brand-assinatura)}
 /* faixa de proposta do prototipo — fixa embaixo, por cima de tudo */
 .protobar{position:fixed;left:0;right:0;bottom:0;z-index:998;padding:9px 14px;
   background:var(--highlight-wash);color:var(--ink);border-top:1px solid var(--line);
@@ -1163,27 +1163,28 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=0.2.0"></script>
-<script src="auth.js?v=0.2.0"></script>
-<script src="logo.js?v=0.2.0"></script>
-<script src="fx.js?v=0.2.0"></script>
-<script src="qrcode.js?v=0.2.0"></script>
-<script src="qr.js?v=0.2.0"></script>
-<script src="pix.js?v=0.2.0"></script>
-<script src="traduz.js?v=0.2.0"></script>
-<script src="idiomas.js?v=0.2.0"></script>
-<script src="store.js?v=0.2.0"></script>
-<script src="cloud.js?v=0.2.0"></script>
-<script src="i18n.js?v=0.2.0"></script>
-<script src="nuvem-itens.js?v=0.2.0"></script>
-<script src="app.js?v=0.2.0"></script>
-<script src="agenda-mari.js?v=0.2.0"></script>
-<script src="ficha.js?v=0.2.0"></script>
-<script src="brindes.js?v=0.2.0"></script>
-<script src="prospecto.js?v=0.2.0"></script>
-<script src="assistente.js?v=0.2.0"></script>
-<script src="assistente-voz.js?v=0.2.0"></script>
-<script src="assistente-mari.js?v=0.2.0"></script>
+<script src="config.js?v=0.2.1"></script>
+<script src="auth.js?v=0.2.1"></script>
+<script src="logo.js?v=0.2.1"></script>
+<script src="fx.js?v=0.2.1"></script>
+<script src="qrcode.js?v=0.2.1"></script>
+<script src="qr.js?v=0.2.1"></script>
+<script src="pix.js?v=0.2.1"></script>
+<script src="traduz.js?v=0.2.1"></script>
+<script src="idiomas.js?v=0.2.1"></script>
+<script src="store.js?v=0.2.1"></script>
+<script src="cloud.js?v=0.2.1"></script>
+<script src="i18n.js?v=0.2.1"></script>
+<script src="nuvem-itens.js?v=0.2.1"></script>
+<script src="app.js?v=0.2.1"></script>
+<script src="agenda-mari.js?v=0.2.1"></script>
+<script src="ficha.js?v=0.2.1"></script>
+<script src="brindes.js?v=0.2.1"></script>
+<script src="orcamento-mari.js?v=0.2.1"></script>
+<script src="prospecto.js?v=0.2.1"></script>
+<script src="assistente.js?v=0.2.1"></script>
+<script src="assistente-voz.js?v=0.2.1"></script>
+<script src="assistente-mari.js?v=0.2.1"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

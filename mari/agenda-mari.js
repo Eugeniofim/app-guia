@@ -98,6 +98,7 @@ const Tarefas = {
         if (antes.length && x.tipo !== 'anotacao') G.atrasadas.push({ x, dia: antes[antes.length - 1], feita: false });
         const prox = this.dias(x, addDays(hoje, 2), semana)[0];
         if (prox) G.proximas.push({ x, dia: prox, feita: false });
+        else { const depois = this.dias(x, addDays(semana, 1), addDays(hoje, 400))[0]; if (depois) G.depois.push({ x, dia: depois, feita: false }); }
         continue;
       }
       if (x.data < hoje) { if (x.feita) G.feitas.push({ x, dia: x.data, feita: true }); else if (x.tipo !== 'anotacao') G.atrasadas.push({ x, dia: x.data, feita: false }); }
@@ -131,7 +132,8 @@ function agSomaHora(hm, min) {
 function agDuracaoMin(x) { const m = String((x && x.duration) || '').match(/(\d+)\s*h/); return m ? +m[1] * 60 : 120; }
 function agEventoTarefa(x, dia) {
   const feita = !x.repete && x.feita;
-  return { id: 'tarefa:' + x.id, titulo: (feita ? '✔ feito · ' : x.tipo === 'anotacao' ? '✎ ' : x.tipo === 'compromisso' ? '' : '☐ ') + x.texto, data: dia || x.data, hora: x.hora || '', horaFim: x.horaFim || '',
+  const fim = x.hora && x.horaFim && x.horaFim > x.hora ? x.horaFim : '';
+  return { id: 'tarefa:' + x.id, titulo: (feita ? '✔ feito · ' : x.tipo === 'anotacao' ? '✎ ' : x.tipo === 'compromisso' ? '' : '☐ ') + x.texto, data: dia || x.data, hora: x.hora || '', horaFim: fim,
     descricao: [x.nota, 'Anotado no app Tour na Dinamarca.'].filter(Boolean).join('\n\n'), lembrete: x.hora && !feita ? (+x.lembrar || 30) : 0, repete: x.repete || '', ate: x.ate || '' };
 }
 function agEventoSaida(x, date, time, bs) {
@@ -178,22 +180,31 @@ const GCal = {
   },
   _t: null,
   agendarEnvio() { if (!this.ligada()) return; clearTimeout(this._t); this._t = setTimeout(() => this.sincronizar().catch(() => {}), 2500); },
-  /* manda só o que mudou (sombra neste aparelho) e apaga o que deixou de existir */
+  /* o que ainda EXISTE no app (qualquer data): só isto fica no Google. O que só ficou velho (fora da
+     janela de envio) não é apagado — antes, cada sincronia apagava do Google o histórico de mais de 7 dias */
+  existentes() {
+    const out = new Set();
+    if (this.cfg().enviarTarefas !== false) for (const x of Tarefas.all()) if (x.data) out.add('tarefa:' + x.id);
+    if (this.cfg().enviarPasseios !== false) for (const b of DB.bookings || []) if (b.status !== 'cancelled' && b.date) out.add('saida:' + b.tourId + ':' + b.date + ':' + b.time);
+    return out;
+  },
+  /* manda o que mudou (sombra neste aparelho) e apaga do Google o que deixou de existir.
+     forcar = reenvia tudo (sem esquecer o que precisa sair). Evento que o Google recusou volta na próxima. */
   async sincronizar(forcar) {
     if (!this.ligada()) return { ok: false, motivo: 'desligada' };
     const SOMBRA = IA_NS_AG + 'gcal_sombra';
     let sombra = {}; try { sombra = JSON.parse(localStorage.getItem(SOMBRA)) || {}; } catch (e) {}
-    if (forcar) sombra = {};
-    const quer = this.desejados(), vivos = new Set(), salvar = [];
-    for (const ev of quer) { vivos.add(ev.id); const j = JSON.stringify(ev); if (sombra[ev.id] !== j) salvar.push(ev); }
-    const apagar = Object.keys(sombra).filter(id => !vivos.has(id)).concat(this.cfg().pendentesApagar || []);
+    const quer = this.desejados(), existem = this.existentes(), salvar = [];
+    for (const ev of quer) { const j = JSON.stringify(ev); if (forcar || sombra[ev.id] !== j) salvar.push(ev); }
+    const apagar = [...new Set(Object.keys(sombra).filter(id => !existem.has(id)).concat(this.cfg().pendentesApagar || []))];
     if (!salvar.length && !apagar.length) return { ok: true, salvos: 0, apagados: 0 };
-    const r = await this.chama({ acao: 'sincronizar', salvar, apagar: [...new Set(apagar)] }, 60000);
-    for (const ev of salvar) sombra[ev.id] = JSON.stringify(ev);
+    const r = await this.chama({ acao: 'sincronizar', salvar, apagar }, 60000);
+    const recusados = new Set((r.erros || []).map(e => e.id));
+    for (const ev of salvar) if (!recusados.has(ev.id)) sombra[ev.id] = JSON.stringify(ev);
     for (const id of apagar) delete sombra[id];
     try { localStorage.setItem(SOMBRA, JSON.stringify(sombra)); } catch (e) {}
     this.grava({ ultimo: new Date().toISOString(), pendentesApagar: [] });
-    return { ok: true, salvos: r.salvos ?? salvar.length, apagados: r.apagados ?? apagar.length };
+    return { ok: true, salvos: r.salvos ?? salvar.length, apagados: r.apagados ?? apagar.length, recusados: (r.erros || []).length };
   },
   apagarDepois(id) { if (!this.ligada()) return; const p = this.cfg().pendentesApagar || []; if (!p.includes(id)) this.grava({ pendentesApagar: p.concat([id]) }); this.agendarEnvio(); },
   /* os compromissos pessoais do Google (não os que o app mandou), guardados só neste aparelho */
@@ -238,23 +249,28 @@ function doPost(e) {
       const eid = props.getProperty(id);
       if (eid) { try { const s = cal.getEventSeriesById(eid); if (s) s.deleteEventSeries(); } catch (x) { try { const ev = cal.getEventById(eid); if (ev) ev.deleteEvent(); } catch (y) {} } props.deleteProperty(id); apagados++; }
     }
+    const erros = [];
     for (const o of p.salvar || []) {
-      const eid = props.getProperty(o.id);
-      if (eid) { try { const s = cal.getEventSeriesById(eid); if (s) s.deleteEventSeries(); } catch (x) {} }
-      const op = { description: o.descricao || '', location: o.local || '' };
-      let ev;
-      const regra = o.repete ? repeticao(o) : null;
-      if (o.hora) {
-        const ini = quando(o.data, o.hora), fim = quando(o.data, o.horaFim || mais(o.hora, 60));
-        ev = regra ? cal.createEventSeries(o.titulo, ini, fim, regra, op) : cal.createEvent(o.titulo, ini, fim, op);
-      } else {
-        ev = regra ? cal.createAllDayEventSeries(o.titulo, dia(o.data), regra, op) : cal.createAllDayEvent(o.titulo, dia(o.data), op);
-      }
-      if (o.lembrete) { try { ev.removeAllReminders(); ev.addPopupReminder(o.lembrete); } catch (x) {} }
-      props.setProperty(o.id, ev.getId());
-      salvos++;
+      try {
+        const eid = props.getProperty(o.id);
+        if (eid) { try { const s = cal.getEventSeriesById(eid); if (s) s.deleteEventSeries(); } catch (x) {} }
+        const op = { description: o.descricao || '', location: o.local || '' };
+        let ev;
+        const regra = o.repete ? repeticao(o) : null;
+        if (o.hora) {
+          const ini = quando(o.data, o.hora);
+          let fim = quando(o.data, o.horaFim || mais(o.hora, 60));
+          if (fim <= ini) fim = new Date(ini.getTime() + 3600000);
+          ev = regra ? cal.createEventSeries(o.titulo, ini, fim, regra, op) : cal.createEvent(o.titulo, ini, fim, op);
+        } else {
+          ev = regra ? cal.createAllDayEventSeries(o.titulo, dia(o.data), regra, op) : cal.createAllDayEvent(o.titulo, dia(o.data), op);
+        }
+        if (o.lembrete) { try { ev.removeAllReminders(); ev.addPopupReminder(o.lembrete); } catch (x) {} }
+        props.setProperty(o.id, ev.getId());
+        salvos++;
+      } catch (x) { erros.push({ id: o.id, erro: String(x && x.message || x) }); }
     }
-    return saida({ ok: true, salvos, apagados });
+    return saida({ ok: true, salvos, apagados, erros });
   }
   return saida({ erro: 'ação desconhecida' });
 }
@@ -388,7 +404,9 @@ function agLeForm(root) {
   if (!texto) { toast('Escreva o que é'); q('#tfTexto').focus(); return null; }
   const data = q('#tfData').value, hora = data ? q('#tfHora').value : '';
   let tipo = q('#tfTipo').value; if (tipo === 'compromisso' && !hora) tipo = 'tarefa';
-  return { texto, nota: q('#tfNota').value.trim(), tipo, area: q('#tfArea').value, data, hora, horaFim: hora ? q('#tfFim').value : '',
+  let horaFim = hora ? q('#tfFim').value : '';
+  if (horaFim && horaFim <= hora) { toast('O "até" é antes do começo — deixei sem hora de fim'); horaFim = ''; }
+  return { texto, nota: q('#tfNota').value.trim(), tipo, area: q('#tfArea').value, data, hora, horaFim,
     repete: data ? q('#tfRep').value : '', ate: data && q('#tfRep').value ? q('#tfAte').value : '', prioridade: q('#tfAlta').checked ? 'alta' : 'media' };
 }
 function agLigaForm(root, aoSalvar, id) {
@@ -496,12 +514,12 @@ function admAgendaMari() {
         ${comReserva.length ? comReserva.map(d => {
           const bs = DB.bookings.filter(b => b.tourId === d.tour.id && b.date === d.date && b.time === d.time && b.status !== 'cancelled');
           const gl = agGoogleLink(agEventoSaida(d.tour, d.date, d.time, bs));
-          return `<div class="deprow"><div class="tinfo"><b>${d.time} · ${esc(tl(d.tour.name))}</b>
+          return `<div class="deprow"><div class="tinfo"><b>${esc(d.time)} · ${esc(tl(d.tour.name))}</b>
               <small>${t('agBooked', { n: d.booked })} · ${t('agFree', { n: d.left })}</small></div>
-            <div class="paxlist">${bs.map(b => `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(b.name.split(' ')[0])} ×${b.pax}${Bookings.due(b) > 0 ? ' · no dia ' + eur(Bookings.due(b)) : ''}</span>`).join('')}
+            <div class="paxlist">${bs.map(b => `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(String(b.name || '').split(' ')[0])} ×${esc(b.pax)}${Bookings.due(b) > 0 ? ' · no dia ' + eur(Bookings.due(b)) : ''}</span>`).join('')}
             ${GCal.ligada() ? '' : `<a class="mini" target="_blank" rel="noopener" href="${esc(gl)}">📅 Google</a>`}</div></div>`;
         }).join('') : `<p class="empty">Nenhum passeio reservado neste dia.</p>`}
-        ${vazias.length ? `<p class="why">Horários abertos sem reserva: ${vazias.map(d => `${d.time} ${esc(tl(d.tour.name))}`).slice(0, 6).join(' · ')}${vazias.length > 6 ? '…' : ''}</p>` : ''}
+        ${vazias.length ? `<p class="why">Horários abertos sem reserva: ${vazias.map(d => `${esc(d.time)} ${esc(tl(d.tour.name))}`).slice(0, 6).join(' · ')}${vazias.length > 6 ? '…' : ''}</p>` : ''}
         ${gEv.length ? `<p class="tfGrupo">Seu Google Agenda</p>${gEv.map(e => `<div class="tf"><span class="ck" style="border-color:#4285F4;color:#4285F4">G</span><div class="tx"><b>${esc(e.titulo)}</b><small>${e.hora ? esc(e.hora + (e.horaFim ? '–' + e.horaFim : '')) : 'dia inteiro'}${e.local ? ' · ' + esc(e.local) : ''}</small></div></div>`).join('')}` : ''}
         <p class="tfGrupo">Tarefas e anotações</p>
         <div id="agTfs">${tfs.length ? tfs.map(o => agLinhaTarefa(o)).join('') : '<p class="empty" style="margin:4px 0">Nada anotado para este dia.</p>'}</div>
@@ -546,6 +564,8 @@ function admTodayMari() {
   const doDia = (d) => vivas.filter(b => b.date === d).sort((a, b) => String(a.time).localeCompare(String(b.time)));
   const hj = doDia(hoje), am = doDia(amanha);
   const late = vivas.filter(b => Bookings.due(b) > 0 && Bookings.dueDate(b) < hoje);
+  /* sinal ainda não pago, de passeio que ainda vai acontecer (reserva com mais de 1 dia) */
+  const semSinal = vivas.filter(b => b.date >= hoje && +b.total > 0 && typeof mariSinalFalta === 'function' && mariEhSinal(b) && mariSinalFalta(b) > 0 && String(b.createdAt || '').slice(0, 10) < hoje);
   const receberHoje = hj.filter(b => Bookings.due(b) > 0);
   const G = Tarefas.grupos(hoje);
   const pedidos = (DB.pedidos || []).filter(p => !p.respondido);
@@ -554,7 +574,7 @@ function admTodayMari() {
   const h = new Date().getHours();
   const ola = (h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite') + ', ' + esc((typeof guiaNome === 'function' && guiaNome()) || 'Mari') + '.';
   const linhaRes = (b) => { const x = Tours.get(b.tourId); return `<div class="hj-item"><span class="hr">${esc(b.time || '')}</span>
-    <div class="tx"><b>${esc(b.name)} · ${b.pax} pessoa${b.pax > 1 ? 's' : ''}</b><small>${esc(x ? tl(x.name) : '')}${x && noIdioma(x.meeting) ? ' · ' + esc(noIdioma(x.meeting)) : ''}${Bookings.due(b) > 0 ? ` · <b style="color:var(--warn)">recebe no dia ${eur(Bookings.due(b))}</b>` : ' · pago'}</small></div>
+    <div class="tx"><b>${esc(b.name)} · ${esc(b.pax)} pessoa${+b.pax > 1 ? 's' : ''}</b><small>${esc(x ? tl(x.name) : '')}${x && noIdioma(x.meeting) ? ' · ' + esc(noIdioma(x.meeting)) : ''}${Bookings.due(b) > 0 ? ` · <b style="color:var(--warn)">recebe no dia ${eur(Bookings.due(b))}</b>` : ' · pago'}</small></div>
     ${b.whats ? `<a class="mini" target="_blank" rel="noopener" href="${esc(waLink('Oi ' + b.name.split(' ')[0] + '! Tudo certo para ' + (b.date === hoje ? 'hoje' : 'amanhã') + ' às ' + b.time + '?', b.whats.replace(/\D/g, '')))}">WhatsApp</a>` : ''}</div>`; };
   const resumo = [hj.length ? `${hj.length} passeio${hj.length > 1 ? 's' : ''} hoje` : 'nenhum passeio hoje',
     receberHoje.length ? `receber ${eur(receberHoje.reduce((s, b) => s + Bookings.due(b), 0))} no dia` : '',
@@ -564,6 +584,7 @@ function admTodayMari() {
     <h1 class="pageh">${ola}</h1>
     <p class="desc lead" style="margin-top:-6px">${esc(fmtDate(hoje))} · ${esc(resumo)}</p>
     ${late.length ? `<div class="alert bad">⚠ ${late.length} ${t('xAtrasados')} · ${eur(late.reduce((s, b) => s + Bookings.due(b), 0))} <button class="mini" id="goLate">${t('admBookings')} →</button></div>` : ''}
+    ${semSinal.length ? `<div class="alert warn">Sinal ainda não pago: ${semSinal.slice(0, 4).map(b => `<a href="#/adm/clients/${encodeURIComponent(String(b.email || b.whats || b.name).toLowerCase())}">${esc(String(b.name || '').split(' ')[0])}</a> (${eur(mariSinalFalta(b))}, passeio ${esc(agDataCurta(b.date))})`).join(' · ')}${semSinal.length > 4 ? ' …' : ''}</div>` : ''}
     <div class="hj-grade">
       <section class="card hj-sec"><h3>Hoje <small>${esc(agDataCurta(hoje))}</small></h3>
         ${hj.length ? hj.map(linhaRes).join('') : '<p class="empty">Nenhum passeio reservado hoje.</p>'}
@@ -577,6 +598,7 @@ function admTodayMari() {
       ${pedidos.length ? `<section class="card hj-sec"><h3>Pedidos do "Personalize" <small>${pedidos.length} sem resposta</small></h3>
         ${pedidos.slice(0, 6).map(p => `<div class="hj-item"><div class="tx"><b>${esc(p.nome || 'Cliente')}</b><small>${esc([p.quando, p.pessoas ? p.pessoas + ' pessoa(s)' : '', (p.gostos || []).slice(0, 3).join(', ')].filter(Boolean).join(' · '))}</small></div>
           ${p.whats ? `<a class="mini" target="_blank" rel="noopener" href="${esc(waLink('Oi ' + String(p.nome || '').split(' ')[0] + '! Recebi o seu pedido do passeio personalizado. ', String(p.whats).replace(/\D/g, '')))}">Responder</a>` : ''}
+          ${typeof Orc !== 'undefined' ? `<button type="button" class="mini" data-porc="${esc(p.id)}">Orçamento</button>` : ''}
           <button type="button" class="mini ghost" data-resp="${esc(p.id)}">✓ respondido</button></div>`).join('')}</section>` : ''}
       ${aniv.length ? `<section class="card hj-sec"><h3>Aniversários <small>próximos 7 dias</small></h3>
         ${aniv.map(a => `<div class="hj-item"><span class="hr">🎂</span><div class="tx"><b>${esc(a.nome)}</b><small>${a.dia === hoje ? 'hoje' : esc(agData(a.dia))}</small></div><a class="mini" href="#/adm/clients/${encodeURIComponent(a.chave)}">Ficha</a></div>`).join('')}</section>` : ''}
@@ -586,6 +608,14 @@ function admTodayMari() {
   $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
   agLigaLinhas(document.getElementById('hjTfs'), admTodayMari);
   agLigaForm(document.getElementById('hjForm'), admTodayMari);
+  $$('[data-porc]').forEach(b => b.onclick = () => {
+    const p = (DB.pedidos || []).find(z => z.id === b.dataset.porc); if (!p) return;
+    const chave = typeof fichaChavePara === 'function' ? fichaChavePara({ nome: p.nome, whats: p.whats }) : '';
+    const o = Orc.novo({ cliente: { nome: p.nome || 'Cliente', chave }, titulo: p.nome || '', ini: p.ini || '', fim: p.fim || '',
+      pessoas: [p.adultos ? p.adultos + ' adulto(s)' : '', p.criancas ? p.criancas + ' criança(s)' + (p.idades ? ' (' + p.idades + ')' : '') : ''].filter(Boolean).join(' + '),
+      resumo: [...(p.precisaTxt || []), ...(p.kidsTxt || [])].slice(0, 4).join(' · ') });
+    go('/adm/orcamentos/' + o.id);
+  });
   $$('[data-resp]').forEach(b => b.onclick = () => { const p = (DB.pedidos || []).find(z => z.id === b.dataset.resp); if (p) { p.respondido = new Date().toISOString(); save(); admTodayMari(); } });
   if (typeof Coach !== 'undefined') Coach.start([
     { sel: '#nb-tarefas', txt: { pt: 'Tarefas e anotações, de trabalho e pessoais. Com dia, entram na Agenda e no seu Google Agenda.', en: 'Work and personal tasks and notes. With a date, they go to your Agenda and Google Calendar.' } },

@@ -140,7 +140,7 @@ function itAgendar() {
 /* O VISITANTE (cliente no site) so CRIA pedido: nao le nada, nao muda nada.
    E o que faz o "Personalize seu passeio" chegar no celular dela. */
 async function itPedidoPublico(colecao, x) {
-  if (!(typeof temNuvem === 'function' && temNuvem()) || !['pedidos', 'orcamentos'].includes(colecao) || !x || !x.id) return false;
+  if (!(typeof temNuvem === 'function' && temNuvem()) || colecao !== 'pedidos' || !x || !x.id) return false;
   try { const r = await supaFetch('itens', { method: 'POST', body: JSON.stringify({ colecao, id: x.id, dados: x, apagado: false }) }); return r.ok || r.status === 409; }
   catch (e) { return false; }
 }
