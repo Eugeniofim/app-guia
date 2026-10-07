@@ -616,6 +616,51 @@ admSettings = function () {
 if (typeof module !== 'undefined') module.exports = { prazoInvoice, conflitoDoDia, msgLembrete };
 
 /* =====================================================
+   eBOOKS DE PRESENTE — dentro de "Cupons e brindes" (07/10/2026)
+   A Carol escolhe um guia e manda o link de presente (WhatsApp/e-mail/copiar).
+   Quem abre o link vê o guia COMPLETO (o link libera tudo no aparelho dele).
+   ===================================================== */
+const _admCouponsEbooks = admCoupons;
+admCoupons = function () {
+  _admCouponsEbooks();
+  const stage = document.getElementById('stage'); if (!stage || document.getElementById('ebGiftCard')) return;
+  if (typeof ebooksLista !== 'function') return;
+  const guias = ebooksLista();
+  const opts = guias.map(g => `<option value="${esc(g.id)}">${esc(g.titulo)}</option>`).join('');
+  stage.insertAdjacentHTML('beforeend', `<section class="card" id="ebGiftCard">
+    <h3>📚 Enviar um guia de Londres de presente</h3>
+    <p class="why">Mande um dos eBooks completos pra quem você quiser — cliente ou não. Quem abrir o link vê o guia inteiro.</p>
+    <div class="frow">
+      <label class="fld">Guia<select id="ebgSel">${opts}</select></label>
+      <label class="fld">Para quem <small class="why">opcional, só pra personalizar</small><input id="ebgNome" placeholder="nome"></label>
+      <label class="fld">WhatsApp <small class="why">opcional</small><input id="ebgWa" placeholder="+55…"></label>
+    </div>
+    <div class="tacts"><a class="cta sm" id="ebgWaBtn" target="_blank" rel="noopener">📲 Enviar no WhatsApp</a>
+      <a class="mini" id="ebgMail" target="_blank" rel="noopener">✉️ Por e-mail</a>
+      <button class="mini" id="ebgCopy" type="button">Copiar o link</button>
+      <a class="mini" id="ebgVer" target="_blank" rel="noopener">👁 Ver o guia</a></div>
+    <p class="why" id="ebgMsg"></p>
+  </section>`);
+  const g = document.getElementById('ebGiftCard');
+  const monta = () => {
+    const id = g.querySelector('#ebgSel').value;
+    const tit = (guias.find(x => x.id === id) || {}).titulo || 'guia de Londres';
+    const nome = g.querySelector('#ebgNome').value.trim();
+    const link = ebookLinkPresente(id);
+    const ola = nome ? `Oi, ${nome}! ` : 'Oi! ';
+    const texto = `${ola}Aqui é a Carol, da Lovely London 😊 Preparei um presente pra você: o meu guia *${tit}*, completo. É só abrir: ${link}`;
+    const wa = g.querySelector('#ebgWa').value.replace(/\D/g, '');
+    g.querySelector('#ebgWaBtn').href = (typeof waLink === 'function') ? waLink(texto, wa) : ('https://wa.me/' + wa + '?text=' + encodeURIComponent(texto));
+    g.querySelector('#ebgMail').href = 'mailto:?subject=' + encodeURIComponent('Seu guia de Londres — presente da Carol') + '&body=' + encodeURIComponent(texto);
+    g.querySelector('#ebgVer').href = '#/g/' + id;
+    g._link = link;
+  };
+  monta();
+  ['#ebgSel', '#ebgNome', '#ebgWa'].forEach(sel => { const el = g.querySelector(sel); el.oninput = monta; el.onchange = monta; });
+  g.querySelector('#ebgCopy').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(g._link).then(() => { g.querySelector('#ebgMsg').textContent = 'Link copiado ✓ — cole onde quiser.'; }); };
+};
+
+/* =====================================================
    PAINEL LATERAL — agrupar as 20 abas por assunto (UI/UX, 28/09)
    A lista corrida cansava. Aqui os botões são reagrupados sob títulos,
    sem reordenar o ADM_TABS nem mexer no roteador: só movo os botões no

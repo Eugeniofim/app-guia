@@ -160,5 +160,10 @@ const _rotaExtraEbooks = rotaExtra;
 rotaExtra = function (p) {
   if (p[0] === 'ebooks') { viewEbooks(); return true; }
   if (p[0] === 'ebook') { viewEbook(decodeURIComponent(p[1] || '')); return true; }
+  /* link de presente da Carol: libera TODOS os guias neste aparelho e abre o escolhido */
+  if (p[0] === 'g') { ebLibera(); viewEbook(decodeURIComponent(p[1] || (EBOOKS[0] && EBOOKS[0].id))); return true; }
   return _rotaExtraEbooks(p);
 };
+/* a lista dos guias + o link de presente (usado pelo painel) */
+function ebooksLista() { return EBOOKS.map(e => ({ id: e.id, titulo: e.titulo, sub: e.sub })); }
+function ebookLinkPresente(id) { return (typeof linkApp === 'function' ? linkApp('g/' + id) : location.origin + location.pathname + '#/g/' + id); }
