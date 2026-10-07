@@ -1,0 +1,153 @@
+/* =========================================================
+   FONTES — Google Fonts (Montserrat para títulos, Karla para texto,
+   Caveat só para o lema). Carregadas no index.html. Num app de cliente na
+   Europa, trocar por fontes dentro do app (LGPD/GDPR).
+   ========================================================= */
+
+/* =========================================================
+   LONDRES COM A BIA (demo) — Design tokens
+   A marca NEUTRA do produto: verde + amarelo, a mesma da demonstração da
+   raiz (guia.eugeniofim.com). Contrastes medidos (WCAG AA). Não usar hex
+   solto no código.
+   ========================================================= */
+
+:root{
+  /* ---------- MARCA ---------- */
+  --brand-primaria:   #064c3f;   /* o verde do produto */
+  --brand-assinatura: #064c3f;   /* logo e monograma sobre fundo claro */
+  --brand-escuro:     #043a30;   /* hover */
+  --brand-vivo:       #0a6957;   /* fim do gradiente */
+  --brand-dourado:    #FFD23F;   /* a assinatura amarela (nome antigo mantido: muita regra usa) */
+  --brand-cidra:      var(--brand-dourado);
+  --brand-oro:        var(--brand-dourado);
+  --brand-nude:       #FFD23F;   /* o monograma */
+  --brand-caramelo:   #7e6308;   /* amarelo escurecido para TEXTO */
+  --brand-offwhite:   #FBF8F3;   /* marfim */
+  --brand-preto:      #111111;
+  /* nomes antigos do app-guia: o código ainda chama por eles */
+  --brand-verde:   var(--brand-primaria);
+  --brand-amarelo: var(--brand-assinatura);
+
+  /* ---------- FUNDOS (marfim) ---------- */
+  --paper:     #FBF8F3;
+  --surface:   #FFFFFF;
+  --surface-2: #F3EFE6;
+  --surface-3: #E8E2D5;
+  --line:      #E6E0D4;
+  --line-2:    #CFC7B6;
+
+  /* ---------- TEXTO ---------- */
+  --ink:    #111111;   /* 18:1 */
+  --ink-2:  #3D4440;   /* 9.6:1 */
+  --ink-3:  #5F6963;   /* 5.6:1 — mínimo */
+
+  /* ---------- AÇÃO ---------- */
+  --accent:       var(--brand-primaria);
+  --accent-ink:   #FFFFFF;          /* 10.4:1 */
+  --accent-wash:  #E3EFEA;          /* verde por cima = 8.6:1 */
+  --accent-line:  #AFCFC3;
+
+  /* Destaque (amarelo): preenchimento com texto escuro */
+  --highlight:      var(--brand-dourado);
+  --highlight-ink:  #111111;        /* 12.8:1 */
+  --highlight-wash: #FFF4CC;
+  --highlight-text: #7e6308;        /* amarelo escurecido para texto · 5.5:1 no marfim */
+
+  /* ---------- ESTADOS ---------- */
+  --ok:        #2F5A3F;  --ok-wash:    #DDEBE1;
+  --warn:      #8A5518;  --warn-wash:  #F8EBDD;
+  --danger:    #A3202F;  --danger-wash:#F6DEE1;
+  --neutral:   #3D4440;  --neutral-wash:#ECE8DF;
+
+  /* ---------- TIPOGRAFIA ---------- */
+  --f-display: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+  --f-titulo:  "Montserrat", "Helvetica Neue", Arial, sans-serif;
+  --f-serif:   "Karla", "Helvetica Neue", Arial, sans-serif;
+  --f-ui:      "Karla", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --f-script:  "Caveat", cursive;
+  --f-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --t-display: 700;
+  --t-strong:  600;
+  --t-body:    400;
+
+  /* escala (1.25) */
+  --fs-9:  44px;  --lh-9: 1.04;
+  --fs-8:  34px;  --lh-8: 1.08;
+  --fs-7:  27px;  --lh-7: 1.14;
+  --fs-6:  22px;  --lh-6: 1.22;
+  --fs-5:  18px;  --lh-5: 1.35;
+  --fs-4:  15px;  --lh-4: 1.6;
+  --fs-3:  13px;  --lh-3: 1.5;
+  --fs-2:  11.5px;--lh-2: 1.45;
+  --fs-1:  10px;  --lh-1: 1.4;
+
+  --track-display: -0.01em;
+  --track-label:    0.14em;
+
+  /* ---------- ESPAÇO ---------- */
+  --s-0:2px;  --s-1:4px;  --s-2:6px;  --s-3:8px;   --s-4:10px;
+  --s-5:12px; --s-6:14px; --s-7:16px; --s-8:20px;  --s-9:24px;
+  --s-10:32px; --s-11:40px; --s-12:48px; --s-14:64px;
+
+  /* ---------- FORMA ---------- */
+  --r-sm:4px; --r:8px; --r-lg:12px; --r-xl:18px; --r-pill:999px;
+
+  /* ---------- ELEVAÇÃO (sombra esverdeada) ---------- */
+  --sh-1: 0 1px 2px rgba(17,17,17,.05), 0 8px 22px -16px rgba(6,76,63,.30);
+  --sh-2: 0 2px 6px rgba(17,17,17,.06), 0 20px 44px -24px rgba(6,76,63,.34);
+  --sh-3: 0 28px 64px -30px rgba(6,76,63,.42);
+
+  /* ---------- MOVIMENTO ---------- */
+  --ease:   cubic-bezier(.22,1,.36,1);
+  --spring: cubic-bezier(.34,1.4,.5,1);
+  --d-fast: 180ms; --d-base: 260ms; --d-slow: 480ms;
+}
+
+/* Tema escuro: o verde vira o fundo, o amarelo vira a assinatura. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --paper:#0F1715; --surface:#172220; --surface-2:#1E2C29; --surface-3:#273835;
+    --line:#2A3B37; --line-2:#3C524D;
+    --ink:#F2F0EA; --ink-2:#C9CFC9; --ink-3:#A3ACA6;
+    --brand-assinatura:#FFD23F;
+    --accent:#FFD23F; --accent-ink:#0F1715; --accent-wash:#1E2C29; --accent-line:#4A5A2A;
+    --highlight:#FFD23F; --highlight-ink:#0F1715; --highlight-wash:#33301A; --highlight-text:#FFD23F;
+    --ok:#9CC7A8;  --ok-wash:#1F2E24;
+    --warn:#E3B27A; --warn-wash:#3A2A1A;
+    --danger:#F0909C; --danger-wash:#3D1E23;
+    --neutral:#C9CFC9; --neutral-wash:#1E2C29;
+    --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
+    --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
+    --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1715; --surface:#172220; --surface-2:#1E2C29; --surface-3:#273835;
+  --line:#2A3B37; --line-2:#3C524D;
+  --ink:#F2F0EA; --ink-2:#C9CFC9; --ink-3:#A3ACA6;
+  --brand-assinatura:#FFD23F;
+  --accent:#FFD23F; --accent-ink:#0F1715; --accent-wash:#1E2C29; --accent-line:#4A5A2A;
+  --highlight:#FFD23F; --highlight-ink:#0F1715; --highlight-wash:#33301A; --highlight-text:#FFD23F;
+  --ok:#9CC7A8;  --ok-wash:#1F2E24;
+  --warn:#E3B27A; --warn-wash:#3A2A1A;
+  --danger:#F0909C; --danger-wash:#3D1E23;
+  --neutral:#C9CFC9; --neutral-wash:#1E2C29;
+  --sh-1:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -18px rgba(0,0,0,.9);
+  --sh-2:0 2px 8px rgba(0,0,0,.5), 0 24px 50px -26px rgba(0,0,0,.95);
+  --sh-3:0 32px 70px -32px rgba(0,0,0,.95);
+}
+
+/* =========================================================
+   REGRAS QUE NÃO SE QUEBRAM
+   1. Destaque (amarelo) nunca é texto sobre fundo claro. Use --highlight-text.
+   2. Verde é a ação principal. Um botão de ação por tela.
+   3. Terracota (danger) é urgência (vencido, últimas vagas). Não decora.
+   4. Cinza é legenda, nunca título.
+   5. Números sempre em --f-mono com font-variant-numeric: tabular-nums.
+   6. Toda cor sai daqui. Hex solto no componente = bug.
+      Exceção única: #fff sobre preenchimento de marca.
+   7. Espaçamento sai de --s-*. Valor cru em px = dívida a pagar.
+   8. Todo controle clicável precisa de :focus-visible próprio ou herdado.
+   9. Botão só com ícone precisa de aria-label; ícone decorativo, aria-hidden.
+   ========================================================= */
