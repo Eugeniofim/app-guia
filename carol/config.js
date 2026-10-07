@@ -9,11 +9,19 @@
    Dados tirados do site dela (lovelylondon.uk), do perfil oficial
    (guidelondon.org.uk/guides/carolinacarvalho) e da reuniao de 28/09/2026. */
 var APP_CONFIG = {
-  supabaseUrl: '',   /* ex.: 'https://SEU-PROJETO.supabase.co' */
-  supabaseKey: '',   /* a chave "publishable" do projeto; nunca a secreta */
+  /* 06/10/2026: o app mora no banco da Ti Artes, numa sala so dele (schema "carol").
+     A chave e a publicavel: quem protege os dados e a regra de acesso (RLS) da sala. */
+  supabaseUrl: 'https://uopfqlogjzuqpabptxkb.supabase.co',
+  supabaseKey: 'sb_publishable_VKIdd2RNpMf3e4IEDprxJw_TOKPIHT2',
+  sala: 'carol',     /* schema do banco; vazio = public (projeto proprio) */
 
   /* Cofre (chave da IA no servidor): vazio ate existir o Supabase DELA */
-  cofre: '',
+  /* 06/10/2026: a IA dos clientes roda na conta da Ti Artes (decisao do
+     Eugenio): o assistente usa o cofre do estudio, com a chave dele. O cliente
+     nao cria conta na Anthropic nem ve tela de credito — ve "IA incluida". */
+  cofre: 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre',
+  clienteCofre: 'carol',
+  iaIncluida: true,
   agenteInstagram: 'lovelylondon_bycarol',
   /* Reuniao 28/09: assistente do painel = PRESENTE; atendimento no WhatsApp e
      no Instagram = camada extra (entra na proposta). Marketing: DESCARTADO por
