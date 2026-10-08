@@ -660,3 +660,60 @@
 .ebCodMsg{font-size:12px;color:var(--danger);margin:6px 0 0;text-align:center}
 /* a prévia some um pouco no fim, insinuando que tem mais */
 .ebDoc .ebCap:last-of-type:not(:only-of-type){}
+
+/* =====================================================
+   VITRINE 08/10/2026 — "as cores estão brigando" (Eugênio)
+   Causa: o laranja cobria blocos inteiros (dois chamados com o mesmo peso)
+   sobre um véu roxo misturado com preto, que virava lilás lavado.
+   Regra nova, uma cor para cada papel:
+     · berinjela escura = o palco (a foto respira em cima, some embaixo)
+     · laranja         = UMA ação do cliente: "Passeios e reserve"
+     · creme           = o caminho do GUIA para o painel (cartão e seletor)
+   ===================================================== */
+.hub.carol{background:#1A0B28}
+.hub.carol .hub-bg{filter:saturate(1.05)}
+.hub.carol .hub-bg{background-position:center 30%!important}
+.hub.carol .hub-bg::after{background:linear-gradient(180deg,rgba(26,11,40,.25) 0%,rgba(26,11,40,.55) 34%,rgba(26,11,40,.9) 62%,#1A0B28 82%)!important}
+.hub.carol .vcard,.hub.carol .lk:not(.main),.hub.carol .viagem,.hub.carol .depo{
+  background:rgba(26,11,40,.62)!important;border:1px solid rgba(255,255,255,.10)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);
+  box-shadow:0 14px 34px -18px rgba(0,0,0,.7)!important}
+.hub.carol .lk:not(.main):hover{background:rgba(42,18,64,.75)!important}
+.hub.carol .lk:not(.main) .ic{background:rgba(255,122,47,.12);color:#FF9A5C}
+.hub.carol .lk.main{background:#FF7A2F;color:#1A0B28;box-shadow:0 14px 30px -12px rgba(255,122,47,.55)}
+.hub.carol .lk.main .ic{background:rgba(26,11,40,.12)}
+.hub.carol .lema{font-size:clamp(23px,4.4vw,30px);color:#FF9A5C}
+.hub.carol .hubBadge{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,154,92,.45);color:#FFB487}
+.hub.carol .hubDemo{color:rgba(246,243,239,.66)}
+.hub.carol .hubRot{color:rgba(246,243,239,.62)}
+.hub.carol .rede.mail{background:rgba(255,255,255,.10);color:#F6F3EF;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+
+/* o caminho do guia: creme, diferente de tudo que é do cliente */
+.hub #admEntryTopo{background:#FFF4EA;color:#2A0F40;box-shadow:0 16px 36px -16px rgba(0,0,0,.7);border:0;animation:none}
+.hub #admEntryTopo .ic{background:#4A1D6E;color:#FFF4EA;width:44px;height:44px}
+.hub #admEntryTopo .ic svg{width:22px;height:22px}
+.hub #admEntryTopo .etq{display:block;font-style:normal;margin-bottom:3px;font:800 10.5px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:#B3470C}
+.hub #admEntryTopo b{font-size:16.5px;color:#2A0F40}
+.hub #admEntryTopo small{color:#5B4A6B;opacity:1}
+.hub #admEntryTopo .go{color:#4A1D6E}
+.hub #admEntryTopo:hover{transform:translateY(-2px)}
+.hub #admEntryTopo:focus-visible{outline:3px solid #FF9A5C;outline-offset:3px}
+
+/* seletor de baixo: a aba ATUAL fica discreta ("você está aqui");
+   a OUTRA é o convite — creme, a mesma cor do caminho do guia */
+.protobar.faixaTroca{background:#150920!important;border-top:1px solid rgba(255,255,255,.08)!important}
+.faixaTroca .ftSeg a{border:1px solid rgba(255,255,255,.12)!important;color:rgba(246,243,239,.78)!important;background:transparent!important;animation:none!important;flex-direction:row!important;gap:10px;justify-content:flex-start!important;text-align:left;padding:8px 12px!important;cursor:pointer}
+.faixaTroca .ftSeg a svg{width:22px;height:22px;flex:none}
+.faixaTroca .ftSeg a span{display:flex;flex-direction:column;min-width:0}
+.faixaTroca .ftSeg a b{font-size:14px!important;color:inherit!important}
+.faixaTroca .ftSeg a small{font-size:11px!important;color:inherit!important;opacity:.75!important}
+.faixaTroca .ftSeg a.on{background:transparent!important;border-color:rgba(255,154,92,.45)!important;color:#FFB487!important}
+.faixaTroca .ftSeg a.on small::before{content:"●";margin-right:5px;font-size:8px;vertical-align:1px}
+.faixaTroca .ftSeg a.ir{background:#FFF4EA!important;border-color:#FFF4EA!important;color:#2A0F40!important;box-shadow:0 8px 22px -10px rgba(255,244,234,.55)}
+.faixaTroca .ftSeg a.ir .seta{margin-left:auto;font-weight:800;font-size:18px}
+.faixaTroca .ftSeg a:focus-visible{outline:3px solid #FF9A5C;outline-offset:2px}
+@media (hover:hover){.faixaTroca .ftSeg a.ir:hover{transform:translateY(-1px)}}
+
+/* painel: o aviso da demonstração calmo — título no laranja, texto claro */
+.alert.demo{background:var(--accent-wash)!important;color:var(--ink)!important;border:1px solid var(--line)}
+.alert.demo b{color:var(--highlight-text)!important}

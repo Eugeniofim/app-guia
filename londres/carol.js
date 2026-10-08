@@ -101,7 +101,7 @@ function viewHub() {
   const bt = (id, ic, tit, sub, cls = '') => `<button class="lk ${cls}" id="${id}"><span class="ic">${ic}</span><span><b>${tit}</b><small>${sub}</small></span><span class="go" aria-hidden="true">→</span></button>`;
   app.innerHTML = `
   <div class="hub carol">
-    <div class="hub-bg hub-textura" style="background-image:url(${esc(st.homePhoto || 'fotos/home-westminster.jpg')})"></div>
+    <div class="hub-bg hub-textura" style="background-image:url(${esc(st.homePhoto || 'fotos/p-tower-bridge.jpg')})"></div>
     <div class="hub-in">
       <div class="vcard">
         <div class="hub-brand">${logoImg(96, 'escuro')}</div>
@@ -113,7 +113,7 @@ function viewHub() {
           `<a class="rede ${r.c}" href="${esc(r.u)}" target="_blank" rel="noopener" aria-label="${r.n}" title="${r.n}">${r.ic}</a>`).join('')}</nav>` : ''}
       </div>
 
-      ${typeof temNuvem === 'function' && !temNuvem() ? `<button class="adm-demo" id="admEntryTopo"><span class="ic" aria-hidden="true">✦</span><span><b>Você é guia? Abra o Painel da guia</b><small>Onde mora a inteligência: reservas, quem pagou, agenda e o assistente que faz por você — tudo personalizável</small></span><span class="go" aria-hidden="true">→</span></button>` : ''}
+      ${typeof temNuvem === 'function' && !temNuvem() ? `<button class="adm-demo" id="admEntryTopo"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span><span><i class="etq">Para guias</i><b>Abra o Painel da guia</b><small>Onde mora a inteligência: reservas, quem pagou, agenda e o assistente — tudo personalizável</small></span><span class="go" aria-hidden="true">→</span></button>` : ''}
 
       <p class="hubRot">Com a Bia</p>
       ${bt('goTours', ICONE_MENU.passeios, t('seeTours'), t('seeToursSub'), 'main')}

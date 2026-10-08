@@ -131,8 +131,8 @@ function _seed() {
   };
   db.settings.photo = 'fotos/bia.jpg';
   db.settings.photo2 = 'fotos/bia-2.jpg';
-  db.settings.homePhoto = 'fotos/home-westminster.jpg';
-  db.settings.homePhotoCr = '';
+  db.settings.homePhoto = 'fotos/p-tower-bridge.jpg';
+  db.settings.homePhotoCr = 'Foto: Fuzzypiggy · CC BY-SA 3.0 · Wikimedia Commons';
   /* bio: a guia FICTÍCIA do demo (o guia de verdade escreve a dele em Ajustes) */
   db.settings.bio = {
     pt: 'Sou a Bia. Mineira de Belo Horizonte, moro em Londres há dez anos e guio passeios em português para brasileiros que querem entender a cidade, não só fotografá-la.\n\n'

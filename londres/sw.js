@@ -4,7 +4,7 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'londres-v0.1.2';
+const VERSION = 'londres-v0.1.3';
 /* o essencial para abrir sem internet. Fotos das paradas NÃO entram aqui:
    são dezenas e o app baixa conforme a pessoa navega (e guarda na volta). */
 const CORE = [

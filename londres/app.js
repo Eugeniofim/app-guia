@@ -2861,10 +2861,12 @@ route();
     const desenha = () => {
       const noPainel = /^#\/adm/.test(location.hash);
       el.classList.add('faixaTroca');
+      const icLoja = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v7h14v-7"/></svg>';
+      const icPainel = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>';
       el.innerHTML = `<p class="ftRot">Demonstração com uma guia fictícia — nada sai deste aparelho</p>
-        <div class="ftSeg" role="tablist">
-          <a href="#/" role="tab" aria-selected="${!noPainel}" class="${noPainel ? '' : 'on'}"><b>🛍 Vitrine de passeios</b><small>o que o cliente vê</small></a>
-          <a href="#/adm/today" role="tab" aria-selected="${noPainel}" class="${noPainel ? 'on' : ''}"><b>⚙️ Painel da guia</b><small>onde mora a inteligência</small></a>
+        <div class="ftSeg" role="tablist" aria-label="Lado do app">
+          <a href="#/" role="tab" aria-selected="${!noPainel}" class="${noPainel ? 'ir' : 'on'}">${icLoja}<span><b>Vitrine de passeios</b><small>${noPainel ? 'o que o cliente vê' : 'você está aqui'}</small></span>${noPainel ? '<i class="seta" aria-hidden="true">→</i>' : ''}</a>
+          <a href="#/adm/today" role="tab" aria-selected="${noPainel}" class="${noPainel ? 'on' : 'ir'}">${icPainel}<span><b>Painel da guia</b><small>${noPainel ? 'você está aqui' : 'onde mora a inteligência'}</small></span>${noPainel ? '' : '<i class="seta" aria-hidden="true">→</i>'}</a>
         </div>`;
       if (typeof faixaAcimaDaBarra === 'function') faixaAcimaDaBarra();
       document.documentElement.style.setProperty('--faixa-h', el.offsetHeight + 'px');
