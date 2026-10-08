@@ -23,6 +23,19 @@ const BIO_TXT = {
 };
 /* o vídeo de apresentação dele (08/10). Só baixa quando a pessoa toca no play. */
 const BIO_VIDEO = { src: 'arte/mario-apresentacao.mp4', capa: 'arte/mario-apresentacao.jpg' };
+/* a prévia (ou o config) está ligada? O vídeo de "Quem sou eu" segue a mesma chave. */
+function bioAtiva() {
+  return /[?&]estilo=bio\b/.test(location.search)
+    || !!(typeof APP_CONFIG !== 'undefined' && APP_CONFIG.guia && APP_CONFIG.guia.homeEstilo === 'bio');
+}
+/* o vídeo dentro de "Quem sou eu" (pedido do Eugênio, 08/10) */
+function bioVideoHtml() {
+  if (!BIO_VIDEO.src || !bioAtiva()) return '';
+  return `<div class="ab-video" style="margin:22px auto;max-width:380px;text-align:center">
+    <p style="font-weight:600;margin:0 0 10px">▶ ${bioT('video')}</p>
+    <video src="${BIO_VIDEO.src}" poster="${BIO_VIDEO.capa}" controls playsinline preload="none"
+      style="width:100%;aspect-ratio:9/16;border-radius:18px;background:#000;object-fit:cover;display:block"></video></div>`;
+}
 const bioT = (k) => (BIO_TXT[k] && (BIO_TXT[k][LANG] || BIO_TXT[k].pt)) || k;
 
 function bioEstilo() {
@@ -97,8 +110,6 @@ function viewHubBio() {
     </div>
     <div class="bio-btns">
       <a class="bio-wa" href="${waLink(t('waHello'))}" target="_blank" rel="noopener">${ICONE_WA}<span>${bioT('fale')}</span></a>
-      ${BIO_VIDEO.src ? `<div class="bio-video"><p>▶ ${bioT('video')}</p>
-        <video src="${BIO_VIDEO.src}" poster="${BIO_VIDEO.capa}" controls playsinline preload="none"></video></div>` : ''}
       <button class="bio-pill" id="goAbout"><img src="${esc(st.photo || 'guia.jpg')}" alt=""><span><b>${bioT('sobre')}</b><small>${bioT('sobreSub')}</small></span><span class="bio-go" aria-hidden="true">→</span></button>
     </div>
     ${tours.length ? `<p class="bio-sec">${bioT('passeios')}</p>
