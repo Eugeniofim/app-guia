@@ -45,9 +45,11 @@ function bioEstilo() {
   s.textContent = `
 .bio{min-height:100vh;background:#101216;color:#fff;padding-bottom:40px}
 .bio-hero{position:relative;height:56vh;min-height:360px;max-height:560px;background-size:cover;background-position:center 35%}
+.bio-hvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 62%}
 .bio-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,18,22,.05) 0%,rgba(16,18,22,.25) 45%,#101216 100%)}
 .bio-top{position:absolute;top:12px;right:12px;z-index:2}
-.bio-head{position:relative;z-index:1;margin-top:-150px;text-align:center;padding:0 22px}
+.bio-hero::after{z-index:1}
+.bio-head{position:relative;z-index:2;margin-top:-110px;text-align:center;padding:0 22px}
 .bio-face{width:92px;height:92px;border-radius:50%;object-fit:cover;object-position:center 20%;border:3px solid #fff;box-shadow:0 6px 22px rgba(0,0,0,.45)}
 .bio-head h1{font-size:1.55rem;line-height:1.2;margin:12px 0 4px;color:#fff}
 .bio-head .bio-neg{font-size:.92rem;opacity:.8;margin:0 0 10px}
@@ -97,11 +99,12 @@ function viewHubBio() {
 
   app.innerHTML = `
   <div class="bio">
-    <div class="bio-hero" style="background-image:url(${esc(st.homePhoto || 'home.jpg')})">
+    <div class="bio-hero" style="background-image:url(${esc(BIO_VIDEO.capa || st.homePhoto || 'home.jpg')})">
+      ${BIO_VIDEO.src ? `<video class="bio-hvid" src="${BIO_VIDEO.src}" poster="${BIO_VIDEO.capa}" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>` : ''}
       <div class="bio-top">${langBar('right')}</div>
     </div>
     <div class="bio-head">
-      <img class="bio-face" id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt="">
+      ${BIO_VIDEO.src ? '' : `<img class="bio-face" id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt="">`}
       <h1>${esc(nomeCompleto)}</h1>
       <p class="bio-neg">${esc(st.negocio || '')}</p>
       <p class="bio-txt">${esc(noIdioma(st.homeText) || t('tagline'))}</p>
@@ -133,7 +136,7 @@ function viewHubBio() {
   $('#goTours').onclick = () => { viewShowcase._f = 'all'; go('/tours'); };
   $('#goAbout').onclick = () => go('/about');
   $('#admEntry').onclick = () => go('/adm/today');
-  fallbackPhoto($('#hubFace'), '☺');
+  if ($('#hubFace')) fallbackPhoto($('#hubFace'), '☺');
   Coach.start([
     { sel: '.bio-cards, #goTours', txt: { pt: 'Seu cliente começa aqui: os passeios, cada um com datas reais.', en: 'Your guest starts here: your tours, each with live dates.' } },
     { sel: '#admEntry', txt: { pt: 'E esta é a SUA porta, ' + guiaNome() + ' — o painel onde você controla tudo.', en: 'And this is YOUR door, ' + guiaNome() + ' — the panel where you control everything.' } },
