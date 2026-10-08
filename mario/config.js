@@ -17,6 +17,9 @@ var APP_CONFIG = {
 
   guia: {
     nome: 'Mario',
+    nomeCompleto: 'Mario Dal Pra',
+    /* homeEstilo: 'bio' liga a primeira tela link-na-bio (home-bio.js) para todos.
+       Enquanto o Mario não aprova, só aparece com ?estilo=bio no link. (08/10) */
     negocio: 'Guia Brasileiro em Munique',
     cidade: 'Munique, Alemanha',
     whats: '+491728610606',

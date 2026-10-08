@@ -345,6 +345,10 @@ const ICONE_BLOG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stro
 function linkExterno(u) { return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
 
 function viewHub() {
+  /* primeira tela no estilo link-na-bio (home-bio.js), quando o config pede */
+  /* ...ou quando o link pede (?estilo=bio): prévia para o guia aprovar sem mudar o app de todo mundo */
+  const bioPedida = /[?&]estilo=bio\b/.test(location.search);
+  if (typeof viewHubBio === 'function' && (bioPedida || (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.guia && APP_CONFIG.guia.homeEstilo === 'bio'))) return viewHubBio();
   const st = DB.settings;
   const txt = (o) => (o && (o[LANG] || o.pt)) || '';
   const redes = [
