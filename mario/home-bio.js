@@ -19,7 +19,10 @@ const BIO_TXT = {
   todosSub: { pt: 'Escolha o dia e peça pelo WhatsApp', en: 'Pick a day and ask on WhatsApp' },
   sobre:    { pt: 'Quem sou eu', en: 'Get to know me' },
   sobreSub: { pt: 'Guia oficial de Munique desde 1995', en: 'Official Munich guide since 1995' },
+  video:    { pt: 'Conheça o Mario em 30 segundos', en: 'Meet Mario in 30 seconds' },
 };
+/* o vídeo de apresentação dele (08/10). Só baixa quando a pessoa toca no play. */
+const BIO_VIDEO = { src: 'arte/mario-apresentacao.mp4', capa: 'arte/mario-apresentacao.jpg' };
 const bioT = (k) => (BIO_TXT[k] && (BIO_TXT[k][LANG] || BIO_TXT[k].pt)) || k;
 
 function bioEstilo() {
@@ -57,6 +60,9 @@ function bioEstilo() {
 .bio-card small{opacity:.72;font-size:.84rem;line-height:1.35}
 .bio-saiba{margin-top:auto;background:#fff;color:#111;border:0;border-radius:999px;padding:10px 14px;font-weight:700;font:inherit;font-weight:700;cursor:pointer}
 .bio .adm-entry{display:block;margin:30px auto 0}
+.bio-video{background:#1d2027;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.bio-video p{margin:0;padding:10px 14px;font-weight:600;font-size:.95rem}
+.bio-video video{display:block;width:100%;max-height:70vh;background:#000;aspect-ratio:9/16;object-fit:cover}
 @media (min-width:760px){.bio-card{flex-basis:300px}.bio-cards{justify-content:center}}
 `;
   document.head.appendChild(s);
@@ -91,6 +97,8 @@ function viewHubBio() {
     </div>
     <div class="bio-btns">
       <a class="bio-wa" href="${waLink(t('waHello'))}" target="_blank" rel="noopener">${ICONE_WA}<span>${bioT('fale')}</span></a>
+      ${BIO_VIDEO.src ? `<div class="bio-video"><p>▶ ${bioT('video')}</p>
+        <video src="${BIO_VIDEO.src}" poster="${BIO_VIDEO.capa}" controls playsinline preload="none"></video></div>` : ''}
       <button class="bio-pill" id="goAbout"><img src="${esc(st.photo || 'guia.jpg')}" alt=""><span><b>${bioT('sobre')}</b><small>${bioT('sobreSub')}</small></span><span class="bio-go" aria-hidden="true">→</span></button>
     </div>
     ${tours.length ? `<p class="bio-sec">${bioT('passeios')}</p>
