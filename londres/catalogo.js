@@ -57,7 +57,7 @@ function catalogoCarol() {
   };
   return [
     /* ---------------- A PÉ ---------------- */
-    T({ id: 'londres-classica', type: 'walk', region: 'westminster', order: 1, destaque: true, horas: [4, 6], imersivo: 'westminster',
+    T({ id: 'londres-classica', type: 'walk', region: 'westminster', order: 1, destaque: true, horas: [4, 6],
       name: { pt: 'Londres Clássica', en: 'Classic London' },
       tagline: { pt: 'Primeira vez em Londres? Big Ben, Abadia, Buckingham e Trafalgar numa caminhada só, em português.', en: 'First time in London? Big Ben, the Abbey, Buckingham and Trafalgar in one walk.' },
       desc: { pt: 'A caminhada começa na estação de Westminster: você sobe a escada e dá de cara com o Big Ben. Dali seguimos pela Parliament Square, passamos pela Abadia de Westminster (vista por fora) e descemos a Whitehall até a Downing Street.\n\nAtravessamos o St James\'s Park, o parque mais bonito do centro, e chegamos ao Palácio de Buckingham. Nos dias de Troca da Guarda, a gente ajusta o horário para assistir. O passeio termina na Trafalgar Square, de onde você já sai sabendo pegar o metrô sozinho.\n\nDica prática: use tênis confortável e leve uma garrafinha de água. São uns 5 km no total, com muitas paradas para foto e história.', en: '' },

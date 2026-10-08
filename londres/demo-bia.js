@@ -92,7 +92,7 @@ function demoCarol(db) {
   /* MONTE SEU ROTEIRO pago, esperando a Bia validar o rascunho */
   db.roteiros = [
     { id: 'rt1', codigo: 'castro-out', nome: 'Família Castro', whats: '+55 19 98989 1212', email: 'castro@exemplo.com', criado: d(-1) + 'T15:00:00.000Z',
-      ini: d(14), fim: d(18), adultos: 2, criancas: 2, idades: '9 e 12 anos', hotel: 'Hotel perto de Covent Garden', nivel: 'imersivo',
+      ini: d(14), fim: d(18), adultos: 2, criancas: 2, idades: '9 e 12 anos', hotel: 'Hotel perto de Covent Garden', nivel: 'mapa',
       querem: ['big-ben', 'troca-guarda', 'tower-of-london', 'tower-bridge', 'british-museum', 'harry-potter', 'camden', 'greenwich', 'borough-market', 'nhm'],
       interesses: ['historia', 'criancas', 'harrypotter'], ritmo: 'medio', obs: 'Primeira vez em Londres. As crianças amam Harry Potter.',
       pago: { valor: 275, metodo: 'card', em: d(-1) }, status: 'rascunho', dias: [], exemplo: true },
@@ -120,7 +120,6 @@ function demoCarol(db) {
   db.tarefas = [
     { id: 'tf1', texto: 'Mandar a invoice da Viagens Aurora (o corte deles é dia 25)', data: hoje, hora: '', area: 'pro', prioridade: 'alta', feita: false, nota: 'Serviço de ' + d(-8).split('-').reverse().join('/') + ' — £820' },
     { id: 'tf2', texto: 'Reservar o Sky Garden para o grupo do Ricardo', data: d(1), hora: '', area: 'pro', prioridade: 'media', feita: false, nota: 'Tour da City dia ' + d(9).split('-').reverse().join('/') },
-    { id: 'tf3', texto: 'Gravar o áudio das paradas de Westminster', data: d(2), hora: '', area: 'pro', prioridade: 'media', feita: false, nota: 'Roteiro imersivo' },
     { id: 'tf4', texto: 'Conferir o calendário da Troca da Guarda da semana que vem', data: hoje, hora: '', area: 'pro', prioridade: 'alta', feita: false, nota: '' },
   ];
   db.recados = [

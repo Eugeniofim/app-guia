@@ -12,7 +12,7 @@
    Fluxo: questionário → preço por dia no nível escolhido → paga → o app gera
    o RASCUNHO a partir do banco de pontos dela (pontos.js) → aparece no painel
    (Roteiros) → ela valida/edita → publica → o cliente recebe um LINK PRIVADO
-   (#/r/<código>) com os dias, as fotos, o mapa e — no nível imersivo — o
+   (#/r/<código>) com os dias, as fotos e o mapa — o
    audioguia. Nada disso aparece na vitrine: é um "passeio oculto".
    ===================================================== */
 'use strict';
@@ -51,7 +51,6 @@ const INTERESSES = [
 const NIVEIS = [
   { id: 'arquivo', n: 'Roteiro dia a dia', sub: 'Link privado + PDF: manhã, tarde e noite de cada dia, com fotos e dicas da guia.' },
   { id: 'mapa', n: 'Roteiro + mapa', sub: 'Tudo do anterior + o mapa de cada dia com as paradas numeradas.' },
-  { id: 'imersivo', n: 'Roteiro imersivo', sub: 'Mapa com GPS + audioguia na voz da guia em cada parada — como ter ela no seu ouvido.' },
 ];
 const ZONA_TITULO = {
   westminster: 'Westminster: o coração político', city: 'City of London e a Torre', bloomsbury: 'Bloomsbury e Covent Garden',
@@ -173,7 +172,6 @@ function viewRoteiro() {
       <div class="nivelGrade">${NIVEIS.map(nv => `<button type="button" class="nivel ${R.nivel === nv.id ? 'on' : ''}" data-nivel="${nv.id}" aria-pressed="${R.nivel === nv.id}">
         <b>${nv.n}</b><small>${nv.sub}</small><span class="nvPreco">${eur(precoDia(nv.id))} <i>por dia</i></span></button>`).join('')}</div>
       <p class="nvEx">${exemploTag()}</p>
-      <a class="imTeaser" href="#/imersivo/westminster"><span class="imIc">${IC.imersivo}</span><span><b>Veja como é o imersivo</b><small>Prévia grátis: Westminster a pé, com mapa, GPS e a voz da Bia.</small></span><span class="go" aria-hidden="true">→</span></a>
     </section>
 
     <section class="rtbloco"><h3>Quando você vem?</h3>
@@ -262,7 +260,6 @@ function viewRoteiroPrivado(codigo) {
   const aba = Math.min(viewRoteiroPrivado._aba || 0, r.dias.length - 1);
   const dia = r.dias[aba];
   const comMapa = r.nivel !== 'arquivo';
-  const imersivo = r.nivel === 'imersivo';
   let n = 0;
   app.innerHTML = `${topoCarol()}
   <main class="wrap rtPriv">
@@ -272,14 +269,12 @@ function viewRoteiroPrivado(codigo) {
         <div><b>Roteiro ${esc(r.nome)}, Londres</b><small>${fmtDate(r.ini)} a ${fmtDate(r.fim)} · ${r.adultos + r.criancas} pessoas${r.hotel ? ' · ' + esc(r.hotel) : ''}</small></div></header>
       <nav class="rtDias" aria-label="Dias">${r.dias.map((d, i) => `<button class="${i === aba ? 'on' : ''}" data-dia="${i}"><b>Dia ${i + 1}</b><small>${fmtDiaCurto(d.data)}</small></button>`).join('')}</nav>
       ${comMapa ? `<div class="rtMapa" id="rtMapa" aria-label="Mapa do dia"></div>` : ''}
-      ${imersivo ? `<a class="imTeaser" href="#/imersivo/r-${esc(r.codigo)}-${aba}"><span class="imIc">${IC.imersivo}</span><span><b>Começar o dia com a Bia no ouvido</b><small>GPS + áudio em cada parada deste dia.</small></span><span class="go" aria-hidden="true">→</span></a>` : ''}
       ${dia.periodos.map(pe => `<section class="rtPer">
         <h3><span>${PERIODO_ROT[pe.p] || ''}</span>${esc(pe.titulo)}</h3>
         ${pe.itens.map(pid => { const p = ponto(pid); if (!p) return ''; n++; return `<div class="rtItem">
           <span class="rtFoto" style="background-image:url(${esc(p.ph)})"><i>${n}</i></span>
           <div><b>${esc(p.n)}</b>${p.d ? `<p>${esc(p.d.length > 320 ? p.d.slice(0, p.d.lastIndexOf(' ', 310)) + '…' : p.d)}</p>` : `<p class="rtFalta">Texto da Bia aqui.</p>`}
-            ${p.dica ? `<small class="rtDica">💡 ${esc(p.dica)}</small>` : ''}
-            ${imersivo ? `<button class="mini rtOuvir" data-ouvir="${esc(pid)}">▶ Ouvir</button>` : ''}</div></div>`; }).join('')}
+            ${p.dica ? `<small class="rtDica">💡 ${esc(p.dica)}</small>` : ''}</div></div>`; }).join('')}
         ${pe.nota ? `<p class="rtNota">${esc(pe.nota)}</p>` : ''}
       </section>`).join('')}
       ${r.sobra && r.sobra.length ? `<p class="rtNota">Se sobrar tempo: ${esc(r.sobra.join(' · '))}</p>` : ''}

@@ -68,7 +68,7 @@ function _blank() {
            sinalPct: GUIA_CFG.sinalPct || 50, diaExclusivo: GUIA_CFG.diaExclusivo !== false,
            tolerancia: GUIA_CFG.tolerancia || 20, horaExtra: GUIA_CFG.horaExtra || 0,
            /* "Monte seu roteiro": preço POR DIA de cada nível (EXEMPLO até ela definir) */
-           precosRoteiro: { arquivo: 30, mapa: 40, imersivo: 55 },
+           precosRoteiro: { arquivo: 30, mapa: 40 },
            reviewGoogle: 'https://www.google.com/maps/search/Londres+com+a+Bia',
            parceiros: [],
            depoimentos: [], depoimentosVideo: '', depoimentosVideoTxt: '',

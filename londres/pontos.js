@@ -2,7 +2,7 @@
    BANCO DE PONTOS TURÍSTICOS — demo "Londres com a Bia" (07/10/2026)
 
    Os lugares são sempre os mesmos; o que muda é como cada guia os combina.
-   Este banco alimenta os tours, o "Monte seu roteiro" e o roteiro imersivo.
+   Este banco alimenta os tours, e o "Monte seu roteiro".
    Textos: escritos para esta demonstração, a partir de fatos públicos sobre
    cada lugar (fonte "demo"). O guia troca pelo texto dele no painel.
    Fotos: Wikimedia Commons, com autor e licença (cr).

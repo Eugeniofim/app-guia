@@ -20,7 +20,6 @@ const exemploTag = () => (typeof APP_TABELA_EXEMPLO !== 'undefined' && APP_TABEL
 const IC = {
   livro: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2 2 0 0 1 6 4h6v15H6a2 2 0 0 0-2 2V5.5Z"/><path d="M20 5.5A2 2 0 0 0 18 4h-6v15h6a2 2 0 0 1 2 2V5.5Z"/></svg>',
   consulta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="11" rx="2"/><path d="m16 9 5-3v10l-5-3"/><path d="M7 20h6"/></svg>',
-  imersivo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>',
   ingresso: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 0 4v0a2 2 0 0 1 0 4v2h18v-2a2 2 0 0 1 0-4 2 2 0 0 0 0-4V6H3z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg>',
   presente: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="18" height="12" rx="1.5"/><path d="M3 13h18M12 9v12"/><path d="M12 9S10.5 4 8 4.5 7.5 9 12 9Zm0 0s1.5-5 4-4.5S16.5 9 12 9Z"/></svg>',
   estrela: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>',
@@ -79,8 +78,6 @@ document.addEventListener('click', (e) => {
 /* ---------- extras da página do tour ---------- */
 function extrasDoTour(x) {
   let h = '';
-  if (x.imersivo) h += `<a class="imTeaser" href="#/imersivo/${esc(x.imersivo)}">
-      <span class="imIc">${IC.imersivo}</span><span><b>Prefere fazer sozinho, no seu tempo?</b><small>A versão autoguiada deste roteiro: mapa, GPS e a voz da guia em cada parada.</small></span><span class="go" aria-hidden="true">→</span></a>`;
   if (x.ingresso) h += `<a class="imTeaser ing" href="#/ingressos">
       <span class="imIc">${IC.ingresso}</span><span><b>Ingresso não incluído — compre antes</b><small>A Bia indica onde comprar, no site oficial, sem fila.</small></span><span class="go" aria-hidden="true">→</span></a>`;
   return h;
@@ -121,7 +118,6 @@ function viewHub() {
 
       <p class="hubRot">Planeje a sua viagem</p>
       ${bt('goRoteiro', ICONE_MENU.roteiro, 'Monte seu roteiro', 'Dia a dia, com mapa — e audioguia na minha voz')}
-      ${bt('goImersivo', IC.imersivo, 'Roteiro imersivo · prévia', 'Westminster a pé, com GPS e a voz da Bia')}
       ${bt('goTransfer', ICONE_MENU.transfer, 'Transfer', 'Aeroporto, hotel e bate-volta com motorista')}
 
       <p class="hubRot">Conheça</p>
@@ -144,7 +140,6 @@ function viewHub() {
   $('#goTours').onclick = () => go('/tours');
   $('#goConsult').onclick = () => go('/consultoria');
   $('#goRoteiro').onclick = () => go('/roteiro');
-  $('#goImersivo').onclick = () => go('/imersivo/westminster');
   $('#goTransfer').onclick = () => go('/transfer');
   $('#goIngressos').onclick = () => go('/ingressos');
   $('#goEbooks').onclick = () => go('/ebooks');
@@ -176,7 +171,6 @@ function rotaExtra(p) {
   if (r === 'ingressos') { viewIngressos(); return true; }
   if (r === 'voucher') { viewVoucher(decodeURIComponent(p[1] || '')); return true; }
   if (r === 'r' && typeof viewRoteiroPrivado === 'function') { viewRoteiroPrivado(decodeURIComponent(p[1] || '')); return true; }
-  if (r === 'imersivo' && typeof viewImersivo === 'function') { viewImersivo(p[1] || 'westminster'); return true; }
   return false;
 }
 

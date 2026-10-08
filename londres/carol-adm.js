@@ -441,7 +441,7 @@ function admPontos(id) {
   const nCarol = todos.filter(p => p.fonte === 'carol' || p.fonte === 'demo').length;
   admShell('pontos', `
     <div class="pagehead"><h1 class="pageh">Pontos turísticos</h1><div class="chips"><label class="mini kmlBtn">Importar do My Maps (KML)<input type="file" id="kmlIn" accept=".kml,.xml" hidden></label></div></div>
-    <p class="why">O banco que alimenta os tours, o "Monte seu roteiro" e o imersivo: ${todos.length} pontos, <b>${nCarol} com texto</b>. Toque num ponto para trocar pelo seu texto e a sua dica. Cada ponto vai ganhar o áudio na sua voz.</p>
+    <p class="why">O banco que alimenta os tours e o "Monte seu roteiro": ${todos.length} pontos, <b>${nCarol} com texto</b>. Toque num ponto para trocar pelo seu texto e a sua dica. Cada ponto vai ganhar o áudio na sua voz.</p>
     <div class="chips">${['todos', ...Object.keys(AREAS)].map(a => `<button class="chip ${a === area ? 'on' : ''}" data-area="${a}">${a === 'todos' ? 'Todos' : esc(AREAS[a])}</button>`).join('')}</div>
     <div class="ptGrade">${lista.map(p => `<button class="ptCard" data-pt="${p.id}"><span class="ptFoto" style="background-image:url(${esc(p.ph)})"></span>
       <span class="ptTx"><b>${esc(p.n)}</b><small>${p.fonte === 'carol' ? '✎ seu texto' : p.fonte === 'demo' ? '✎ texto de exemplo' : '… falta o texto'} · ${p.audio ? '🎙 sua voz' : '🔈 voz provisória'}</small></span></button>`).join('')}</div>`);
@@ -600,14 +600,14 @@ admSettings = function () {
       <label class="fld">Hora extra (£) <small class="why">0 = sob consulta</small><input type="number" id="rgHora" value="${esc(st.horaExtra || 0)}"></label></div>
     <label class="pdCheck"><input type="checkbox" id="rgDia" ${diaExclusivo() ? 'checked' : ''}> Um grupo por dia (desligue no alto verão para abrir manhã e tarde)</label>
     <p class="rotMini">"Monte seu roteiro" — preço por dia</p>
-    <div class="frow"><label class="fld">Dia a dia (£)<input type="number" id="rgP1" value="${esc(pr.arquivo || 0)}"></label><label class="fld">+ mapa (£)<input type="number" id="rgP2" value="${esc(pr.mapa || 0)}"></label><label class="fld">Imersivo (£)<input type="number" id="rgP3" value="${esc(pr.imersivo || 0)}"></label></div>
+    <div class="frow"><label class="fld">Dia a dia (£)<input type="number" id="rgP1" value="${esc(pr.arquivo || 0)}"></label><label class="fld">+ mapa (£)<input type="number" id="rgP2" value="${esc(pr.mapa || 0)}"></label></div>
     <label class="fld">Termos e condições <small class="why">uma regra por linha — vão junto do preço, no checkout e no voucher</small><textarea id="rgTermos" rows="7">${esc(termosLista().join('\n'))}</textarea></label>
     <p class="why">📅 Google Agenda: hoje, o botão 📅 em cada reserva e em cada trabalho de agência abre o evento já preenchido — é só salvar. No app no ar, isso fica automático (e o que você marcar lá bloqueia o dia aqui).</p>
     <button class="cta sm" id="rgSalva">Salvar regras</button></section>`);
   $('#rgSalva').onclick = () => {
     st.sinalPct = Math.max(0, Math.min(100, +$('#rgSinal').value || 30)); st.tolerancia = +$('#rgTol').value || 30; st.horaExtra = +$('#rgHora').value || 0;
     st.diaExclusivo = $('#rgDia').checked;
-    st.precosRoteiro = { arquivo: +$('#rgP1').value || 0, mapa: +$('#rgP2').value || 0, imersivo: +$('#rgP3').value || 0 };
+    st.precosRoteiro = { arquivo: +$('#rgP1').value || 0, mapa: +$('#rgP2').value || 0 };
     st.termos = { pt: $('#rgTermos').value.split('\n').map(s => s.trim()).filter(Boolean), en: (st.termos && st.termos.en) || [] };
     save(); toast('Regras salvas ✓');
   };

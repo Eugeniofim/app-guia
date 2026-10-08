@@ -4,13 +4,13 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'londres-v0.1.3';
+const VERSION = 'londres-v0.1.4';
 /* o essencial para abrir sem internet. Fotos das paradas NÃO entram aqui:
    são dezenas e o app baixa conforme a pessoa navega (e guarda na volta). */
 const CORE = [
   './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './idiomas.js',
   './pontos.js', './catalogo.js', './demo-bia.js', './store.js', './cores.js', './pedidos.js', './parceiros.js', './depoimentos.js',
-  './cloud.js', './i18n.js', './avisos.js', './carol.js', './ebooks.js', './roteiro.js', './imersivo.js', './assistente.js', './creditos.js', './carol-adm.js', './fichas.js', './carol-ia.js', './assistente-voz.js', './boas-vindas.js',
+  './cloud.js', './i18n.js', './avisos.js', './carol.js', './ebooks.js', './roteiro.js', './assistente.js', './creditos.js', './carol-adm.js', './fichas.js', './carol-ia.js', './assistente-voz.js', './boas-vindas.js',
   './auth.js', './logo.js', './tokens.css', './carol.css', './manifest.webmanifest',
   './arte/logo-claro.png', './arte/logo-escuro.png', './arte/monograma.png',
   './fotos/home-westminster.jpg', './fotos/bia.jpg', './icon-192.png',

@@ -130,7 +130,7 @@ const iaMostra = (k, v) => Array.isArray(v) ? (v.join(', ') || '—') : k === 'a
 
 /* ---------- as ferramentas ---------- */
 IA_FERRAMENTAS.push(
-  { name: 'ver_dados', description: 'Lê as abas do painel que não têm ferramenta própria: fichas (cliente: tudo de uma pessoa que pagou), agencias, trabalhosAgencia (trabalhos e invoices), emails (varredura), roteiros (Monte seu roteiro, pagos), pedidos (transfer), motoristas, giftcards (vale-presente), avaliacoes, tarefas, recados, pontos (mapa/imersivo; use busca). Devolve os ids.',
+  { name: 'ver_dados', description: 'Lê as abas do painel que não têm ferramenta própria: fichas (cliente: tudo de uma pessoa que pagou), agencias, trabalhosAgencia (trabalhos e invoices), emails (varredura), roteiros (Monte seu roteiro, pagos), pedidos (transfer), motoristas, giftcards (vale-presente), avaliacoes, tarefas, recados, pontos (mapa e Monte seu roteiro; use busca). Devolve os ids.',
     input_schema: obj({ o_que: { type: 'string', enum: Object.keys(IA_COLECOES) }, busca: S_('texto para filtrar (opcional)') }, ['o_que']) },
   { name: 'mexer', description: 'Cria, muda ou apaga um registro dessas abas. quem = id (de ver_dados) ou nome; se servir para dois, a ferramenta devolve as opções — pergunte qual. Campos aceitos por aba: ' + IA_CAMPOS_TXT + '. Datas AAAA-MM-DD; "sem" tira o dia de uma tarefa.',
     input_schema: obj({ onde: { type: 'string', enum: Object.keys(IA_COLECOES) }, acao: { type: 'string', enum: ['criar', 'mudar', 'apagar'] }, quem: S_('id ou nome (mudar/apagar)'),
@@ -223,7 +223,7 @@ iaSistema = function () {
 - Avaliações: ver_dados avaliacoes; mexer publicar — só se o cliente autorizou.
 - Tarefas e recados: anotar_tarefa; ver_dados tarefas / recados; mexer (feita, data, atendido…).
 - Clientes (a ficha de cada pessoa que pagou): ver_dados fichas com busca pelo nome ou WhatsApp — traz próximo tour, hotel, grupo, compras, quanto falta e as anotações; mexer onde=fichas para anotar idades, mobilidade, alimentação, ocasião, notas e etiquetas.
-- Pontos do mapa e do roteiro imersivo: ver_dados pontos com busca; mexer onde=pontos para trocar texto (d) e dica.
+- Pontos do mapa e do Monte seu roteiro: ver_dados pontos com busca; mexer onde=pontos para trocar texto (d) e dica.
 - O que nenhuma ferramenta faz: abrir_aba e diga o que tocar. Nunca responda só "não consigo".
 
 ## Onde guardar cada coisa
