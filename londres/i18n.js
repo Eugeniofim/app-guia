@@ -753,7 +753,7 @@ const STR = {
   oFriend:    { pt: 'Indicação', en: 'Referral' },
 
   /* demonstração */
-  demoTit:    { pt: 'Você está no painel — este é o lado de quem trabalha', en: 'You are in the panel — this is the working side' },
+  demoTit:    { pt: 'Painel da guia — aqui mora a inteligência do app', en: 'You are in the panel — this is the working side' },
   demoTxt:    { pt: 'Mexa em tudo à vontade: crie um passeio, mude um preço, abra uma reserva. É uma demonstração, então nada sai deste aparelho e nada é enviado para ninguém.',
                 en: 'Try anything: create a tour, change a price, open a booking. This is a demo, so nothing leaves this device and nothing is sent to anyone.' },
   demoTxt2:   { pt: 'No seu app de verdade esta área fica trancada pela sua senha, e só você entra.',

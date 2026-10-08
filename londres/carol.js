@@ -113,6 +113,8 @@ function viewHub() {
           `<a class="rede ${r.c}" href="${esc(r.u)}" target="_blank" rel="noopener" aria-label="${r.n}" title="${r.n}">${r.ic}</a>`).join('')}</nav>` : ''}
       </div>
 
+      ${typeof temNuvem === 'function' && !temNuvem() ? `<button class="adm-demo" id="admEntryTopo"><span class="ic" aria-hidden="true">✦</span><span><b>Você é guia? Abra o Painel da guia</b><small>Onde mora a inteligência: reservas, quem pagou, agenda e o assistente que faz por você — tudo personalizável</small></span><span class="go" aria-hidden="true">→</span></button>` : ''}
+
       <p class="hubRot">Com a Bia</p>
       ${bt('goTours', ICONE_MENU.passeios, t('seeTours'), t('seeToursSub'), 'main')}
       ${bt('goConsult', IC.consulta, 'Consultoria de roteiro', 'Você já planejou? Eu valido em 1 hora, por vídeo')}
@@ -150,6 +152,7 @@ function viewHub() {
   $('#goAbout').onclick = () => go('/about');
   $('#goAval').onclick = () => go('/avaliacoes');
   $('#admEntry').onclick = () => go('/adm/today');
+  if ($('#admEntryTopo')) $('#admEntryTopo').onclick = () => go('/adm/today');
   fallbackPhoto($('#hubFace'), '☺');
 }
 

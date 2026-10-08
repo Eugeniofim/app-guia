@@ -31,9 +31,9 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=0.1.0">
+<link rel="stylesheet" href="tokens.css?v=0.1.1">
 <link rel="icon" href="icon-192.png" type="image/png">
-<link rel="stylesheet" href="carol.css?v=0.1.0">
+<link rel="stylesheet" href="carol.css?v=0.1.1">
 <style>
 /* ============ base ============ */
 *{box-sizing:border-box;margin:0}
@@ -1046,7 +1046,30 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
   font-size:11.5px;line-height:1.45;text-align:center;
   padding-bottom:calc(9px + env(safe-area-inset-bottom))}
 .protobar b{font-weight:700}
-body.em-adm #demoFaixa{display:none}
+.protobar a{color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.protobar.faixaCta{background:var(--highlight,#FFD23F);color:#1c1d1f;padding:0;border-top:0;box-shadow:0 -6px 22px rgba(0,0,0,.18)}
+.protobar .faixaBt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));text-decoration:none}
+.protobar .faixaBt span{font-size:11.5px;font-weight:600;opacity:.8}
+.protobar .faixaBt b{font-size:15px;font-weight:800;animation:faixaPulso 2.4s ease-in-out infinite}
+@keyframes faixaPulso{0%,100%{transform:none}50%{transform:translateX(3px)}}
+@media (prefers-reduced-motion:reduce){.protobar .faixaBt b{animation:none}}
+.hub #admEntryTopo{margin:14px 0 4px}
+.protobar.faixaTroca{padding:6px 10px calc(8px + env(safe-area-inset-bottom));background:#0d1a16;color:#e9efe9;border-top:1px solid rgba(255,210,63,.35);box-shadow:0 -8px 24px rgba(0,0,0,.25)}
+.faixaTroca .ftRot{margin:0 0 5px;font-size:10.5px;letter-spacing:.04em;opacity:.7}
+.faixaTroca .ftSeg{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:560px;margin:0 auto}
+.faixaTroca .ftSeg a{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:48px;padding:6px 8px;border-radius:12px;border:1.5px solid rgba(255,210,63,.55);color:#FFD23F;text-decoration:none;line-height:1.2}
+.faixaTroca .ftSeg a b{font-size:14px;font-weight:800;text-decoration:none}
+.faixaTroca .ftSeg a small{font-size:11px;font-weight:600;opacity:.85}
+.faixaTroca .ftSeg a.on{background:#FFD23F;color:#1c1d1f;border-color:#FFD23F}
+.faixaTroca .ftSeg a.on b,.faixaTroca .ftSeg a.on small{color:#1c1d1f;opacity:1}
+.faixaTroca .ftSeg a:not(.on){animation:ftPulso 2.6s ease-in-out infinite}
+@keyframes ftPulso{0%,100%{box-shadow:0 0 0 0 rgba(255,210,63,0)}50%{box-shadow:0 0 0 4px rgba(255,210,63,.25)}}
+@media (prefers-reduced-motion:reduce){.faixaTroca .ftSeg a{animation:none!important}}
+/* 08/10/2026: no demo o seletor Vitrine/Painel fica TAMBÉM no painel, logo
+   acima da barra de abas — é por ele que o guia volta para a vitrine */
+body.em-adm #demoFaixa .ftRot{display:none}
+body.em-adm #demoFaixa{padding-bottom:8px}
+body.em-adm:has(#demoFaixa) #app{padding-bottom:calc(var(--faixa-h, 64px) + 8px)}
 /* com a faixa de demonstracao embaixo, o aviso de versao nova e as mensagens
    sobem para cima dela — antes os tres se empilhavam no mesmo lugar */
 body:has(#demoFaixa):not(.em-adm) .novabar{bottom:calc(12px + var(--faixa-h, 52px))}
@@ -1404,38 +1427,38 @@ html{font-synthesis:none}
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=0.1.0"></script>
-<script src="auth.js?v=0.1.0"></script>
-<script src="logo.js?v=0.1.0"></script>
-<script src="fx.js?v=0.1.0"></script>
-<script src="qrcode.js?v=0.1.0"></script>
-<script src="qr.js?v=0.1.0"></script>
-<script src="pix.js?v=0.1.0"></script>
-<script src="traduz.js?v=0.1.0"></script>
-<script src="idiomas.js?v=0.1.0"></script>
-<script src="pontos.js?v=0.1.0"></script>
-<script src="catalogo.js?v=0.1.0"></script>
-<script src="pedidos.js?v=0.1.0"></script>
-<script src="demo-bia.js?v=0.1.0"></script>
-<script src="store.js?v=0.1.0"></script>
-<script src="cores.js?v=0.1.0"></script>
-<script src="parceiros.js?v=0.1.0"></script>
-<script src="depoimentos.js?v=0.1.0"></script>
-<script src="cloud.js?v=0.1.0"></script>
-<script src="i18n.js?v=0.1.0"></script>
-<script src="avisos.js?v=0.1.0"></script>
-<script src="app.js?v=0.1.0"></script>
-<script src="carol.js?v=0.1.0"></script>
-<script src="ebooks.js?v=0.1.0"></script>
-<script src="roteiro.js?v=0.1.0"></script>
-<script src="imersivo.js?v=0.1.0"></script>
-<script src="assistente.js?v=0.1.0"></script>
-<script src="creditos.js?v=0.1.0"></script>
-<script src="carol-adm.js?v=0.1.0"></script>
-<script src="fichas.js?v=0.1.0"></script>
-<script src="carol-ia.js?v=0.1.0"></script>
-<script src="assistente-voz.js?v=0.1.0"></script>
-<script src="boas-vindas.js?v=0.1.0"></script>
+<script src="config.js?v=0.1.1"></script>
+<script src="auth.js?v=0.1.1"></script>
+<script src="logo.js?v=0.1.1"></script>
+<script src="fx.js?v=0.1.1"></script>
+<script src="qrcode.js?v=0.1.1"></script>
+<script src="qr.js?v=0.1.1"></script>
+<script src="pix.js?v=0.1.1"></script>
+<script src="traduz.js?v=0.1.1"></script>
+<script src="idiomas.js?v=0.1.1"></script>
+<script src="pontos.js?v=0.1.1"></script>
+<script src="catalogo.js?v=0.1.1"></script>
+<script src="pedidos.js?v=0.1.1"></script>
+<script src="demo-bia.js?v=0.1.1"></script>
+<script src="store.js?v=0.1.1"></script>
+<script src="cores.js?v=0.1.1"></script>
+<script src="parceiros.js?v=0.1.1"></script>
+<script src="depoimentos.js?v=0.1.1"></script>
+<script src="cloud.js?v=0.1.1"></script>
+<script src="i18n.js?v=0.1.1"></script>
+<script src="avisos.js?v=0.1.1"></script>
+<script src="app.js?v=0.1.1"></script>
+<script src="carol.js?v=0.1.1"></script>
+<script src="ebooks.js?v=0.1.1"></script>
+<script src="roteiro.js?v=0.1.1"></script>
+<script src="imersivo.js?v=0.1.1"></script>
+<script src="assistente.js?v=0.1.1"></script>
+<script src="creditos.js?v=0.1.1"></script>
+<script src="carol-adm.js?v=0.1.1"></script>
+<script src="fichas.js?v=0.1.1"></script>
+<script src="carol-ia.js?v=0.1.1"></script>
+<script src="assistente-voz.js?v=0.1.1"></script>
+<script src="boas-vindas.js?v=0.1.1"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

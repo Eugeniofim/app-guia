@@ -2854,7 +2854,22 @@ route();
     if (document.getElementById('demoFaixa')) return;
     const el = document.createElement('div');
     el.id = 'demoFaixa'; el.className = 'protobar';
-    el.innerHTML = '<b>Demonstração</b> com uma guia fictícia — reservas e pagamentos aqui são simulados e nada sai deste aparelho.';
+    /* 08/10/2026: os guias abriam o demo, viam só a vitrine e iam embora —
+       o painel (o que eles compram) ficava escondido no fim da página. A
+       faixa virou o caminho: fora do painel ela chama para dentro; dentro,
+       leva de volta ao que o cliente vê. */
+    const desenha = () => {
+      const noPainel = /^#\/adm/.test(location.hash);
+      el.classList.add('faixaTroca');
+      el.innerHTML = `<p class="ftRot">Demonstração com uma guia fictícia — nada sai deste aparelho</p>
+        <div class="ftSeg" role="tablist">
+          <a href="#/" role="tab" aria-selected="${!noPainel}" class="${noPainel ? '' : 'on'}"><b>🛍 Vitrine de passeios</b><small>o que o cliente vê</small></a>
+          <a href="#/adm/today" role="tab" aria-selected="${noPainel}" class="${noPainel ? 'on' : ''}"><b>⚙️ Painel da guia</b><small>onde mora a inteligência</small></a>
+        </div>`;
+      if (typeof faixaAcimaDaBarra === 'function') faixaAcimaDaBarra();
+      document.documentElement.style.setProperty('--faixa-h', el.offsetHeight + 'px');
+    };
+    desenha(); addEventListener('hashchange', desenha);
     document.body.appendChild(el);
     const mede = () => document.documentElement.style.setProperty('--faixa-h', el.offsetHeight + 'px');
     mede(); addEventListener('resize', mede);
