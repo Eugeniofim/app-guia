@@ -70,7 +70,7 @@
     const s = document.createElement('style'); s.id = 'fichaCss';
     s.textContent = `.cli{cursor:pointer}.cli:hover td{background:rgba(0,0,0,.035)}
       .fc-cab{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}
-      .fc-cab .pageh{margin:0}.fc-nivel{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--accent,#064c3f);color:#fff}
+      .fc-cab .pageh{margin:0}.fc-nivel{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--accent,#4A1D6E);color:#fff}
       .fc-sit{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0 14px}
       .fc-contato{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
       .fc-cancel td{opacity:.55;text-decoration:line-through}

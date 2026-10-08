@@ -24,6 +24,8 @@
      chave) foi para a engrenagem ⚙.
    ===================================================== */
 'use strict';
+/* a cor do orbe acompanha a paleta escolhida em Ajustes → Cores da marca */
+function _cssCor(v, pad) { try { const c = getComputedStyle(document.documentElement).getPropertyValue(v).trim(); return /^#[0-9a-f]{6}$/i.test(c) ? c : pad; } catch (e) { return pad; } }
 
 const IAV_VOZ = IA_NS + 'ia_voz';            /* ler as respostas em voz alta */
 const IAV_ENVIA = IA_NS + 'ia_voz_envia';    /* mandar sozinho quando parar de falar */
@@ -91,7 +93,7 @@ void main(){
   const srgb = (hex) => hex.replace('#', '').match(/../g).map(x => parseInt(x, 16) / 255);
   const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const O = { nivel: 0, graves: 0, agudos: 0, _alvo: 0, _gl: null, _cv: null, _u: {}, _t: 0, _ult: 0, _visc: .45, _bri: .5, _estado: 'repouso',
-    _cor: lin('#FFD23F'), _cor2: lin('#0a6957'), _fundo: srgb('#0F1A17'), _fala: 0, _mic: null };
+    _cor: lin(_cssCor('--brand-cidra', '#FF7A2F')), _cor2: lin(_cssCor('--brand-primaria', '#6A2C96')), _fundo: srgb('#0F1A17'), _fala: 0, _mic: null };
   O.montar = function (cv) {
     if (O._cv === cv && O._gl) return true;
     const gl = cv.getContext('webgl', { antialias: false, premultipliedAlpha: false }); if (!gl) return false;

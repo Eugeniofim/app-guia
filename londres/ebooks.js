@@ -19,7 +19,7 @@ const EBOOKS = [
     titulo: 'Londres em 3 dias',
     sub: 'O roteiro que eu faria com um amigo que chega pela primeira vez',
     capa: 'fotos/p-big-ben.jpg',
-    cor: '#064c3f',
+    cor: '#4A1D6E',
     resumo: 'Três dias bem divididos, sem correria: chegada e transporte, Westminster, City e South Bank, bairros e museus — e as dicas de dinheiro, chip e clima que ninguém conta antes.',
     caps: [
       { h: 'Chegada e transporte', ph: 'fotos/p-transport-museum.jpg', t: 'Londres tem seis aeroportos; os brasileiros chegam quase sempre por **Heathrow**. De lá, o metrô (linha Piccadilly) leva ao centro em cerca de uma hora e é o caminho mais barato.\n\nNão compre bilhete avulso: encoste o **cartão de crédito por aproximação** na catraca ao entrar e ao sair. O sistema calcula o melhor preço do dia sozinho. Baixe o **Citymapper** antes de embarcar — ele resolve qualquer trajeto, inclusive de ônibus.\n\nDica da Bia: o segundo andar do ônibus vermelho é o passeio mais barato da cidade. Sente na frente.' },
@@ -34,7 +34,7 @@ const EBOOKS = [
     titulo: 'Londres de graça',
     sub: 'As melhores experiências da cidade que não custam nada',
     capa: 'fotos/p-hyde-park.jpg',
-    cor: '#7e6308',
+    cor: '#B3470C',
     resumo: 'Museus de classe mundial, vistas do alto, parques reais e mercados — tudo gratuito. Londres cara? Nem sempre.',
     caps: [
       { h: 'Museus gratuitos', ph: 'fotos/p-british-museum.jpg', t: 'Os grandes museus de Londres têm **entrada gratuita** (a doação é bem-vinda):\n\n• **Museu Britânico** — a Pedra de Roseta, as múmias, as esculturas do Partenon.\n• **National Gallery** — Van Gogh, Monet, Leonardo.\n• **Tate Modern** — arte moderna numa antiga usina, à beira do rio.\n• **Museu de História Natural** — o esqueleto da baleia azul e os dinossauros.\n• **V&A** — moda, design e artes decorativas.\n\nChegue na abertura ou no fim da tarde e escolha duas ou três salas em vez de tentar ver tudo.' },

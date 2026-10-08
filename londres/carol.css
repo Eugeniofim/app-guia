@@ -22,7 +22,7 @@
   font:600 10px/1.5 var(--f-ui);font-style:normal;letter-spacing:.06em;text-transform:uppercase;vertical-align:1px}
 
 /* ---------- ABERTURA: verde, foto de Londres ao fundo, logo do demo ---------- */
-.splash{background:var(--brand-primaria);background-image:linear-gradient(180deg,rgba(6,76,63,.78),rgba(3,40,32,.92)),url(fotos/home-westminster.jpg);background-size:cover;background-position:center}
+.splash{background:var(--brand-primaria);background-image:linear-gradient(180deg,rgba(74,29,110,.78),rgba(36,12,56,.92)),url(fotos/home-westminster.jpg);background-size:cover;background-position:center}
 .sp-demo{margin-top:18px;font:500 12px/1.4 var(--f-ui);letter-spacing:.04em;color:rgba(251,248,243,.72);animation:spUp 950ms var(--ease) both;animation-delay:2000ms}
 .sp-logoCarol{display:block;width:min(300px,70vw);height:auto;margin:0 auto;animation:spUp 1100ms var(--ease) both;animation-delay:250ms;filter:drop-shadow(0 18px 36px rgba(0,0,0,.35))}
 .sp-lema{margin-top:22px;font-family:var(--f-script);font-weight:600;font-size:clamp(26px,6vw,34px);color:var(--brand-dourado);animation:spUp 950ms var(--ease) both;animation-delay:1300ms}
@@ -34,13 +34,13 @@
 .hub.carol .vcard{padding:30px 22px 22px;
   background:color-mix(in srgb,var(--brand-primaria) 88%,#021a15)!important;
   -webkit-backdrop-filter:blur(10px) saturate(1.1);backdrop-filter:blur(10px) saturate(1.1);
-  border:1px solid rgba(255,210,63,.22)!important;box-shadow:0 18px 50px -20px rgba(0,0,0,.6)!important}
+  border:1px solid color-mix(in srgb,var(--brand-cidra) 22%,transparent)!important;box-shadow:0 18px 50px -20px rgba(0,0,0,.6)!important}
 /* véu verde de cima pra baixo sobre a foto, para o conteúdo assentar */
-.hub.carol .hub-bg::after{background:linear-gradient(180deg,rgba(6,76,63,.55),rgba(3,40,32,.78))}
+.hub.carol .hub-bg::after{background:linear-gradient(180deg,rgba(74,29,110,.55),rgba(36,12,56,.78))}
 .hub-textura{background-position:center 40%!important}
 .hub.carol .vcard{padding:24px 20px 18px}
 .hub.carol .tagline{color:rgba(251,248,243,.88)}
-.hubBadge{margin:12px auto 0;display:inline-block;padding:6px 14px;border-radius:var(--r-pill);background:rgba(255,210,63,.14);box-shadow:inset 0 0 0 1px rgba(255,210,63,.45);color:var(--brand-dourado);font:600 var(--fs-2)/1.3 var(--f-ui);letter-spacing:.04em}
+.hubBadge{margin:12px auto 0;display:inline-block;padding:6px 14px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--brand-cidra) 14%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brand-cidra) 45%,transparent);color:var(--brand-dourado);font:600 var(--fs-2)/1.3 var(--f-ui);letter-spacing:.04em}
 .hubDemo{margin:10px 0 0;font:500 var(--fs-2)/1.4 var(--f-ui);color:rgba(251,248,243,.62)}
 .hub.carol .hub-brand{display:flex;justify-content:center;margin:4px 0 2px}
 .hub.carol .hub-brand .lg-img{height:auto!important;width:min(250px,70%)}
@@ -296,7 +296,7 @@
 .imPainel small{display:block;color:var(--ok);font-size:var(--fs-2)}
 .pino span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--brand-primaria);color:#fff;font:700 12px/1 var(--f-ui);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .pino.feita span{background:var(--brand-dourado);color:#111}
-.pino.atual span{transform:scale(1.25);box-shadow:0 0 0 4px rgba(6,76,63,.3),0 2px 6px rgba(0,0,0,.3)}
+.pino.atual span{transform:scale(1.25);box-shadow:0 0 0 4px rgba(74,29,110,.3),0 2px 6px rgba(0,0,0,.3)}
 .pino.desvio span{background:#fff;color:var(--brand-primaria);border-color:var(--brand-primaria)}
 .leaflet-container{font-family:var(--f-ui)}
 /* o mapa aberto (OSM) no tom da marca: menos saturado, um toque quente */
@@ -441,14 +441,14 @@
    conduzindo cada seção do menu. Nunca por cima do logo. */
 .hub.carol .hubRot{display:flex;align-items:center;gap:10px}
 .hub.carol .hubRot::after{content:"";flex:1;height:22px;min-width:60px;opacity:.75;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 22'%3E%3Cpath d='M2 12C40 3 70 20 110 11s64-8 80 1c7 5 4 12-3 10-7-2-4-10 4-10 8 0 14 4 26 4' fill='none' stroke='%23FFD23F' stroke-width='1.4' stroke-dasharray='4 5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat left center/auto 100%}
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 22'%3E%3Cpath d='M2 12C40 3 70 20 110 11s64-8 80 1c7 5 4 12-3 10-7-2-4-10 4-10 8 0 14 4 26 4' fill='none' stroke='%23FF7A2F' stroke-width='1.4' stroke-dasharray='4 5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat left center/auto 100%}
 
 /* =====================================================
    ASSISTENTE — visual do TI ARTES OS nas cores do produto (assistente-voz.js)
    Gaveta escura (verde profundo), orbe amarelo, bolha do guia em verde.
    Seletores com #iaGaveta.iav: ganham do estilo antigo injetado pelo assistente.js.
    ===================================================== */
-#iaGaveta.iav{--v-bg:#0F1A17;--v-s1:#17241F;--v-s2:#1F2F29;--v-line:rgba(255,210,63,.16);--v-tx:#FBF8F3;--v-tx2:#CFD6D0;--v-tx3:#9AA69F;--v-sky:#FFD23F;--v-lov:var(--brand-primaria);
+#iaGaveta.iav{--v-bg:color-mix(in srgb,var(--brand-primaria) 20%,#0b0b0d);--v-s1:color-mix(in srgb,var(--brand-primaria) 28%,#111114);--v-s2:color-mix(in srgb,var(--brand-primaria) 36%,#16161a);--v-line:color-mix(in srgb,var(--brand-cidra) 16%,transparent);--v-tx:#FBF8F3;--v-tx2:#CFD6D0;--v-tx3:#9AA69F;--v-sky:var(--brand-cidra);--v-lov:var(--brand-primaria);
   background:var(--v-bg);color:var(--v-tx);font-family:var(--f-ui);border-left:1px solid var(--v-line)}
 #iaGaveta.iav header{border-bottom:0;padding:12px 8px 4px 14px;gap:10px;align-items:center}
 #iaGaveta.iav header b{font-family:var(--f-titulo);font-weight:400;font-size:22px;letter-spacing:.01em}
@@ -458,10 +458,10 @@
 #iaGaveta.iav .iavOrbeTopo{width:42px;height:42px;flex:none;border-radius:50%;overflow:hidden}
 #iaGaveta.iav .iavOrbeTopo.vazio{visibility:hidden}
 #iavOrbe{width:100%;height:100%;display:block;border-radius:50%}
-#iavOrbe.semGl{background:radial-gradient(circle at 40% 35%,#FBF8F3 0,#FFD23F 30%,var(--brand-primaria) 70%,transparent 72%)}
+#iavOrbe.semGl{background:radial-gradient(circle at 40% 35%,#FBF8F3 0,var(--brand-cidra) 30%,var(--brand-primaria) 70%,transparent 72%)}
 #iaGaveta.iav .iavIco{width:44px;height:44px;flex:none;border:0;border-radius:12px;background:transparent;color:var(--v-tx2);display:grid;place-items:center;cursor:pointer}
 #iaGaveta.iav .iavIco svg{width:20px;height:20px}
-#iaGaveta.iav .iavIco.on{color:var(--v-sky);background:rgba(255,210,63,.12)}
+#iaGaveta.iav .iavIco.on{color:var(--v-sky);background:color-mix(in srgb,var(--brand-cidra) 12%,transparent)}
 #iaGaveta.iav #iaMsgs{padding:6px 16px 16px;gap:14px;scrollbar-width:thin;scrollbar-color:var(--v-s2) transparent}
 
 /* tela vazia: orbe grande, "Oi, <guia>." e as sugestões do dia */
@@ -491,7 +491,7 @@
 .iavAcoes button:hover{color:var(--v-sky);border-color:var(--v-sky)}
 .iavPdf{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:10px;background:rgba(251,248,243,.12);font-size:12.5px}
 .iavPdf svg{width:16px;height:16px}
-#iaGaveta.iav .iaDemo{border-color:var(--v-line);color:var(--v-tx2);background:rgba(255,210,63,.05)}
+#iaGaveta.iav .iaDemo{border-color:var(--v-line);color:var(--v-tx2);background:color-mix(in srgb,var(--brand-cidra) 5%,transparent)}
 #iaGaveta.iav .iaDemo b{color:var(--v-sky)}
 
 /* cartão "confirma?" */
@@ -502,7 +502,7 @@
 #iaGaveta.iav .iaCard.feito{border-color:var(--v-line)}
 
 /* ouvindo */
-#iavOuvindo{display:none;align-items:center;gap:9px;margin:0 12px 8px;padding:8px 10px 8px 13px;border-radius:14px;background:rgba(6,76,63,.45);border:1px solid rgba(255,210,63,.25);font-size:13px}
+#iavOuvindo{display:none;align-items:center;gap:9px;margin:0 12px 8px;padding:8px 10px 8px 13px;border-radius:14px;background:color-mix(in srgb,var(--brand-primaria) 45%,transparent);border:1px solid color-mix(in srgb,var(--brand-cidra) 25%,transparent);font-size:13px}
 #iavOuvindo.on{display:flex}
 #iavOuvindo .barras{display:flex;gap:2.5px;align-items:flex-end;height:15px;flex:none}
 #iavOuvindo .barras i{width:2.5px;height:100%;background:var(--v-sky);border-radius:2px;transform-origin:bottom;animation:iavOnda .9s ease-in-out infinite}
@@ -524,14 +524,14 @@
 
 /* a caixa de escrever (uma peça só, como no TI ARTES) */
 #iaGaveta.iav #iaForm{margin:0 10px calc(10px + env(safe-area-inset-bottom));padding:5px;border:1px solid var(--v-line);border-top:1px solid var(--v-line);border-radius:18px;background:var(--v-s1);gap:4px;align-items:flex-end;transition:border-color .15s,box-shadow .15s}
-#iaGaveta.iav #iaForm:focus-within{border-color:rgba(255,210,63,.55);box-shadow:0 0 0 4px rgba(255,210,63,.08)}
+#iaGaveta.iav #iaForm:focus-within{border-color:color-mix(in srgb,var(--brand-cidra) 55%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand-cidra) 8%,transparent)}
 #iaGaveta.iav #iaTxt{background:transparent;border:0;color:var(--v-tx);min-height:44px;padding:11px 6px;font-size:16px;line-height:1.4;outline:none}
 #iaGaveta.iav #iaTxt::placeholder{color:var(--v-tx3)}
 #iaGaveta.iav #iaClip{border:0;background:transparent;color:var(--v-tx2)}
 .iavMic{height:44px;flex:none;padding:0 12px;border-radius:12px;border:1px solid var(--v-line);background:var(--v-s2);color:var(--v-tx);display:inline-flex;gap:6px;align-items:center;font:600 14px var(--f-ui);cursor:pointer}
 .iavMic svg{width:18px;height:18px}
 .iavMic.ouvindo{background:var(--brand-vivo);border-color:transparent;animation:iavPulsa 1.1s ease-in-out infinite}
-@keyframes iavPulsa{0%,100%{box-shadow:0 0 0 0 rgba(255,210,63,.35)}50%{box-shadow:0 0 0 7px rgba(255,210,63,0)}}
+@keyframes iavPulsa{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brand-cidra) 35%,transparent)}50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--brand-cidra) 0%,transparent)}}
 #iaGaveta.iav #iaEnviar{width:44px;min-width:44px;height:44px;border-radius:12px;background:var(--v-sky);color:#111;border:0;display:grid;place-items:center;cursor:pointer}
 #iaGaveta.iav #iaEnviar svg{width:19px;height:19px}
 #iaGaveta.iav #iaEnviar:disabled{opacity:.45}
@@ -542,7 +542,7 @@
 #iavMenu{padding:6px 16px 14px;border-bottom:1px solid var(--v-line);background:var(--v-s1);display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto}
 #iavMenu[hidden]{display:none}
 .iavLiga{display:flex;gap:10px;align-items:flex-start;padding:8px 0;min-height:44px;cursor:pointer}
-.iavLiga input{width:20px;height:20px;accent-color:#FFD23F;flex:none;margin-top:2px}
+.iavLiga input{width:20px;height:20px;accent-color:var(--brand-cidra);flex:none;margin-top:2px}
 .iavLiga small,.iavVozCfg small{display:block;color:var(--v-tx3);font-size:12.5px;margin-top:2px;line-height:1.4}
 .iavVozCfg{display:flex;flex-direction:column;gap:8px;padding:8px 0;border-top:1px solid var(--v-line)}
 .iavLinha{display:flex;gap:6px}

@@ -59,7 +59,7 @@ function carregaLeaflet() {
 }
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILES_ATR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-function corMapa() { try { return getComputedStyle(document.documentElement).getPropertyValue('--brand-primaria').trim() || '#064c3f'; } catch (e) { return '#064c3f'; } }
+function corMapa() { try { return getComputedStyle(document.documentElement).getPropertyValue('--brand-primaria').trim() || '#4A1D6E'; } catch (e) { return '#4A1D6E'; } }
 function pinoNumero(L, n, estado) {
   return L.divIcon({ className: 'pino ' + (estado || ''), html: `<span>${n}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] });
 }

@@ -2,7 +2,7 @@
    CORES DA MARCA — Ajustes → Cores da marca
    O guia escolhe a cor PRINCIPAL e a de DESTAQUE, dentro da paleta neutra
    do produto — por combinação pronta ou cor a cor.
-   De fábrica: Verde + Amarelo, o par do logo do demo.
+   De fábrica (08/10/2026): Roxo + Laranja — pedido do Eugênio para sair do verde e amarelo.
 
    Para cada escolha o app DERIVA os tons (texto, fundos, tema escuro) e
    garante contraste de leitura (testes/cores.test.js confere todas as
@@ -11,7 +11,7 @@
    ===================================================== */
 'use strict';
 
-const CORES_PADRAO = { principal: 'verde', destaque: 'amarelo' };
+const CORES_PADRAO = { principal: 'roxo', destaque: 'laranja' };
 
 /* ---------- cor: conta pura (também roda no teste, em Node) ---------- */
 const corRgb = (h) => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
@@ -28,6 +28,8 @@ const PALETA = [
   { id: 'vinho', nome: 'Vinho', hex: '#6B1F3A', primaria: 1 }, { id: 'carvao', nome: 'Carvão', hex: '#1F2421', primaria: 1 },
   { id: 'amarelo', nome: 'Amarelo', hex: '#FFD23F', primaria: 1 }, { id: 'coral', nome: 'Coral', hex: '#F27059', primaria: 1 },
   { id: 'areia', nome: 'Areia', hex: '#E7C9A0', primaria: 1 }, { id: 'marfim', nome: 'Marfim', hex: '#FBF8F3', primaria: 1 },
+  { id: 'roxo', nome: 'Roxo', hex: '#4A1D6E', primaria: 1 }, { id: 'laranja', nome: 'Laranja', hex: '#FF7A2F', primaria: 1 },
+  { id: 'turquesa', nome: 'Turquesa', hex: '#0A7C85', primaria: 1 }, { id: 'agua', nome: 'Água', hex: '#7FE3E0', primaria: 1 },
 ];
 /* principal = fundo de botões e barras: tem que aceitar texto claro por cima.
    destaque = selo e detalhes: qualquer uma, menos a cor de FUNDO do app (sumiria). */
@@ -37,7 +39,7 @@ const PALETA_PRINCIPAL = PALETA.filter(podePrincipal);
 const PALETA_DESTAQUE = PALETA.filter(podeDestaque);
 /* combinações prontas: pares com contraste garantido (cores.test.js confere) */
 const COMBINACOES = [
-  { p: 'verde', d: 'amarelo' }, { p: 'petroleo', d: 'areia' }, { p: 'vinho', d: 'areia' },
+  { p: 'roxo', d: 'laranja' }, { p: 'turquesa', d: 'agua' }, { p: 'verde', d: 'amarelo' }, { p: 'petroleo', d: 'areia' }, { p: 'vinho', d: 'areia' },
   { p: 'carvao', d: 'amarelo' }, { p: 'verde', d: 'coral' },
 ];
 /* escurece (rumo ao preto) ou clareia (rumo ao branco) até ler bem sobre TODOS os fundos */
