@@ -23,6 +23,8 @@ const BIO_TXT = {
 };
 /* o vídeo de apresentação dele (08/10). Só baixa quando a pessoa toca no play. */
 const BIO_VIDEO = { src: 'arte/mario-apresentacao.mp4', capa: 'arte/mario-apresentacao.jpg' };
+/* o fundo do topo: vista da Marienplatz e da Frauenkirche (Ilia Bronskiy / Unsplash). O vídeo fica só em "Quem sou eu" (08/10). */
+const BIO_FUNDO = 'arte/fundo-munique.jpg';
 /* a prévia (ou o config) está ligada? O vídeo de "Quem sou eu" segue a mesma chave. */
 function bioAtiva() {
   return /[?&]estilo=bio\b/.test(location.search)
@@ -44,12 +46,12 @@ function bioEstilo() {
   s.id = 'bioCss';
   s.textContent = `
 .bio{min-height:100vh;background:#101216;color:#fff;padding-bottom:40px}
-.bio-hero{position:relative;height:56vh;min-height:360px;max-height:560px;background-size:cover;background-position:center 35%}
+.bio-hero{position:relative;height:56vh;min-height:360px;max-height:560px;background-size:cover;background-position:center 58%}
 .bio-hvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 62%}
 .bio-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,18,22,.05) 0%,rgba(16,18,22,.25) 45%,#101216 100%)}
 .bio-top{position:absolute;top:12px;right:12px;z-index:2}
 .bio-hero::after{z-index:1}
-.bio-head{position:relative;z-index:2;margin-top:-110px;text-align:center;padding:0 22px}
+.bio-head{position:relative;z-index:2;margin-top:-150px;text-align:center;padding:0 22px}
 .bio-face{width:92px;height:92px;border-radius:50%;object-fit:cover;object-position:center 20%;border:3px solid #fff;box-shadow:0 6px 22px rgba(0,0,0,.45)}
 .bio-head h1{font-size:1.55rem;line-height:1.2;margin:12px 0 4px;color:#fff}
 .bio-head .bio-neg{font-size:.92rem;opacity:.8;margin:0 0 10px}
@@ -99,12 +101,11 @@ function viewHubBio() {
 
   app.innerHTML = `
   <div class="bio">
-    <div class="bio-hero" style="background-image:url(${esc(BIO_VIDEO.capa || st.homePhoto || 'home.jpg')})">
-      ${BIO_VIDEO.src ? `<video class="bio-hvid" src="${BIO_VIDEO.src}" poster="${BIO_VIDEO.capa}" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>` : ''}
+    <div class="bio-hero" style="background-image:url(${esc(BIO_FUNDO || st.homePhoto || 'home.jpg')})">
       <div class="bio-top">${langBar('right')}</div>
     </div>
     <div class="bio-head">
-      ${BIO_VIDEO.src ? '' : `<img class="bio-face" id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt="">`}
+      <img class="bio-face" id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt="">
       <h1>${esc(nomeCompleto)}</h1>
       <p class="bio-neg">${esc(st.negocio || '')}</p>
       <p class="bio-txt">${esc(noIdioma(st.homeText) || t('tagline'))}</p>
