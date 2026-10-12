@@ -280,7 +280,7 @@ function _seed() {
   /* pedidos dele: sem 'Monte seu roteiro' e sem cupons */
   db.settings.roteiro  = false;
   db.settings.cupons   = false;
-  db.settings.photo    = 'arte/mario-parque.jpg';
+  db.settings.photo    = 'arte/mario-perfil.jpg';   /* 12/10: selfie dele na Marienplatz (ele mandou) */
   db.settings.bio = {
     pt: 'Sou o Mario Dal Pra, curitibano. Muito jovem fui morar no exterior — Buenos Aires, Edimburgo, Nova York — '
       + 'e há mais de 30 anos moro em Munique, onde me formei em Turismo.\n\n'
