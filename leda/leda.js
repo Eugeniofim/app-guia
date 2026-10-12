@@ -72,6 +72,7 @@ if (typeof STR === 'object' && STR) {
    peças que tinham o verde do app-guia escrito à mão. */
 document.head.insertAdjacentHTML('beforeend', `<style>
 body{padding-bottom:44px}
+#iaGaveta.aberta{z-index:1001}
 .hub-bg::after{background:linear-gradient(175deg,rgba(16,15,13,.30),rgba(16,15,13,.55) 45%,rgba(16,15,13,.85))}
 .hub-brand{display:flex;flex-direction:column;align-items:center;gap:6px}
 .lg-sig{display:block;width:min(260px,68vw);height:auto;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
