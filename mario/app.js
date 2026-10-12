@@ -590,6 +590,7 @@ function viewAbout() {
       ${paras.map(p => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('')}
     </div>
     ${typeof bioVideoHtml === 'function' ? bioVideoHtml() : ''}
+    ${typeof bioGaleriaHtml === 'function' ? bioGaleriaHtml() : ''}
 
     <div class="ab-facts">
       <div><small>${t('aboutBased')}</small><b>${esc(st.base || '')}</b></div>

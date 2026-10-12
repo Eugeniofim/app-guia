@@ -30,6 +30,24 @@ function bioAtiva() {
   return /[?&]estilo=bio\b/.test(location.search)
     || !!(typeof APP_CONFIG !== 'undefined' && APP_CONFIG.guia && APP_CONFIG.guia.homeEstilo === 'bio');
 }
+/* as fotos que o Mario mandou (12/10), em "Quem sou eu" */
+const BIO_GALERIA = [
+  { src: 'arte/galeria-marienplatz.jpg',    pt: 'Marienplatz, Munique',          en: 'Marienplatz, Munich' },
+  { src: 'arte/galeria-neuschwanstein.jpg', pt: 'Castelo de Neuschwanstein',     en: 'Neuschwanstein Castle' },
+  { src: 'arte/galeria-alpsee.jpg',         pt: 'Lago Alpsee',                   en: 'Lake Alpsee' },
+  { src: 'arte/galeria-palacio.jpg',        pt: 'Jardins de um palácio bávaro',  en: 'Gardens of a Bavarian palace' },
+];
+function bioGaleriaHtml() {
+  if (!BIO_GALERIA.length || !bioAtiva()) return '';
+  const tit = LANG === 'en' ? 'Moments across Bavaria' : 'Momentos pela Baviera';
+  return `<div class="ab-galeria" style="margin:26px 0 8px">
+    <h3 style="text-align:center;margin:0 0 12px">${tit}</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${BIO_GALERIA.map(f => `
+      <figure style="margin:0;border-radius:16px;overflow:hidden;background:#0002">
+        <img src="${f.src}" alt="${esc(LANG === 'en' ? f.en : f.pt)}" loading="lazy" style="display:block;width:100%;aspect-ratio:3/4;object-fit:cover">
+        <figcaption style="font-size:.8rem;padding:6px 8px;opacity:.8">${esc(LANG === 'en' ? f.en : f.pt)}</figcaption>
+      </figure>`).join('')}</div></div>`;
+}
 /* o vídeo dentro de "Quem sou eu" (pedido do Eugênio, 08/10) */
 function bioVideoHtml() {
   if (!BIO_VIDEO.src || !bioAtiva()) return '';
