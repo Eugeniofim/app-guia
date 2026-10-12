@@ -22,7 +22,7 @@
   font:600 10px/1.5 var(--f-ui);font-style:normal;letter-spacing:.06em;text-transform:uppercase;vertical-align:1px}
 
 /* ---------- ABERTURA: verde, foto de Londres ao fundo, logo do demo ---------- */
-.splash{background:var(--brand-primaria);background-image:linear-gradient(180deg,rgba(74,29,110,.78),rgba(36,12,56,.92)),url(fotos/home-westminster.jpg);background-size:cover;background-position:center}
+.splash{background:#1A0B28!important;background-image:linear-gradient(180deg,rgba(42,15,64,.72),rgba(26,11,40,.94)),url(fotos/p-tower-bridge.jpg)!important;background-size:cover!important;background-position:center 40%!important}
 .sp-demo{margin-top:18px;font:500 12px/1.4 var(--f-ui);letter-spacing:.04em;color:rgba(251,248,243,.72);animation:spUp 950ms var(--ease) both;animation-delay:2000ms}
 .sp-logoCarol{display:block;width:min(300px,70vw);height:auto;margin:0 auto;animation:spUp 1100ms var(--ease) both;animation-delay:250ms;filter:drop-shadow(0 18px 36px rgba(0,0,0,.35))}
 .sp-lema{margin-top:22px;font-family:var(--f-script);font-weight:600;font-size:clamp(26px,6vw,34px);color:var(--brand-dourado);animation:spUp 950ms var(--ease) both;animation-delay:1300ms}
