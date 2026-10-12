@@ -194,6 +194,9 @@ const STR = {
   upTo:        { pt: 'até', en: 'up to' }, people: { pt: 'pessoas', en: 'people' },
   /* passeio sem preco cadastrado: o app nao inventa valor, faz orcamento */
   priceAsk:    { pt: 'Sob consulta', en: 'On request' },
+  horaPref:    { pt: 'ou no horário de sua preferência', en: 'or at a time that suits you' },
+  horaOutra:   { pt: 'Prefere outro horário? Combine comigo no WhatsApp', en: 'Prefer another time? Message me on WhatsApp' },
+  waOutroHorario: { pt: 'Olá! Tenho interesse no passeio {tour} em {when}, mas em outro horário. Pode ser?', en: 'Hi! I am interested in the {tour} tour on {when}, but at a different time. Is that possible?' },
   priceAskWhy: { pt: 'O valor depende do grupo e do roteiro — você escolhe a data e recebe o orçamento no WhatsApp.', en: 'The price depends on the group and the route — pick a date and get a quote on WhatsApp.' },
   gcalAdd:     { pt: 'Google Agenda', en: 'Google Calendar' },
   dtCalWhy:    { pt: 'Ou clique nos dias do mês: cada toque abre ou fecha o dia, com a hora e as vagas acima.', en: 'Or click the days below: each tap opens or closes that day, using the time and seats above.' },

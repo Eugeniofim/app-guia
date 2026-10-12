@@ -969,8 +969,10 @@ function viewTour(id) {
         <div class="factgrid">
           <div><small>${t('fLeaves')}</small><b>${esc(noIdioma(x.meeting))}</b>
             <a class="linkmap" href="${mapLink(noIdioma(x.meeting))}" target="_blank" rel="noopener">${t('openMap')} ↗</a></div>
-          ${x.duration ? `<div><small>${t('fHours')}</small><b>${esc(x.duration)}</b></div>` : ''}
-          <div><small>${t('fGroup')}</small><b>${t('upTo')} ${x.max} ${t('people')}</b>
+          ${DB.settings.horarios ? `<div><small>${t('fHours')}</small><b>${esc(DB.settings.horarios[LANG] || DB.settings.horarios.pt)}</b>
+            <small class="sub">${t('horaPref')}${x.duration ? ' · ' + esc(x.duration) : ''}</small></div>`
+            : x.duration ? `<div><small>${t('fHours')}</small><b>${esc(x.duration)}</b></div>` : ''}
+          <div><small>${t('fGroup')}</small><b>${DB.settings.grupoSobConsulta ? t('priceAsk') : `${t('upTo')} ${x.max} ${t('people')}`}</b>
             ${x.min > 1 ? `<small class="sub">${t('minNote', { n: x.min })}</small>` : ''}</div>
           <div><small>${t('fLang')}</small><b>PT · EN</b></div>
         </div>
@@ -1242,9 +1244,10 @@ function renderBook() {
       return `<p class="hint">${t('pickTime')}</p><div class="times">` + list.map(d => {
         const left = Cal.seatsLeft(x.id, d.date, d.time, d.capacity);
         return left > 0
-          ? `<button class="slot ${S.time === d.time ? 'on' : ''}" data-t="${d.time}" data-c="${d.capacity}">${d.time}<small>${left} ${t('spotsLeft')}</small></button>`
+          ? `<button class="slot ${S.time === d.time ? 'on' : ''}" data-t="${d.time}" data-c="${d.capacity}">${d.time}${DB.settings.grupoSobConsulta ? '' : `<small>${left} ${t('spotsLeft')}</small>`}</button>`
           : `<button class="slot off" disabled>${d.time}<small>0</small></button>`;
-      }).join('') + '</div>';
+      }).join('') + '</div>' + (DB.settings.horarios
+        ? `<p class="hint"><a target="_blank" rel="noopener" href="${waLink(t('waOutroHorario', { tour: x.name[LANG] || x.name.pt, when: fmtDate(S.date) }))}">${t('horaOutra')} ↗</a></p>` : '');
     }
   }
 
