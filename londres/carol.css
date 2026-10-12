@@ -717,3 +717,8 @@
 /* painel: o aviso da demonstração calmo — título no laranja, texto claro */
 .alert.demo{background:var(--accent-wash)!important;color:var(--ink)!important;border:1px solid var(--line)}
 .alert.demo b{color:var(--highlight-text)!important}
+
+/* 12/10/2026: o seletor Vitrine/Painel (z 998) cobria o campo de digitar do
+   assistente (gaveta z 950) — "não consigo digitar". Aberta, a gaveta passa
+   por cima de tudo que é fixo embaixo. */
+#iaGaveta.aberta{z-index:1001}
