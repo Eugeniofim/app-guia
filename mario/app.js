@@ -581,6 +581,7 @@ function viewAbout() {
       <img class="ab-photo" id="abImg" src="${esc(st.photo || 'guia.jpg')}" alt="${esc(guiaNome())}">
       <div class="ab-cap">
         ${st.badge ? `<span class="ab-badge">✓ ${esc(st.badge)}</span>` : ''}
+        ${st.badge2 ? `<span class="ab-badge">✓ ${esc(st.badge2)}</span>` : ''}
         <h1>${t('aboutTitle')}</h1>
         <p class="ab-meta">${t('role')}</p>
       </div>

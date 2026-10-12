@@ -85,7 +85,7 @@ const STR = {
   pdAbrir:    { pt: 'Responder no WhatsApp', en: 'Reply on WhatsApp' },
   aboutTitle:  { pt: 'Prazer, sou {guia}', en: "Hi, I'm {guia}" },
   aboutBased:  { pt: 'Baseada em', en: 'Based in' },
-  aboutLangs:  { pt: 'Português · Inglês', en: 'Portuguese · English' },
+  aboutLangs:  { pt: 'Português · Espanhol · Inglês', en: 'Portuguese · Spanish · English' },
   aboutCta:    { pt: 'Ver meus passeios', en: 'See my tours' },
   aboutTalk:   { pt: 'Me chamar no WhatsApp', en: 'Message me on WhatsApp' },
   aboutMeet:   { pt: 'Vamos caminhar juntos?', en: 'Shall we walk together?' },
