@@ -288,7 +288,9 @@ function route() {
   if (p[0] === 'novasenha') viewNewPass();
   else if (p[0] === 'login') viewLogin();
   else if (p[0] === 'adm') {
-    if (DB.settings.authRequired && !isLoggedIn()) return viewLogin('in');
+    /* 14/10: com nuvem, o painel SEMPRE pede login (antes dependia de
+       settings.authRequired, que o visitante não tinha — e via o painel). */
+    if ((DB.settings.authRequired || temNuvem()) && !isLoggedIn()) return viewLogin('in');
     viewAdm(p[1] || 'today', p[2]);
   }
   else if (p[0] === 'pago')  viewPago(decodeURIComponent((p[1] || '').split('?')[0]));
@@ -3269,7 +3271,7 @@ function viewLogin(mode) {
         <input id="lgPass" type="password" autocomplete="${m === 'up' ? 'new-password' : 'current-password'}"></label>
       <p class="lgerro" id="lgErro" hidden></p>
       <button class="cta" id="lgGo">${m === 'up' ? t('loginCreate') : t('loginBtn')}</button>
-      <button class="linkbtn center" id="lgSwap">${m === 'up' ? t('loginBack') : t('loginFirst')}</button>
+      ${APP_CONFIG.sala ? '' : `<button class="linkbtn center" id="lgSwap">${m === 'up' ? t('loginBack') : t('loginFirst')}</button>`}
       ${m === 'in' ? `<button class="linkbtn center" id="lgForgot">${t('loginForgot')}</button>` : ''}
       <p class="fine center">🔒 ${t('loginSafe')}</p>
       <button class="linkbtn center" id="lgHome">← ${t('viewSite')}</button>
@@ -3335,7 +3337,8 @@ function viewLogin(mode) {
     toast(t('loginHi'));
     go('/adm/today');
   };
-  $('#lgSwap').onclick = () => viewLogin(m === 'up' ? 'in' : 'up');
+  /* sala: o dono é gravado à mão, então ninguém cria conta por aqui */
+  if ($('#lgSwap')) $('#lgSwap').onclick = () => viewLogin(m === 'up' ? 'in' : 'up');
   const fg = $('#lgForgot');
   if (fg) fg.onclick = async () => {
     const email = $('#lgEmail').value.trim();
