@@ -1491,8 +1491,11 @@ function admToday() {
     }, 900);
   }
   const today = isoToday();
+  /* grupo sob consulta (Mario): os horários abrem todo dia, então o Hoje
+     lista só as saídas que têm gente — senão eram 6 linhas de 0/99 */
   const deps = Tours.all().flatMap(x =>
-    Cal.departures(x.id, today, today).map(d => ({ ...d, tour: x })));
+    Cal.departures(x.id, today, today).map(d => ({ ...d, tour: x })))
+    .filter(d => !DB.settings.grupoSobConsulta || Cal.seatsLeft(d.tourId, d.date, d.time, d.capacity) < d.capacity);
   const late = Bookings.all().filter(b => b.status === 'confirmed' && Bookings.due(b) > 0 && Bookings.dueDate(b) < today);
   const dueTomorrow = Bookings.all().filter(b => b.status === 'confirmed' && Bookings.due(b) > 0 && Bookings.dueDate(b) === today);
   admShell('today', `
@@ -1503,7 +1506,7 @@ function admToday() {
       <h3>${t('admToday')}</h3>
       ${deps.length ? deps.map(d => {
         const left = Cal.seatsLeft(d.tourId, d.date, d.time, d.capacity);
-        return `<div class="deprow"><b class="mono">${d.time}</b><span>${esc(d.tour.name[LANG] || d.tour.name.pt)}</span><span class="pill ${left === 0 ? 'ok' : 'n'}">${d.capacity - left}/${d.capacity}</span></div>`;
+        return `<div class="deprow"><b class="mono">${d.time}</b><span>${esc(d.tour.name[LANG] || d.tour.name.pt)}</span><span class="pill ${left === 0 ? 'ok' : 'n'}">${DB.settings.grupoSobConsulta ? `${d.capacity - left} ${t('people')}` : `${d.capacity - left}/${d.capacity}`}</span></div>`;
       }).join('') : `<p class="empty">${t('noDepToday')}</p>`}
     </section>`);
   $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
@@ -2590,7 +2593,7 @@ function admSettings() {
       <h3>${t('language')}</h3>
       ${langBar()}
     </section>
-    ${DB.demo ? `<div class="demobar">
+    ${temNuvem() ? '' : DB.demo ? `<div class="demobar">
       <b>🧪 ${t('demoOn')}</b>
       <p>${t('demoWhat')}</p>
       <button class="cta sm" id="demoClear">${t('demoClear')}</button>
@@ -2740,9 +2743,9 @@ function admSettings() {
       <p class="why">${t('ressyncHelp')}</p>
       <button class="cta sm" id="ressync">${t('ressyncBtn')}</button>
     </section>
-    <section class="card">
+    ${temNuvem() ? '' : `<section class="card">
       <button class="mini danger" id="reset">${t('resetDemo')}</button>
-    </section>`);
+    </section>`}`);
   bindLang(app);
   const dc = $('#demoClear');
   if (dc) dc.onclick = () => {
@@ -2913,7 +2916,9 @@ function admSettings() {
     DB.settings.tutorialAdm = true; DB.settings.tutorialClient = true; save();
     go('/adm/today');
   };
-  $('#reset').onclick = () => { if (confirm(t('resetWarn'))) { resetDemo(); route(); } };
+  /* 14/10: app de verdade (com nuvem) não tem 'restaurar demonstração' —
+     um toque jogava os dados de exemplo por cima dos dele */
+  if ($('#reset')) $('#reset').onclick = () => { if (confirm(t('resetWarn'))) { resetDemo(); route(); } };
 }
 
 /* ---------- link vindo do e-mail ----------
