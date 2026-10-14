@@ -528,6 +528,16 @@ const SEED_VER = 10;  /* 8: pedidos do Mario de 22/09 (sem Áustria, sem roteiro
 
 function load() {
   try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
+  /* 14/10/2026: aparelho que abriu o PROTOTIPO guardou as reservas e
+     clientes de exemplo (DB.demo). Com nuvem, a verdade e o banco: os dados
+     de exemplo vao fora e o aparelho recebe o que esta la. Sem isto o painel
+     do Mario mostrava a Cristina Bonatto e companhia com o banco zerado. */
+  if (DB && DB.demo && temNuvem()) {
+    const lang = DB.settings && DB.settings.lang;
+    DB = _blank();
+    if (lang) DB.settings = { ...(DB.settings || {}), lang };
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  }
   if (DB && DB.demo && !temNuvem() && (+DB.seedVer || 1) < SEED_VER) {
     const pedidos = DB.pedidos || [];
     DB = _seed();
