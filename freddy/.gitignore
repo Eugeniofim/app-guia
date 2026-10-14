@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+
+# fontes COMERCIAIS da marca da Carol (Giften Sans, Buvera, Gastela — vêm dos PDFs do Canva):
+# ficam só no Mac para o protótipo. Nunca publicar sem licença web; no ar o app cai
+# nas livres (Playfair Display, Outfit, Allura), já em fontes/.
+fontes/marca/
