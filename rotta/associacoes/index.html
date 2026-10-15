@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#13201E">
 <title>Rotta · parceria com associações</title>
 <meta name="description" content="Um benefício novo para os associados, sem trabalho para a associação: o app de reservas Rotta, com comissão mensal para a associação.">
-<meta property="og:title" content="Rotta · um benefício novo para os seus associados">
+<meta property="og:title" content="Rotta · seus associados fora do caderno, do Excel e do WhatsApp">
 <meta property="og:description" content="Sem custo e sem trabalho para a associação. Veja o vídeo, o protótipo e os planos.">
 <meta property="og:image" content="https://guia.eugeniofim.com/rotta/capa-review-v.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,6 +28,9 @@ a{color:inherit}
 h1{font-size:clamp(30px,5vw,44px);line-height:1.06;letter-spacing:-.025em;font-weight:800;margin-top:8px;text-wrap:balance;max-width:760px}
 h2{font-size:22px;font-weight:800;letter-spacing:-.015em;line-height:1.2;text-wrap:balance}
 .lede{color:var(--muted);font-size:17px;margin-top:12px;max-width:640px}
+.dores{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:9px;border-left:3px solid #F1D3CB;padding-left:12px;max-width:640px}
+.dores li{position:relative;padding:2px 0 2px 30px;font-size:15.5px}
+.dores li::before{content:"✕";position:absolute;left:0;top:3px;width:18px;height:18px;border-radius:50%;background:#FBE9E4;color:#B4432A;font-size:11px;font-weight:800;display:grid;place-items:center}
 .cta-linha{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:12px;font-weight:800;font-size:15.5px;text-decoration:none;padding:0 18px;border:1.5px solid transparent;transition:transform .12s,background .2s}
 .btn:active{transform:scale(.98)}
@@ -148,9 +151,15 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
   </a>
 
   <section>
-    <div class="eyebrow">Parceria com associações de guias</div>
-    <h1>Um benefício novo para os seus associados. Sem custo e sem trabalho para a associação.</h1>
-    <p class="lede">O Rotta é o app de reservas do guia: vitrine dos passeios, agenda, pagamentos e um assistente de IA, num lugar só. O associado começa grátis. A associação recebe uma comissão todo mês.</p>
+    <div class="eyebrow">Para associações de guias</div>
+    <h1>Seus associados ainda vivem entre o caderno, o Excel e o WhatsApp?</h1>
+    <ul class="dores">
+      <li>"Tem vaga dia 12?" respondido à mão, um por um</li>
+      <li>Reserva anotada no caderno ou na planilha</li>
+      <li>Caçar no WhatsApp quem já pagou e quem falta</li>
+      <li>Cliente espalhado entre WhatsApp, direct e e-mail</li>
+    </ul>
+    <p class="lede">O Rotta junta tudo isso num app com o nome de cada guia: vitrine dos passeios, reservas, pagamentos e um assistente de IA. Para a associação, é um benefício novo para oferecer, <b>sem custo e sem trabalho</b>, e uma comissão todo mês.</p>
     <div class="cta-linha">
       <a class="btn pri" href="#conversar">Marcar 20 minutos com a gente</a>
       <a class="btn sec" href="#ver">Ver o app em 2 minutos</a>
