@@ -54,6 +54,13 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
 .fecho{background:var(--ink);color:#E6EFED;border-radius:18px;padding:16px 18px;font-size:15px}
 .fecho b{color:#7FD1C1}
 html{scroll-behavior:smooth}
+.at.ter{display:flex;margin-top:8px;background:var(--tint);color:var(--teal-2);min-height:44px;flex:none}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.mini div{border:1.5px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.mini div.pop{border-color:var(--teal);background:var(--tint)}
+.mini b{font-size:13px}
+.mini span{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.mini small{font-size:11px;color:var(--muted);line-height:1.2}
 .rodape{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
 .rodape a{color:var(--teal);font-weight:800}
 </style>
@@ -72,6 +79,7 @@ html{scroll-behavior:smooth}
       <a class="at pri" href="../londres/" target="_blank" rel="noopener">Abrir o protótipo</a>
       <a class="at sec" href="#video-card">▶ Vídeo de 2 min</a>
     </div>
+    <a class="at ter" href="planos/">Ver os planos · a partir de € 0</a>
     <ul class="dores">
       <li>"Tem vaga dia 12?" respondido à mão, um por um</li>
       <li>Reserva anotada no caderno ou na planilha</li>
@@ -102,6 +110,20 @@ html{scroll-behavior:smooth}
       <button class="btn esc" id="video-btn">Assistir ao vídeo</button>
     </div>
   </div>
+
+  <a class="cartao planos-card" href="planos/">
+    <div class="corpo">
+      <div class="num">3</div>
+      <h2>Veja os planos</h2>
+      <p>Comece grátis e suba de plano quando o app já estiver trabalhando por você. Mensal ou anual, com 2 meses grátis.</p>
+      <div class="mini">
+        <div><b>Free</b><span>€ 0</span><small>+ 4% por reserva</small></div>
+        <div class="pop"><b>Standard</b><span>€ 25</span><small>sem taxa</small></div>
+        <div><b>Pro</b><span>€ 39</span><small>com assistente de IA</small></div>
+      </div>
+      <span class="btn pri">Ver a tabela completa</span>
+    </div>
+  </a>
 
   <div class="fecho"><b>Gostou?</b> É só responder a mensagem que eu te mandei. Monto o seu com os seus passeios, sem compromisso.</div>
   <p class="rodape">Studio Ti Artes</p>
