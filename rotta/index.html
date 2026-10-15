@@ -42,6 +42,10 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
 .vbox{background:#13201E;display:flex;justify-content:center}
 .video .play{position:absolute;left:50%;top:62%;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;background:rgba(255,122,47,.95);display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.dores{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.dores li{position:relative;padding:10px 12px 10px 38px;background:var(--paper);border:1px solid var(--line);border-radius:12px;font-size:15px}
+.dores li::before{content:"✕";position:absolute;left:12px;top:9px;width:18px;height:18px;border-radius:50%;background:#FBE9E4;color:#B4432A;font-size:11px;font-weight:800;display:grid;place-items:center}
+.fim-dor{margin-top:14px;font-weight:700;font-size:15.5px}
 .rodape{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
 .rodape a{color:var(--teal);font-weight:800}
 </style>
@@ -54,8 +58,15 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
   </div>
   <div>
     <div class="eyebrow">App do guia brasileiro na Europa</div>
-    <h1>Reservas, clientes, pagamentos e um assistente de IA, num app com o seu nome.</h1>
-    <p class="lede">Dois jeitos de conhecer:</p>
+    <h1>Saia do caderno, do Excel e do WhatsApp espalhado.</h1>
+    <p class="lede">Um app com o seu nome que junta clientes, reservas, pagamentos e um assistente de IA. Do seu jeito, com as suas cores e os seus passeios.</p>
+    <ul class="dores">
+      <li>"Tem vaga dia 12?" respondido à mão, um por um</li>
+      <li>Reserva anotada no caderno ou na planilha</li>
+      <li>Caçar no WhatsApp quem já pagou e quem falta</li>
+      <li>Cliente espalhado entre WhatsApp, direct e e-mail</li>
+    </ul>
+    <p class="fim-dor">Se algum desses é o seu dia a dia, o app foi feito pra você. Dois jeitos de conhecer:</p>
   </div>
 
   <a class="cartao" href="../londres/" target="_blank" rel="noopener">
