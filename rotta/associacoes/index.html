@@ -100,6 +100,42 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
 .fim h2{color:#fff}
 .fim p{margin-top:8px;color:#BFD0CC;max-width:540px;margin-left:auto;margin-right:auto}
 .fim .btn{margin-top:16px}
+.tab .troca{display:inline-flex;background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:4px;margin-top:16px;gap:2px}
+.tab .troca button{border:0;background:none;font:inherit;font-weight:800;font-size:14px;padding:8px 16px;border-radius:999px;cursor:pointer;color:var(--muted)}
+.tab .troca button.on{background:var(--ink);color:#fff}
+.tab .troca .eco{font-size:11px;background:var(--sol);color:var(--ink);border-radius:999px;padding:2px 6px;margin-left:4px}
+.tab .tabela{display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border:1.5px solid var(--line);border-radius:18px;margin-top:40px}
+@media (max-width:820px){.tab .tabela{grid-template-columns:1fr;background:none;border:0;gap:14px;margin-top:20px}}
+.tab .col{padding:22px 20px 24px;position:relative;display:flex;flex-direction:column}
+.tab .col+.col{border-left:1.5px solid var(--line)}
+@media (max-width:820px){.tab .col{background:#fff;border:1.5px solid var(--line)!important;border-radius:18px}}
+.tab .col.pop{background:var(--tint)}
+@media (min-width:821px){.tab .col.pop{margin:-1.5px 0;border:1.5px solid var(--teal)!important;border-radius:0 0 4px 4px}}
+.tab .selo{position:absolute;left:-1.5px;right:-1.5px;top:-30px;background:var(--teal);color:#fff;text-align:center;font-size:13px;font-weight:800;padding:6px 0;border-radius:10px 10px 0 0}
+@media (max-width:820px){.tab .selo{position:static;margin:-22px -20px 14px;border-radius:16px 16px 0 0}}
+.tab .col h2{font-size:22px;font-weight:800;letter-spacing:-.015em}
+.tab .col .pra{font-size:14px;color:var(--muted);margin-top:4px;min-height:42px}
+.tab .preco{margin-top:16px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.tab .preco b{font-size:36px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.tab .preco span{font-size:13.5px;color:var(--muted);font-weight:700}
+.tab .preco s{display:block;width:100%;font-size:13px;color:var(--muted)}
+.tab .ano{font-size:12.5px;font-weight:800;background:var(--sol);border-radius:8px;padding:3px 8px;align-self:flex-start;margin-top:6px;min-height:22px}
+.tab .ano:empty{background:none}
+.tab .cta{display:flex;align-items:center;justify-content:center;min-height:46px;border-radius:12px;font-weight:800;font-size:15px;text-decoration:none;margin-top:16px;border:1.5px solid var(--teal);color:var(--teal);background:#fff}
+.tab .pop .cta{background:var(--teal);color:#fff}
+.tab .sec{font-size:14px;font-weight:800;margin-top:20px}
+.tab .taxa{display:flex;gap:8px;font-size:14.5px;margin-top:8px}
+.tab ul{list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:10px}
+.tab li{display:flex;gap:9px;font-size:14.5px;line-height:1.35}
+.tab li i,.tab .taxa i{flex:none;width:18px;height:18px;margin-top:1px;background:no-repeat center/14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232F7A6F' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}
+.tab li small{display:block;color:var(--muted);font-size:12.5px}
+.tab .menu{font-weight:800}
+.tab .extras{margin-top:18px;background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:18px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:820px){.tab .extras{grid-template-columns:1fr}}
+.tab .extras h3{font-size:15px;font-weight:800}
+.tab .extras p{font-size:13.5px;color:var(--muted);margin-top:3px}
+.tab .extras .v{font-size:13px;font-weight:800;color:var(--teal);margin-top:4px}
+.tab .tabela .cta{min-height:46px}
 .rodape{font-size:13px;color:var(--muted);text-align:center}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -179,16 +215,90 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
     </div>
   </section>
 
-  <section class="bloco">
+  <section class="bloco tab" id="planos">
     <h2>Os planos para os associados</h2>
-    <p class="lede" style="font-size:15.5px;margin-top:6px">Preço de fundador. Mensal ou anual, com 2 meses grátis no anual.</p>
-    <div class="planos">
-      <div class="pl"><b>Free</b><div class="p">€ 0</div><span>+ 4% por reserva paga no app · até 5 passeios</span></div>
-      <div class="pl pop"><b>Standard</b><div class="p">€ 25<small> /mês</small></div><span>Sem taxa · tudo menos o assistente · ou € 250/ano</span></div>
-      <div class="pl"><b>Pro</b><div class="p">€ 39<small> /mês</small></div><span>Com assistente de IA · ou € 390/ano</span></div>
+    <p class="lede" style="font-size:15.5px;margin-top:6px">Preço de fundador: quem entra agora mantém o valor enquanto assinar. Todo plano começa com 7 dias com tudo liberado.</p>
+    <div class="troca" style="margin-top:14px" role="group" aria-label="Forma de pagamento">
+      <button class="on" data-modo="mes">Mensal</button>
+      <button data-modo="ano">Anual <span class="eco">2 meses grátis</span></button>
     </div>
+
+  <div class="tabela">
+    <!-- FREE -->
+    <section class="col">
+      <h2>Free</h2>
+      <p class="pra">Pra quem quer sair do caderno e do WhatsApp espalhado.</p>
+      <div class="preco"><b>€ 0</b></div>
+      <div class="ano"></div>
+      <a class="cta" href="../../londres/" target="_blank" rel="noopener">Começar grátis</a>
+      <div class="sec">Taxa por reserva</div>
+      <div class="taxa"><i></i>4% sobre a reserva paga com cartão no app</div>
+      <div class="sec">Recursos</div>
+      <ul>
+        <li><i></i><span><span class="menu">Meus passeios</span>: até 5 na vitrine</span></li>
+        <li><i></i><span><span class="menu">Reservas</span> com data, horário e vagas</span></li>
+        <li><i></i><span><span class="menu">Hoje</span> e <span class="menu">Agenda</span><small>quem vai, a que horas, quem já pagou</small></span></li>
+        <li><i></i><span><span class="menu">Clientes</span>: a ficha de cada um</span></li>
+        <li><i></i><span><span class="menu">Avaliações</span> dos seus clientes</span></li>
+        <li><i></i><span>Pagamento por cartão no app</span></li>
+        <li><i></i><span>App no celular, pronto pra instalar</span></li>
+        <li><i></i><span>Endereço rotta.guide/seu-nome, com o selo Rotta</span></li>
+      </ul>
+    </section>
+
+    <!-- STANDARD -->
+    <section class="col pop">
+      <div class="selo">⚡ O mais escolhido</div>
+      <h2>Standard</h2>
+      <p class="pra">Pra guia que vive de passeio e quer tudo organizado num lugar só.</p>
+      <div class="preco" data-mes="25" data-ano="250"><b>€ 25</b><span>/mês</span></div>
+      <div class="ano"></div>
+      <a class="cta" href="../../londres/" target="_blank" rel="noopener">Experimentar grátis</a>
+      <div class="sec">Taxa por reserva</div>
+      <div class="taxa"><i></i>Sem taxa: a reserva é toda sua</div>
+      <div class="sec">Tudo do Free, mais</div>
+      <ul>
+        <li><i></i><span><span class="menu">Meus passeios</span> ilimitados</span></li>
+        <li><i></i><span>Cartão, <b>Pix</b> e dinheiro</span></li>
+        <li><i></i><span><span class="menu">Financeiro</span>, <span class="menu">Extrato</span> e <span class="menu">Relatórios</span><small>euro e real separados, arquivo pro contador</small></span></li>
+        <li><i></i><span><span class="menu">Tarefas</span> e lembretes de véspera</span></li>
+        <li><i></i><span><span class="menu">Agências</span> e <span class="menu">E-mails</span><small>pedidos das agências num lugar só</small></span></li>
+        <li><i></i><span><span class="menu">Transfer</span> e <span class="menu">Pontos turísticos</span></span></li>
+        <li><i></i><span><span class="menu">Cupons e brindes</span> e vale-presente</span></li>
+        <li><i></i><span><span class="menu">Aparência</span>: suas cores, fotos e logo</span></li>
+        <li><i></i><span>Vitrine em vários idiomas</span></li>
+        <li><i></i><span>Domínio próprio, sem o selo Rotta</span></li>
+      </ul>
+    </section>
+
+    <!-- PRO -->
+    <section class="col">
+      <h2>Pro</h2>
+      <p class="pra">Pra quem quer um assistente que faz o trabalho chato por você.</p>
+      <div class="preco" data-mes="39" data-ano="390"><b>€ 39</b><span>/mês</span></div>
+      <div class="ano"></div>
+      <a class="cta" href="../../londres/" target="_blank" rel="noopener">Experimentar grátis</a>
+      <div class="sec">Taxa por reserva</div>
+      <div class="taxa"><i></i>Sem taxa: a reserva é toda sua</div>
+      <div class="sec">Tudo do Standard, mais</div>
+      <ul>
+        <li><i></i><span><b>Assistente de IA</b> em todas as abas<small>você fala ou escreve: "muda o preço", "quem não pagou?", e ele faz</small></span></li>
+        <li><i></i><span>300 créditos de IA por mês<small>renovam todo dia 1º · pacote extra de +150 por € 5</small></span></li>
+        <li><i></i><span>Relatório do mês pronto, escrito pelo assistente</span></li>
+        <li><i></i><span>Ditado por voz: fala em vez de digitar</span></li>
+        <li><i></i><span>Suporte com prioridade</span></li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="extras">
+    <div><h3>🔒 Atendimento automático</h3><p><span class="menu">Atendimento</span>: robô que responde no WhatsApp e no Instagram com os seus passeios e vagas.</p><div class="v">Extra · implantado pela Ti Artes</div></div>
+    <div><h3>🔒 Agente de marketing</h3><p><span class="menu">Marketing</span>: posts, stories e anúncios prontos a partir dos seus passeios.</p><div class="v">Extra · implantado pela Ti Artes</div></div>
+    <div><h3>🧰 Montagem pelo estúdio</h3><p>Prefere não cadastrar sozinho? A gente monta os seus passeios e deixa tudo no ar.</p><div class="v">€ 129 uma vez</div></div>
+  </div>
+
+
     <div class="links">
-      <a class="dest" href="../planos/">Ver a tabela completa</a>
       <a href="rotta-planos-pt.pdf" target="_blank" rel="noopener">PDF português</a>
       <a href="rotta-planos-fr.pdf" target="_blank" rel="noopener">PDF français</a>
       <a href="rotta-planos-en.pdf" target="_blank" rel="noopener">PDF English</a>
@@ -220,7 +330,7 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
   <section class="fim" id="conversar">
     <h2>Vamos conversar 20 minutos?</h2>
     <p>Responda a mensagem ou o e-mail que recebeu e marcamos uma videochamada no horário da associação. Mostramos o app ao vivo e tiramos as dúvidas da diretoria.</p>
-    <a class="btn pri" href="../planos/">Enquanto isso, veja os planos</a>
+    <a class="btn pri" href="#planos">Ver os planos de novo</a>
   </section>
 
   <p class="rodape">Rotta por Studio Ti Artes · Eugênio e Igor</p>
@@ -233,6 +343,22 @@ caixa.onclick = () => {
   if (caixa.dataset.on) return; caixa.dataset.on = '1';
   caixa.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${YOUTUBE}?autoplay=1&rel=0&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="Review do app"></iframe>`;
 };
+const fmt = v => '€ ' + (Number.isInteger(v) ? v : v.toFixed(2).replace('.', ','));
+function modo(m) {
+  document.querySelectorAll('.troca button').forEach(b => b.classList.toggle('on', b.dataset.modo === m));
+  document.querySelectorAll('.preco[data-mes]').forEach(p => {
+    const mes = +p.dataset.mes, ano = +p.dataset.ano, caixa = p.nextElementSibling;
+    if (m === 'ano') {
+      p.innerHTML = `<b>${fmt(Math.round(ano / 12 * 100) / 100)}</b><span>/mês</span><s>${fmt(mes)}/mês</s>`;
+      caixa.textContent = `${fmt(ano)} por ano · 2 meses grátis`;
+    } else {
+      p.innerHTML = `<b>${fmt(mes)}</b><span>/mês</span>`;
+      caixa.textContent = `ou ${fmt(ano)}/ano · 2 meses grátis`;
+    }
+  });
+}
+document.querySelectorAll('.troca button').forEach(b => b.onclick = () => modo(b.dataset.modo));
+modo('mes');
 </script>
 </body>
 </html>
