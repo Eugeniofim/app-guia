@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#13201E">
+<title>Rotta · protótipo</title>
+<meta name="description" content="Protótipo navegável da Rotta: crie o app de reservas do guia em poucos minutos, com 7 dias grátis.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+<style>
+/* =====================================================
+   ROTTA — protótipo do cadastro por assinatura (15/10/2026)
+   Uma página só, sem servidor: nada do que a pessoa digita sai do aparelho.
+   Telas: início → conta → monta (conversa) → pronto → planos → assinado
+   ===================================================== */
+:root{
+  --ink:#13201E; --teal:#2F7A6F; --teal-2:#25645B; --tint:#E8F2EF; --line:#D5E0DD;
+  --muted:#5A6B68; --paper:#FFFFFF; --bg:#F5F8F7; --warn:#B4632A;
+  --cor:#2F7A6F; /* cor que a guia escolhe para o app dela */
+  --r:16px; --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Avenir Next","Nunito Sans",system-ui,-apple-system,sans-serif;
+  font-size:16px;line-height:1.45;min-height:100dvh;display:flex;justify-content:center}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+.app{width:100%;max-width:460px;min-height:100dvh;background:var(--paper);display:flex;flex-direction:column;position:relative;
+  box-shadow:0 0 0 1px var(--line)}
+@media (min-width:600px){body{padding:24px 0}.app{min-height:calc(100dvh - 48px);border-radius:28px;overflow:hidden}}
+
+/* faixa de protótipo */
+.proto{background:var(--ink);color:#C9D6D3;font-size:12px;text-align:center;padding:7px 16px;letter-spacing:.02em}
+.proto b{color:#fff;font-weight:700}
+
+/* topo */
+.top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px}
+.marca{display:flex;align-items:center;gap:8px}
+.marca .w{font-weight:800;font-size:22px;letter-spacing:-.02em;line-height:1}
+.marca .por{font-size:11px;color:var(--muted);letter-spacing:.04em;margin-top:2px}
+.voltar{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);padding:8px 10px;border-radius:999px}
+.voltar:hover{background:var(--tint)}
+.passos{display:flex;gap:5px}
+.passos i{width:22px;height:4px;border-radius:4px;background:var(--line);display:block;transition:background .3s}
+.passos i.on{background:var(--teal)}
+
+.tela{display:none;flex:1;flex-direction:column;padding:6px 20px 24px;animation:entra .45s var(--ease)}
+.tela.ativa{display:flex}
+@keyframes entra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* tipografia */
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);font-weight:700}
+h1{font-size:34px;line-height:1.06;letter-spacing:-.025em;font-weight:800;margin-top:8px;text-wrap:balance}
+h2{font-size:24px;line-height:1.15;letter-spacing:-.02em;font-weight:800;text-wrap:balance}
+.lede{color:var(--muted);margin-top:12px;font-size:16.5px}
+.peq{font-size:13px;color:var(--muted)}
+
+/* botões */
+.btn{text-decoration:none;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:54px;border-radius:14px;
+  font-weight:700;font-size:16.5px;transition:transform .12s,background .2s}
+.btn:active{transform:scale(.98)}
+.btn.pri{background:var(--teal);color:#fff}
+.btn.pri:hover{background:var(--teal-2)}
+.btn.esc{background:var(--ink);color:#fff}
+.btn.sec{background:var(--paper);border:1.5px solid var(--line)}
+.btn.sec:hover{border-color:var(--teal)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.base{margin-top:auto;padding-top:18px;display:flex;flex-direction:column;gap:10px}
+
+/* INÍCIO */
+.hero-fone{margin:22px auto 0;width:220px;border-radius:34px;background:var(--ink);padding:9px;box-shadow:0 30px 60px -20px rgba(19,32,30,.45);transform:rotate(-2deg)}
+.hero-fone .tela-f{border-radius:26px;overflow:hidden;background:#fff}
+.mini-capa{height:120px;background:url(fotos/londres.jpg) center/cover;position:relative}
+.mini-capa::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.55))}
+.mini-capa span{position:absolute;left:12px;bottom:10px;color:#fff;font-weight:800;font-size:15px;z-index:1}
+.mini-card{margin:10px;border:1px solid var(--line);border-radius:12px;padding:10px;font-size:11px}
+.mini-card b{display:block;font-size:12px}
+.mini-card .lin{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.mini-card .res{background:var(--teal);color:#fff;border-radius:8px;padding:4px 8px;font-weight:700;font-size:10px}
+.selos{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.selo{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--muted);background:var(--paper)}
+.selo b{color:var(--ink)}
+.fund{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:4px}
+.fund b{background:var(--ink);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px}
+
+/* CONTA */
+.google{display:flex;align-items:center;justify-content:center;gap:10px}
+.ou{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:18px 0}
+.ou::before,.ou::after{content:"";flex:1;height:1px;background:var(--line)}
+.campo{display:block;margin-bottom:14px}
+.campo span{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+.campo input{width:100%;min-height:52px;border:1.5px solid var(--line);border-radius:12px;padding:0 14px;font-size:16px;background:#fff;outline:none;transition:border-color .2s}
+.campo input:focus{border-color:var(--teal)}
+.campo em{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:5px}
+.aviso{background:var(--tint);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--teal-2);display:flex;gap:10px;align-items:flex-start}
+
+/* MONTA — conversa */
+.chat{flex:1;display:flex;flex-direction:column;gap:10px;padding-bottom:12px;overflow-y:auto}
+.bolha{max-width:86%;padding:11px 14px;border-radius:18px;font-size:15.5px;animation:entra .35s var(--ease)}
+.bolha.r{background:var(--tint);border-bottom-left-radius:6px;align-self:flex-start}
+.bolha.g{background:var(--ink);color:#fff;border-bottom-right-radius:6px;align-self:flex-end}
+.bolha.g img{display:block;width:180px;border-radius:12px}
+.quem{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:700;margin-top:4px}
+.quem i{width:22px;height:22px;border-radius:50%;background:var(--teal);display:grid;place-items:center;color:#fff;font-style:normal;font-size:11px}
+.digitando{display:flex;gap:4px;padding:14px 16px}
+.digitando i{width:7px;height:7px;border-radius:50%;background:var(--teal);opacity:.4;animation:pisca 1s infinite}
+.digitando i:nth-child(2){animation-delay:.15s}.digitando i:nth-child(3){animation-delay:.3s}
+@keyframes pisca{50%{opacity:1}}
+.resposta{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);border-radius:999px;padding:9px 14px;font-size:14.5px;font-weight:600;background:#fff;transition:border-color .15s,background .15s}
+.chip:hover{border-color:var(--teal)}
+.linha{display:flex;gap:8px}
+.linha input{flex:1;min-height:50px;border:1.5px solid var(--line);border-radius:12px;padding:0 14px;font-size:16px;outline:none}
+.linha input:focus{border-color:var(--teal)}
+.enviar{width:50px;min-height:50px;border-radius:12px;background:var(--teal);color:#fff;display:grid;place-items:center;flex:none}
+.cores{display:flex;gap:12px}
+.cor{width:44px;height:44px;border-radius:50%;box-shadow:inset 0 0 0 3px rgba(255,255,255,.6),0 0 0 1px var(--line)}
+.montando{list-style:none;display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+.montando li{display:flex;align-items:center;gap:10px;color:var(--muted);transition:color .3s}
+.montando li i{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:11px;flex:none;transition:all .3s}
+.montando li.ok{color:var(--ink)}
+.montando li.ok i{background:var(--teal);border-color:var(--teal);color:#fff}
+
+/* PRONTO */
+.teste{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--ink);color:#fff;border-radius:14px;padding:12px 14px;font-size:14px}
+.teste b{font-size:15px}
+.teste .dias{display:flex;gap:3px}
+.teste .dias i{width:8px;height:18px;border-radius:3px;background:#6F8783}
+.teste .dias i.on{background:#7FD1C1}
+.fone{margin:18px auto 0;width:260px;border-radius:38px;background:var(--ink);padding:10px;box-shadow:0 30px 60px -24px rgba(19,32,30,.5)}
+.fone .scr{border-radius:29px;overflow:hidden;background:#fff;min-height:430px}
+.v-capa{height:150px;background:var(--cor) center/cover;position:relative}
+.v-capa::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 20%,rgba(0,0,0,.6))}
+.v-capa .t{position:absolute;left:14px;right:14px;bottom:12px;color:#fff;z-index:1}
+.v-capa .t b{display:block;font-size:19px;font-weight:800;line-height:1.1}
+.v-capa .t span{font-size:11.5px;opacity:.9}
+.v-ab{display:flex;gap:6px;padding:10px 12px 0;font-size:11px;font-weight:700}
+.v-ab span{white-space:nowrap;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.v-ab span.on{background:var(--cor);border-color:var(--cor);color:#fff}
+.v-card{margin:10px 12px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.v-card .f{height:110px;background:var(--cor) center/cover}
+.v-card .c{padding:10px 12px}
+.v-card .c b{display:block;font-size:14px;line-height:1.2}
+.v-card .c small{color:var(--muted);font-size:11px}
+.v-card .lin{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.v-card .preco{font-weight:800;font-size:15px}
+.v-card .preco small{font-weight:600}
+.v-card .res{background:var(--cor);color:#fff;border-radius:9px;padding:7px 11px;font-weight:800;font-size:11.5px}
+.v-link{text-align:center;font-size:12.5px;color:var(--muted);margin-top:12px}
+.v-link b{color:var(--ink)}
+.camadas{margin-top:22px}
+.camadas h3{font-size:15px;font-weight:800;margin-bottom:10px}
+.grade{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mod{border:1.5px solid var(--line);border-radius:14px;padding:12px;font-size:13.5px;font-weight:700;display:flex;flex-direction:column;gap:4px;text-align:left;background:#fff}
+.mod small{font-weight:600;font-size:11.5px;color:var(--muted)}
+.mod .ic{font-size:18px}
+.mod.pro{border-color:var(--teal);background:var(--tint)}
+.mod.tranca{background:repeating-linear-gradient(-45deg,#fff,#fff 8px,#F3F6F5 8px,#F3F6F5 16px);color:var(--muted)}
+.mod.tranca .ic{filter:grayscale(1)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;border-radius:999px;padding:2px 7px;align-self:flex-start}
+.tag.t-pro{background:var(--teal);color:#fff}
+.tag.t-ext{background:var(--ink);color:#fff}
+
+/* PLANOS */
+.plano{border:1.5px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;margin-top:14px;text-align:left;transition:border-color .2s,box-shadow .2s;background:#fff;width:100%}
+.plano.sel{border-color:var(--teal);box-shadow:0 0 0 3px rgba(47,122,111,.18)}
+.plano.pro{background:var(--tint)}
+.plano .ph{display:flex;justify-content:space-between;align-items:center}
+.plano .ph b{font-size:19px;font-weight:800}
+.plano .preco{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.plano .preco small{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:0}
+.plano ul{list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14.5px}
+.plano li{padding-left:22px;position:relative}
+.plano li::before{content:"";position:absolute;left:2px;top:6px;width:10px;height:10px;border-radius:50%;border:2px solid var(--teal)}
+.plano.pro li::before{background:var(--teal)}
+.extra{display:flex;gap:12px;align-items:flex-start;border-top:1px solid var(--line);padding:14px 0}
+.extra:first-of-type{border-top:0}
+.extra .ic{width:38px;height:38px;border-radius:12px;background:var(--tint);display:grid;place-items:center;font-size:18px;flex:none}
+.extra b{display:block;font-size:15px}
+.extra p{font-size:13px;color:var(--muted)}
+.extra .v{font-size:13px;color:var(--teal);font-weight:800;margin-top:3px}
+.extra button{margin-top:8px;font-size:13px;font-weight:800;color:var(--teal);border:1.5px solid var(--teal);border-radius:999px;padding:6px 12px}
+.bloco{border:1.5px solid var(--line);border-radius:18px;padding:4px 16px;margin-top:22px}
+.bloco-t{font-size:15px;font-weight:800;margin-top:26px}
+
+/* ASSINADO */
+.ok-ic{width:76px;height:76px;border-radius:50%;background:var(--tint);display:grid;place-items:center;margin:30px auto 18px}
+.centro{text-align:center}
+
+/* aviso flutuante */
+.toast{position:fixed;left:0;right:0;margin:0 auto;width:fit-content;bottom:24px;transform:translateY(30px);opacity:0;background:var(--ink);color:#fff;font-size:14px;
+  padding:12px 16px;border-radius:14px;max-width:min(420px,calc(100% - 32px));transition:all .3s var(--ease);pointer-events:none;z-index:9}
+.toast.on{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="proto"><b>Protótipo da Rotta</b> · nada do que você digitar sai deste aparelho</div>
+  <header class="top">
+    <div class="marca" id="marca">
+      <svg width="34" height="22" viewBox="0 0 34 22" aria-hidden="true"><path d="M4 17 C 10 17, 10 5, 17 5 S 24 17, 30 9" fill="none" stroke="#2F7A6F" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 4.2"/><circle cx="4" cy="17" r="3" fill="#13201E"/><circle cx="30" cy="9" r="3.4" fill="#2F7A6F"/></svg>
+      <div><div class="w">rotta</div><div class="por">por Ti Artes</div></div>
+    </div>
+    <button class="voltar" id="voltar" hidden aria-label="Voltar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Voltar</button>
+    <div class="passos" id="passos" hidden><i></i><i></i><i></i><i></i></div>
+  </header>
+
+  <!-- 1. INÍCIO -->
+  <section class="tela ativa" data-t="inicio">
+    <div class="eyebrow">Para guias que recebem reserva por WhatsApp e DM</div>
+    <h1>Seu app de reservas, com o seu nome.</h1>
+    <p class="lede">Vitrine dos passeios, reserva com data e vagas, Pix e cartão europeu, e um painel que mostra tudo. Pronto no celular em 5 minutos.</p>
+    <div class="hero-fone" aria-hidden="true"><div class="tela-f">
+      <div class="mini-capa"><span>Londres com a Bia</span></div>
+      <div class="mini-card"><b>Londres Clássica</b>Big Ben, Abadia e Buckingham<div class="lin"><span>£ 50 / pessoa</span><span class="res">Reservar</span></div></div>
+      <div class="mini-card"><b>City e Tower Bridge</b>3h a pé, em português<div class="lin"><span>£ 45 / pessoa</span><span class="res">Reservar</span></div></div>
+    </div></div>
+    <div class="selos">
+      <span class="selo"><b>7 dias grátis</b>, sem cartão</span>
+      <span class="selo">Cancela quando quiser</span>
+      <span class="selo">Os dados são seus</span>
+    </div>
+    <div class="base">
+      <button class="btn pri" data-ir="conta">Criar meu app grátis</button>
+      <div class="fund"><b>Preço de fundador</b> quem entra agora mantém o valor</div>
+      <button class="btn sec" data-ir="planos" data-de="inicio">Ver planos e preços</button>
+    </div>
+  </section>
+
+  <!-- 2. CONTA -->
+  <section class="tela" data-t="conta">
+    <h2>Crie sua conta</h2>
+    <p class="lede" style="margin-top:6px">Leva menos de um minuto. No sétimo dia você escolhe o plano.</p>
+    <button class="btn sec google" style="margin-top:22px" id="google">
+      <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+      Continuar com o Google</button>
+    <div class="ou">ou com e-mail</div>
+    <label class="campo"><span>Seu nome</span><input id="f-nome" autocomplete="given-name" placeholder="Ex.: Ana"></label>
+    <label class="campo"><span>E-mail</span><input id="f-email" type="email" autocomplete="email" placeholder="voce@exemplo.com"></label>
+    <label class="campo"><span>Código da associação <span class="peq" style="font-weight:600">(opcional)</span></span><input id="f-cod" placeholder="Ex.: APIT-26" autocapitalize="characters"><em>Veio por uma associação ou por indicação? O código fica ligado à sua conta.</em></label>
+    <div class="aviso"><span aria-hidden="true">🔒</span><span>No protótipo nada é enviado. No app de verdade, você recebe um e-mail para confirmar a conta.</span></div>
+    <div class="base"><button class="btn pri" id="criar" disabled>Criar conta e começar</button></div>
+  </section>
+
+  <!-- 3. MONTA (conversa) -->
+  <section class="tela" data-t="monta">
+    <div class="chat" id="chat" aria-live="polite"></div>
+    <div class="resposta" id="resposta"></div>
+  </section>
+
+  <!-- 4. PRONTO -->
+  <section class="tela" data-t="pronto">
+    <div class="teste"><div><b>Teste grátis</b><br><span id="dias-txt">7 dias restantes</span></div><div class="dias" id="dias"></div></div>
+    <h2 style="margin-top:20px" id="pronto-tit">Seu app está no ar</h2>
+    <p class="peq" style="margin-top:4px">Assim o seu cliente vê a sua vitrine.</p>
+    <div class="fone"><div class="scr" id="vitrine"></div></div>
+    <div class="v-link" id="v-link"></div>
+
+    <div class="camadas">
+      <h3>O seu painel</h3>
+      <div class="grade" id="grade"></div>
+    </div>
+    <div class="base">
+      <a class="btn esc" href="../../londres/#/adm/today" target="_blank" rel="noopener">Ver um painel completo por dentro ↗</a>
+      <button class="btn pri" data-ir="planos" data-de="pronto">Escolher meu plano</button>
+    </div>
+  </section>
+
+  <!-- 5. PLANOS -->
+  <section class="tela" data-t="planos">
+    <div class="fund" style="margin-top:0"><b>Preço de fundador</b> o valor fica enquanto a assinatura estiver ativa</div>
+    <h2 style="margin-top:12px">Escolha o seu plano</h2>
+    <button class="plano" data-plano="basico">
+      <div class="ph"><b>Básico</b></div>
+      <div class="preco">€ 25<small> /mês</small></div>
+      <ul><li>Vitrine dos seus passeios, com o seu nome</li><li>Reserva com data, horário e vagas</li><li>Pix e cartão europeu</li><li>Agenda e painel do dinheiro</li><li>Páginas em vários idiomas</li></ul>
+    </button>
+    <button class="plano pro sel" data-plano="pro">
+      <div class="ph"><b>Pro</b><span class="tag t-pro">Com IA</span></div>
+      <div class="preco">€ 39<small> /mês</small></div>
+      <ul><li>Tudo do Básico</li><li>Assistente de IA: você fala, ele organiza o app</li><li>Franquia de IA incluída todo mês</li><li>Domínio próprio</li><li>Suporte com prioridade</li></ul>
+    </button>
+
+    <div class="bloco-t">Camadas extras</div>
+    <div class="bloco">
+      <div class="extra"><div class="ic">💬</div><div><b>Atendimento automático 🔒</b><p>Robô que responde no WhatsApp e no Instagram, com os seus passeios e as suas vagas.</p><div class="v">Implantado pela Ti Artes · sob consulta</div><button data-extra="atendimento">Quero este</button></div></div>
+      <div class="extra"><div class="ic">📣</div><div><b>Agente de marketing 🔒</b><p>Posts, stories e anúncios prontos a partir dos seus passeios.</p><div class="v">Implantado pela Ti Artes · sob consulta</div><button data-extra="marketing">Quero este</button></div></div>
+      <div class="extra"><div class="ic">🧰</div><div><b>Montagem pelo estúdio</b><p>Prefere não cadastrar sozinho? A gente monta os seus passeios e deixa tudo no ar.</p><div class="v">€ 129 uma vez</div></div></div>
+      <div class="extra"><div class="ic">⚡</div><div><b>Saldo de IA</b><p>Se a franquia do mês acabar, compre um pacote ou espere o dia 1º. O resto do app segue normal.</p><div class="v">Pacote de € 5</div></div></div>
+    </div>
+    <div class="base">
+      <button class="btn pri" id="assinar">Assinar o Pro</button>
+      <p class="peq" style="text-align:center">Sem multa. Cancela quando quiser.</p>
+    </div>
+  </section>
+
+  <!-- 6. ASSINADO -->
+  <section class="tela" data-t="assinado">
+    <div class="ok-ic"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#2F7A6F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <div class="centro">
+      <h2 id="ass-tit">Pronto!</h2>
+      <p class="lede" id="ass-txt"></p>
+    </div>
+    <div class="aviso" style="margin-top:22px"><span aria-hidden="true">💳</span><span>Esta é a etapa de pagamento. No protótipo nada é cobrado. No app de verdade aqui entra o cartão, com cobrança mensal automática.</span></div>
+    <div class="base">
+      <button class="btn sec" id="recomecar">Recomeçar o protótipo</button>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict';
+/* ---------- estado (fica só neste aparelho) ---------- */
+const CHAVE = 'rotta_proto_v1';
+let S = { nome:'', email:'', cod:'', cidade:'', passeio:'', preco:'', moeda:'€', foto:'', cor:'#2F7A6F', plano:'pro' };
+try { Object.assign(S, JSON.parse(localStorage.getItem(CHAVE) || '{}')); } catch (e) {}
+const salva = () => { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch (e) {} };
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const espera = ms => new Promise(r => setTimeout(r, ms));
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('on'), 3200); }
+
+/* ---------- navegação entre telas ---------- */
+const ORDEM = ['inicio', 'conta', 'monta', 'pronto', 'planos', 'assinado'];
+const PASSO = { conta: 1, monta: 2, pronto: 3, planos: 4 };
+let historico = ['inicio'];
+function ir(t, empilha = true) {
+  $$('.tela').forEach(s => s.classList.toggle('ativa', s.dataset.t === t));
+  if (empilha && historico[historico.length - 1] !== t) historico.push(t);
+  const p = PASSO[t] || 0;
+  $('#passos').hidden = !p; $('#voltar').hidden = t === 'inicio' || t === 'assinado';
+  $('#marca').hidden = t !== 'inicio' && t !== 'assinado';
+  $$('#passos i').forEach((i, k) => i.classList.toggle('on', k < p));
+  window.scrollTo(0, 0);
+  if (t === 'monta') comecaConversa();
+  if (t === 'pronto') desenhaPronto();
+}
+$('#voltar').onclick = () => { if (historico.length > 1) { historico.pop(); ir(historico[historico.length - 1], false); } };
+$$('[data-ir]').forEach(b => b.onclick = () => ir(b.dataset.ir));
+
+/* ---------- conta ---------- */
+const fN = $('#f-nome'), fE = $('#f-email'), fC = $('#f-cod');
+fN.value = S.nome; fE.value = S.email; fC.value = S.cod;
+const confere = () => { $('#criar').disabled = !(fN.value.trim() && /\S+@\S+\.\S+/.test(fE.value)); };
+[fN, fE].forEach(i => i.oninput = confere); confere();
+$('#criar').onclick = () => { S.nome = fN.value.trim().split(' ')[0]; S.email = fE.value.trim(); S.cod = fC.value.trim().toUpperCase(); salva(); ir('monta'); };
+$('#google').onclick = () => { if (!fN.value.trim()) fN.value = 'Ana'; if (!fE.value.trim()) fE.value = 'ana@exemplo.com'; confere(); toast('No protótipo o Google é simulado: preenchemos um exemplo.'); setTimeout(() => $('#criar').click(), 1200); };
+
+/* ---------- a conversa que monta o app ---------- */
+const chat = $('#chat'), resp = $('#resposta');
+const CIDADES = [['Londres','£'],['Paris','€'],['Roma','€'],['Lisboa','€'],['Madri','€'],['Barcelona','€'],['Berlim','€'],['Amsterdã','€'],['Praga','Kč'],['Zurique','CHF']];
+const SUGESTOES = { Londres:['Londres Clássica','City e Tower Bridge','Harry Potter a pé'], Paris:['Paris Essencial','Montmartre a pé','Louvre em português'],
+  Roma:['Roma Antiga','Vaticano sem fila','Trastevere à noite'], Lisboa:['Lisboa Histórica','Sintra e Cascais','Alfama a pé'] };
+const SUG_PADRAO = ['City tour a pé','Centro histórico','Bate-volta de um dia'];
+const CORES = ['#2F7A6F', '#1F4E8C', '#8C2F5C', '#B4632A', '#13201E'];
+
+function bolha(html, de = 'r') {
+  const d = document.createElement('div'); d.className = 'bolha ' + de; d.innerHTML = html; chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight; d.scrollIntoView({ block: 'end', behavior: 'smooth' }); return d;
+}
+async function fala(html) {
+  const t = bolha('<div class="digitando"><i></i><i></i><i></i></div>'); t.style.padding = '0';
+  await espera(650); t.style.padding = ''; t.innerHTML = html; t.scrollIntoView({ block: 'end', behavior: 'smooth' });
+}
+function pergunta(montar) { resp.innerHTML = ''; return new Promise(ok => montar(resp, v => { resp.innerHTML = ''; ok(v); })); }
+function chips(lista, extraTexto, placeholder) {
+  return pergunta((el, pronto) => {
+    const c = document.createElement('div'); c.className = 'chips';
+    lista.forEach(x => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = x; b.onclick = () => pronto(x); c.appendChild(b); });
+    el.appendChild(c);
+    if (extraTexto) el.appendChild(campoTexto(placeholder, pronto));
+  });
+}
+function campoTexto(ph, pronto, tipo = 'text') {
+  const l = document.createElement('form'); l.className = 'linha';
+  l.innerHTML = `<input type="${tipo}" placeholder="${esc(ph)}" ${tipo === 'number' ? 'inputmode="decimal" min="1"' : ''} aria-label="${esc(ph)}"><button class="enviar" aria-label="Enviar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`;
+  l.onsubmit = e => { e.preventDefault(); const v = l.querySelector('input').value.trim(); if (v) pronto(v); };
+  return l;
+}
+function texto(ph, tipo) { return pergunta((el, pronto) => { el.appendChild(campoTexto(ph, pronto, tipo)); el.querySelector('input').focus({ preventScroll: true }); }); }
+
+let conversando = false;
+async function comecaConversa() {
+  if (conversando) return; conversando = true;
+  chat.innerHTML = ''; resp.innerHTML = '';
+  const q = document.createElement('div'); q.className = 'quem'; q.innerHTML = '<i>R</i>Assistente da Rotta'; chat.appendChild(q);
+
+  await fala(`Oi, ${esc(S.nome || 'tudo bem')}! Vou montar o seu app com você em 5 perguntas. 🙂`);
+  await fala('Em que cidade você trabalha como guia?');
+  const cid = await chips(CIDADES.map(c => c[0]), true, 'Outra cidade…');
+  S.cidade = cid; S.moeda = (CIDADES.find(c => c[0] === cid) || [0, '€'])[1]; bolha(esc(cid), 'g');
+
+  await fala(`${esc(cid)}, que lindo! Qual é o passeio que você mais vende?`);
+  const pas = await chips(SUGESTOES[cid] || SUG_PADRAO, true, 'Nome do passeio…');
+  S.passeio = pas; bolha(esc(pas), 'g');
+
+  await fala(`Quanto custa o "${esc(pas)}" por pessoa, em ${esc(S.moeda)}?`);
+  const pr = await texto('Ex.: 45', 'number');
+  S.preco = String(Math.round(parseFloat(pr.replace(',', '.')) || 45)); bolha(`${esc(S.moeda)} ${esc(S.preco)} por pessoa`, 'g');
+
+  await fala('Agora uma foto do passeio. Pode ser do seu celular.');
+  const foto = await pergunta((el, pronto) => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.hidden = true;
+    inp.onchange = () => { const f = inp.files[0]; if (!f) return; reduz(f).then(pronto); };
+    const b1 = document.createElement('button'); b1.className = 'btn pri'; b1.textContent = 'Escolher foto'; b1.onclick = () => inp.click();
+    const b2 = document.createElement('button'); b2.className = 'btn sec';
+    if (S.cidade === 'Londres') { b2.textContent = 'Usar uma foto de exemplo'; b2.onclick = () => pronto('fotos/londres.jpg'); }
+    else { b2.textContent = 'Pular, ponho a foto depois'; b2.onclick = () => pronto(''); }
+    el.append(inp, b1, b2);
+  });
+  S.foto = foto; bolha(foto ? `<img src="${esc(foto)}" alt="Foto do passeio">` : 'Ponho depois', 'g');
+
+  await fala('Última: qual cor tem a sua cara?');
+  const cor = await pergunta((el, pronto) => {
+    const c = document.createElement('div'); c.className = 'cores';
+    CORES.forEach(x => { const b = document.createElement('button'); b.className = 'cor'; b.style.background = x; b.setAttribute('aria-label', 'Cor ' + x); b.onclick = () => pronto(x); c.appendChild(b); });
+    el.appendChild(c);
+  });
+  S.cor = cor; bolha(`<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${cor};vertical-align:-3px;margin-right:6px"></span>Essa!`, 'g');
+  salva();
+
+  await fala('Perfeito. Montando o seu app…');
+  const ul = document.createElement('ul'); ul.className = 'montando';
+  ['Vitrine com o seu nome', 'Reserva com data e vagas', 'Pix e cartão europeu', 'Painel e agenda', 'Páginas em português, inglês e espanhol']
+    .forEach(t => { const li = document.createElement('li'); li.innerHTML = `<i>✓</i>${t}`; ul.appendChild(li); });
+  bolha('').appendChild(ul);
+  for (const li of ul.children) { await espera(480); li.classList.add('ok'); }
+  await espera(500);
+  conversando = false; ir('pronto');
+}
+function reduz(f) {
+  return new Promise(ok => {
+    const r = new FileReader(); r.onload = () => {
+      const im = new Image(); im.onload = () => {
+        const k = Math.min(1, 900 / Math.max(im.width, im.height)); const c = document.createElement('canvas');
+        c.width = im.width * k; c.height = im.height * k; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        ok(c.toDataURL('image/jpeg', .78));
+      }; im.src = r.result;
+    }; r.readAsDataURL(f);
+  });
+}
+
+/* ---------- o app pronto ---------- */
+const slug = t => (t || 'guia').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+function desenhaPronto() {
+  document.documentElement.style.setProperty('--cor', S.cor);
+  const nome = S.nome || 'Ana', cid = S.cidade || 'Londres';
+  $('#pronto-tit').textContent = `${nome}, o seu app está no ar`;
+  $('#dias').innerHTML = Array.from({ length: 7 }, () => '<i class="on"></i>').join('');
+  const foto = S.foto || (S.cidade === 'Londres' ? 'fotos/londres.jpg' : '');
+  const fundo = foto ? `background-image:url('${esc(foto)}')` : 'background-image:linear-gradient(135deg,rgba(255,255,255,.18),rgba(0,0,0,.25))';
+  $('#vitrine').innerHTML = `
+    <div class="v-capa" style="${fundo}"><div class="t"><b>${esc(cid)} com ${esc(nome)}</b><span>Passeios em português · ${esc(cid)}</span></div></div>
+    <div class="v-ab"><span class="on">Passeios</span><span>Sobre</span><span>Contato</span></div>
+    <div class="v-card"><div class="f" style="${fundo}"></div>
+      <div class="c"><b>${esc(S.passeio || 'City tour a pé')}</b><small>${esc(cid)} · em português · grupo pequeno</small>
+      <div class="lin"><span class="preco">${esc(S.moeda)} ${esc(S.preco || '45')} <small>/pessoa</small></span><span class="res">Reservar</span></div></div></div>
+    <div class="v-card" style="opacity:.55"><div class="c"><b>+ Adicionar outro passeio</b><small>leva 1 minuto</small></div></div>`;
+  $('#v-link').innerHTML = `Seu link: <b>rotta.guide/${esc(slug(nome + '-' + cid))}</b>`;
+  const M = [
+    ['📅', 'Hoje e agenda', 'Básico', ''], ['🎟️', 'Reservas e vagas', 'Básico', ''],
+    ['💶', 'Financeiro', 'Pix e euro separados', ''], ['🌍', 'Idiomas', 'PT · EN · ES', ''],
+    ['✨', 'Assistente de IA', 'Plano Pro', 'pro'], ['🧾', 'Relatório do mês', 'Plano Pro', 'pro'],
+    ['💬', 'Atendimento automático', 'Extra · Ti Artes', 'tranca'], ['📣', 'Agente de marketing', 'Extra · Ti Artes', 'tranca'],
+  ];
+  $('#grade').innerHTML = M.map(([ic, t, s, k]) => `<button class="mod ${k}" data-k="${k}" data-t="${esc(t)}">
+    <span class="ic">${ic}</span>${esc(t)}<small>${k === 'tranca' ? '🔒 ' : ''}${esc(s)}</small>
+    ${k === 'pro' ? '<span class="tag t-pro">Pro</span>' : k === 'tranca' ? '<span class="tag t-ext">Extra</span>' : ''}</button>`).join('');
+  $$('#grade .mod').forEach(b => b.onclick = () => {
+    const k = b.dataset.k;
+    if (k === 'tranca') pedeExtra(b.dataset.t);
+    else if (k === 'pro') toast(`${b.dataset.t}: liberado no teste grátis. Depois, faz parte do plano Pro.`);
+    else toast(`${b.dataset.t}: incluído em todos os planos.`);
+  });
+}
+function pedeExtra(nome) { toast(`${nome} é uma camada extra. No app de verdade, este botão abre a conversa com a Ti Artes para implantar.`); }
+$$('[data-extra]').forEach(b => b.onclick = () => pedeExtra(b.dataset.extra === 'atendimento' ? 'Atendimento automático' : 'Agente de marketing'));
+
+/* ---------- planos ---------- */
+function marcaPlano(p) {
+  S.plano = p; salva();
+  $$('.plano').forEach(x => x.classList.toggle('sel', x.dataset.plano === p));
+  $('#assinar').textContent = p === 'pro' ? 'Assinar o Pro · € 39/mês' : 'Assinar o Básico · € 25/mês';
+}
+$$('.plano').forEach(b => b.onclick = () => marcaPlano(b.dataset.plano));
+marcaPlano(S.plano || 'pro');
+$('#assinar').onclick = () => {
+  const p = S.plano === 'pro' ? 'Pro' : 'Básico';
+  $('#ass-tit').textContent = `${S.nome || 'Pronto'}, plano ${p} ativado!`;
+  $('#ass-txt').textContent = S.cidade
+    ? `O app ${S.cidade} com ${S.nome} continua no ar. A primeira cobrança só acontece quando o teste de 7 dias terminar.`
+    : 'A primeira cobrança só acontece quando o teste de 7 dias terminar.';
+  ir('assinado');
+};
+ir('inicio', false);
+$('#recomecar').onclick = () => { try { localStorage.removeItem(CHAVE); } catch (e) {} location.reload(); };
+</script>
+</body>
+</html>
