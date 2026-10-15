@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#13201E">
+<title>Rotta · parceria com associações</title>
+<meta name="description" content="Rotta, o app de reservas e gestão para guias, em parceria com associações: preço de fundador para os associados e comissão mensal para a associação.">
+<meta property="og:title" content="Rotta · parceria com associações de guias">
+<meta property="og:description" content="Preço de fundador para os associados e comissão mensal para a associação. Veja o protótipo, o vídeo e os planos.">
+<meta property="og:image" content="https://guia.eugeniofim.com/rotta/capa-review-v.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,700;6..12,800&display=swap" rel="stylesheet">
+<style>
+/* Página para associações (15/10/2026): o que é, protótipo + vídeo, planos, o que a associação ganha, PDFs. */
+:root{--ink:#13201E;--teal:#2F7A6F;--teal-2:#25645B;--tint:#E8F2EF;--line:#D5E0DD;--muted:#5A6B68;--paper:#fff;--bg:#F5F8F7}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:"Avenir Next","Nunito Sans",system-ui,-apple-system,sans-serif;line-height:1.45;min-height:100dvh;display:flex;justify-content:center}
+.pag{width:100%;max-width:560px;padding:22px 18px 40px;display:flex;flex-direction:column;gap:22px}
+.marca{display:flex;align-items:center;gap:8px}
+.marca .w{font-weight:800;font-size:22px;letter-spacing:-.02em;line-height:1}
+.marca .por{font-size:11px;color:var(--muted);letter-spacing:.04em;margin-top:2px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);font-weight:800}
+h1{font-size:31px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin-top:6px;text-wrap:balance}
+h2{font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
+.lede{color:var(--muted);font-size:16.5px;margin-top:10px}
+.atalhos{display:flex;gap:8px;margin-top:16px}
+.at{flex:1;display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;font-weight:800;font-size:15px;text-decoration:none;text-align:center;padding:0 10px}
+.at.pri{background:var(--teal);color:#fff}
+.at.sec{background:var(--paper);color:var(--ink);border:1.5px solid var(--line)}
+.bloco{background:var(--paper);border:1.5px solid var(--line);border-radius:20px;padding:18px}
+.ganhos{list-style:none;display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.ganhos li{display:flex;gap:12px;align-items:flex-start}
+.ganhos .ic{width:38px;height:38px;border-radius:12px;background:var(--tint);display:grid;place-items:center;font-size:18px;flex:none}
+.ganhos b{display:block;font-size:15.5px}
+.ganhos span{font-size:14px;color:var(--muted)}
+.planos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+@media (max-width:420px){.planos{grid-template-columns:1fr}}
+.plano{border:1.5px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;background:#fff}
+.plano.pro{border-color:var(--teal);background:var(--tint)}
+.plano .ph{display:flex;justify-content:space-between;align-items:center}
+.plano .ph b{font-size:17px}
+.tag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;border-radius:999px;padding:2px 8px;background:var(--teal);color:#fff}
+.preco{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.preco small{font-size:13px;font-weight:700;color:var(--muted)}
+.plano ul{list-style:none;display:flex;flex-direction:column;gap:5px;font-size:13.5px}
+.plano li{padding-left:18px;position:relative}
+.plano li::before{content:"";position:absolute;left:1px;top:6px;width:8px;height:8px;border-radius:50%;border:2px solid var(--teal)}
+.plano.pro li::before{background:var(--teal)}
+.extras{font-size:13.5px;color:var(--muted);margin-top:12px;border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:6px}
+.extras b{color:var(--ink)}
+.fund{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:8px}
+.fund b{background:var(--ink);color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px}
+.passos{list-style:none;counter-reset:p;display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.passos li{counter-increment:p;display:flex;gap:12px;align-items:flex-start;font-size:15px}
+.passos li::before{content:counter(p);width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;font-weight:800;font-size:13px;display:grid;place-items:center;flex:none}
+.cartao{background:var(--paper);border:1.5px solid var(--line);border-radius:20px;overflow:hidden}
+.vbox{background:#13201E;display:flex;justify-content:center}
+.video{position:relative;aspect-ratio:9/16;height:min(70vh,560px);margin:0 auto;background:#000 url(../capa-review-v.jpg) center/cover;border:0;display:block;cursor:pointer}
+.video .play{position:absolute;left:50%;top:62%;width:70px;height:70px;margin:-35px 0 0 -35px;border-radius:50%;background:rgba(255,122,47,.95);display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.cartao .corpo{padding:14px 18px 18px}
+.cartao p{font-size:14.5px;color:var(--muted);margin-top:4px}
+.pdfs{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.pdf{flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-weight:800;font-size:14px;text-decoration:none}
+.fecho{background:var(--ink);color:#E6EFED;border-radius:18px;padding:18px;font-size:15px}
+.fecho b{color:#7FD1C1}
+.rodape{font-size:13px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<main class="pag">
+  <div class="marca">
+    <svg width="34" height="22" viewBox="0 0 34 22" aria-hidden="true"><path d="M4 17 C 10 17, 10 5, 17 5 S 24 17, 30 9" fill="none" stroke="#2F7A6F" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 4.2"/><circle cx="4" cy="17" r="3" fill="#13201E"/><circle cx="30" cy="9" r="3.4" fill="#2F7A6F"/></svg>
+    <div><div class="w">rotta</div><div class="por">por Ti Artes</div></div>
+  </div>
+
+  <section>
+    <div class="eyebrow">Parceria com associações de guias</div>
+    <h1>Um app de reservas para os seus associados, e uma receita mensal para a associação.</h1>
+    <p class="lede">O Rotta junta numa coisa só o que hoje o guia faz no caderno, no Excel e no WhatsApp: vitrine dos passeios, reservas com data e vagas, pagamentos e um assistente de IA. Cada guia com o seu nome e o seu jeito.</p>
+    <div class="atalhos">
+      <a class="at pri" href="../../londres/" target="_blank" rel="noopener">Abrir o protótipo</a>
+      <a class="at sec" href="#video-card">▶ Vídeo de 2 min</a>
+    </div>
+  </section>
+
+  <section class="bloco">
+    <h2>O que a associação ganha</h2>
+    <ul class="ganhos">
+      <li><span class="ic">💶</span><div><b>Comissão todo mês</b><span>Sobre cada assinatura de associado, enquanto ele continuar assinando.</span></div></li>
+      <li><span class="ic">🏷️</span><div><b>Preço de fundador para os associados</b><span>Quem entra agora mantém o valor enquanto a assinatura estiver ativa.</span></div></li>
+      <li><span class="ic">🔗</span><div><b>Um código só da associação</b><span>O associado digita no cadastro e fica ligado a vocês. Sem planilha, sem conferência manual.</span></div></li>
+      <li><span class="ic">🤝</span><div><b>Nenhum custo para a associação</b><span>Nós apresentamos o app aos associados, numa reunião ou num vídeo.</span></div></li>
+    </ul>
+  </section>
+
+  <section class="bloco">
+    <h2>Os planos</h2>
+    <div class="fund"><b>Preço de fundador</b> valores em euro, por mês</div>
+    <div class="planos">
+      <div class="plano">
+        <div class="ph"><b>Básico</b></div>
+        <div class="preco">€ 25<small> /mês</small></div>
+        <ul><li>Vitrine dos passeios, com o nome do guia</li><li>Reserva com data, horário e vagas</li><li>Pix e cartão europeu</li><li>Agenda e painel do dinheiro</li><li>Páginas em vários idiomas</li></ul>
+      </div>
+      <div class="plano pro">
+        <div class="ph"><b>Pro</b><span class="tag">Com IA</span></div>
+        <div class="preco">€ 39<small> /mês</small></div>
+        <ul><li>Tudo do Básico</li><li>Assistente de IA que organiza o app</li><li>Franquia de IA todo mês</li><li>Domínio próprio</li><li>Suporte com prioridade</li></ul>
+      </div>
+    </div>
+    <div class="extras">
+      <span>🔒 <b>Extras sob consulta:</b> atendimento automático no WhatsApp e no Instagram, e agente de marketing, implantados pela Ti Artes.</span>
+      <span>🧰 <b>Montagem pelo estúdio:</b> € 129 uma vez, para quem prefere não cadastrar sozinho.</span>
+      <span>✓ <b>7 dias grátis, sem cartão.</b> Cancela quando quiser.</span>
+    </div>
+    <div class="pdfs">
+      <a class="pdf" href="rotta-planos-pt.pdf" target="_blank" rel="noopener">📄 Português</a>
+      <a class="pdf" href="rotta-planos-fr.pdf" target="_blank" rel="noopener">📄 Français</a>
+      <a class="pdf" href="rotta-planos-en.pdf" target="_blank" rel="noopener">📄 English</a>
+    </div>
+  </section>
+
+  <section class="bloco">
+    <h2>Como funciona</h2>
+    <ol class="passos">
+      <li>Fazemos uma conversa de 20 minutos com a diretoria.</li>
+      <li>A associação recebe o código e divulga aos associados.</li>
+      <li>O associado cria o app dele e testa 7 dias grátis.</li>
+      <li>A comissão entra todo mês, enquanto ele assinar.</li>
+    </ol>
+  </section>
+
+  <div class="cartao" id="video-card">
+    <div class="vbox"><button class="video" id="video" aria-label="Assistir ao vídeo review do app"><span class="play"><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span></button></div>
+    <div class="corpo"><h2>O app por dentro, em 2 minutos</h2><p>Reservas, clientes, financeiro e o assistente que faz pelo guia.</p></div>
+  </div>
+
+  <div class="fecho"><b>Vamos conversar?</b> Responda a mensagem ou o e-mail que recebeu e marcamos 20 minutos por videochamada, no horário da associação.</div>
+  <p class="rodape">Rotta por Studio Ti Artes · Eugênio e Igor</p>
+</main>
+<script>
+'use strict';
+const YOUTUBE = 'N1k6Lb3lRcE';
+const caixa = document.getElementById('video');
+caixa.onclick = () => {
+  if (caixa.dataset.on) return; caixa.dataset.on = '1';
+  caixa.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${YOUTUBE}?autoplay=1&rel=0&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="Review do app"></iframe>`;
+};
+</script>
+</body>
+</html>
