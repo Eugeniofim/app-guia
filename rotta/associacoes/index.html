@@ -35,8 +35,10 @@ h2{font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
 .ganhos .ic{width:38px;height:38px;border-radius:12px;background:var(--tint);display:grid;place-items:center;font-size:18px;flex:none}
 .ganhos b{display:block;font-size:15.5px}
 .ganhos span{font-size:14px;color:var(--muted)}
-.planos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-@media (max-width:420px){.planos{grid-template-columns:1fr}}
+.planos{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+.plano.free{background:#FAFBFB}
+.taxa{font-size:13px;font-weight:800;color:var(--teal);margin-top:-4px}
+.nota{font-size:13px;color:var(--muted);margin-top:10px}
 .plano{border:1.5px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;background:#fff}
 .plano.pro{border-color:var(--teal);background:var(--tint)}
 .plano .ph{display:flex;justify-content:space-between;align-items:center}
@@ -89,8 +91,8 @@ h2{font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
   <section class="bloco">
     <h2>O que a associação ganha</h2>
     <ul class="ganhos">
-      <li><span class="ic">💶</span><div><b>Comissão todo mês</b><span>Sobre cada assinatura de associado, enquanto ele continuar assinando.</span></div></li>
-      <li><span class="ic">🏷️</span><div><b>Preço de fundador para os associados</b><span>Quem entra agora mantém o valor enquanto a assinatura estiver ativa.</span></div></li>
+      <li><span class="ic">💶</span><div><b>Comissão todo mês</b><span>Sobre cada assinatura Standard ou Pro de associado, enquanto ele continuar assinando.</span></div></li>
+      <li><span class="ic">🏷️</span><div><b>Começa grátis</b><span>O associado entra no plano Free, sem mensalidade, e testa 7 dias com tudo liberado. Quem assinar agora tem preço de fundador.</span></div></li>
       <li><span class="ic">🔗</span><div><b>Um código só da associação</b><span>O associado digita no cadastro e fica ligado a vocês. Sem planilha, sem conferência manual.</span></div></li>
       <li><span class="ic">🤝</span><div><b>Nenhum custo para a associação</b><span>Nós apresentamos o app aos associados, numa reunião ou num vídeo.</span></div></li>
     </ul>
@@ -100,21 +102,28 @@ h2{font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
     <h2>Os planos</h2>
     <div class="fund"><b>Preço de fundador</b> valores em euro, por mês</div>
     <div class="planos">
+      <div class="plano free">
+        <div class="ph"><b>Free</b></div>
+        <div class="preco">€ 0<small> /mês</small></div>
+        <div class="taxa">+ 4% por reserva paga no app</div>
+        <ul><li>Até 5 passeios na vitrine</li><li>Reserva com data, horário e vagas</li><li>Agenda e lista de clientes</li><li>Pagamento por cartão no app</li><li>Endereço rotta.guide/nome</li></ul>
+      </div>
       <div class="plano">
-        <div class="ph"><b>Básico</b></div>
+        <div class="ph"><b>Standard</b></div>
         <div class="preco">€ 25<small> /mês</small></div>
-        <ul><li>Vitrine dos passeios, com o nome do guia</li><li>Reserva com data, horário e vagas</li><li>Pix e cartão europeu</li><li>Agenda e painel do dinheiro</li><li>Páginas em vários idiomas</li></ul>
+        <ul><li>Passeios ilimitados, sem taxa</li><li>Cartão, Pix e dinheiro</li><li>Painel do dinheiro e relatório pro contador</li><li>Páginas em vários idiomas</li><li>Domínio próprio, sem o selo Rotta</li></ul>
       </div>
       <div class="plano pro">
         <div class="ph"><b>Pro</b><span class="tag">Com IA</span></div>
         <div class="preco">€ 39<small> /mês</small></div>
-        <ul><li>Tudo do Básico</li><li>Assistente de IA que organiza o app</li><li>Franquia de IA todo mês</li><li>Domínio próprio</li><li>Suporte com prioridade</li></ul>
+        <ul><li>Tudo do Standard</li><li>Assistente de IA que organiza o app</li><li>Franquia de IA todo mês</li><li>Suporte com prioridade</li></ul>
       </div>
     </div>
+    <p class="nota">No Free, os 4% saem sozinhos de cada reserva paga com cartão. A partir de € 625 por mês em reservas, o Standard sai mais barato.</p>
     <div class="extras">
       <span>🔒 <b>Extras sob consulta:</b> atendimento automático no WhatsApp e no Instagram, e agente de marketing, implantados pela Ti Artes.</span>
       <span>🧰 <b>Montagem pelo estúdio:</b> € 129 uma vez, para quem prefere não cadastrar sozinho.</span>
-      <span>✓ <b>7 dias grátis, sem cartão.</b> Cancela quando quiser.</span>
+      <span>✓ <b>7 dias com tudo liberado, sem cartão.</b> Depois, o guia escolhe o plano ou segue no Free.</span>
     </div>
     <div class="pdfs">
       <a class="pdf" href="rotta-planos-pt.pdf" target="_blank" rel="noopener">📄 Português</a>
@@ -128,7 +137,7 @@ h2{font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
     <ol class="passos">
       <li>Fazemos uma conversa de 20 minutos com a diretoria.</li>
       <li>A associação recebe o código e divulga aos associados.</li>
-      <li>O associado cria o app dele e testa 7 dias grátis.</li>
+      <li>O associado cria o app dele, testa 7 dias com tudo liberado e escolhe: Free, Standard ou Pro.</li>
       <li>A comissão entra todo mês, enquanto ele assinar.</li>
     </ol>
   </section>
