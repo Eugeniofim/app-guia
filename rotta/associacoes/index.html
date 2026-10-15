@@ -38,6 +38,7 @@ h2{font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
 .planos{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
 .plano.free{background:#FAFBFB}
 .taxa{font-size:13px;font-weight:800;color:var(--teal);margin-top:-4px}
+.anual{font-size:13px;font-weight:800;color:var(--ink);background:#FFF4D6;border-radius:8px;padding:4px 8px;align-self:flex-start;margin-top:-2px}
 .nota{font-size:13px;color:var(--muted);margin-top:10px}
 .plano{border:1.5px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;background:#fff}
 .plano.pro{border-color:var(--teal);background:var(--tint)}
@@ -100,7 +101,7 @@ h2{font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
 
   <section class="bloco">
     <h2>Os planos</h2>
-    <div class="fund"><b>Preço de fundador</b> valores em euro, por mês</div>
+    <div class="fund"><b>Preço de fundador</b> valores em euro · mensal ou anual</div>
     <div class="planos">
       <div class="plano free">
         <div class="ph"><b>Free</b></div>
@@ -111,11 +112,13 @@ h2{font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
       <div class="plano">
         <div class="ph"><b>Standard</b></div>
         <div class="preco">€ 25<small> /mês</small></div>
+        <div class="anual">ou € 250/ano · 2 meses grátis</div>
         <ul><li>Passeios ilimitados, sem taxa</li><li>Cartão, Pix e dinheiro</li><li>Painel do dinheiro e relatório pro contador</li><li>Páginas em vários idiomas</li><li>Domínio próprio, sem o selo Rotta</li></ul>
       </div>
       <div class="plano pro">
         <div class="ph"><b>Pro</b><span class="tag">Com IA</span></div>
         <div class="preco">€ 39<small> /mês</small></div>
+        <div class="anual">ou € 390/ano · 2 meses grátis</div>
         <ul><li>Tudo do Standard</li><li>Assistente de IA que organiza o app</li><li>Franquia de IA todo mês</li><li>Suporte com prioridade</li></ul>
       </div>
     </div>
