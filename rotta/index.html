@@ -8,7 +8,7 @@
 <meta name="description" content="O app de reservas e gestão feito para guia brasileiro na Europa. Navegue no protótipo ou assista ao vídeo.">
 <meta property="og:title" content="Rotta · o app do guia brasileiro na Europa">
 <meta property="og:description" content="Navegue no protótipo do app ou assista ao vídeo review.">
-<meta property="og:image" content="https://guia.eugeniofim.com/rotta/capa-review.jpg">
+<meta property="og:image" content="https://guia.eugeniofim.com/rotta/capa-review-v.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,700;6..12,800&display=swap" rel="stylesheet">
 <style>
@@ -38,8 +38,9 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
 .fones{display:block;width:100%;aspect-ratio:16/8;background:url(../londres/fotos/p-tower-bridge.jpg) center/cover;position:relative}
 .fones::after{content:"Londres com a Bia · guia fictícia";position:absolute;left:14px;bottom:12px;color:#fff;font-weight:800;font-size:14px;text-shadow:0 2px 10px rgba(0,0,0,.6)}
 .fones::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55))}
-.video{position:relative;aspect-ratio:16/9;background:#000 url(capa-review.jpg) center/cover;border:0;width:100%;display:block;cursor:pointer}
-.video .play{position:absolute;left:50%;top:50%;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;background:rgba(255,122,47,.95);display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.video{position:relative;aspect-ratio:9/16;max-height:78vh;width:auto;height:min(78vh,620px);margin:0 auto;background:#000 url(capa-review-v.jpg) center/cover;border:0;display:block;cursor:pointer}
+.vbox{background:#13201E;display:flex;justify-content:center}
+.video .play{position:absolute;left:50%;top:62%;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;background:rgba(255,122,47,.95);display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
 .rodape{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
 .rodape a{color:var(--teal);font-weight:800}
@@ -69,7 +70,7 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
   </a>
 
   <div class="cartao">
-    <button class="video" id="video" aria-label="Assistir ao vídeo review do app"><span class="play"><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span></button>
+    <div class="vbox"><button class="video" id="video" aria-label="Assistir ao vídeo review do app"><span class="play"><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span></button></div>
     <div class="corpo">
       <div class="num">2</div>
       <h2>Assista ao vídeo review do app</h2>
@@ -84,12 +85,12 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
 'use strict';
 /* Quando o vídeo estiver no YouTube, ponha só o código dele aqui (o que vem depois de "v=").
    Vazio = toca o arquivo review.mp4 desta pasta. */
-const YOUTUBE = '';
+const YOUTUBE = 'N1k6Lb3lRcE';   // Short "REVIEW - APP do Guia Brasileiro na Europa"
 const caixa = document.getElementById('video');
 function toca() {
   if (caixa.dataset.on) return; caixa.dataset.on = '1';
   caixa.innerHTML = YOUTUBE
-    ? `<iframe src="https://www.youtube-nocookie.com/embed/${YOUTUBE}?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="Review do app"></iframe>`
+    ? `<iframe src="https://www.youtube-nocookie.com/embed/${YOUTUBE}?autoplay=1&rel=0&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="Review do app"></iframe>`
     : '<video src="review.mp4" poster="capa-review.jpg" controls autoplay playsinline></video>';
 }
 caixa.onclick = toca;
