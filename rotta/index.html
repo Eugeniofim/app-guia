@@ -42,10 +42,18 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
 .vbox{background:#13201E;display:flex;justify-content:center}
 .video .play{position:absolute;left:50%;top:62%;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;background:rgba(255,122,47,.95);display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
 .video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
-.dores{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:8px}
-.dores li{position:relative;padding:10px 12px 10px 38px;background:var(--paper);border:1px solid var(--line);border-radius:12px;font-size:15px}
-.dores li::before{content:"✕";position:absolute;left:12px;top:9px;width:18px;height:18px;border-radius:50%;background:#FBE9E4;color:#B4432A;font-size:11px;font-weight:800;display:grid;place-items:center}
+.dores{list-style:none;margin-top:18px;display:flex;flex-direction:column;gap:9px;border-left:3px solid #F1D3CB;padding-left:12px}
+.dores li{position:relative;padding:2px 0 2px 30px;font-size:15px;color:var(--ink)}
+.dores li::before{content:"✕";position:absolute;left:0;top:3px;width:18px;height:18px;border-radius:50%;background:#FBE9E4;color:#B4432A;font-size:11px;font-weight:800;display:grid;place-items:center}
 .fim-dor{margin-top:14px;font-weight:700;font-size:15.5px}
+.atalhos{display:flex;gap:8px;margin-top:16px}
+.at{flex:1;display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;font-weight:800;font-size:15px;text-decoration:none;text-align:center;padding:0 10px}
+.at.pri{background:var(--teal);color:#fff}
+.at.sec{background:var(--paper);color:var(--ink);border:1.5px solid var(--line)}
+.prova{margin-top:8px;font-size:13.5px;color:var(--teal-2);font-weight:700}
+.fecho{background:var(--ink);color:#E6EFED;border-radius:18px;padding:16px 18px;font-size:15px}
+.fecho b{color:#7FD1C1}
+html{scroll-behavior:smooth}
 .rodape{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
 .rodape a{color:var(--teal);font-weight:800}
 </style>
@@ -60,13 +68,18 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
     <div class="eyebrow">App do guia brasileiro na Europa</div>
     <h1>Saia do caderno, do Excel e do WhatsApp espalhado.</h1>
     <p class="lede">Um app com o seu nome que junta clientes, reservas, pagamentos e um assistente de IA. Do seu jeito, com as suas cores e os seus passeios.</p>
+    <div class="atalhos">
+      <a class="at pri" href="../londres/" target="_blank" rel="noopener">Abrir o protótipo</a>
+      <a class="at sec" href="#video-card">▶ Vídeo de 2 min</a>
+    </div>
     <ul class="dores">
       <li>"Tem vaga dia 12?" respondido à mão, um por um</li>
       <li>Reserva anotada no caderno ou na planilha</li>
       <li>Caçar no WhatsApp quem já pagou e quem falta</li>
       <li>Cliente espalhado entre WhatsApp, direct e e-mail</li>
     </ul>
-    <p class="fim-dor">Se algum desses é o seu dia a dia, o app foi feito pra você. Dois jeitos de conhecer:</p>
+    <p class="fim-dor">Se algum desses é o seu dia a dia, o app foi feito pra você.</p>
+    <p class="prova">✓ Já no ar com guias brasileiros em Munique, Berlim, Copenhague e na Alsácia</p>
   </div>
 
   <a class="cartao" href="../londres/" target="_blank" rel="noopener">
@@ -80,7 +93,7 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
     </div>
   </a>
 
-  <div class="cartao">
+  <div class="cartao" id="video-card">
     <div class="vbox"><button class="video" id="video" aria-label="Assistir ao vídeo review do app"><span class="play"><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span></button></div>
     <div class="corpo">
       <div class="num">2</div>
@@ -90,6 +103,7 @@ h1{font-size:32px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin
     </div>
   </div>
 
+  <div class="fecho"><b>Gostou?</b> É só responder a mensagem que eu te mandei. Monto o seu com os seus passeios, sem compromisso.</div>
   <p class="rodape">Studio Ti Artes</p>
 </main>
 <script>
