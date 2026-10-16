@@ -246,6 +246,172 @@ function opLigaCards(redesenha) {
 }
 
 /* =====================================================
+   HOJE COMO NO PROTÓTIPO DA BIA (16/10/2026)
+   Pedido do Eugênio: "atualiza o HOJE dela como temos no protótipo BIA
+   Londres" (guia.eugeniofim.com/londres/ → carol-adm.js + boas-vindas.js).
+   O dia de hoje vira "o que precisa de você agora", em blocos — e só
+   aparece o bloco que tem alguma coisa. Os serviços completos (com guia,
+   voo, pagamento) continuam embaixo, por turno: é a operação dela.
+   Ícones de traço (sem emoji), como na capa.
+   ===================================================== */
+const HJ_IC = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const HJ = {
+  sol:      HJ_IC('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>'),
+  pago:     HJ_IC('<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 9.5h.01M17.5 14.5h.01"/>'),
+  msg:      HJ_IC('<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/>'),
+  sino:     HJ_IC('<path d="M6 16v-5a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
+  sacola:   HJ_IC('<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'),
+  pessoa:   HJ_IC('<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>'),
+  cobrar:   HJ_IC('<circle cx="12" cy="12" r="8.5"/><path d="M12 6.8v10.4M14.7 9.6c-.4-1-1.4-1.6-2.7-1.6-1.5 0-2.6.8-2.6 2s1.1 1.6 2.6 2 2.6.8 2.6 2-1.1 2-2.6 2c-1.3 0-2.4-.6-2.8-1.6"/>'),
+  estrela:  HJ_IC('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
+  check:    HJ_IC('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8.5 12.2 2.4 2.4 4.8-4.9"/>'),
+  agenda:   HJ_IC('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
+  roteiro:  HJ_IC('<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6.5a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7H16"/>'),
+  orc:      HJ_IC('<path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h3"/>'),
+  alerta:   HJ_IC('<path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.2h.01"/>'),
+};
+const hjTurno = (h) => { const n = +String(h || '').slice(0, 2); return !String(h || '').trim() ? 'dia' : n < 12 ? 'manha' : n < 18 ? 'tarde' : 'noite'; };
+const HJ_TURNOS = [['manha', 'Manhã'], ['tarde', 'Tarde'], ['noite', 'Noite'], ['dia', 'Sem hora marcada']];
+const hjFicha = (b) => b.clienteId ? '#/adm/clients/' + encodeURIComponent('c:' + b.clienteId) : '#/adm/clients/' + encodeURIComponent(chaveCliente(b));
+/* a mensagem de véspera, pronta para o WhatsApp do cliente */
+function hjLembrete(b) {
+  const x = Tours.get(b.tourId) || {};
+  const pres = b.prestadorId && Equipe.get(b.prestadorId);
+  const encontro = b.origem || (x.meeting ? (x.meeting[LANG] || x.meeting.pt || '') : '');
+  const falta = Op.restoPara(b) === 'ingrid' ? Bookings.due(b) : 0;
+  const L = [
+    `Olá, ${opPrimeiro(b.name)}! Aqui é ${guiaNome()}, da ${guiaNegocio()}. Passando para lembrar do nosso compromisso de amanhã:`, '',
+    `📍 ${opNomeServ(b)}`,
+    `🗓 ${opCurta(b.date)}${b.time ? ' · ' + b.time : ''}`,
+    encontro ? `🚩 Encontro: ${encontro}` : '',
+    b.voo ? `✈ Voo: ${b.voo}` : '',
+    pres ? `👤 ${opPapel(b) === 'motorista' ? 'Motorista' : 'Guia'}: ${pres.nome}` : '',
+    falta > 0 ? `💳 Saldo a acertar: ${eur(falta)}` : '',
+    '', 'Qualquer imprevisto, é só me chamar aqui. Até amanhã!',
+  ];
+  return L.filter((l, i, a) => l !== '' || (a[i - 1] !== '' && i > 0)).join('\n');
+}
+function hjPainel(hoje) {
+  const ativas = DB.bookings.filter(b => b.status !== 'cancelled');
+  const wa = (num, txt, rot, extra = '') => opNum(num).length >= 8 ? `<a class="mini" target="_blank" rel="noopener" ${extra} href="${waLink(txt, opNum(num))}">${rot}</a>` : '';
+  const lnk = (href, rot, cls = 'mini') => `<a class="${cls}" href="${href}">${rot}</a>`;
+  const it = (ic, tit, sub, acoes = '', cls = '') => `<div class="hjItem ${cls}"><span class="hjIc">${ic}</span><div class="hjTx"><b>${tit}</b>${sub ? `<small>${sub}</small>` : ''}</div>${acoes ? `<span class="hjAcoes">${acoes}</span>` : ''}</div>`;
+  const bloco = (ic, tit, n, corpo, cls = '') => `<section class="card hj ${cls}"><h3><span class="hjH">${ic}</span><span class="hjT">${tit}</span>${n ? `<span class="hjN">${n}</span>` : ''}</h3>${corpo}</section>`;
+  const B = [];
+
+  /* 1. hoje, por turno (o resumo; os cartões completos ficam embaixo) */
+  const doDia = Op.doDia(hoje).filter(b => b.status !== 'cancelled');
+  const linhasHoje = HJ_TURNOS.map(([k, nome]) => {
+    const l = doDia.filter(b => hjTurno(b.time) === k);
+    if (!l.length) return '';
+    return `<p class="rotMini">${nome}</p>` + l.map(b => {
+      const pres = b.prestadorId && Equipe.get(b.prestadorId), falta = Op.restoPara(b) === 'ingrid' ? Bookings.due(b) : 0;
+      return it(HJ.agenda, `${esc(b.time || '')}${b.time ? ' · ' : ''}${esc(opNomeServ(b))}`,
+        `${esc(b.name)} · ${b.pax} ${+b.pax === 1 ? 'pessoa' : 'pessoas'} · ${pres ? esc(opPrimeiro(pres.nome)) : '<span class="bad">sem ' + opPapel(b) + '</span>'}${falta > 0 ? ` · <span class="bad">falta ${eur(falta)}</span>` : ''}`,
+        `<button class="mini" data-hjvai="${esc(b.id)}">Abrir</button>`, pres ? 'cheio' : 'alerta');
+    }).join('');
+  }).join('');
+  B.push(bloco(HJ.sol, 'Hoje', doDia.length ? `${doDia.length}` : '', linhasHoje || `<p class="empty">Nenhum serviço hoje.</p><p class="why">${lnk('#/adm/agenda', 'Ver a agenda')}</p>`, 'hjHoje'));
+
+  /* 2. tarefas de hoje (as atrasadas primeiro) */
+  const G = Tarefas.grupos(hoje), tfs = [...G.atrasadas, ...G.hoje];
+  if (tfs.length) B.push(bloco(HJ.check, 'Tarefas de hoje', tfs.length, tfs.slice(0, 6).map(t => {
+    const atr = G.atrasadas.includes(t);
+    const acoes = t.etapa === 'aguardar'
+      ? `<button class="mini" data-res="${esc(t.id)}|respondeu">Respondeu</button><button class="mini ghost" data-res="${esc(t.id)}|cutucar">Não respondeu</button>`
+      : `<button class="mini" data-conclui="${esc(t.id)}">Feito</button>`;
+    return it(atr ? HJ.alerta : HJ.check, esc(t.texto), [atr ? '<span class="bad">atrasada</span>' : '', t.hora ? esc(t.hora) : '', t.clienteNome ? esc(t.clienteNome) : ''].filter(Boolean).join(' · '), acoes, atr ? 'alerta' : '');
+  }).join('') + (tfs.length > 6 ? `<p class="why">${lnk('#/adm/tarefas', `Ver as ${tfs.length} tarefas`)}</p>` : '')));
+
+  /* 3. cobranças: atrasadas ou vencendo até depois de amanhã */
+  const dev = Lembretes.devedores(hoje).filter(d => d.prazo <= addDays(hoje, 2));
+  if (dev.length) B.push(bloco(HJ.cobrar, 'Cobranças', dev.length, dev.slice(0, 5).map(d => it(HJ.cobrar, `${esc(d.nome)} · ${eur(d.total)}`,
+    `${d.atrasado ? '<span class="bad">venceu ' + opCurta(d.prazo) + '</span>' : 'vence ' + opCurta(d.prazo)} · ${esc(opNomeServ(d.servicos[0]))}`,
+    wa(d.whats, t('waCharge', { name: opPrimeiro(d.nome), v: eur(d.total), tour: opNomeServ(d.servicos[0]), when: fmtDate(d.servicos[0].date) }), 'Cobrar', `data-cobra="${esc(d.chave)}"`) + lnk('#/adm/clients/' + encodeURIComponent(d.chave), 'Ficha'), d.atrasado ? 'alerta' : '')).join('')));
+
+  /* 4. quem pagou (7 dias) — como o "Quem pagou" da Bia */
+  const pagos = [];
+  for (const b of ativas) for (const p of (b.payments || [])) if (p.date >= addDays(hoje, -7) && p.date <= hoje) pagos.push({ b, p });
+  pagos.sort((x, y) => String(y.p.date).localeCompare(String(x.p.date)));
+  if (pagos.length) B.push(bloco(HJ.pago, 'Quem pagou', pagos.length, pagos.slice(0, 5).map(({ b, p }) => it(HJ.pago, `${esc(b.name)} · ${eur(p.amount)}`,
+    `${esc(opNomeServ(b))} · ${opCurta(b.date)} · ${esc(Contas.nome(p.conta) || ({ pix: 'Pix', card: 'cartão', cash: 'dinheiro', transfer: 'transferência' })[p.method] || 'outro')} · pago ${opCurta(p.date)}`, lnk(hjFicha(b), 'Ficha'))).join('')
+    + '<p class="why">Cada pagamento já está na ficha do cliente e na Contabilidade.</p>'));
+
+  /* 5. pedidos esperando resposta (orçamento, "Monte seu roteiro" e os recados do atendimento) */
+  const orcs = Orc.all().filter(o => o.status === 'novo' || o.status === 'rascunho');
+  const rots = Roteiros.all().filter(p => !p.respondido && !(DB.orcamentos || []).some(o => o.pedidoId === p.id));
+  const recs = (typeof conversas === 'function' && typeof CLIENTES !== 'undefined') ? conversas().filter(v => v.estado === 'pendente').map(v => ({ v, c: CLIENTES.find(c => c.id === v.id) })).filter(x => x.c) : [];
+  if (orcs.length || rots.length || recs.length) B.push(bloco(HJ.msg, 'Pedidos esperando resposta', orcs.length + rots.length + recs.length,
+    recs.slice(0, 3).map(({ v, c }) => it(HJ.msg, `${esc(c.nome)} · ${c.canal === 'whats' ? 'WhatsApp' : 'Instagram'}`, esc(String(c.msg || '').slice(0, 90)), lnk('#/adm/inbox/' + v.id, 'Responder'))).join('') +
+    orcs.slice(0, 4).map(o => it(HJ.orc, `${esc(o.cliente.nome || 'Cliente')} · ${esc(o.num)}`, `${o.status === 'novo' ? 'pedido novo' : 'em montagem'}${o.origem ? ' · veio pelo ' + esc(o.origem === 'whats' ? 'WhatsApp' : o.origem) : ''}${Orc.total(o) ? ' · ' + eur(Orc.total(o)) : ''}`,
+      lnk('#/adm/consulta/' + o.id, 'Montar'))).join('')
+    + rots.slice(0, 4).map(p => it(HJ.roteiro, `${esc(p.nome)} · Monte seu roteiro`, [p.ini ? opCurta(p.ini) + (p.fim ? ' a ' + opCurta(p.fim) : '') : '', `${(+p.adultos || 0) + (+p.criancas || 0)} pessoas`, p.canal && p.canal !== 'direto' ? 'veio pelo ' + esc(canalNome(p.canal)) : ''].filter(Boolean).join(' · '),
+      wa(p.whats, `Olá, ${opPrimeiro(p.nome)}! Aqui é ${guiaNome()}, da ${guiaNegocio()}. Recebi o seu pedido de roteiro e já estou montando a sua proposta.`, 'Responder') + lnk('#/adm/consulta', 'Ver'))).join('')));
+
+  /* 6. amanhã — lembrete de véspera, e os próximos 14 dias */
+  const amanha = addDays(hoje, 1);
+  const am = ativas.filter(b => b.date === amanha).sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  const prox = ativas.filter(b => b.date > amanha && b.date <= addDays(hoje, 14)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  B.push(bloco(HJ.sino, 'Amanhã — lembrete de véspera', am.length || '',
+    (am.length ? am.map(b => it(HJ.sino, `${esc(b.name)} · ${esc(opNomeServ(b))}`, `${esc(b.time || '')} · ${b.pax} ${+b.pax === 1 ? 'pessoa' : 'pessoas'}`,
+      wa(b.whats, hjLembrete(b), 'Mandar lembrete') + lnk(hjFicha(b), 'Ficha'))).join('') : '<p class="empty">Nenhum serviço amanhã.</p>')
+    + (prox.length ? `<p class="rotMini">Próximos dias</p>${prox.slice(0, 4).map(b => it(HJ.agenda, `${opCurta(b.date)} · ${esc(opPrimeiro(b.name))}`, `${esc(opNomeServ(b))}${b.time ? ' · ' + esc(b.time) : ''}`, lnk('#/adm/today/' + b.date, 'Ver o dia'))).join('')}` : '')
+    + '<p class="why">A mensagem vem pronta: serviço, dia e hora, encontro, voo, quem faz e o saldo, se houver.</p>'));
+
+  /* 7. compras e parceiros (ingressos, transfer, hotel) — próximos 14 dias */
+  const compras = ativas.filter(b => b.date >= hoje && b.date <= addDays(hoje, 14)).map(b => ({ b, f: pendenciasCompra(b) })).filter(x => x.f.length);
+  if (compras.length) B.push(bloco(HJ.sacola, 'Compras e parceiros', compras.length, compras.slice(0, 5).map(({ b, f }) =>
+    it(HJ.sacola, `${esc(b.name)} · ${opCurta(b.date)}`, `${esc(opNomeServ(b))} · ${esc(f.join(' · '))}`, lnk('#/adm/parceiros', 'Parceiros'), b.date <= addDays(hoje, 3) ? 'alerta' : '')).join('')));
+
+  /* 8. sem guia ou motorista (3 dias) */
+  const sem = Op.semPrestador(3);
+  if (sem.length) B.push(bloco(HJ.pessoa, 'Sem guia ou motorista', sem.length, sem.slice(0, 5).map(b =>
+    it(HJ.pessoa, `${opCurta(b.date)} ${esc(b.time || '')} · ${esc(opNomeServ(b))}`, `${esc(b.name)} · ${b.pax} ${+b.pax === 1 ? 'pessoa' : 'pessoas'}`, lnk('#/adm/guias/servico:' + b.id, 'Escalar'), 'alerta')).join('')));
+
+  /* 9. pedir avaliação: quem já fez o serviço nos últimos 10 dias */
+  const aval = ativas.filter(b => b.date < hoje && b.date >= addDays(hoje, -10) && !b.avaliacaoEm && b.whats);
+  if (aval.length) B.push(bloco(HJ.estrela, 'Pedir avaliação', aval.length, aval.slice(0, 4).map(b =>
+    it(HJ.estrela, `${esc(b.name)} · ${esc(opNomeServ(b))}`, `foi em ${opCurta(b.date)}`, wa(b.whats, msgAvaliacao(b), 'Pedir', `data-hjaval="${esc(b.id)}"`))).join('')));
+
+  return `<div class="hjGrade">${B.join('')}</div>`;
+}
+function hjLiga(redesenha) {
+  $$('[data-hjvai]').forEach(bt => bt.onclick = () => {
+    const el = document.getElementById('svc-' + bt.dataset.hjvai);
+    if (el) { el.classList.add('foco'); el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); setTimeout(() => el.classList.remove('foco'), 2400); }
+  });
+  $$('[data-hjaval]').forEach(a => a.addEventListener('click', () => { marcaAvaliacao(a.dataset.hjaval); setTimeout(() => { toast('Avaliação pedida · vai para Finalizado'); redesenha(); }, 400); }));
+  $$('#stage [data-cobra]').forEach(a => a.addEventListener('click', () => {
+    const d = Lembretes.devedores(isoToday()).find(x => x.chave === a.dataset.cobra);
+    if (d) { Espera.pagamento(d); setTimeout(() => { toast('Cobrança enviada · o app fica aguardando o pagamento'); redesenha(); }, 400); }
+  }));
+}
+/* boas-vindas na primeira vez (como na Bia): três passos e pronto */
+const BV_CHAVE = 'yalla_boasvindas';
+function hjBoasVindas() {
+  try { if (localStorage.getItem(BV_CHAVE) === '1') return ''; } catch (e) { return ''; }
+  const nome = opPrimeiro((DB.settings && DB.settings.admName) || guiaNome());
+  return `<section class="card bvCard" id="bvCard">
+    <button class="bvX" id="bvX" aria-label="Fechar">×</button>
+    <h2 class="bvTit">Boas-vindas ao seu app, ${esc(nome)}!</h2>
+    <p class="bvSub">Aqui é o seu lado: o painel onde você comanda tudo. Os seus clientes, as suas reservas e os seus números moram aqui. Dê uma volta à vontade; nada quebra.</p>
+    <div class="bvPassos">
+      <a class="bvP" href="#/adm/tours"><span class="bvN">1</span><span><b>Veja as suas experiências</b><small>Os quatro pilares já estão aqui. Toque para ajustar fotos, textos e preços.</small></span></a>
+      <button class="bvP" type="button" id="bvAssist"><span class="bvN">2</span><span><b>Fale com o assistente</b><small>O botão no canto. Peça por escrito ou por voz: ele mexe em todas as abas e mostra antes de gravar.</small></span></button>
+      <a class="bvP" href="#/" target="_blank" rel="noopener"><span class="bvN">3</span><span><b>Veja o que o cliente vê</b><small>Abre a primeira tela do app, do jeito que o seu cliente abre.</small></span></a>
+    </div>
+    <button class="cta bvOk" id="bvOk">Vamos começar</button>
+  </section>`;
+}
+function hjLigaBoasVindas() {
+  const card = document.getElementById('bvCard'); if (!card) return;
+  const fechar = () => { try { localStorage.setItem(BV_CHAVE, '1'); } catch (e) {} card.remove(); };
+  document.getElementById('bvOk').onclick = fechar;
+  document.getElementById('bvX').onclick = fechar;
+  document.getElementById('bvAssist').onclick = () => { fechar(); if (typeof iaAbre === 'function') { if (typeof iaMonta === 'function' && !document.querySelector('.ia-gaveta, #iaG')) iaMonta(); iaAbre(); } };
+}
+
+/* =====================================================
    HOJE — a planilha de 15 anos, agora no app
 ===================================================== */
 function admHoje(arg) {
@@ -270,11 +436,13 @@ function admHoje(arg) {
         <input type="date" id="hjData" class="op-date" value="${dia}" aria-label="escolher dia">
         <button class="mini" data-dia="${addDays(dia, 1)}" aria-label="próximo dia">→</button>
       </div></div>
+    ${dia === hoje ? hjBoasVindas() : ''}
     <div class="op-busca">
       <input id="hjBusca" type="search" autocomplete="off" placeholder="🔎 Emergência? Nome do cliente, voo, código ou telefone">
       <div id="hjRes"></div>
     </div>
-    ${dia === hoje && (late.length || semPres.length || novos) ? `<div class="op-pend">
+    ${dia === hoje ? hjPainel(hoje) : ''}
+    ${dia !== hoje && (late.length || semPres.length || novos) ? `<div class="op-pend">
       ${novos ? `<a class="alert warn" href="#/adm/consulta">🧾 ${novos} ${novos > 1 ? 'pedidos esperando orçamento' : 'pedido esperando orçamento'} →</a>` : ''}
       ${(() => { const n = transfersDe(isoToday(), addDays(isoToday(), 7), 'roma').filter(b => !b.ncc).length; return n ? `<a class="alert warn" href="#/adm/transfer">🚐 ${n} ${n > 1 ? 'transfers' : 'transfer'} dos próximos 7 dias ainda não ${n > 1 ? 'pedidos' : 'pedido'} ao ${esc(nccConfig().nome)} →</a>` : ''; })()}
       ${semPres.length ? `<a class="alert warn" href="#/adm/guias">👤 ${semPres.length} ${semPres.length > 1 ? 'serviços' : 'serviço'} sem guia/motorista nos próximos 3 dias →</a>` : ''}
@@ -284,7 +452,14 @@ function admHoje(arg) {
     ${(() => {
       /* A AGENDA DO DIA (espelha o TI ARTES): serviços e tarefas numa linha do
          tempo única, em ordem de horário. As atrasadas vêm primeiro. */
-      const taskHoje = dia === hoje ? tfHoje.hoje : Tarefas.doDia(dia).filter(x => x.tipo === 'tarefa' && !x.feita);
+      if (dia === hoje) {
+        const l = lista.filter(b => b.status !== 'cancelled');
+        if (!l.length) return '';
+        const avisosH = sozinhas.length ? `<div class="card md-avisos">${sozinhas.map(x => `<p class="why">✨ ${esc(x.texto)} — ${esc(x.obsFim)}</p>`).join('')}</div>` : '';
+        return `<div class="md-ag-cab"><h3>Os serviços de hoje</h3><a class="mini" href="#/adm/agenda">agenda</a></div>${avisosH}`
+          + HJ_TURNOS.map(([k, nome]) => { const t0 = l.filter(b => hjTurno(b.time) === k); return t0.length ? `<p class="rotMini hjTurnoRot">${nome}</p>${t0.map(b => opCardServico(b)).join('')}` : ''; }).join('');
+      }
+      const taskHoje = Tarefas.doDia(dia).filter(x => x.tipo === 'tarefa' && !x.feita);
       const linha = [...lista.map(b => ({ h: b.time || '99:99', k: 'svc', b })), ...taskHoje.map(x => ({ h: x.hora || '99:98', k: 'task', x }))]
         .sort((a, b) => String(a.h).localeCompare(String(b.h)));
       const atrasadas = dia === hoje ? tfHoje.atrasadas : [];
@@ -321,6 +496,7 @@ function admHoje(arg) {
   };
   opLigaCards(() => admHoje(dia));
   tfLigaMini(() => admHoje(dia));
+  if (dia === hoje) { hjLiga(() => admHoje(dia)); hjLigaBoasVindas(); }
   /* o backup do dia sai sozinho na primeira abertura do painel */
   setTimeout(() => bkpDoDia(), 600);
   if (admHoje._foco) {
@@ -2312,6 +2488,8 @@ function tfLinha(t, hoje) {
       <span class="tf-txt">${t.etapa && ETAPA_ICO[t.etapa] ? ETAPA_ICO[t.etapa] + ' ' : ''}${esc(t.texto)}</span>
       <span class="tf-meta">
         ${t.prazo ? `<span class="tf-quando ${atras ? 'bad' : t.prazo === hoje ? 'hoje' : ''}">${atras ? '⚠ ' : ''}${esc(tfPrazoTxt(t, hoje))}</span>` : ''}
+        ${t.prio === 'alta' ? '<span class="tf-prio alta">alta</span>' : t.prio === 'baixa' ? '<span class="tf-prio baixa">baixa</span>' : ''}
+        ${t.cat === 'pessoal' ? '<span class="tf-prio pessoal">pessoal</span>' : ''}
         ${cli ? `<a href="${cli}">${esc(t.clienteNome || 'cliente')}</a>` : t.clienteNome ? `<span>${esc(t.clienteNome)}</span>` : ''}
         ${pes ? `<span>👤 ${esc(pes.nome)}</span>` : ''}
         ${t.tentativa > 1 ? `<span>${t.tentativa}ª tentativa</span>` : ''}
@@ -2364,10 +2542,19 @@ function tfLembretesHtml(hoje) {
 }
 function admTarefas(arg) {
   const S = admTarefas._s = admTarefas._s || { v: 'tarefas', busca: '' };
+  S.f = S.f || 'todas'; S.cat = S.cat || 'tudo';
   if (arg === 'notas') S.v = 'notas';
   const hoje = isoToday();
   const sozinhas = Tarefas.sincroniza(hoje);
-  const G = Tarefas.grupos(hoje);
+  const G0 = Tarefas.grupos(hoje);
+  /* filtros como nas Tarefas da Bia: Hoje / Semana / Todas / Feitas e
+     Tudo / Profissional / Pessoal. Dentro de cada grupo, a alta vem antes. */
+  const PRIO = { alta: 0, media: 1, baixa: 2 };
+  const filtra = (l) => l.filter(t => S.cat === 'tudo' || (t.cat || 'profissional') === S.cat).sort((a, b) => (PRIO[a.prio] ?? 1) - (PRIO[b.prio] ?? 1));
+  const G = Object.fromEntries(Object.entries(G0).map(([k, l]) => [k, filtra(l)]));
+  const mostra = (k) => S.f === 'feitas' ? k === 'feitas' : S.f === 'hoje' ? ['atrasadas', 'hoje'].includes(k) : S.f === 'semana' ? ['atrasadas', 'hoje', 'semana'].includes(k) : k !== 'feitas';
+  /* recados do atendimento (robô do WhatsApp/Instagram) que esperam por ela */
+  const recados = (typeof conversas === 'function' && typeof CLIENTES !== 'undefined') ? conversas().filter(v => v.estado === 'pendente').map(v => ({ v, c: CLIENTES.find(c => c.id === v.id) })).filter(x => x.c) : [];
   const abertas = G.atrasadas.length + G.hoje.length + G.semana.length + G.depois.length + G.semData.length;
   const notas = Tarefas.notas(S.busca);
   const clientes = Clients.all().filter(c => !c.acompanhante);
@@ -2384,27 +2571,40 @@ function admTarefas(arg) {
     <datalist id="tfClis">${clientes.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
 
     ${S.v === 'tarefas' ? `
+    <div class="tf-filtros" role="group" aria-label="Filtrar tarefas">
+      <div class="chips">${[['hoje', 'Hoje'], ['semana', 'Semana'], ['todas', 'Todas'], ['feitas', 'Feitas']].map(([k, n]) => `<button class="chip ${S.f === k ? 'on' : ''}" data-tff="${k}" aria-pressed="${S.f === k}">${n}</button>`).join('')}</div>
+      <div class="chips">${[['tudo', 'Tudo'], ['profissional', 'Profissional'], ['pessoal', 'Pessoal']].map(([k, n]) => `<button class="chip ${S.cat === k ? 'on' : ''}" data-tfc="${k}" aria-pressed="${S.cat === k}">${n}</button>`).join('')}</div>
+    </div>
     <section class="card tf-nova">
-      <label class="fld">O que precisa fazer?<input id="tfTexto" autocomplete="off" placeholder="Ex.: mandar o roteiro para a Patrícia amanhã 10h"></label>
+      <label class="fld">O que precisa fazer?<input id="tfTexto" autocomplete="off" placeholder="Ex.: mandar o roteiro para a Patrícia amanhã 10h (ou peça ao assistente)"></label>
       <div class="frow">
         <label class="fld">Dia<input type="date" id="tfData"></label>
         <label class="fld sm">Hora<input id="tfHora" placeholder="09:00"></label>
+        <label class="fld sm">Prioridade<select id="tfPrio"><option value="alta">alta</option><option value="media" selected>média</option><option value="baixa">baixa</option></select></label>
+        <label class="fld sm">Tipo<select id="tfCat"><option value="profissional">profissional</option><option value="pessoal">pessoal</option></select></label>
+      </div>
+      <div class="frow">
         <label class="fld grow">Cliente (opcional)<input id="tfCli" list="tfClis" autocomplete="off"></label>
-        <button class="cta sm" id="tfAdd">Adicionar</button>
+        <button class="cta sm" id="tfAdd">Anotar</button>
       </div>
       <p class="why" id="tfPrev">O app entende "hoje", "amanhã", "sexta", "12/10" e "9h" escritos no texto. Tarefa de mandar mensagem, cobrar ou orçamento já vem com o passo seguinte.</p>
     </section>
     ${sozinhas.length || recentes.length ? `<section class="card tf-sozinha"><h3>✨ Concluídas sozinhas</h3>
       ${[...new Map([...sozinhas, ...recentes].map(t => [t.id, t])).values()].map(t => `<div class="tf-row feita"><span class="tf-ck on">✓</span><div class="tf-corpo"><span class="tf-txt">${esc(t.texto)}</span><small>${esc(t.obsFim)}</small></div></div>`).join('')}
     </section>` : ''}
-    ${tfLembretesHtml(hoje)}
-    ${grupo('Atrasadas', G.atrasadas, 'bad')}
-    ${grupo('Hoje', G.hoje, 'hoje')}
-    ${grupo('Próximos 7 dias', G.semana)}
-    ${grupo('Mais para frente', G.depois)}
-    ${grupo('Sem data', G.semData)}
-    ${!abertas ? '<div class="emptybox"><p>Nenhuma tarefa aberta. 🎉</p></div>' : ''}
-    ${G.feitas.length ? `<details class="card tf-grupo"><summary><b>Feitas</b> <span class="tf-n">${G.feitas.length}</span></summary>${G.feitas.map(t => tfLinha(t, hoje)).join('')}</details>` : ''}
+    ${recados.length && S.f !== 'feitas' ? `<section class="card tf-grupo tf-recados"><h3>Recados <span class="tf-n">${recados.length}</span></h3>
+      <p class="why">O que chega pelo atendimento (WhatsApp e Instagram) e precisa de você.</p>
+      ${recados.map(({ v, c }) => `<div class="tf-row"><span class="tf-ck rec" aria-hidden="true">${c.canal === 'whats' ? 'WA' : 'IG'}</span><div class="tf-corpo"><span class="tf-txt">${esc(c.nome)}</span>
+        <small class="tf-det">${esc(c.msg)}</small><div class="tacts"><a class="mini strong" href="#/adm/inbox/${esc(v.id)}">Responder</a></div></div></div>`).join('')}</section>` : ''}
+    ${S.f !== 'feitas' ? tfLembretesHtml(hoje) : ''}
+    ${mostra('atrasadas') ? grupo('Atrasadas', G.atrasadas, 'bad') : ''}
+    ${mostra('hoje') ? grupo('Hoje', G.hoje, 'hoje') : ''}
+    ${mostra('semana') ? grupo('Próximos 7 dias', G.semana) : ''}
+    ${mostra('depois') ? grupo('Mais para frente', G.depois) : ''}
+    ${mostra('semData') ? grupo('Sem data', G.semData) : ''}
+    ${S.f !== 'feitas' && !['atrasadas', 'hoje', 'semana', 'depois', 'semData'].some(k => mostra(k) && G[k].length) ? `<div class="emptybox"><p>${S.f === 'hoje' ? 'Nada para hoje.' : S.f === 'semana' ? 'Nada para esta semana.' : 'Nenhuma tarefa aberta.'}</p></div>` : ''}
+    ${S.f === 'feitas' ? (G.feitas.length ? `<section class="card tf-grupo"><h3>Feitas <span class="tf-n">${G.feitas.length}</span></h3>${G.feitas.map(t => tfLinha(t, hoje)).join('')}</section>` : '<div class="emptybox"><p>Nenhuma feita ainda.</p></div>')
+      : G.feitas.length ? `<details class="card tf-grupo"><summary><b>Feitas</b> <span class="tf-n">${G.feitas.length}</span></summary>${G.feitas.map(t => tfLinha(t, hoje)).join('')}</details>` : ''}
     ` : `
     <section class="card tf-nova">
       <label class="fld">Nova anotação<textarea id="ntTexto" rows="3" placeholder="O que você quer lembrar? Fornecedor, ideia, detalhe de um cliente..."></textarea></label>
@@ -2432,6 +2632,8 @@ function admTarefas(arg) {
 
   const re = () => admTarefas();
   $$('[data-tv]').forEach(b => b.onclick = () => { S.v = b.dataset.tv; re(); });
+  $$('[data-tff]').forEach(b => b.onclick = () => { S.f = b.dataset.tff; re(); });
+  $$('[data-tfc]').forEach(b => b.onclick = () => { S.cat = b.dataset.tfc; re(); });
   const cliDe = (nome) => { const c = clientes.find(x => x.name.toLowerCase() === String(nome || '').trim().toLowerCase()); return { clienteKey: c ? c.key : '', clienteNome: String(nome || '').trim(), whats: c ? c.whats : '' }; };
   const tx = $('#tfTexto');
   if (tx) {
@@ -2446,7 +2648,7 @@ function admTarefas(arg) {
     const adiciona = () => {
       if (!tx.value.trim()) { tx.focus(); return toast('Escreva a tarefa.'); }
       const p = lerPrazo(tx.value, hoje);
-      const t2 = Tarefas.cria({ texto: tx.value, prazo: $('#tfData').value || p.data, hora: $('#tfHora').value.trim() || p.hora, ...cliDe($('#tfCli').value) });
+      const t2 = Tarefas.cria({ texto: tx.value, prazo: $('#tfData').value || p.data, hora: $('#tfHora').value.trim() || p.hora, prio: $('#tfPrio').value, cat: $('#tfCat').value, ...cliDe($('#tfCli').value) });
       toast('Tarefa criada' + (t2.prazo ? ' para ' + tfPrazoTxt(t2, hoje) : ''));
       re(); setTimeout(() => $('#tfTexto') && $('#tfTexto').focus(), 30);
     };

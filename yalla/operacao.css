@@ -96,7 +96,7 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 .orc-item-pe{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .orc-obs{flex:1;min-width:180px;padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--surface);font:inherit;font-size:var(--fs-3)}
 .fld.sm{max-width:110px}
-.fld.grow{flex:2}
+.fld.grow{flex:2;display:block}  /* .grow sozinho é a linha de participantes (grade 1fr 118px): no campo, não */
 .orc-add{align-items:end;margin-top:6px}
 .orc-tot{display:flex;flex-wrap:wrap;gap:10px 22px;padding:12px 16px;border-radius:var(--r);background:var(--accent-wash);color:var(--accent);margin:8px 0 12px;font-size:var(--fs-4)}
 .orc-tot b{font-family:var(--f-display);font-size:var(--fs-5)}
@@ -681,3 +681,71 @@ a.orc-row:hover .tinfo b{text-decoration:underline}
 /* o passo a passo (Pipeline da Yalla) */
 .pl-sub{font-size:11.5px;color:var(--ink-3);margin:-2px 0 6px}
 .pl-passo{display:block;font-size:12px;font-weight:600;color:var(--accent);margin-top:4px;line-height:1.3}
+
+/* =====================================================
+   HOJE COMO NO PROTÓTIPO DA BIA (16/10/2026)
+   Blocos "o que precisa de você": cabeçalho com ícone de traço e contagem,
+   linhas com ícone, título, legenda e ações de 40px+. Duas colunas no
+   computador, uma no celular. Cores só por token (claro e escuro).
+   ===================================================== */
+.hjGrade{display:grid;gap:12px;margin:12px 0 18px}
+@media (min-width:980px){.hjGrade{grid-template-columns:1fr 1fr;align-items:start}}
+.card.hj,.adm .card.hj,:root[data-conforto="1"] .adm .card.hj{margin:0;padding:16px 16px 10px}
+.card.hj h3{display:flex;align-items:center;gap:10px;margin:0 0 6px;font:600 var(--fs-4)/1.25 var(--f-ui)}
+.hjH{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--accent-wash);color:var(--accent)}
+.hjH svg{width:17px;height:17px;display:block}
+.hjT{flex:1;min-width:0}
+.hjN{flex:none;min-width:24px;height:24px;padding:0 7px;border-radius:999px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font:600 12px/1 var(--f-ui)}
+.card.hj.hjHoje{border-top:3px solid var(--highlight)}
+.hjItem{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.card.hj h3 + .hjItem,.card.hj .rotMini + .hjItem{border-top:0}
+.hjTx{flex:1;min-width:0}
+.hjTx b{display:block;font:600 var(--fs-3)/1.35 var(--f-ui);color:var(--ink)}
+.hjTx small{display:block;margin-top:2px;font-size:var(--fs-2);line-height:1.4;color:var(--ink-3)}
+.hjTx .bad{color:var(--danger);font-weight:600}
+.hjIc{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-2)}
+.hjIc svg{width:17px;height:17px;display:block}
+.hjItem.cheio .hjIc{background:var(--accent-wash);color:var(--accent)}
+.hjItem.alerta .hjIc{background:var(--danger-wash);color:var(--danger)}
+.hjAcoes{flex:none;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.hjAcoes .mini{min-height:40px;display:inline-flex;align-items:center;text-decoration:none}
+@media (max-width:560px){.hjAcoes{flex-basis:100%;padding-left:46px;justify-content:flex-start}}
+.card.hj .rotMini,.rotMini{margin:12px 0 4px;font:600 var(--fs-1)/1 var(--f-ui);letter-spacing:var(--track-label);text-transform:uppercase;color:var(--ink-3)}
+.hjTurnoRot{margin:16px 2px 8px}
+.card.hj .empty{margin:6px 0 4px;color:var(--ink-3)}
+.card.hj .why{margin:8px 0 6px;font-size:var(--fs-2)}
+/* boas-vindas */
+.card.bvCard{position:relative;text-align:center;border:1px solid var(--accent-line);border-top:4px solid var(--highlight);
+  background:linear-gradient(180deg,var(--highlight-wash),var(--surface));padding:24px 20px 20px;margin:10px 0 14px}
+.bvX{position:absolute;top:8px;right:8px;width:40px;height:40px;border-radius:50%;font-size:22px;line-height:1;color:var(--ink-3);background:transparent;cursor:pointer}
+.bvX:hover{background:var(--surface-2);color:var(--ink)}
+.bvTit{margin:0 0 6px;font:500 var(--fs-6)/1.2 var(--f-serif);color:var(--ink)}
+.bvSub{margin:0 auto 16px;max-width:52ch;color:var(--ink-2);font-size:var(--fs-3)}
+.bvPassos{display:grid;gap:8px;text-align:left;margin-bottom:16px}
+@media (min-width:860px){.bvPassos{grid-template-columns:repeat(3,1fr)}}
+.bvP{display:flex;gap:10px;align-items:flex-start;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:inherit;text-decoration:none;text-align:left;font:inherit;cursor:pointer;
+  transition:border-color var(--d-fast) var(--ease),transform var(--d-fast) var(--ease)}
+.bvP:hover{border-color:var(--accent);transform:translateY(-1px)}
+.bvP:focus-visible,.bvX:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bvN{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:600 13px/1 var(--f-ui)}
+.bvP b{display:block;font-size:var(--fs-3);margin-bottom:2px}
+.bvP small{display:block;color:var(--ink-3);font-size:var(--fs-2);line-height:1.4}
+.bvOk{min-width:220px}
+@media (prefers-reduced-motion:reduce){.bvP{transition:none}.bvP:hover{transform:none}}
+
+/* Tarefas como na Bia: filtros, prioridade e pessoal (16/10/2026) */
+.tf-filtros{display:flex;flex-wrap:wrap;gap:8px 16px;margin:4px 0 12px}
+.tf-filtros .chip{min-height:40px}
+.tf-prio{display:inline-flex;align-items:center;padding:1px 8px;border-radius:999px;font:600 11px/1.6 var(--f-ui);background:var(--surface-2);color:var(--ink-2)}
+.tf-prio.alta{background:var(--danger-wash);color:var(--danger)}
+.tf-prio.baixa{background:var(--neutral-wash);color:var(--neutral)}
+.tf-prio.pessoal{background:var(--accent-wash);color:var(--highlight-text)}
+.tf-ck.rec{display:grid;place-items:center;font:700 10px/1 var(--f-ui);background:var(--accent-wash);color:var(--accent);border:0;cursor:default}
+.tf-nova .fld.grow{flex:1 1 240px}
+.tf-nova .fld.sm:has(select){max-width:none;flex:0 1 150px}
+.tf-nova .fld select{width:100%}
+/* checklist da skill de UI/UX (16/10/2026): toque de 44px nas ações do Hoje
+   e das Tarefas; no celular o título da página fica numa linha só, e os
+   botões de dia descem para baixo dele */
+.hjAcoes .mini,.tf-filtros .chip{min-height:44px}
+@media (max-width:900px){body .pagehead .pageh{flex:1 1 100%}}
