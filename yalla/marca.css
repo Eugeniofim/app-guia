@@ -155,12 +155,64 @@
 .doc-extras{margin:14px 0;padding:12px 14px;border:1px solid var(--line);border-radius:12px}
 .doc-extras p{margin:4px 0}
 
-/* ONE STOP SHOP na capa: transfer, ingressos, hotel e motorista num lugar só */
-.oss{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.oss-i{display:flex;align-items:center;gap:10px;min-width:0;padding:12px 14px;border-radius:14px;cursor:pointer;text-align:left;
-  border:1px solid color-mix(in srgb, var(--brand-primaria) 30%, transparent);
-  background:color-mix(in srgb, var(--brand-primaria) 6%, var(--surface));color:var(--ink);font:inherit}
-.oss-i:hover{border-color:var(--brand-primaria)}
-.oss-i b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.oss-ic{font-size:20px;line-height:1}
-.oss-sub{margin:6px 2px 4px;font-size:12.5px;color:var(--ink-3);text-align:center}
+/* =====================================================
+   A CAPA NO FORMATO DA CAROL/BIA (16/10/2026)
+   Seções com rótulo e fio dourado, ícones de traço (sem emoji), um único
+   botão cheio de dourado (o caminho principal do cliente) e o cartão de
+   indicações agrupado. Contraste: legendas em --ink-3 (6.4:1 no preto).
+   ===================================================== */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.hub.yl .hub-in{gap:10px}
+.hub.yl .hubRot{display:flex;align-items:center;gap:12px;margin:18px 4px 2px;
+  font:600 var(--fs-1)/1 var(--f-ui);letter-spacing:var(--track-label);text-transform:uppercase;color:var(--highlight-text)}
+.hub.yl .hubRot::before{content:"";width:6px;height:6px;flex:none;transform:rotate(45deg);background:var(--brand-primaria);opacity:.9}
+.hub.yl .hubRot::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,color-mix(in srgb,var(--brand-primaria) 55%,transparent),transparent)}
+/* o selo de credencial, como o "Blue Badge" da Carol — com as palavras dela */
+.ylBadge{display:inline-flex;align-items:center;gap:8px;margin:12px auto 2px;padding:7px 14px 7px 9px;border-radius:var(--r-pill);
+  background:color-mix(in srgb,var(--brand-primaria) 9%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brand-primaria) 40%,transparent);
+  color:var(--highlight-text);font:600 var(--fs-2)/1.3 var(--f-ui);letter-spacing:.02em;text-align:left}
+.ylBadgeIc{width:20px;height:20px;flex:none;color:var(--brand-primaria)}
+.ylBadgeIc svg{width:20px;height:20px;display:block}
+/* os itens: vidro escuro, ícone em quadradinho dourado, seta que anda no hover */
+.hub.yl .lk{min-height:64px;background:rgba(14,14,14,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--ink);cursor:pointer;
+  border:1px solid color-mix(in srgb,var(--brand-primaria) 20%,transparent);box-shadow:none}
+.hub.yl .lk:hover{border-color:color-mix(in srgb,var(--brand-primaria) 55%,transparent);background:rgba(22,20,15,.86)}
+.hub.yl .lk:focus-visible{outline:2px solid var(--brand-oro);outline-offset:3px}
+.hub.yl .lk .ic{width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--brand-primaria) 12%,transparent);color:var(--brand-destaque)}
+.hub.yl .lk .ic svg{width:21px;height:21px}
+.hub.yl .lk .ic.foto img{width:40px;height:40px;border-radius:12px;object-fit:cover;object-position:center 20%;display:block}
+.hub.yl .lk .ic.wa{background:#25D366;color:#fff}
+.hub.yl .lk .ic.ig{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fdf497 5%,#fd5949 45%,#d6249f 60%,#285AEB 90%);color:#fff}
+.hub.yl .lk small{color:var(--ink-3);margin-top:2px}
+.hub.yl .lk .go{width:20px;height:20px;color:var(--brand-primaria);transition:transform var(--d-fast) var(--ease)}
+.hub.yl .lk .go svg{width:18px;height:18px;display:block}
+.hub.yl .lk:hover .go{transform:translateX(3px)}
+.hub.yl .lk.main{background:linear-gradient(120deg,var(--brand-primaria),#E6C55C);color:#0B0B0B;border:0;
+  box-shadow:0 16px 34px -16px rgba(212,175,55,.6)}
+.hub.yl .lk.main small{color:rgba(11,11,11,.74)}
+.hub.yl .lk.main .ic{background:rgba(0,0,0,.12);color:#0B0B0B}
+.hub.yl .lk.main .go{color:#0B0B0B}
+.oss-sub{margin:2px 4px 0;font-size:var(--fs-2);color:var(--ink-3)}
+/* indicações: um cartão só, agrupado (como o "Para a sua viagem" da Bia) */
+.hub.yl .viagem{margin-top:18px;border-radius:var(--r-lg);overflow:hidden;background:rgba(14,14,14,.84);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid color-mix(in srgb,var(--brand-primaria) 28%,transparent)}
+.vgTopo{display:flex;flex-direction:column;gap:6px;padding:18px 18px 12px;border-bottom:1px solid color-mix(in srgb,var(--brand-primaria) 18%,transparent)}
+.vgTopo small{font:600 var(--fs-1)/1.2 var(--f-ui);letter-spacing:var(--track-label);text-transform:uppercase;color:var(--highlight-text)}
+.vgTopo h2{margin:0;font:500 var(--fs-6)/1.15 var(--f-serif);color:var(--ink)}
+.vg{display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 18px;color:var(--ink);text-decoration:none;
+  border-top:1px solid color-mix(in srgb,var(--brand-primaria) 10%,transparent);transition:background var(--d-fast) var(--ease)}
+.vgTopo + .vg{border-top:0}
+.vg:hover{background:rgba(212,175,55,.06)}
+.vg:focus-visible{outline:2px solid var(--brand-oro);outline-offset:-2px}
+.vgIc{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--brand-primaria) 14%,transparent);color:var(--brand-destaque)}
+.vgIc svg{width:21px;height:21px;display:block}
+.vgEmo{font-size:18px;line-height:1}
+.vgTx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.vgTx b{font:600 var(--fs-4)/1.25 var(--f-ui)}
+.vgTx small{font-size:var(--fs-2);color:var(--ink-3);line-height:1.35}
+.vgVai{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--brand-primaria) 12%,transparent);color:var(--brand-destaque)}
+.vgVai svg{width:16px;height:16px;display:block}
+@media (prefers-reduced-motion:reduce){.hub.yl .lk,.hub.yl .lk .go,.vg{transition:none}.hub.yl .lk:hover .go{transform:none}}
+
+/* a descrição curta no cartão do passeio (como na Bia): duas linhas no máximo */
+.tourcard .cdesc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:4px 0 2px;font-size:var(--fs-3);line-height:1.45;color:var(--ink-2)}

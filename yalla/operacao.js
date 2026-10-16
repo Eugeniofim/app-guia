@@ -864,6 +864,9 @@ const Tarefas = {
       clienteKey: d.clienteKey || '', clienteNome: String(d.clienteNome || '').trim(), whats: String(d.whats || '').trim(),
       bookingId: d.bookingId || '', orcId: d.orcId || '', pessoaId: d.pessoaId || '',
       fixa: !!d.fixa, origem: d.origem || 'manual',
+      /* como nas Tarefas da Bia: prioridade e se é do trabalho ou pessoal */
+      prio: ['alta', 'media', 'baixa'].includes(d.prio) ? d.prio : 'media',
+      cat: d.cat === 'pessoal' ? 'pessoal' : 'profissional',
       /* a tarefa inteligente: que tipo de passo e, quando se fecha sozinha,
          a que esta ligada, e de qual tarefa ela nasceu */
       etapa: d.etapa || (d.tipo === 'nota' ? '' : etapaDoTexto(texto)),
@@ -942,7 +945,7 @@ const Tarefas = {
   },
   salva(id, d) {
     const t = Tarefas.get(id); if (!t) return null;
-    for (const k of ['texto', 'detalhe', 'prazo', 'hora', 'clienteKey', 'clienteNome', 'fixa']) if (d[k] !== undefined) t[k] = typeof d[k] === 'string' ? d[k].trim() : d[k];
+    for (const k of ['texto', 'detalhe', 'prazo', 'hora', 'clienteKey', 'clienteNome', 'fixa', 'prio', 'cat']) if (d[k] !== undefined) t[k] = typeof d[k] === 'string' ? d[k].trim() : d[k];
     _opSave(); return t;
   },
   marca(id, feita) {

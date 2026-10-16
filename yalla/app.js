@@ -345,6 +345,26 @@ const ICONE_TT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="curren
 const ICONE_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>';
 function linkExterno(u) { return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
 
+/* ícones de traço da capa (16/10/2026, a capa no formato da Carol/Bia):
+   um traço só (1.8), sem emoji — o mesmo desenho em todas as seções */
+const YL_IC = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const YL = {
+  pin:       YL_IC('<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.4"/>'),
+  roteiro:   YL_IC('<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6.5a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7H16"/>'),
+  carro:     YL_IC('<path d="M5 16V11.5l1.8-4.2A2 2 0 0 1 8.6 6h6.8a2 2 0 0 1 1.8 1.3L19 11.5V16"/><path d="M3.5 16h17v2.5h-17z"/><circle cx="7.5" cy="13.2" r=".9" fill="currentColor"/><circle cx="16.5" cy="13.2" r=".9" fill="currentColor"/><path d="M5 11.5h14"/>'),
+  ingresso:  YL_IC('<path d="M3 8a2 2 0 0 0 0 4 2 2 0 0 1 0 4v2h18v-2a2 2 0 0 1 0-4 2 2 0 0 0 0-4V6H3z"/><path d="M14 6v12" stroke-dasharray="2 2"/>'),
+  volante:   YL_IC('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M3.8 10.5c3 .9 5.3.9 8.2.9s5.2 0 8.2-.9M12 14.2v6.2"/>'),
+  estrela:   YL_IC('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
+  selo:      YL_IC('<circle cx="12" cy="9" r="6"/><path d="m9 14.5-1.5 6.5 4.5-2.5 4.5 2.5-1.5-6.5"/><path d="m9.5 9 1.8 1.8L15 7.2"/>'),
+  hotel:     YL_IC('<path d="M3 19V7M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11.5" r="2"/>'),
+  chip:      YL_IC('<path d="M8 3h6.5L19 7.5V20a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><rect x="9.5" y="11" width="7" height="6.5" rx="1.2"/><path d="M13 11v6.5M9.5 14.2h7"/>'),
+  seguro:    YL_IC('<path d="M12 3l7 3v5.2c0 4.4-2.9 8.1-7 9.8-4.1-1.7-7-5.4-7-9.8V6l7-3Z"/><path d="M9 12.2l2.1 2.1L15.2 10"/>'),
+  passaporte:YL_IC('<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M9 16.5h6"/>'),
+  link:      YL_IC('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'),
+  seta:      YL_IC('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+  fora:      YL_IC('<path d="M7 17 17 7M9 7h8v8"/>'),
+};
+
 function viewHub() {
   const st = DB.settings;
   const txt = (o) => (o && (o[LANG] || o.pt)) || '';
@@ -360,66 +380,86 @@ function viewHub() {
   const links = (st.links || []).filter(l => linkExterno(l.url) && txt(l.titulo));
   /* o vídeo em destaque do Linktree dela */
   const dest = st.destaque && linkExterno(st.destaque.url) && txt(st.destaque.titulo) ? st.destaque : null;
-  /* "Quem já foi" (como a capa da Dulcineia): os depoimentos de verdade que ela
-     colou, e o destaque de feedback do Instagram. Nada inventado: sem
-     depoimento e sem link, o bloco não aparece. */
+  /* "Quem já foi": só depoimento de verdade que ela colou, e o destaque de
+     feedback do Instagram. Nada inventado: sem os dois, o bloco não aparece. */
   const depo = (typeof Avaliacoes !== 'undefined') ? Avaliacoes.all().slice(0, 4) : [];
   const fbIg = linkExterno(st.feedbackIg) ? st.feedbackIg : '';
-  /* ONE STOP SHOP (pedido da Milla, 01/10/2026): transfer, ingressos, hotel e
-     motorista num lugar só. Cada um abre o "Monte seu roteiro" já marcado
-     com o que a pessoa precisa (o transfer, se houver catálogo, abre a tabela). */
-  const precisaIds = ((typeof CONTEUDO !== 'undefined' && CONTEUDO.roteiro && CONTEUDO.roteiro.precisa) || []).map(x => x[0]);
-  const oss = [['transfer', '🚘', 'Transfer', 'Transfer', 'Traslado'], ['ingressos', '🎟', 'Ingressos', 'Tickets', 'Entradas'],
-               ['hotel', '🏨', 'Hotel', 'Hotel', 'Hotel'], ['motorista', '🚙', 'Motorista', 'Private driver', 'Chofer']].filter(o => precisaIds.includes(o[0]));
   const mesAno = (iso) => { try { return new Date(iso + 'T12:00:00').toLocaleDateString(locale ? locale() : 'pt-BR', { month: 'short', year: 'numeric' }); } catch (e) { return ''; } };
+  /* ONE STOP SHOP (pedido da Milla, 01/10/2026): cada item abre o "Monte seu
+     roteiro" já marcado com o que a pessoa precisa (o transfer, se houver
+     catálogo no ar, abre a tabela de transfer) */
+  const precisaIds = ((typeof CONTEUDO !== 'undefined' && CONTEUDO.roteiro && CONTEUDO.roteiro.precisa) || []).map(x => x[0]);
+  const tem = (k) => precisaIds.includes(k);
+  const marca = guiaNegocio().split(' ')[0];
+  const lk = (id, ic, tit, sub, cls = '', attrs = '') => `<button class="lk ${cls}" id="${id}" ${attrs}><span class="ic">${ic}</span><span><b>${tit}</b>${sub ? `<small>${sub}</small>` : ''}</span><span class="go" aria-hidden="true">${YL.seta}</span></button>`;
+  /* as indicações: sem link de parceira, abrem o WhatsApp dela já pedindo
+     (ninguém fica sem resposta e nenhum desconto é prometido) */
+  const indica = [
+    ['hotel', YL.hotel, L3('Onde ficar em Dubai', 'Where to stay in Dubai', 'Dónde alojarse en Dubái'), L3('Hotel por bairro, do jeito da sua viagem', 'Hotels by area, to suit your trip', 'Hoteles por barrio, a tu medida'),
+      L3(`Olá, ${guiaNome()}! Pode me indicar um hotel em Dubai?`, `Hi ${guiaNome()}! Could you recommend a hotel in Dubai?`, `¡Hola, ${guiaNome()}! ¿Me recomiendas un hotel en Dubái?`)],
+    ['chip', YL.chip, L3('Chip de viagem (eSIM)', 'Travel eSIM', 'eSIM de viaje'), L3('Chegue em Dubai já conectado', 'Land in Dubai already connected', 'Llega a Dubái ya conectado'),
+      L3(`Olá, ${guiaNome()}! Quero uma indicação de chip (eSIM) para Dubai.`, `Hi ${guiaNome()}! Can you recommend an eSIM for Dubai?`, `¡Hola, ${guiaNome()}! ¿Me recomiendas una eSIM para Dubái?`)],
+    ['seguro', YL.seguro, L3('Seguro viagem', 'Travel insurance', 'Seguro de viaje'), L3('Viaje tranquilo, do embarque à volta', 'Travel with peace of mind', 'Viaja tranquilo, de ida y vuelta'),
+      L3(`Olá, ${guiaNome()}! Quero uma indicação de seguro viagem.`, `Hi ${guiaNome()}! Can you recommend travel insurance?`, `¡Hola, ${guiaNome()}! ¿Me recomiendas un seguro de viaje?`)],
+    tem('visto') ? ['visto', YL.passaporte, L3('Visto e chegada', 'Visa & arrival', 'Visado y llegada'), L3('O que levar e como é a imigração', 'What to bring and how arrival works', 'Qué llevar y cómo es la llegada'),
+      L3(`Olá, ${guiaNome()}! Tenho uma dúvida sobre visto e chegada em Dubai.`, `Hi ${guiaNome()}! I have a question about visa and arrival in Dubai.`, `¡Hola, ${guiaNome()}! Tengo una duda sobre visado y llegada a Dubái.`)] : null,
+  ].filter(Boolean);
 
   app.innerHTML = `
-  <div class="hub">
+  <div class="hub yl">
     <div class="hub-bg" style="background-image:url(${esc(st.homePhoto || 'home.jpg')})"></div>
     <div class="hub-in">
       <div class="vcard">
         <div class="hub-brand">${logoFull({ mark: 46, sub: esc(guiaBase()) })}</div>
         <p class="tagline">${esc(noIdioma(st.homeText) || t('tagline'))}</p>
-        ${redes.length ? `<div class="redes" aria-label="${t('hubRedes')}">${redes.map(r =>
-          `<a class="rede ${r.c}" href="${esc(r.u)}" target="_blank" rel="noopener" aria-label="${r.n}" title="${r.n}">${r.ic}</a>`).join('')}</div>` : ''}
+        ${GUIA_CFG.badge ? `<p class="ylBadge"><span class="ylBadgeIc">${YL.selo}</span><span>${esc(String(GUIA_CFG.badge).split('·')[0].trim())}</span></p>` : ''}
+        ${redes.length ? `<nav class="redes" aria-label="${t('hubRedes')}">${redes.map(r =>
+          `<a class="rede ${r.c}" href="${esc(r.u)}" target="_blank" rel="noopener" aria-label="${r.n}" title="${r.n}">${r.ic}</a>`).join('')}</nav>` : ''}
         ${langBar('center')}
       </div>
-      <button class="lk main" id="goTours">
-        <span class="ic">📍</span><span><b>${t('seeTours')}</b><small>${t('seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
-      </button>
-      ${temTransfer ? `<button class="lk" id="goTransfer">
-        <span class="ic">🚘</span><span><b>${t('hubTransfer')}</b><small>${t('hubTransferSub')}</small></span><span class="go" aria-hidden="true">→</span>
-      </button>` : ''}
-      <button class="lk" id="goRoteiro">
-        <span class="ic">🗺️</span><span><b>${t('hubRoteiro')}</b><small>${t('hubRoteiroSub')}</small></span><span class="go" aria-hidden="true">→</span>
-      </button>
-      ${oss.length >= 3 ? `<p class="hubsec">${t('hubOss')}</p>
-      <div class="oss">${oss.map(o => `<button class="oss-i" data-oss="${o[0]}"><span class="oss-ic" aria-hidden="true">${o[1]}</span><b>${L3(o[2], o[3], o[4])}</b></button>`).join('')}</div>
+
+      <p class="hubRot">${L3('Com a ' + marca, 'With ' + marca, 'Con ' + marca)}</p>
+      ${lk('goTours', YL.pin, t('seeTours'), t('seeToursSub'), 'main')}
+      ${lk('goRoteiro', YL.roteiro, t('hubRoteiro'), t('hubRoteiroSub'))}
+
+      ${tem('transfer') || temTransfer || tem('ingressos') || tem('motorista') ? `<p class="hubRot">${L3('Planeje a sua viagem', 'Plan your trip', 'Planifica tu viaje')}</p>
+      ${temTransfer ? lk('goTransfer', YL.carro, t('hubTransfer'), t('hubTransferSub'), '', 'data-oss="transfer"')
+        : tem('transfer') ? lk('goTransfer', YL.carro, L3('Transfer', 'Transfer', 'Traslado'), L3('Aeroporto e hotel, na chegada e na partida', 'Airport and hotel, on arrival and departure', 'Aeropuerto y hotel, a la llegada y la salida'), '', 'data-oss="transfer"') : ''}
+      ${tem('ingressos') ? lk('goIngressos', YL.ingresso, L3('Ingressos e reservas', 'Tickets & bookings', 'Entradas y reservas'), L3('Atrações, restaurantes e experiências sem fila', 'Attractions, restaurants and skip-the-line', 'Atracciones, restaurantes y sin filas'), '', 'data-oss="ingressos"') : ''}
+      ${tem('motorista') ? lk('goMotorista', YL.volante, L3('Carro com motorista', 'Private driver', 'Auto con chofer'), L3('Para o dia todo ou para um passeio', 'For a full day or a single trip', 'Por el día o para un paseo'), '', 'data-oss="motorista"') : ''}
       <p class="oss-sub">${t('hubOssSub')}</p>` : ''}
-      ${dest ? `<a class="lk destaque" href="${esc(dest.url)}" target="_blank" rel="noopener">
-        <span class="ic play">${ICONE_PLAY}</span><span><b>${esc(txt(dest.titulo))}</b>${txt(dest.sub) ? `<small>${esc(txt(dest.sub))}</small>` : ''}</span><span class="go" aria-hidden="true">↗</span></a>` : ''}
+
+      <p class="hubRot">${L3('Conheça', 'Get to know us', 'Conócenos')}</p>
       <button class="lk" id="goAbout">
-        <span class="ic"><img id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt=""
-          style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
+        <span class="ic foto"><img id="hubFace" src="${esc(st.photo || 'guia.jpg')}" alt=""></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">${YL.seta}</span>
       </button>
-      ${typeof Avaliacoes !== 'undefined' && (Avaliacoes.all().length > 4 || linkExterno(st.linkAvaliacao)) ? `<button class="lk" id="goAval">
-        <span class="ic">⭐</span><span><b>${t('hubAval')}</b><small>${Avaliacoes.media() ? `${String(Avaliacoes.media()).replace('.', ',')} ★ · ${Avaliacoes.all().length} ${Avaliacoes.all().length === 1 ? L3('avaliação', 'review', 'reseña') : L3('avaliações', 'reviews', 'reseñas')}` : t('hubAvalSub')}</small></span><span class="go" aria-hidden="true">→</span>
-      </button>` : ''}
-      <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b><small>${t('hubWhatsSub')}</small></span><span class="go" aria-hidden="true">→</span></a>
-      ${depo.length || fbIg ? `<p class="hubsec">${t('hubQuemFoi')}</p>
+      ${dest ? `<a class="lk destaque" href="${esc(dest.url)}" target="_blank" rel="noopener">
+        <span class="ic play">${ICONE_PLAY}</span><span><b>${esc(txt(dest.titulo))}</b>${txt(dest.sub) ? `<small>${esc(txt(dest.sub))}</small>` : ''}</span><span class="go" aria-hidden="true">${YL.fora}</span></a>` : ''}
+      ${typeof Avaliacoes !== 'undefined' && (Avaliacoes.all().length > 4 || linkExterno(st.linkAvaliacao)) ? lk('goAval', YL.estrela, t('hubAval'),
+        Avaliacoes.media() ? `${String(Avaliacoes.media()).replace('.', ',')} ★ · ${Avaliacoes.all().length} ${Avaliacoes.all().length === 1 ? L3('avaliação', 'review', 'reseña') : L3('avaliações', 'reviews', 'reseñas')}` : t('hubAvalSub')) : ''}
+      <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b><small>${t('hubWhatsSub')}</small></span><span class="go" aria-hidden="true">${YL.seta}</span></a>
+
+      ${depo.length || fbIg ? `<p class="hubRot">${t('hubQuemFoi')}</p>
       ${depo.length ? `<div class="depos">${depo.map(a => `<figure class="depo"><blockquote>“${esc(a.texto)}”</blockquote>
         <figcaption><b>${esc(a.nome)}</b>${a.data ? ` <small>${esc(mesAno(a.data))}</small>` : ''}</figcaption></figure>`).join('')}</div>` : ''}
-      ${fbIg ? `<a class="lk parc" href="${esc(fbIg)}" target="_blank" rel="noopener">
-        <span class="ic">${ICONE_IG}</span><span><b>${t('hubFbIg')}</b><small>${t('hubFbIgSub')}</small></span><span class="go" aria-hidden="true">↗</span></a>` : ''}` : ''}
-      ${links.length ? `<p class="hubsec">${t('hubViagem')}</p>
-      ${links.map(l => `<a class="lk parc" href="${esc(l.url)}" target="_blank" rel="noopener sponsored">
-        <span class="ic">${esc(l.icone || '🔗')}</span><span><b>${esc(txt(l.titulo))}</b>${txt(l.sub) ? `<small>${esc(txt(l.sub))}</small>` : ''}</span><span class="go" aria-hidden="true">↗</span></a>`).join('')}` : ''}
+      ${fbIg ? `<a class="lk" href="${esc(fbIg)}" target="_blank" rel="noopener">
+        <span class="ic ig">${ICONE_IG}</span><span><b>${t('hubFbIg')}</b><small>${t('hubFbIgSub')}</small></span><span class="go" aria-hidden="true">${YL.fora}</span></a>` : ''}` : ''}
+
+      <section class="viagem" aria-labelledby="vgTit">
+        <header class="vgTopo"><small>${L3('Indicações da ' + marca, marca + ' recommends', 'Recomendaciones de ' + marca)}</small><h2 id="vgTit">${t('hubViagem')}</h2></header>
+        ${indica.map(([k, ic, tit, sub, msg]) => `<a class="vg" href="${esc(waLink(msg))}" target="_blank" rel="noopener">
+          <span class="vgIc">${ic}</span><span class="vgTx"><b>${esc(tit)}</b><small>${esc(sub)}</small></span>
+          <span class="vgVai" aria-hidden="true">${ICONE_WA}</span><span class="sr-only">${L3('(abre o WhatsApp)', '(opens WhatsApp)', '(abre WhatsApp)')}</span></a>`).join('')}
+        ${links.map(l => `<a class="vg" href="${esc(l.url)}" target="_blank" rel="noopener sponsored">
+          <span class="vgIc">${l.icone ? `<span class="vgEmo">${esc(l.icone)}</span>` : YL.link}</span><span class="vgTx"><b>${esc(txt(l.titulo))}</b>${txt(l.sub) ? `<small>${esc(txt(l.sub))}</small>` : ''}</span>
+          <span class="vgVai" aria-hidden="true">${YL.fora}</span><span class="sr-only">${L3('(abre em outra aba)', '(opens in a new tab)', '(abre en otra pestaña)')}</span></a>`).join('')}
+      </section>
+
       <button class="adm-entry" id="admEntry">🔒 ${t('admEntry')}</button>
     </div>
   </div>`;
   bindLang(app);
   $('#goTours').onclick = () => { viewShowcase._f = 'all'; go('/tours'); };
-  if ($('#goTransfer')) $('#goTransfer').onclick = () => { viewShowcase._f = 'transfer'; go('/tours'); };
   $('#goRoteiro').onclick = () => go('/roteiro');
   $$('[data-oss]').forEach(b => b.onclick = () => {
     const k = b.dataset.oss;
@@ -893,7 +933,8 @@ function viewShowcase() {
           </span>
           <span class="bd">
             <b>${esc(x.name[LANG] || x.name.pt)}</b>
-            ${x.tagline && (x.tagline[LANG] || x.tagline.pt) ? `<small class="ctag">${esc(x.tagline[LANG] || x.tagline.pt)}</small>` : ''}
+            ${x.tagline && (x.tagline[LANG] || x.tagline.pt) ? `<small class="ctag">${esc(x.tagline[LANG] || x.tagline.pt)}</small>`
+              : x.desc && (x.desc[LANG] || x.desc.pt) ? `<small class="cdesc">${esc(String(x.desc[LANG] || x.desc.pt).split(/(?<=[.!?])\s/)[0].slice(0, 160))}</small>` : ''}
             <small class="meta">${regiaoLabel(x.region)}${x.duration && x.duration !== '—' ? ' · ' + esc(x.duration) : ''}${(x.stops || []).length ? ' · ' + t('nParadas', { n: x.stops.length }) : ''}</small>
             <span class="cardfoot">
               ${ehSobConsulta(x) ? `<span class="pr">${t('sobConsulta')}</span>` : `<span class="pr">${x.priceMode === 'tabela' || x.priceMode === 'transfer' || (x.priceLate && x.earlySeats && x.priceMode !== 'session') ? `<u>${t('fromPrice')}</u> ` : ''}${eur(precoVitrine(x))}

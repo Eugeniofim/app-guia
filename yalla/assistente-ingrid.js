@@ -120,7 +120,7 @@ const ING_FERRAMENTAS = [
   { name: 'ver_passo_a_passo', description: 'O Pipeline passo a passo: cada cliente/viagem em que etapa está (contato, orçamento, confirmado, compras, guia, viagem, pós-venda) e o PRÓXIMO PASSO que falta.', input_schema: obj({ etapa: S_('filtra por etapa (opcional)') }) },
   { name: 'abrir_aba', description: 'Leva ela até uma tela do app (e, se quiser, a um item).', input_schema: obj({ aba: { type: 'string', enum: ING_ABAS }, item: S_('id do orçamento, código da reserva ou chave do cliente (opcional)') }, ['aba']) },
   /* gravar */
-  { name: 'anotar_tarefa', description: 'Cria tarefa (com dia e hora se houver; entende "amanhã 9h" no texto). Mandar mensagem/cobrar/orçamento já vêm com o passo seguinte ("aguardar resposta").', input_schema: obj({ texto: S_(), dia: S_('AAAA-MM-DD'), hora: S_('HH:MM'), cliente: S_(), detalhe: S_() }, ['texto']) },
+  { name: 'anotar_tarefa', description: 'Cria tarefa (com dia e hora se houver; entende "amanhã 9h" no texto). Mandar mensagem/cobrar/orçamento já vêm com o passo seguinte ("aguardar resposta"). Prioridade (alta/media/baixa) e tipo (profissional/pessoal) como na aba Tarefas.', input_schema: obj({ texto: S_(), dia: S_('AAAA-MM-DD'), hora: S_('HH:MM'), cliente: S_(), detalhe: S_(), prioridade: { type: 'string', enum: ['alta', 'media', 'baixa'] }, tipo: { type: 'string', enum: ['profissional', 'pessoal'] } }, ['texto']) },
   { name: 'concluir_tarefa', description: 'Marca tarefa como feita. Em tarefa de espera diga o resultado: respondeu ou nao_respondeu (vira lembrete). Devolve o próximo passo que o app criou.', input_schema: obj({ tarefa: S_('id ou pedaço do texto'), resultado: { type: 'string', enum: ['feito', 'respondeu', 'nao_respondeu'] } }, ['tarefa']) },
   { name: 'anotar', description: 'Guarda uma anotação (ideia, fornecedor, detalhe), ligada a um cliente se houver.', input_schema: obj({ texto: S_(), cliente: S_(), fixar: { type: 'boolean' } }, ['texto']) },
   { name: 'anotar_cliente', description: 'Acrescenta um fato à ficha do cliente (o que vale para sempre: vegana, VIP, alergia, indicação de quem).', input_schema: obj({ cliente: S_(), texto: S_(), etiqueta: S_() }, ['cliente', 'texto']) },
@@ -362,8 +362,9 @@ const ING_PLANO = {
     if (i.cliente) { const r = ingAchaCliente(i.cliente); if (r.c) cli = { clienteKey: r.c.key, clienteNome: r.c.name, whats: r.c.whats }; else if (r.opcoes) return r; }
     const et = ETAPAS[etapaDoTexto(txt)];
     return { titulo: 'Anotar tarefa', assumiu: [], linhas: [['Tarefa', txt], ['Quando', dia ? ingData(dia) + (hora ? ' ' + hora : '') : 'sem data'],
-      ...(cli.clienteNome ? [['Cliente', cli.clienteNome]] : []), ...(et && et.depois ? [['Depois de feita', et.depois]] : []), ...(i.detalhe ? [['Detalhe', i.detalhe]] : [])],
-      fazer: () => { const t = Tarefas.cria({ texto: txt, prazo: dia, hora, detalhe: i.detalhe || '', ...cli, origem: 'assistente' }); return { ok: true, tarefa_id: t.id }; } };
+      ...(cli.clienteNome ? [['Cliente', cli.clienteNome]] : []), ...(et && et.depois ? [['Depois de feita', et.depois]] : []), ...(i.detalhe ? [['Detalhe', i.detalhe]] : []),
+      ...(i.prioridade && i.prioridade !== 'media' ? [['Prioridade', i.prioridade]] : []), ...(i.tipo === 'pessoal' ? [['Tipo', 'pessoal']] : [])],
+      fazer: () => { const t = Tarefas.cria({ texto: txt, prazo: dia, hora, detalhe: i.detalhe || '', prio: i.prioridade, cat: i.tipo, ...cli, origem: 'assistente' }); return { ok: true, tarefa_id: t.id }; } };
   },
   concluir_tarefa(i) {
     const r = ingAchaTarefa(i.tarefa); if (!r.t) return r;
