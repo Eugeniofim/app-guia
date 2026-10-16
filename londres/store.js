@@ -80,6 +80,8 @@ function _blank() {
            /* pixName e pixCity sao exigidos pelo padrao do BR Code:
               sem eles o banco recusa o codigo. */
            pixKey: '', pixName: '', pixCity: '', iban: '', ibanName: '', payNote: '',
+           /* Wise: link de pagamento do guia, em euro (wise.com/pay/me/…) */
+           wiseLink: '', wiseNome: '',
            /* para onde vai o aviso de reserva nova. Vazio = ela ainda nao
               preencheu; quem manda o e-mail e o robo, fora do navegador. */
            admEmail: '',

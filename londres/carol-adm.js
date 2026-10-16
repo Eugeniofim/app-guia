@@ -317,7 +317,7 @@ function admRoteiros(id) {
     ${rs.length ? rs.map(r => { const [cls, txt] = ST[r.status] || ST.rascunho; return `<section class="card rtAdm">
       <div class="agTopo"><div><h3>${esc(r.nome)}${r.exemplo ? ' <em class="exTag">exemplo</em>' : ''}</h3><small>${dtBR(r.ini)} a ${dtBR(r.fim)} · ${diasEntre(r.ini, r.fim)} dias · ${r.adultos + r.criancas} pessoas · ${esc((NIVEIS.find(n => n.id === r.nivel) || {}).n || '')}</small></div>
         <span class="pill ${cls}">${txt}</span></div>
-      <p class="agPg">💷 ${r.pago ? 'Pagou ' + eur(r.pago.valor) + ' (' + (r.pago.metodo === 'pix' ? 'Pix' : 'cartão') + ')' : 'Sem pagamento'} · quer: ${esc((r.querem || []).map(q => (DESTAQUES.find(d => d.id === q) || {}).n || q).join(', '))}</p>
+      <p class="agPg">💷 ${r.pago ? 'Pagou ' + eur(r.pago.valor) + ' (' + (r.pago.metodo === 'pix' ? 'Pix' : r.pago.metodo === 'wise' ? 'Wise' : 'cartão') + ')' : 'Sem pagamento'} · quer: ${esc((r.querem || []).map(q => (DESTAQUES.find(d => d.id === q) || {}).n || q).join(', '))}</p>
       <div class="tacts"><button class="cta sm" data-rt="${r.id}">${r.status === 'publicado' ? 'Editar' : 'Revisar e validar'}</button><a class="mini" href="#/r/${esc(r.codigo)}">Ver como o cliente vê</a></div>
     </section>`; }).join('') : '<p class="empty">Nenhum roteiro ainda.</p>'}`);
   $$('[data-rt]').forEach(b => b.onclick = () => go('/adm/roteiros/' + b.dataset.rt));
@@ -398,8 +398,8 @@ function admTransfer() {
    ===================================================== */
 function admFinanceiro() {
   const hoje = isoToday(), mes = hoje.slice(0, 7), em30 = addDays(hoje, 30);
-  let recMes = 0, recCartao = 0, recPix = 0, recAg = 0;
-  for (const b of DB.bookings) for (const p of b.payments) if ((p.date || '').slice(0, 7) === mes && p.date <= hoje) { recMes += p.amount; if (p.method === 'pix') recPix += p.amount; else recCartao += p.amount; }
+  let recMes = 0, recCartao = 0, recPix = 0, recWise = 0, recAg = 0;
+  for (const b of DB.bookings) for (const p of b.payments) if ((p.date || '').slice(0, 7) === mes && p.date <= hoje) { recMes += p.amount; if (p.method === 'pix') recPix += p.amount; else if (p.method === 'wise') recWise += p.amount; else recCartao += p.amount; }
   for (const j of DB.trabalhosAgencia || []) if (j.invoice && j.invoice.paga && j.invoice.paga.slice(0, 7) === mes) { recMes += +j.valor; recAg += +j.valor; }
   const saldos = DB.bookings.filter(b => b.status === 'confirmed' && b.date >= hoje && Bookings.due(b) > 0);
   const aReceberCli = saldos.reduce((s, b) => s + Bookings.due(b), 0);
@@ -417,7 +417,7 @@ function admFinanceiro() {
   admShell('financeiro', `
     <div class="pagehead"><h1 class="pageh">Financeiro</h1><div class="chips"><button class="mini" data-ir="/adm/money">Extrato para o contador →</button></div></div>
     <div class="kpis">
-      <div class="kpi"><small>Recebido em ${new Date().toLocaleDateString('pt-BR', { month: 'long' })}</small><b>${eur(recMes)}</b><i>cartão ${eur(recCartao)} · Pix ${eur(recPix)} · agências ${eur(recAg)}</i></div>
+      <div class="kpi"><small>Recebido em ${new Date().toLocaleDateString('pt-BR', { month: 'long' })}</small><b>${eur(recMes)}</b><i>cartão ${eur(recCartao)} · Pix ${eur(recPix)}${recWise ? ' · Wise ' + eur(recWise) : ''} · agências ${eur(recAg)}</i></div>
       <div class="kpi"><small>A receber de clientes (no dia do tour)</small><b>${eur(aReceberCli)}</b><i>${saldos.length} reservas com saldo</i></div>
       <div class="kpi ${invAMandar.length ? 'warn' : ''}"><small>A receber de agências</small><b>${eur(aReceberAg)}</b><i>${invAbertas.length} enviadas · ${invAMandar.length} para mandar</i></div>
     </div>

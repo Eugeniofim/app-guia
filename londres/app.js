@@ -845,7 +845,16 @@ function comoPagar(b, x) {
       <small class="why">${t('cardComo')}</small>
     </div>` : '';
 
-  const meios = blocoCartao + blocoPix
+  /* Wise: link de pagamento do guia, em euro. O link do Wise nao leva valor:
+     o cliente digita, por isso o app mostra qual. Quem confere e marca pago e o guia. */
+  const blocoWise = /^https:\/\/(www\.)?wise\.com\//i.test(st.wiseLink || '') ? `
+    <div class="cardbox wisebox">
+      <b class="pixtit">${t('wiseTit')}</b>
+      <a class="cta sm" target="_blank" rel="noopener" href="${esc(st.wiseLink)}">${t('wiseBtn', { v: eur(agora) })}</a>
+      <small class="why">${t('wiseComo', { v: eur(agora) })}${st.wiseNome ? ' · ' + t('inNameOf') + ' ' + esc(st.wiseNome) : ''}</small>
+    </div>` : '';
+
+  const meios = blocoCartao + blocoPix + blocoWise
               + (st.pixKey && !codigoPix ? linha(t('pixLbl'), st.pixKey, st.pixName) : '')
               + (st.iban ? linha(t('ibanLbl'), st.iban, st.ibanName) : '');
   return `
@@ -1747,7 +1756,7 @@ function admBookings() {
       <p class="why">${t('nrValorAuto')}</p>
       <label class="fld">${t('nrComo')}<select id="nrComo">
         <option value="">${t('nrNada')}</option>
-        ${[['pix','mPix'],['transfer','mTransfer'],['cash','mCash'],['card','mCard'],['other','mOther']]
+        ${[['pix','mPix'],['wise','mWise'],['transfer','mTransfer'],['cash','mCash'],['card','mCard'],['other','mOther']]
           .map(([v, k]) => `<option value="${v}">${t(k)}</option>`).join('')}
       </select></label>
       <button class="cta sm" id="nrSalvar">${t('nrSalvar')}</button>
@@ -1841,7 +1850,7 @@ function admBookings() {
     const id = btn.dataset.got;
     const cx = document.getElementById('ta-' + id);
     if (!cx) return;
-    const formas = [['pix','mPix'],['card','mCard'],['cash','mCash'],['transfer','mTransfer'],['other','mOther']];
+    const formas = [['pix','mPix'],['wise','mWise'],['card','mCard'],['cash','mCash'],['transfer','mTransfer'],['other','mOther']];
     cx.innerHTML = `<span class="howgot">${t('howGot')}:</span>`
       + formas.map(([v, k]) => `<button class="mini" data-m="${v}">${t(k)}</button>`).join('')
       + `<button class="mini ghost" data-m="">${t('cancelSm')}</button>`;
@@ -1855,7 +1864,7 @@ function admBookings() {
   });
 }
 
-const METODO = { pix: 'mPix', card: 'mCard', cash: 'mCash', transfer: 'mTransfer',
+const METODO = { pix: 'mPix', wise: 'mWise', card: 'mCard', cash: 'mCash', transfer: 'mTransfer',
                  applepay: 'mApple', other: 'mOther' };
 function formaPg(m) { return METODO[m] ? t(METODO[m]) : (m || '—'); }
 
@@ -2088,6 +2097,10 @@ function admSettings() {
         <div class="fld"><small class="why">${t('admPixHelp')}</small></div>
       </div>
       <div class="frow">
+        <label class="fld">${t('admWise')}<input id="pgWise" inputmode="url" value="${esc(DB.settings.wiseLink || '')}" placeholder="https://wise.com/pay/me/…"></label>
+        <label class="fld">${t('admWiseNome')}<input id="pgWiseNome" value="${esc(DB.settings.wiseNome || '')}" placeholder="Nome como no Wise"></label>
+      </div>
+      <div class="frow">
         <label class="fld">${t('admIban')}<input id="pgIban" value="${esc(DB.settings.iban || '')}" placeholder="FR76 …"></label>
         <label class="fld">${t('admIbanName')}<input id="pgIbanName" value="${esc(DB.settings.ibanName || '')}" placeholder="Nome como no banco"></label>
       </div>
@@ -2296,6 +2309,10 @@ function admSettings() {
     DB.settings.pixKey   = $('#pgPix').value.trim();
     DB.settings.pixName  = $('#pgPixName').value.trim();
     DB.settings.pixCity  = $('#pgPixCity').value.trim();
+    const wise = $('#pgWise').value.trim();
+    if (wise && !/^https:\/\/(www\.)?wise\.com\//i.test(wise)) { $('#pgWise').focus(); return toast(t('admWiseErro')); }
+    DB.settings.wiseLink = wise;
+    DB.settings.wiseNome = $('#pgWiseNome').value.trim();
     DB.settings.iban     = $('#pgIban').value.trim();
     DB.settings.ibanName = $('#pgIbanName').value.trim();
     DB.settings.payNote  = $('#pgNote').value.trim();

@@ -15,7 +15,7 @@
   const dinheiro = (v) => (typeof eur === 'function' ? eur(v) : String(v));
   const dataF = (d) => d ? (typeof fmtDate === 'function' ? fmtDate(d) : d) : '—';
   const primeiro = (n) => String(n || '').trim().split(/\s+/)[0] || '';
-  const METODO = { card: 'cartão', applepay: 'Apple Pay', pix: 'Pix', cash: 'dinheiro', transfer: 'transferência', other: 'outro' };
+  const METODO = { card: 'cartão', applepay: 'Apple Pay', pix: 'Pix', wise: 'Wise', cash: 'dinheiro', transfer: 'transferência', other: 'outro' };
 
   function fichaDe(key) {
     const hoje = isoToday();
