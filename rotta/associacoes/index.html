@@ -139,6 +139,10 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
 .tab .extras p{font-size:13.5px;color:var(--muted);margin-top:3px}
 .tab .extras .v{font-size:13px;font-weight:800;color:var(--teal);margin-top:4px}
 .tab .tabela .cta{min-height:46px}
+.tab .impl{display:flex;align-items:baseline;gap:6px;margin-top:10px;padding:8px 10px;border:1.5px dashed var(--line);border-radius:10px;font-size:13.5px}
+.tab .impl span{color:var(--muted);font-weight:700}
+.tab .impl b{font-size:16px}
+.tab .impl small{color:var(--muted)}
 .rodape{font-size:13px;color:var(--muted);text-align:center}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -182,7 +186,7 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
         <ul class="lista">
           <li><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Um app com o nome dele, os passeios e as cores dele<small>vitrine pro cliente ver as vagas e reservar sozinho</small></span></li>
           <li><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Reservas com data e vagas, agenda e quem já pagou</span></li>
-          <li><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Começa no plano Free e testa 7 dias com tudo liberado</span></li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Mensalidade a partir de € 0 no plano Free, e 7 dias com tudo liberado</span></li>
           <li><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Preço de fundador, garantido enquanto assinar</span></li>
         </ul>
       </div>
@@ -227,7 +231,7 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
 
   <section class="bloco tab" id="planos">
     <h2>Os planos para os associados</h2>
-    <p class="lede" style="font-size:15.5px;margin-top:6px">Preço de fundador: quem entra agora mantém o valor enquanto assinar. Todo plano começa com 7 dias com tudo liberado.</p>
+    <p class="lede" style="font-size:15.5px;margin-top:6px">Preço de fundador: quem entra agora mantém o valor enquanto assinar. A implantação do app se paga uma vez, e todo plano começa com 7 dias com tudo liberado.</p>
     <div class="troca" style="margin-top:14px" role="group" aria-label="Forma de pagamento">
       <button class="on" data-modo="mes">Mensal</button>
       <button data-modo="ano">Anual <span class="eco">2 meses grátis</span></button>
@@ -240,7 +244,8 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
       <p class="pra">Pra quem quer sair do caderno e do WhatsApp espalhado.</p>
       <div class="preco"><b>€ 0</b></div>
       <div class="ano"></div>
-      <a class="cta" href="../../londres/" target="_blank" rel="noopener">Começar grátis</a>
+      <div class="impl"><span>Implantação</span><b>€ 250</b><small>uma vez</small></div>
+      <a class="cta" href="../../londres/" target="_blank" rel="noopener">Ver o app de exemplo</a>
       <div class="sec">Recursos</div>
       <ul>
         <li><i></i><span><span class="menu">Meus passeios</span>: até 5 na vitrine</span></li>
@@ -261,7 +266,8 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
       <p class="pra">Pra guia que vive de passeio e quer tudo organizado num lugar só.</p>
       <div class="preco" data-mes="13" data-ano="130"><b>€ 13</b><span>/mês</span></div>
       <div class="ano"></div>
-      <a class="cta" href="../../londres/" target="_blank" rel="noopener">Experimentar grátis</a>
+      <div class="impl"><span>Implantação</span><b>€ 330</b><small>uma vez</small></div>
+      <a class="cta" href="../../londres/" target="_blank" rel="noopener">Ver o app de exemplo</a>
       <div class="sec">Tudo do Free, mais</div>
       <ul>
         <li><i></i><span><span class="menu">Meus passeios</span> ilimitados</span></li>
@@ -281,7 +287,8 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
       <p class="pra">Pra quem quer um assistente que faz o trabalho chato por você.</p>
       <div class="preco" data-mes="25" data-ano="250"><b>€ 25</b><span>/mês</span></div>
       <div class="ano"></div>
-      <a class="cta" href="../../londres/" target="_blank" rel="noopener">Experimentar grátis</a>
+      <div class="impl"><span>Implantação</span><b>€ 400</b><small>uma vez</small></div>
+      <a class="cta" href="../../londres/" target="_blank" rel="noopener">Ver o app de exemplo</a>
       <div class="sec">Tudo do Standard, mais</div>
       <ul>
         <li><i></i><span><b>Assistente de IA</b> em todas as abas<small>você fala ou escreve: "muda o preço", "quem não pagou?", e ele faz</small></span></li>
@@ -298,7 +305,7 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
   <div class="extras">
     <div><h3>🔒 Atendimento automático</h3><p><span class="menu">Atendimento</span>: robô que responde no WhatsApp e no Instagram com os seus passeios e vagas.</p><div class="v">Extra · implantado pela Ti Artes</div></div>
     <div><h3>🔒 Agente de marketing</h3><p><span class="menu">Marketing</span>: posts, stories e anúncios prontos a partir dos seus passeios.</p><div class="v">Extra · implantado pela Ti Artes</div></div>
-    <div><h3>🧰 Implantação do app</h3><p>A gente monta o seu app: passeios, fotos, textos, cores e logo, e deixa tudo no ar pronto para vender.</p><div class="v">€ 330 uma vez</div></div>
+    <div><h3>🧰 O que a implantação inclui</h3><p>A gente monta o seu app: passeios, fotos, textos, cores e logo, e deixa tudo no ar pronto para vender.</p><div class="v">Paga uma vez · valor de cada plano</div></div>
   </div>
 
 
@@ -326,7 +333,7 @@ details p{margin-top:8px;color:var(--muted);font-size:15px}
       <details><summary>A associação paga alguma coisa?</summary><p>Não. A parceria não tem custo. A associação só recebe.</p></details>
       <details><summary>A associação precisa operar alguma coisa?</summary><p>Não. A gente faz a apresentação, cadastra quem precisar e dá o suporte aos associados. A associação só divulga.</p></details>
       <details><summary>E os dados dos associados?</summary><p>Clientes e reservas são do guia, e ele exporta tudo quando quiser. A associação recebe só o número de adesões e a comissão, nunca os dados dos clientes de ninguém.</p></details>
-      <details><summary>O associado é obrigado a pagar?</summary><p>Não. Ele pode ficar no Free para sempre. Só paga se quiser os recursos do Standard ou do Pro.</p></details>
+      <details><summary>O associado é obrigado a pagar?</summary><p>A mensalidade, não: ele pode ficar no Free (€ 0 por mês) para sempre. Ele paga só a implantação do app, uma vez, e a mensalidade se quiser os recursos do Standard ou do Pro.</p></details>
       <details><summary>Em que idiomas?</summary><p>No plano Pro, a vitrine do guia sai em vários idiomas para os clientes dele. O material da parceria existe em português, francês e inglês.</p></details>
       <details><summary>E se não der certo?</summary><p>A parceria termina quando a associação quiser. Os associados continuam com o app deles normalmente.</p></details>
     </div>
