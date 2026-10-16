@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#13201E">
+<meta name="robots" content="noindex,nofollow">
+<title>Rotta · CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=IBM+Plex+Mono:wght@500&family=Nunito+Sans:opsz,wght@6..12,400;6..12,700;6..12,800&display=swap" rel="stylesheet">
+<style>
+/* CRM da Rotta (16/10/2026) — Eugênio, Igor e Dulcineia abrem com o código.
+   Três tipos: potencial · comprou · cancelou. Quem faz o teste de 20 min entra sozinho como potencial.
+   Os dados ficam no cofre (rota rotta-crm). */
+:root{--tinta:#13201E;--rota:#2F7A6F;--rota-2:#25645B;--menta:#7FD1C1;--papel:#F3F6F2;--linha:#D3DED9;--cinza:#55635F;
+  --pot:#3F6FB5;--pot-f:#E7EEF8;--com:#2F7A6F;--com-f:#E3F2EE;--can:#9A4B3A;--can-f:#F6E8E4}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--papel);color:var(--tinta);font-family:"Avenir Next","Nunito Sans",system-ui,sans-serif;line-height:1.45;min-height:100dvh}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--menta);outline-offset:2px}
+[hidden]{display:none!important}
+.topo{position:sticky;top:0;z-index:5;background:var(--tinta);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.topo .w{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:21px;letter-spacing:-.02em}
+.topo .w small{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--menta);margin-left:6px;letter-spacing:.06em}
+.topo input{flex:1;min-width:160px;min-height:40px;border-radius:10px;border:0;padding:0 12px;background:#24342F;color:#fff}
+.topo input::placeholder{color:#9FB5B0}
+.tbtn{min-height:40px;border-radius:10px;border:1.5px solid #3D5550;background:none;color:#fff;font-weight:800;font-size:14px;padding:0 12px;cursor:pointer}
+.tbtn.pri{background:var(--rota);border-color:var(--rota)}
+.pag{max-width:1200px;margin:0 auto;padding:16px}
+.abas{display:none;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.abas button{min-height:44px;border-radius:12px;border:1.5px solid var(--linha);background:#fff;font-weight:800;font-size:14px;cursor:pointer}
+.abas button.on{background:var(--tinta);color:#fff;border-color:var(--tinta)}
+.quadro{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+@media (max-width:820px){.abas{display:grid}.quadro{grid-template-columns:1fr}.col:not(.on){display:none}}
+.col{background:#fff;border:1.5px solid var(--linha);border-radius:18px;padding:12px}
+.col h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:19px;display:flex;align-items:center;gap:8px}
+.col h2 .n{font-family:"IBM Plex Mono",monospace;font-size:12px;border-radius:999px;padding:2px 8px}
+.col p.sub{font-size:13px;color:var(--cinza);margin:2px 0 10px}
+.col[data-t=potencial] .n{background:var(--pot-f);color:var(--pot)}
+.col[data-t=comprou] .n{background:var(--com-f);color:var(--com)}
+.col[data-t=cancelou] .n{background:var(--can-f);color:var(--can)}
+.lista{display:flex;flex-direction:column;gap:8px}
+.vazio{font-size:13.5px;color:var(--cinza);border:1.5px dashed var(--linha);border-radius:12px;padding:14px;text-align:center}
+.card{border:1.5px solid var(--linha);border-radius:14px;padding:12px;border-left-width:5px}
+.col[data-t=potencial] .card{border-left-color:var(--pot)}
+.col[data-t=comprou] .card{border-left-color:var(--com)}
+.col[data-t=cancelou] .card{border-left-color:var(--can)}
+.card b{font-size:15.5px;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.chip{font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 8px;background:var(--papel);color:var(--cinza)}
+.chip.pl{background:var(--tinta);color:#fff}
+.card .nota{font-size:13px;color:var(--cinza);margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .acoes{display:flex;gap:6px;margin-top:10px}
+.card .acoes a,.card .acoes button{flex:1;min-height:38px;border-radius:10px;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;border:1.5px solid var(--linha);background:#fff;cursor:pointer}
+.card .acoes a{color:var(--tinta)}
+.card .acoes .wa{background:#25D366;border-color:#25D366;color:#08321A}
+/* entrada e modal */
+.porta{max-width:380px;margin:12vh auto 0;background:#fff;border:1.5px solid var(--linha);border-radius:20px;padding:22px}
+.porta h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:26px;letter-spacing:-.02em}
+.porta p{color:var(--cinza);font-size:14.5px;margin-top:4px}
+label{display:block;margin-top:12px}
+label span{display:block;font-size:13px;font-weight:800;margin-bottom:4px}
+.inp{width:100%;min-height:46px;border:1.5px solid var(--linha);border-radius:12px;padding:0 12px;background:#fff;font-size:16px}
+textarea.inp{min-height:90px;padding:10px 12px;resize:vertical}
+.btn{width:100%;min-height:50px;border-radius:14px;border:0;background:var(--rota);color:#fff;font-weight:800;font-size:16px;margin-top:16px;cursor:pointer}
+.msg{color:#B4432A;font-size:14px;font-weight:700;margin-top:8px;min-height:18px}
+.fundo{position:fixed;inset:0;background:rgba(19,32,30,.55);z-index:20;display:grid;place-items:end center}
+@media (min-width:600px){.fundo{place-items:center}}
+.modal{background:#fff;width:100%;max-width:520px;max-height:92dvh;overflow:auto;border-radius:20px 20px 0 0;padding:18px}
+@media (min-width:600px){.modal{border-radius:20px}}
+.modal h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:22px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{min-height:44px;border-radius:10px;border:1.5px solid var(--linha);background:#fff;font-weight:800;font-size:14px;cursor:pointer}
+.seg button.on[data-v=potencial]{background:var(--pot);border-color:var(--pot);color:#fff}
+.seg button.on[data-v=comprou]{background:var(--com);border-color:var(--com);color:#fff}
+.seg button.on[data-v=cancelou]{background:var(--can);border-color:var(--can);color:#fff}
+.duas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rodape-m{display:flex;gap:8px;margin-top:16px}
+.rodape-m button{flex:1;min-height:48px;border-radius:12px;font-weight:800;cursor:pointer;border:1.5px solid var(--linha);background:#fff}
+.rodape-m .ok{background:var(--rota);border-color:var(--rota);color:#fff}
+.hist{font-size:12.5px;color:var(--cinza);margin-top:10px}
+</style>
+</head>
+<body>
+<!-- entrada -->
+<div id="porta" class="porta" hidden>
+  <h1>CRM da Rotta</h1>
+  <p>Para o Eugênio, o Igor e a Dulcineia.</p>
+  <form id="fp">
+    <label><span>Código</span><input class="inp" name="cod" type="password" autocomplete="off"></label>
+    <label><span>Seu nome</span><input class="inp" name="quem" placeholder="Ex.: Igor"></label>
+    <p class="msg" id="pmsg"></p>
+    <button class="btn">Entrar</button>
+  </form>
+</div>
+
+<!-- CRM -->
+<div id="crm" hidden>
+  <header class="topo">
+    <span class="w">rotta<small>CRM</small></span>
+    <input id="busca" type="search" placeholder="Buscar nome, e-mail, WhatsApp…" aria-label="Buscar">
+    <button class="tbtn pri" id="novo">+ Contato</button>
+    <button class="tbtn" id="csv">CSV</button>
+    <button class="tbtn" id="sair">Sair</button>
+  </header>
+  <main class="pag">
+    <div class="abas" id="abas"></div>
+    <div class="quadro" id="quadro"></div>
+  </main>
+</div>
+
+<div class="fundo" id="fundo" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+
+<script>
+'use strict';
+const API = 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre/rotta-crm';
+const TIPOS = [
+  { t: 'potencial', n: 'Potencial', sub: 'Testou o app ou está decidindo' },
+  { t: 'comprou',   n: 'Comprou',   sub: 'Cliente ativo' },
+  { t: 'cancelou',  n: 'Cancelou',  sub: 'Comprou e não renovou' },
+];
+const PLANO = { '': 'sem plano', free: 'Free', standard: 'Standard', pro: 'Pro' };
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let cod = '', quem = '', LISTA = [], aba = 'potencial';
+try { cod = sessionStorage.getItem('crm_cod') || ''; quem = localStorage.getItem('crm_quem') || ''; } catch (_) {}
+
+async function api(corpo) {
+  const r = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json', 'x-crm': cod, 'x-quem': quem }, body: JSON.stringify(corpo) });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { sair(); throw new Error('código'); }
+  if (!r.ok) throw new Error(j.msg || 'erro');
+  return j;
+}
+function sair() { cod = ''; try { sessionStorage.removeItem('crm_cod'); } catch (_) {} $('#crm').hidden = true; $('#porta').hidden = false; }
+
+$('#fp').onsubmit = async (e) => {
+  e.preventDefault();
+  cod = e.target.cod.value.trim(); quem = e.target.quem.value.trim();
+  $('#pmsg').textContent = '';
+  try { await carrega(); try { sessionStorage.setItem('crm_cod', cod); localStorage.setItem('crm_quem', quem); } catch (_) {} }
+  catch (er) { $('#pmsg').textContent = er.message === 'código' ? 'Código errado.' : 'Sem conexão. Tente de novo.'; $('#porta').hidden = false; }
+};
+$('#sair').onclick = sair;
+
+async function carrega() {
+  const j = await api({ acao: 'listar' });
+  LISTA = j.clientes || [];
+  $('#porta').hidden = true; $('#crm').hidden = false; desenha();
+}
+
+const soDig = w => String(w || '').replace(/\D/g, '');
+function msgWa(c) {
+  const n = (c.nome || '').split(' ')[0];
+  if (c.tipo === 'comprou') return `Oi ${n}! Aqui é da Rotta (Studio Ti Artes). Tudo certo com o seu app? Se precisar de qualquer ajuste, é só me falar por aqui.`;
+  if (c.tipo === 'cancelou') return `Oi ${n}! Aqui é da Rotta (Studio Ti Artes). Senti sua falta por aqui. O que faltou no app pra você? Sua resposta ajuda muito a gente a melhorar.`;
+  return `Oi ${n}! Aqui é da Rotta (Studio Ti Artes). Vi que você testou o app. O que achou? Se quiser, eu monto o seu com os seus passeios pra você ver como fica.`;
+}
+function card(c) {
+  const wa = soDig(c.whats);
+  return `<article class="card"><b>${esc(c.nome)}</b>
+    <div class="chips">${c.plano ? `<span class="chip pl">${esc(PLANO[c.plano] || c.plano)}${c.periodo === 'anual' ? ' · anual' : ''}</span>` : ''}
+      ${c.origem && c.origem !== 'rotta' ? `<span class="chip">veio por ${esc(c.origem)}</span>` : ''}
+      ${c.veio === 'teste' ? '<span class="chip">fez o teste</span>' : ''}
+      <span class="chip">${esc((c.atualizado || '').slice(0, 10).split('-').reverse().join('/'))}</span></div>
+    ${c.nota ? `<p class="nota">${esc(c.nota)}</p>` : ''}
+    <div class="acoes">
+      ${wa ? `<a class="wa" href="https://wa.me/${wa}?text=${encodeURIComponent(msgWa(c))}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
+      ${c.email ? `<a href="mailto:${esc(c.email)}">E-mail</a>` : ''}
+      <button data-ed="${esc(c.chave)}">Editar</button></div></article>`;
+}
+function desenha() {
+  const q = ($('#busca').value || '').toLowerCase();
+  const vis = LISTA.filter(c => !q || [c.nome, c.email, c.whats, c.origem, c.nota].join(' ').toLowerCase().includes(q));
+  $('#abas').innerHTML = TIPOS.map(x => `<button class="${aba === x.t ? 'on' : ''}" data-aba="${x.t}">${x.n} · ${vis.filter(c => c.tipo === x.t).length}</button>`).join('');
+  $('#quadro').innerHTML = TIPOS.map(x => { const l = vis.filter(c => c.tipo === x.t);
+    return `<section class="col ${aba === x.t ? 'on' : ''}" data-t="${x.t}"><h2>${x.n}<span class="n">${l.length}</span></h2><p class="sub">${x.sub}</p>
+      <div class="lista">${l.length ? l.map(card).join('') : '<p class="vazio">Ninguém aqui ainda.</p>'}</div></section>`; }).join('');
+  document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { aba = b.dataset.aba; desenha(); });
+  document.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => editar(LISTA.find(c => c.chave === b.dataset.ed)));
+}
+$('#busca').oninput = desenha;
+$('#novo').onclick = () => editar(null);
+
+function editar(c) {
+  const d = c || { tipo: aba, plano: '', periodo: 'mensal' };
+  $('#modal').innerHTML = `<h2>${c ? esc(c.nome) : 'Novo contato'}</h2>
+    <label><span>Tipo</span><div class="seg">${TIPOS.map(x => `<button type="button" data-v="${x.t}" class="${d.tipo === x.t ? 'on' : ''}">${x.n}</button>`).join('')}</div></label>
+    <label><span>Nome</span><input class="inp" id="e_nome" value="${esc(d.nome)}"></label>
+    <div class="duas"><label><span>WhatsApp</span><input class="inp" id="e_wa" type="tel" value="${esc(d.whats)}" placeholder="+33…"></label>
+      <label><span>E-mail</span><input class="inp" id="e_em" type="email" value="${esc(d.email)}"></label></div>
+    <div class="duas"><label><span>Plano</span><select class="inp" id="e_pl">${Object.entries(PLANO).map(([k, v]) => `<option value="${k}" ${d.plano === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+      <label><span>Pagamento</span><select class="inp" id="e_pe"><option value="mensal">Mensal</option><option value="anual" ${d.periodo === 'anual' ? 'selected' : ''}>Anual</option></select></label></div>
+    <label><span>Veio por</span><input class="inp" id="e_or" value="${esc(d.origem)}" placeholder="Ex.: dulcineia, igor, associação…"></label>
+    <label><span>Anotações</span><textarea class="inp" id="e_no">${esc(d.nota)}</textarea></label>
+    ${(c && c.historico || []).length ? `<p class="hist">${c.historico.map(h => `${esc(h.em.slice(0, 10).split('-').reverse().join('/'))}: ${esc(h.de)} → ${esc(h.para)}${h.por ? ' (' + esc(h.por) + ')' : ''}`).join('<br>')}</p>` : ''}
+    <p class="msg" id="emsg"></p>
+    <div class="rodape-m"><button type="button" id="e_x">Cancelar</button><button type="button" class="ok" id="e_ok">Salvar</button></div>`;
+  let tipo = d.tipo;
+  $('#modal').querySelectorAll('.seg button').forEach(b => b.onclick = () => { tipo = b.dataset.v; $('#modal').querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b)); });
+  $('#fundo').hidden = false; $('#e_nome').focus();
+  $('#e_x').onclick = fecha;
+  $('#e_ok').onclick = async () => {
+    const cli = { chave: c ? c.chave : '', criado: c ? c.criado : '', nome: $('#e_nome').value, whats: $('#e_wa').value, email: $('#e_em').value,
+      plano: $('#e_pl').value, periodo: $('#e_pe').value, origem: $('#e_or').value, nota: $('#e_no').value, tipo };
+    try { await api({ acao: 'salvar', cliente: cli }); fecha(); aba = tipo; await carrega(); }
+    catch (er) { $('#emsg').textContent = er.message === 'código' ? 'Entre de novo.' : er.message; }
+  };
+}
+function fecha() { $('#fundo').hidden = true; }
+$('#fundo').onclick = (e) => { if (e.target.id === 'fundo') fecha(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecha(); });
+
+$('#csv').onclick = () => {
+  const cab = ['tipo', 'nome', 'email', 'whats', 'plano', 'periodo', 'origem', 'nota', 'atualizado'];
+  const lin = LISTA.map(c => cab.map(k => '"' + String(c[k] || '').replace(/"/g, '""') + '"').join(','));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + [cab.join(','), ...lin].join('\n')], { type: 'text/csv' }));
+  a.download = 'rotta-crm.csv'; a.click();
+};
+
+if (cod) carrega().catch(() => { $('#porta').hidden = false; }); else $('#porta').hidden = false;
+</script>
+</body>
+</html>
