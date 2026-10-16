@@ -73,7 +73,7 @@ function catalogoCarol() {
       desc: { pt: 'Passeio pelo centro histórico de Viena, com o Palácio Hofburg e informações históricas e culturais.\n\nGrupo fechado de até 5 pessoas, conduzido em português pelo Aílton, guia credenciado que mora em Viena desde 1987.\n\nAdicional de €55 por pessoa para grupos acima de 5 pessoas.', en: '' },
       meeting: { pt: 'Centro de Viena (o ponto exato vai na confirmação)', en: 'Vienna city centre (exact spot sent on confirmation)' },
       includes: { pt: ['Passeio pelo centro histórico de Viena', 'Palácio Hofburg', 'Informações históricas e culturais', 'Grupo fechado de até 5 pessoas'], en: [] },
-      photo: 'fotos/p-hofburg-grupo.jpg',
+      photo: 'fotos/v-hofburg.jpg', photoCr: 'Foto: Daniel J. Schwarz · Pexels', fotosAilton: ['fotos/g-1.jpg', 'fotos/g-10.jpg', 'fotos/g-4.jpg', 'fotos/g-5.jpg'],
       priceNote: { pt: 'Adicional de €55 por pessoa para grupos acima de 5 pessoas.', en: '' },
       stops: paradas(['centro', 'hofburg']) }),
 
@@ -84,7 +84,7 @@ function catalogoCarol() {
       desc: { pt: 'Passeio pelo centro histórico de Viena, com o Palácio Hofburg, o Palácio Belvedere e informações históricas e culturais.\n\nGrupo fechado de até 5 pessoas, conduzido em português pelo Aílton.\n\nAdicional de €75 por pessoa para grupos acima de 5 pessoas.', en: '' },
       meeting: { pt: 'Centro de Viena (o ponto exato vai na confirmação)', en: 'Vienna city centre (exact spot sent on confirmation)' },
       includes: { pt: ['Passeio pelo centro histórico de Viena', 'Palácio Hofburg', 'Palácio Belvedere', 'Informações históricas e culturais', 'Grupo fechado de até 5 pessoas'], en: [] },
-      photo: 'fotos/p-belvedere-ailton.jpg',
+      photo: 'fotos/v-belvedere.jpg', photoCr: 'Foto: Vish Pix · Pexels', fotosAilton: ['fotos/g-3.jpg', 'fotos/g-1.jpg', 'fotos/g-11.jpg', 'fotos/g-6.jpg'],
       priceNote: { pt: 'Adicional de €75 por pessoa para grupos acima de 5 pessoas.', en: '' },
       stops: paradas(['centro', 'hofburg', 'belvedere']) }),
 
@@ -95,7 +95,7 @@ function catalogoCarol() {
       desc: { pt: 'City tour completo pelo centro histórico, o Anel da cidade (Ring Boulevard) com todos os monumentos, o Palácio de inverno Hofburg, o Palácio Belvedere e o Palácio de verão Schönbrunn.\n\nItinerário 100% personalizável, com horário de almoço e coffee break inclusos e total flexibilidade de tempo.\n\nGrupo fechado de até 5 pessoas. Adicional de €130 por pessoa para grupos acima de 5 pessoas.', en: '' },
       meeting: { pt: 'Combinado na confirmação', en: 'Arranged on confirmation' },
       includes: { pt: ['City tour completo pelo centro histórico', 'Anel da cidade (Ring Boulevard) com todos os monumentos', 'Palácio de inverno Hofburg', 'Palácio Belvedere', 'Palácio de verão Schönbrunn', 'Itinerário 100% personalizável', 'Horário de almoço e coffee break inclusos', 'Total flexibilidade de tempo', 'Grupo fechado de até 5 pessoas'], en: [] },
-      photo: 'fotos/p-schonbrunn-grupo.jpg',
+      photo: 'fotos/v-schonbrunn.jpg', photoCr: 'Foto: Minsu B · Pexels', fotosAilton: ['fotos/g-2.jpg', 'fotos/g-3.jpg', 'fotos/g-7.jpg', 'fotos/g-9.jpg'],
       priceNote: { pt: 'Adicional de €130 por pessoa para grupos acima de 5 pessoas.', en: '' },
       stops: paradas(['centro', 'ring', 'hofburg', 'belvedere', 'schonbrunn']) }),
 

@@ -495,7 +495,7 @@ function viewShowcase() {
     <h1 class="pageh">${t('chooseTour')}</h1>
     ${regs.length > 1 ? `<div class="chips onde" id="ondeF">
       <button class="chip ${onde === 'all' ? 'on' : ''}" data-r="all" aria-pressed="${onde === 'all'}">Todos</button>
-      ${regs.map(c => `<button class="chip ${onde === c ? 'on' : ''}" data-r="${esc(c)}" aria-pressed="${onde === c}">📍 ${esc(regiaoLabel(c))}</button>`).join('')}
+      ${regs.map(c => `<button class="chip ${onde === c ? 'on' : ''}" data-r="${esc(c)}" aria-pressed="${onde === c}">${esc(regiaoLabel(c))}</button>`).join('')}
     </div>` : ''}
     <div class="chips" id="filters">
       ${/* filtro de um tipo que nao existe leva a uma tela vazia: so aparecem os que tem passeio */

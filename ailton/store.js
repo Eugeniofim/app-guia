@@ -117,7 +117,7 @@ function _blank() {
 
 /* versão da semente do PROTÓTIPO: subir quando o catálogo de exemplo mudar,
    senão quem já abriu o link continua vendo o velho (lição da Dulcineia). */
-const SEED_VER = 4;
+const SEED_VER = 5;   /* Aílton 17/10: fotos de alta resolução */
 
 function _seed() {
   const db = _blank();
