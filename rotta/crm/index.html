@@ -22,6 +22,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .topo{position:sticky;top:0;z-index:5;background:var(--tinta);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .topo .w{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:21px;letter-spacing:-.02em}
 .topo .w small{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--menta);margin-left:6px;letter-spacing:.06em}
+.quemsou{font-size:13px;font-weight:800;color:var(--menta);white-space:nowrap}
 .topo input{flex:1;min-width:160px;min-height:40px;border-radius:10px;border:0;padding:0 12px;background:#24342F;color:#fff}
 .topo input::placeholder{color:#9FB5B0}
 .tbtn{min-height:40px;border-radius:10px;border:1.5px solid #3D5550;background:none;color:#fff;font-weight:800;font-size:14px;padding:0 12px;cursor:pointer}
@@ -97,7 +98,7 @@ textarea.inp{min-height:90px;padding:10px 12px;resize:vertical}
 <!-- CRM -->
 <div id="crm" hidden>
   <header class="topo">
-    <span class="w">rotta<small>CRM</small></span>
+    <span class="w">rotta<small>CRM</small></span><span id="quemsou" class="quemsou"></span>
     <input id="busca" type="search" placeholder="Buscar nome, e-mail, WhatsApp…" aria-label="Buscar">
     <button class="tbtn pri" id="novo">+ Contato</button>
     <button class="tbtn" id="csv">CSV</button>
@@ -122,7 +123,7 @@ const TIPOS = [
 const PLANO = { '': 'sem plano', free: 'Free', standard: 'Standard', pro: 'Pro' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-let cod = '', quem = '', LISTA = [], aba = 'potencial';
+let cod = '', quem = '', LISTA = [], aba = 'potencial', QUEM = null;
 try { cod = sessionStorage.getItem('crm_cod') || ''; quem = localStorage.getItem('crm_quem') || ''; } catch (_) {}
 
 async function api(corpo) {
@@ -145,7 +146,8 @@ $('#sair').onclick = sair;
 
 async function carrega() {
   const j = await api({ acao: 'listar' });
-  LISTA = j.clientes || [];
+  LISTA = j.clientes || []; QUEM = j.quem || null;
+  $('#quemsou').textContent = QUEM && QUEM.papel === 'parceiro' ? '· ' + QUEM.slug.charAt(0).toUpperCase() + QUEM.slug.slice(1) + (QUEM.regiao ? ' · ' + QUEM.regiao : '') : '· Estúdio (todos)';
   $('#porta').hidden = true; $('#crm').hidden = false; desenha();
 }
 
@@ -191,7 +193,7 @@ function editar(c) {
       <label><span>E-mail</span><input class="inp" id="e_em" type="email" value="${esc(d.email)}"></label></div>
     <div class="duas"><label><span>Plano</span><select class="inp" id="e_pl">${Object.entries(PLANO).map(([k, v]) => `<option value="${k}" ${d.plano === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
       <label><span>Pagamento</span><select class="inp" id="e_pe"><option value="mensal">Mensal</option><option value="anual" ${d.periodo === 'anual' ? 'selected' : ''}>Anual</option></select></label></div>
-    <label><span>Veio por</span><input class="inp" id="e_or" value="${esc(d.origem)}" placeholder="Ex.: dulcineia, igor, associação…"></label>
+    <label><span>Veio por</span><input class="inp" id="e_or" value="${esc(QUEM && QUEM.papel === 'parceiro' ? QUEM.slug : d.origem)}" ${QUEM && QUEM.papel === 'parceiro' ? 'readonly' : ''} placeholder="Ex.: dulcineia, igor, associação…"></label>
     <label><span>Anotações</span><textarea class="inp" id="e_no">${esc(d.nota)}</textarea></label>
     ${(c && c.historico || []).length ? `<p class="hist">${c.historico.map(h => `${esc(h.em.slice(0, 10).split('-').reverse().join('/'))}: ${esc(h.de)} → ${esc(h.para)}${h.por ? ' (' + esc(h.por) + ')' : ''}`).join('<br>')}</p>` : ''}
     <p class="msg" id="emsg"></p>
