@@ -344,17 +344,17 @@ function viewHub() {
       <button class="lk main" id="goTours">
         <span class="ic">${ICONE_MENU.passeios}</span><span><b>${t('seeTours')}</b><small>${t(Tours.live().length && Tours.live().every(sobConsulta) ? 'seeToursSubQ' : 'seeToursSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
-      <button class="lk" id="goTransfer">
+      <button class="lk tom-transfer" id="goTransfer">
         <span class="ic">${ICONE_MENU.transfer}</span><span><b>Transfer</b><small>Aeroporto, hotel ou entre cidades</small></span><span class="go" aria-hidden="true">→</span>
       </button>
-      <button class="lk" id="goRoteiro">
+      <button class="lk tom-roteiro" id="goRoteiro">
         <span class="ic">${ICONE_MENU.roteiro}</span><span><b>Monte seu roteiro</b><small>Você escolhe, eu organizo os dias</small></span><span class="go" aria-hidden="true">→</span>
       </button>
-      <button class="lk" id="goAbout">
+      <button class="lk tom-sobre" id="goAbout">
         <span class="ic"><img id="hubFace" src="${esc(DB.settings.photo || 'guia.jpg')}" alt=""
           style="width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 20%"></span><span><b>${t('aboutLink')}</b><small>${t('aboutLinkSub')}</small></span><span class="go" aria-hidden="true">→</span>
       </button>
-      <a class="lk" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b></span><span class="go" aria-hidden="true">→</span></a>
+      <a class="lk tom-wa" href="${waLink(t('waHello'))}" target="_blank" rel="noopener"><span class="ic wa">${ICONE_WA}</span><span><b>${t('whatsapp')}</b></span><span class="go" aria-hidden="true">→</span></a>
       ${typeof secaoDepoimentos === 'function' ? secaoDepoimentos('noHub') : ''}
       ${typeof secaoViagem === 'function' ? secaoViagem() : ''}
       ${typeof temNuvem === 'function' && !temNuvem() && typeof APP_CONFIG !== 'undefined' && APP_CONFIG.vitrineVenda

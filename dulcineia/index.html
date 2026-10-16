@@ -27,7 +27,7 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=0.7.1">
+<link rel="stylesheet" href="tokens.css?v=0.7.2">
 <link rel="icon" href="arte/favicon.svg" type="image/svg+xml">
 <style>
 /* ============ base ============ */
@@ -1369,6 +1369,61 @@ html{font-synthesis:none}
 .hub .depoCard figcaption small{color:var(--vd-tx3)}
 /* em "Quem sou eu" */
 .depo.noSobre{margin:var(--s-7) 0}
+/* ---------- MENU COM TONS (16/10/2026) ----------
+   Pedido: os itens não podem ser todos do mesmo vidro. Cada um ganha um tom
+   da paleta do manual (sem verde com amarelo) — e continua com ícone e nome
+   próprios, para não depender só da cor. Contraste conferido sobre o tom
+   mais claro de cada degradê: título ≥ 5:1, legenda ≥ 4,5:1. */
+.hub .lk.tom-transfer{--tom-a:#4A5762EB;--tom-b:#10292BF0;--tom-ic:#C9D5DF}
+.hub .lk.tom-roteiro{--tom-a:#6C341CEB;--tom-b:#4E2615F0;--tom-ic:#E0D6C7}
+.hub .lk.tom-sobre{--tom-a:#715130EB;--tom-b:#593F26F0;--tom-ic:#F1E2CF}
+.hub .lk.tom-wa{--tom-a:#232E23EB;--tom-b:#1D261DF0;--tom-ic:#F6F3EF;
+  --tom-a:color-mix(in srgb,color-mix(in srgb,var(--brand-primaria) 86%,#000) 92%,transparent);
+  --tom-b:color-mix(in srgb,color-mix(in srgb,var(--brand-primaria) 70%,#000) 94%,transparent)}
+.hub .lk[class*="tom-"]{background:linear-gradient(115deg,var(--tom-a),var(--tom-b));
+  border-color:color-mix(in srgb,var(--tom-ic) 20%,transparent)}
+.hub .lk[class*="tom-"] small{color:rgba(246,243,239,.82)}
+.hub .lk[class*="tom-"] .ic{background:color-mix(in srgb,var(--tom-ic) 16%,transparent);color:var(--tom-ic)}
+.hub .lk[class*="tom-"] .go{color:var(--tom-ic);opacity:.8}
+.hub .lk[class*="tom-"]:hover{background:linear-gradient(115deg,var(--tom-a),var(--tom-b));filter:brightness(1.08)}
+.hub .lk.tom-wa .ic.wa{background:#25D366;color:#fff}
+.hub .lk.tom-sobre .ic img{box-shadow:0 0 0 2px color-mix(in srgb,var(--tom-ic) 55%,transparent)}
+/* ---------- HOJE como no protótipo da Bia (hoje.js, 16/10/2026) ---------- */
+.rotMini{margin:12px 0 6px;font:600 var(--fs-1)/1 var(--f-ui);letter-spacing:var(--track-label);text-transform:uppercase;color:var(--ink-3)}
+.bad{color:var(--danger);font-weight:600}
+.hjGrade{display:grid;gap:12px;margin:10px 0 16px}
+@media (min-width:980px){.hjGrade{grid-template-columns:1fr 1fr}}
+.card.hj{margin-bottom:0}
+.card.hj h3{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.hjSub{margin-left:auto;font:500 var(--fs-2)/1 var(--f-ui);color:var(--ink-3)}
+.hjItem{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.hjItem:first-of-type{border-top:0}
+.hjItem > div{flex:1;min-width:0}
+.hjItem b{display:block;font-size:var(--fs-3);line-height:1.3}
+.hjItem small{display:block;font-size:var(--fs-2);color:var(--ink-3);line-height:1.35;margin-top:2px}
+.hjItem{flex-wrap:wrap}
+.hjAcoes{flex:none;display:flex;gap:6px}
+.hjItem .mini{flex:none;text-decoration:none;min-height:40px;display:inline-flex;align-items:center}
+/* dois botões no celular: descem para baixo do texto, alinhados com ele */
+@media (max-width:560px){.hjAcoes.duas{flex-basis:100%;padding-left:46px;margin-top:-2px}}
+.hjIc{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);font-size:15px;color:var(--highlight-text)}
+.hjItem.cheio .hjIc{background:var(--accent);color:var(--accent-ink)}
+.hjItem.off{opacity:.6}
+.hjItem.alerta .hjIc{background:var(--danger-wash)}
+.bvCard{position:relative;text-align:center;border:1px solid var(--highlight);border-top:4px solid var(--accent);background:linear-gradient(180deg,var(--highlight-wash),var(--surface));padding:22px 20px 20px}
+.bvX{position:absolute;top:8px;right:10px;width:44px;height:44px;border:0;background:none;font-size:24px;line-height:1;color:var(--ink-3);cursor:pointer;border-radius:10px}
+.bvX:hover{background:var(--surface-2);color:var(--ink)}
+.bvLogo{display:flex;justify-content:center;margin:2px 0 10px;--brand-amarelo:var(--brand-assinatura)}
+.bvTit{font-family:var(--f-titulo);font-weight:400;font-size:1.7rem;color:var(--accent);margin:0 0 6px}
+.bvSub{max-width:560px;margin:0 auto 18px;color:var(--ink-2);line-height:1.5}
+.bvPassos{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:left;margin-bottom:18px}
+.bvP{display:flex;gap:10px;align-items:flex-start;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:inherit;text-decoration:none;text-align:left;font:inherit;cursor:pointer;transition:border-color .15s,transform .15s}
+.bvP:hover{border-color:var(--accent);transform:translateY(-1px)}
+.bvP .bvN{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:600 13px/1 var(--f-ui)}
+.bvP b{display:block;font-size:14px;margin-bottom:2px}
+.bvP small{color:var(--ink-3);font-size:12px;line-height:1.4}
+.bvOk{display:inline-flex;width:auto;margin:0 auto;padding:12px 26px}
+@media (max-width:700px){.bvPassos{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1402,27 +1457,28 @@ html{font-synthesis:none}
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=0.7.1"></script>
-<script src="auth.js?v=0.7.1"></script>
-<script src="logo.js?v=0.7.1"></script>
-<script src="fx.js?v=0.7.1"></script>
-<script src="qrcode.js?v=0.7.1"></script>
-<script src="qr.js?v=0.7.1"></script>
-<script src="pix.js?v=0.7.1"></script>
-<script src="traduz.js?v=0.7.1"></script>
-<script src="idiomas.js?v=0.7.1"></script>
-<script src="store.js?v=0.7.1"></script>
-<script src="cores.js?v=0.7.1"></script>
-<script src="pedidos.js?v=0.7.1"></script>
-<script src="parceiros.js?v=0.7.1"></script>
-<script src="depoimentos.js?v=0.7.1"></script>
-<script src="cloud.js?v=0.7.1"></script>
-<script src="i18n.js?v=0.7.1"></script>
-<script src="avisos.js?v=0.7.1"></script>
-<script src="app.js?v=0.7.1"></script>
-<script src="ficha.js?v=0.7.1"></script>
-<script src="assistente.js?v=0.7.1"></script>
-<script src="creditos.js?v=0.7.1"></script>
+<script src="config.js?v=0.7.2"></script>
+<script src="auth.js?v=0.7.2"></script>
+<script src="logo.js?v=0.7.2"></script>
+<script src="fx.js?v=0.7.2"></script>
+<script src="qrcode.js?v=0.7.2"></script>
+<script src="qr.js?v=0.7.2"></script>
+<script src="pix.js?v=0.7.2"></script>
+<script src="traduz.js?v=0.7.2"></script>
+<script src="idiomas.js?v=0.7.2"></script>
+<script src="store.js?v=0.7.2"></script>
+<script src="cores.js?v=0.7.2"></script>
+<script src="pedidos.js?v=0.7.2"></script>
+<script src="parceiros.js?v=0.7.2"></script>
+<script src="depoimentos.js?v=0.7.2"></script>
+<script src="cloud.js?v=0.7.2"></script>
+<script src="i18n.js?v=0.7.2"></script>
+<script src="avisos.js?v=0.7.2"></script>
+<script src="app.js?v=0.7.2"></script>
+<script src="ficha.js?v=0.7.2"></script>
+<script src="assistente.js?v=0.7.2"></script>
+<script src="creditos.js?v=0.7.2"></script>
+<script src="hoje.js?v=0.7.2"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

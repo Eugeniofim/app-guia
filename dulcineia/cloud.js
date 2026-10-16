@@ -302,6 +302,9 @@ async function cloudPull() {
       settings: fillSettings({ ...st.data.settings, lang: keepLang,
                   tutorialClient: DB.settings.tutorialClient, tutorialAdm: DB.settings.tutorialAdm }),
     });
+    /* o que a nuvem ainda não tem (depoimentos, hotel/chip/seguro, redes) entra
+       aqui também; se for a dona, sobe — da próxima vez a nuvem já tem */
+    if (typeof semeiaNovidades === 'function' && semeiaNovidades() && logged) cloudPushState();
     /* reservas: nuvem + locais que ainda não subiram.
        Se a busca das reservas falhou, mantemos as que ja estao no aparelho —
        apagar por causa de um erro de rede seria pior. */

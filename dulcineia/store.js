@@ -307,22 +307,14 @@ function fillSettings(s) {
 }
 
 let DB = null;
-function load() {
-  try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
-  /* O app esta em producao. Aparelho novo (ou navegador limpo) tem que
-     comecar VAZIO e receber o que esta na nuvem — nunca publicar um catalogo
-     inventado por cima do dela. Antes isto semeava a demonstracao e o save()
-     empurrava para a nuvem: bastava ela instalar no celular para os passeios
-     reais virarem os ficticios. A demonstracao so volta pelo botao no ADM. */
-  if (!DB || !DB.tours) {
-    /* Sem nuvem configurada (config.js vazio) o app e um prototipo: nasce com
-       os passeios de exemplo, e nao existe nuvem para onde empurra-los.
-       Com nuvem, aparelho novo comeca VAZIO e recebe o que esta la. */
-    DB = temNuvem() ? _blank() : _seed();
-    localStorage.setItem(DB_KEY, JSON.stringify(DB));
-  }
-  DB.settings = fillSettings(DB.settings);
-  if (!Array.isArray(DB.pedidos)) DB.pedidos = [];
+/* NOVIDADES DA PRIMEIRA TELA (redes, Para a sua viagem, depoimentos):
+   entram UMA vez, do config.js; depois são dela (o que ela apagar não volta).
+   Roda ao abrir E depois que os ajustes chegam da nuvem — antes só rodava ao
+   abrir, e a nuvem (que nunca tinha recebido nada disso) apagava tudo logo
+   em seguida: de 06/10 a 16/10 ninguém viu Facebook, depoimentos nem hotel/chip/seguro.
+   Devolve true se mudou algo (a dona logada sobe para a nuvem). */
+function semeiaNovidades() {
+  const antes = JSON.stringify(DB.settings);
   /* REDES DA PRIMEIRA TELA (24/09/2026): uma vez só, o que veio no config.js.
      Depois é dela: se apagar um endereço em Ajustes, o ícone não volta. */
   if (!DB.settings.redesSemeadas) {
@@ -343,6 +335,26 @@ function load() {
     if (!DB.settings.depoimentosVideoTxt) DB.settings.depoimentosVideoTxt = GUIA_CFG.depoimentosVideoTxt || '';
     DB.settings.depoimentosSemeados = true;
   }
+  return JSON.stringify(DB.settings) !== antes;
+}
+
+function load() {
+  try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
+  /* O app esta em producao. Aparelho novo (ou navegador limpo) tem que
+     comecar VAZIO e receber o que esta na nuvem — nunca publicar um catalogo
+     inventado por cima do dela. Antes isto semeava a demonstracao e o save()
+     empurrava para a nuvem: bastava ela instalar no celular para os passeios
+     reais virarem os ficticios. A demonstracao so volta pelo botao no ADM. */
+  if (!DB || !DB.tours) {
+    /* Sem nuvem configurada (config.js vazio) o app e um prototipo: nasce com
+       os passeios de exemplo, e nao existe nuvem para onde empurra-los.
+       Com nuvem, aparelho novo comeca VAZIO e recebe o que esta la. */
+    DB = temNuvem() ? _blank() : _seed();
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  }
+  DB.settings = fillSettings(DB.settings);
+  if (!Array.isArray(DB.pedidos)) DB.pedidos = [];
+  semeiaNovidades();
   /* os turnos do config.js vão para os ajustes: assim sobem para a nuvem e o
      atendente do Instagram (servidor) oferece os mesmos turnos */
   if (GUIA_CFG.turnos && !DB.settings.turnos) {
