@@ -109,6 +109,19 @@ async function crRecarga(valor) {
   } else { crGrava(CR_COLOCADO, (+crLe(CR_COLOCADO, 0) || 0) + valor); crGrava(CR_SEM, ''); }
   crCache = null; return '';
 }
+/* salvar a chave mesmo se o teste não passar (ex.: conta ainda sem crédito
+   na hora, mas a pessoa vai pôr crédito em seguida). Só no aparelho, e só
+   se a chave tiver a cara certa (sk-ant-). */
+function crForcaChave(chave, colocado) {
+  chave = String(chave || '').trim();
+  if (!/^sk-ant-/.test(chave)) return 'A chave da Anthropic começa com sk-ant-.';
+  if (crNoServidor()) return 'Com a nuvem ligada, use Ligar a IA (o servidor guarda a chave).';
+  localStorage.setItem(IA_CHAVE, chave);
+  crGrava(IA_GASTO, 0); crGrava(CR_COLOCADO, Math.max(0, +colocado || 0)); crGrava(CR_MES, {}); crGrava(CR_SEM, '');
+  crCache = null;
+  if (typeof iaAtualizaFab === 'function') iaAtualizaFab();
+  return '';
+}
 async function crDesconectar() {
   if (crNoServidor()) await fetch(APP_CONFIG.cofre + '/api/chave', { method: 'DELETE', headers: crCab() }).catch(() => {});
   else if (typeof IA_CHAVE !== 'undefined') localStorage.removeItem(IA_CHAVE);
@@ -133,6 +146,9 @@ async function ligaCartaoCreditos() {
   const el = document.getElementById('crCorpo');
   if (!el) return;
   const r = await crResumo(true);
+  /* a tela pode ter sido redesenhada durante a espera (Ajustes da Bia
+     acrescenta cartões e redesenha): o el antigo saiu da página. */
+  if (!el.isConnected) return;
   const s = crSituacao(r);
   if (r.incluida) {
     el.innerHTML = `<h3>✦ Inteligência artificial <span class="crTag ok">${s.titulo}</span></h3>
@@ -162,7 +178,18 @@ async function ligaCartaoCreditos() {
     document.getElementById('crLigar').onclick = async () => {
       const m = document.getElementById('crMsg'); m.textContent = 'Testando a chave…';
       const erro = await crConectar(document.getElementById('crChave').value, document.getElementById('crColocado').value);
-      if (erro) { m.textContent = erro; return; }
+      /* o aviso embaixo do campo passava batido (28/09: "não salvou"): agora
+         também sobe num balão grande e o campo fica marcado */
+      if (erro) { m.innerHTML = '⚠️ ' + esc(erro) + ' A chave <b>não</b> foi ligada.<br><button class="mini" id="crForca" type="button">Salvar mesmo assim (guardo a chave e você resolve o crédito depois)</button>';
+        m.classList.add('crErro'); document.getElementById('crChave').classList.add('invalid');
+        if (typeof toast === 'function') toast('⚠️ ' + erro, 6000);
+        document.getElementById('crForca').onclick = () => {
+          const e2 = crForcaChave(document.getElementById('crChave').value, document.getElementById('crColocado').value);
+          if (e2) { m.textContent = '⚠️ ' + e2; return; }
+          if (typeof toast === 'function') toast('Chave guardada ✓ — ligue crédito na conta da Anthropic para ela funcionar', 6000);
+          ligaCartaoCreditos(); crAtualizaPilulas();
+        };
+        return; }
       if (typeof toast === 'function') toast('IA ligada ✓');
       ligaCartaoCreditos(); crAtualizaPilulas();
     };
