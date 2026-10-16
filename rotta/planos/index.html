@@ -67,6 +67,12 @@ li small{display:block;color:var(--muted);font-size:12.5px}
 .impl b{font-size:16px}
 .impl small{color:var(--muted)}
 .cta.pagar{margin-top:8px;background:var(--ink);border-color:var(--ink);color:#fff}
+.sync{display:flex;align-items:center;gap:18px;background:#13201E;color:#fff;border-radius:18px;padding:18px 22px;margin-top:26px;text-align:left}
+.sync-ic{flex:none;width:132px;height:64px}
+.sync-tx b{display:block;font-size:22px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
+.sync-tx span{display:block;font-size:15px;opacity:.88;margin-top:4px;line-height:1.4}
+.sync-tx u{text-decoration:none;color:#7FD1C1;font-weight:800}
+@media (max-width:620px){.sync{flex-direction:column;align-items:flex-start;gap:10px;padding:16px 18px}.sync-ic{width:110px;height:54px}.sync-tx b{font-size:19px}}
 .rodape{margin-top:20px;text-align:center;font-size:13.5px;color:var(--muted)}
 .rodape b{color:var(--ink)}
 .zap-flut{position:fixed;right:16px;bottom:16px;z-index:50;display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#08321A;font-weight:800;font-size:14.5px;text-decoration:none;border-radius:999px;padding:12px 16px;box-shadow:0 10px 24px rgba(0,0,0,.25);min-height:48px}
@@ -96,6 +102,20 @@ li small{display:block;color:var(--muted);font-size:12.5px}
     </div>
   </div>
 
+  <div class="sync" role="note">
+    <svg class="sync-ic" viewBox="0 0 132 64" aria-hidden="true">
+      <rect x="3" y="12" width="26" height="46" rx="5" fill="none" stroke="#7FD1C1" stroke-width="3"/>
+      <line x1="12" y1="51" x2="20" y2="51" stroke="#7FD1C1" stroke-width="3" stroke-linecap="round"/>
+      <path d="M33 30 C 48 6, 62 6, 74 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0.1 6"/>
+      <rect x="78" y="14" width="44" height="30" rx="4" fill="none" stroke="#7FD1C1" stroke-width="3"/>
+      <path d="M70 52 H 130 L 125 58 H 75 Z" fill="#7FD1C1"/>
+    </svg>
+    <div class="sync-tx">
+      <b>No celular e no computador. Sempre igual.</b>
+      <span>Em <u>todos os planos, inclusive o Free</u>: o que você muda no celular aparece no laptop na hora. Tudo salvo na nuvem, nada se perde se o celular quebrar.</span>
+    </div>
+  </div>
+
   <div class="tabela">
     <!-- FREE -->
     <section class="col">
@@ -114,7 +134,7 @@ li small{display:block;color:var(--muted);font-size:12.5px}
         <li><i></i><span><span class="menu">Clientes</span>: a ficha de cada um</span></li>
         <li><i></i><span><span class="menu">Avaliações</span> dos seus clientes</span></li>
         <li><i></i><span>Pagamento por <b>Pix</b> e <b>Wise</b><small>Pix com QR Code em real · Wise com link de pagamento em euro</small></span></li>
-        <li><i></i><span>App no celular, pronto pra instalar</span></li>
+        <li><i></i><span><b>No celular e no computador</b>, sincronizado na nuvem<small>instala no celular e abre no laptop: os mesmos dados nos dois</small></span></li>
         <li><i></i><span>Endereço rottaguide.com/seu-nome, com o selo Rotta</span></li>
       </ul>
     </section>
