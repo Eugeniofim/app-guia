@@ -66,6 +66,7 @@ li small{display:block;color:var(--muted);font-size:12.5px}
 .impl span{color:var(--muted);font-weight:700}
 .impl b{font-size:16px}
 .impl small{color:var(--muted)}
+.cta.pagar{margin-top:8px;background:var(--ink);border-color:var(--ink);color:#fff}
 .rodape{margin-top:20px;text-align:center;font-size:13.5px;color:var(--muted)}
 .rodape b{color:var(--ink)}
 .zap-flut{position:fixed;right:16px;bottom:16px;z-index:50;display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#08321A;font-weight:800;font-size:14.5px;text-decoration:none;border-radius:999px;padding:12px 16px;box-shadow:0 10px 24px rgba(0,0,0,.25);min-height:48px}
@@ -104,6 +105,7 @@ li small{display:block;color:var(--muted);font-size:12.5px}
       <div class="ano"></div>
       <div class="impl"><span>Implantação</span><b>€ 250</b><small>uma vez</small></div>
       <a class="cta" href="../experimentar/">Experimentar grátis · 20 min</a>
+      <a class="cta pagar" data-plano="free" hidden target="_blank" rel="noopener">Contratar · implantação € 250</a>
       <div class="sec">Recursos</div>
       <ul>
         <li><i></i><span><span class="menu">Meus passeios</span>: até 5 na vitrine</span></li>
@@ -126,6 +128,7 @@ li small{display:block;color:var(--muted);font-size:12.5px}
       <div class="ano"></div>
       <div class="impl"><span>Implantação</span><b>€ 330</b><small>uma vez</small></div>
       <a class="cta" href="../experimentar/">Experimentar grátis · 20 min</a>
+      <a class="cta pagar" data-plano="standard" hidden target="_blank" rel="noopener">Assinar o Standard</a>
       <div class="sec">Tudo do Free, mais</div>
       <ul>
         <li><i></i><span><span class="menu">Meus passeios</span> ilimitados</span></li>
@@ -147,6 +150,7 @@ li small{display:block;color:var(--muted);font-size:12.5px}
       <div class="ano"></div>
       <div class="impl"><span>Implantação</span><b>€ 400</b><small>uma vez</small></div>
       <a class="cta" href="../experimentar/">Experimentar grátis · 20 min</a>
+      <a class="cta pagar" data-plano="pro" hidden target="_blank" rel="noopener">Assinar o Pro</a>
       <div class="sec">Tudo do Standard, mais</div>
       <ul>
         <li><i></i><span><b>Assistente de IA</b> em todas as abas<small>você fala ou escreve: "muda o preço", "quem não pagou?", e ele faz</small></span></li>
@@ -171,7 +175,28 @@ li small{display:block;color:var(--muted);font-size:12.5px}
 <script>
 'use strict';
 const fmt = v => '€ ' + (Number.isInteger(v) ? v : v.toFixed(2).replace('.', ','));
+
+/* ---------- pagamento pelo Stripe (16/10/2026) ----------
+   Enquanto a conta do Stripe está em análise, só existem os links de TESTE: o botão "Assinar"
+   aparece só com ?teste=1 no endereço. Quando os links REAIS existirem, preencha PAGAR_REAL e
+   o botão aparece para todo mundo. */
+const PAGAR_REAL = { free: '', standard: { mes: '', ano: '' }, pro: { mes: '', ano: '' } };
+const PAGAR_TESTE = {
+  free: 'https://buy.stripe.com/test_8x26oJ1NV0iWdHp664fAc04',
+  standard: { mes: 'https://buy.stripe.com/test_dRm14p2RZ5Dg5aT520fAc02', ano: 'https://buy.stripe.com/test_fZu28tgIPfdQgTB7a8fAc03' },
+  pro: { mes: 'https://buy.stripe.com/test_4gMaEZeAH1n0avd3XWfAc00', ano: 'https://buy.stripe.com/test_8x2dRb3W37Lo46PfGEfAc01' },
+};
+const PAGAR = PAGAR_REAL.free ? PAGAR_REAL : (/[?&]teste=1/.test(location.search) ? PAGAR_TESTE : null);
+let modoAtual = 'mes';
+function ligaPagar() {
+  document.querySelectorAll('.pagar[data-plano]').forEach(a => {
+    if (!PAGAR) { a.hidden = true; return; }
+    const p = a.dataset.plano, u = p === 'free' ? PAGAR.free : PAGAR[p][modoAtual];
+    a.href = u; a.hidden = !u;
+  });
+}
 function modo(m) {
+  modoAtual = m;
   document.querySelectorAll('.troca button').forEach(b => b.classList.toggle('on', b.dataset.modo === m));
   document.querySelectorAll('.preco[data-mes]').forEach(p => {
     const mes = +p.dataset.mes, ano = +p.dataset.ano, caixa = p.nextElementSibling;
@@ -186,6 +211,8 @@ function modo(m) {
 }
 document.querySelectorAll('.troca button').forEach(b => b.onclick = () => modo(b.dataset.modo));
 modo('mes');
+ligaPagar();
+document.querySelectorAll('.troca button').forEach(b => b.addEventListener('click', ligaPagar));
 </script>
 <a class="zap-flut" href="https://wa.me/5541991566444?text=Oi%20Eug%C3%AAnio%21%20Vi%20o%20Rotta%20e%20quero%20saber%20mais%20sobre%20o%20app." target="_blank" rel="noopener" aria-label="Falar com o Eugênio no WhatsApp"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .2-1.2c-.1-.1-.3-.2-.5-.3z"/></svg><span>Falar no WhatsApp</span></a>
 </body>
