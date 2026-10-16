@@ -1,7 +1,7 @@
 # App do Ailton Guia Viena (Aílton Fonseca)
 
-Protótipo de 16/10/2026. Endereço depois de publicado: `guia.eugeniofim.com/ailton/`
-(painel direto: `guia.eugeniofim.com/ailton/painel/`).
+Protótipo de 16/10/2026. Endereço: `rottaguide.com/ailton/` (cópia em `rotta-site/ailton/`; a fonte fica aqui)
+(painel direto: `rottaguide.com/ailton/painel/`). Mudou algo aqui? Copie a pasta de novo para o `rotta-site`.
 
 Base: cópia do demo "Londres com a Bia" (`app-guia/londres`, v0.2.0), com a
 Contabilidade feita para a Freddy reescrita no padrão da Áustria.
