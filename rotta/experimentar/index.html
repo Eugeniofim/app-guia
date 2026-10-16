@@ -102,7 +102,9 @@ f.onsubmit = async (e) => {
     try { localStorage.setItem('rotta_teste', JSON.stringify({ nome: j.nome, fim: j.fim })); } catch (_) {}
     if (j.acabou) { msg.textContent = 'O seu teste de 20 minutos já acabou. Veja os planos ou fale com a gente.'; return; }
     msg.className = 'msg ok'; msg.textContent = 'Pronto! Abrindo o seu painel…';
-    location.href = DEMO;
+    /* o demo mora em outro endereço: o prazo vai junto na URL e o teste.js de lá guarda */
+    const rt = btoa(unescape(encodeURIComponent(JSON.stringify({ nome: j.nome, fim: j.fim }))));
+    location.href = DEMO.replace('#', '?rt=' + encodeURIComponent(rt) + '#');
   } catch (_) { msg.textContent = 'Sem conexão. Tente de novo em instantes.'; }
   finally { bt.disabled = false; }
 };

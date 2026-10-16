@@ -9,6 +9,15 @@
 'use strict';
 (function testeDe20Minutos() {
   let t = null;
+  /* vindo do rottaguide.com (outro endereço), o prazo chega na URL (?rt=…): guarda e limpa a barra */
+  try {
+    const q = new URLSearchParams(location.search), rt = q.get('rt');
+    if (rt) {
+      const d = JSON.parse(decodeURIComponent(escape(atob(rt))));
+      if (d && d.fim && !isNaN(Date.parse(d.fim))) localStorage.setItem('rotta_teste', JSON.stringify({ nome: String(d.nome || '').slice(0, 80), fim: d.fim }));
+      q.delete('rt'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+    }
+  } catch (_) {}
   try { t = JSON.parse(localStorage.getItem('rotta_teste') || 'null'); } catch (_) { t = null; }
   const fim = t && Date.parse(t.fim);
   if (!fim) return;
@@ -31,7 +40,7 @@
 
   const faixa = document.createElement('div');
   faixa.className = 'rt-faixa'; faixa.setAttribute('role', 'status');
-  faixa.innerHTML = `<span>Seu teste grátis</span><b id="rt-tempo">20:00</b><a href="/rotta/planos/">ver planos</a>`;
+  faixa.innerHTML = `<span>Seu teste grátis</span><b id="rt-tempo">20:00</b><a href="https://guia.eugeniofim.com/rotta/planos/">ver planos</a>`;
   document.body.appendChild(faixa); document.body.classList.add('rt-com-faixa');
 
   function acabou() {
@@ -43,7 +52,7 @@
     fimEl.innerHTML = `<div class="rt-caixa" role="dialog" aria-modal="true" aria-labelledby="rt-tit">
       <h2 id="rt-tit">${nome ? nome + ', o' : 'O'} seu teste de 20 minutos acabou.</h2>
       <p>Gostou? A gente monta o seu app com os seus passeios, as suas cores e o seu nome.</p>
-      <a class="pri" href="/rotta/planos/">Ver os planos</a>
+      <a class="pri" href="https://guia.eugeniofim.com/rotta/planos/">Ver os planos</a>
       <a class="sec" href="https://ig.me/m/estudio_ti_artes" target="_blank" rel="noopener">Falar com a Ti Artes</a></div>`;
     document.body.appendChild(fimEl);
     fimEl.querySelector('a').focus();
