@@ -40,7 +40,7 @@
 
   const faixa = document.createElement('div');
   faixa.className = 'rt-faixa'; faixa.setAttribute('role', 'status');
-  faixa.innerHTML = `<span>Seu teste grátis</span><b id="rt-tempo">20:00</b><a href="https://guia.eugeniofim.com/rotta/planos/">ver planos</a>`;
+  faixa.innerHTML = `<span>Seu teste grátis</span><b id="rt-tempo">20:00</b><a href="https://rottaguide.com/planos/">ver planos</a>`;
   document.body.appendChild(faixa); document.body.classList.add('rt-com-faixa');
 
   function acabou() {
@@ -52,8 +52,8 @@
     fimEl.innerHTML = `<div class="rt-caixa" role="dialog" aria-modal="true" aria-labelledby="rt-tit">
       <h2 id="rt-tit">${nome ? nome + ', o' : 'O'} seu teste de 20 minutos acabou.</h2>
       <p>Gostou? A gente monta o seu app com os seus passeios, as suas cores e o seu nome.</p>
-      <a class="pri" href="https://guia.eugeniofim.com/rotta/planos/">Ver os planos</a>
-      <a class="sec" href="https://ig.me/m/estudio_ti_artes" target="_blank" rel="noopener">Falar com a Ti Artes</a></div>`;
+      <a class="pri" href="https://rottaguide.com/planos/">Ver os planos</a>
+      <a class="sec" href="https://wa.me/5541991566444?text=${encodeURIComponent('Oi Eugênio! Acabei o teste de 20 minutos do Rotta e quero saber mais.')}" target="_blank" rel="noopener">Falar no WhatsApp</a></div>`;
     document.body.appendChild(fimEl);
     fimEl.querySelector('a').focus();
   }
