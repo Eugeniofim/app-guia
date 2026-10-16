@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#13201E">
+<meta name="robots" content="noindex">
+<title>Rotta · experimente por 20 minutos</title>
+<meta name="description" content="Crie o seu acesso e use o app do guia por 20 minutos, com tudo liberado.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=IBM+Plex+Mono:wght@500&family=Nunito+Sans:opsz,wght@6..12,400;6..12,700;6..12,800&display=swap" rel="stylesheet">
+<style>
+/* Teste de 20 minutos (16/10/2026): cria o acesso no cofre (nome, e-mail, WhatsApp, senha)
+   e abre o app de exemplo com a contagem. O prazo é decidido no servidor. */
+:root{--tinta:#13201E;--rota:#2F7A6F;--rota-2:#25645B;--menta:#7FD1C1;--papel:#F3F6F2;--linha:#D3DED9;--cinza:#55635F;--erro:#B4432A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--papel);color:var(--tinta);font-family:"Avenir Next","Nunito Sans",system-ui,sans-serif;line-height:1.5;min-height:100dvh;display:flex;justify-content:center}
+.pag{width:100%;max-width:460px;padding:18px 18px 40px}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--menta);outline-offset:2px}
+.marca{display:flex;align-items:center;gap:8px;text-decoration:none}
+.marca .w{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:23px;letter-spacing:-.02em;line-height:1}
+.marca .por{font-size:11px;color:var(--cinza)}
+.relogio{display:inline-flex;align-items:center;gap:8px;margin-top:26px;font-family:"IBM Plex Mono",monospace;font-size:13px;background:var(--tinta);color:#fff;border-radius:999px;padding:6px 12px}
+.relogio i{width:8px;height:8px;border-radius:50%;background:var(--menta)}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(32px,8vw,40px);line-height:1;letter-spacing:-.03em;margin-top:12px;text-wrap:balance}
+.lede{color:var(--cinza);margin-top:10px}
+.abas{display:grid;grid-template-columns:1fr 1fr;background:#fff;border:1.5px solid var(--linha);border-radius:14px;padding:4px;margin-top:22px}
+.abas button{font:inherit;font-weight:800;font-size:15px;border:0;background:none;border-radius:10px;min-height:44px;cursor:pointer;color:var(--cinza)}
+.abas button.on{background:var(--tinta);color:#fff}
+form{margin-top:16px;display:flex;flex-direction:column;gap:12px}
+label span{display:block;font-size:13.5px;font-weight:800;margin-bottom:5px}
+label small{display:block;font-size:12.5px;color:var(--cinza);margin-top:4px}
+input[type=text],input[type=email],input[type=tel],input[type=password]{width:100%;min-height:50px;border:1.5px solid var(--linha);border-radius:12px;padding:0 14px;font:inherit;font-size:16px;background:#fff}
+input:focus{border-color:var(--rota);outline:none}
+.aceite{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--cinza)}
+.aceite input{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--rota)}
+.btn{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:14px;border:0;font:inherit;font-weight:800;font-size:16px;background:var(--rota);color:#fff;cursor:pointer;margin-top:4px}
+.btn:hover{background:var(--rota-2)}
+.btn[disabled]{opacity:.6;cursor:wait}
+.msg{font-size:14px;font-weight:700;color:var(--erro);min-height:20px}
+.msg.ok{color:var(--rota-2)}
+.nota{font-size:12.5px;color:var(--cinza);margin-top:16px}
+.voltar{display:inline-block;margin-top:18px;font-size:14px;font-weight:800;color:var(--rota-2)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="pag">
+  <a class="marca" href="../">
+    <svg width="34" height="22" viewBox="0 0 34 22" aria-hidden="true"><path d="M4 17 C 10 17, 10 5, 17 5 S 24 17, 30 9" fill="none" stroke="#2F7A6F" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 4.2"/><circle cx="4" cy="17" r="3" fill="#13201E"/><circle cx="30" cy="9" r="3.4" fill="#2F7A6F"/></svg>
+    <div><div class="w">rotta</div><div class="por">por Ti Artes</div></div>
+  </a>
+
+  <div class="relogio"><i></i>20:00 · tudo liberado</div>
+  <h1>Experimente o app grátis por 20 minutos.</h1>
+  <p class="lede">Crie o seu acesso e entre no painel de um app completo: reservas, agenda, clientes, dinheiro e o assistente de IA.</p>
+
+  <div class="abas" role="tablist">
+    <button class="on" data-aba="cadastro" role="tab" aria-selected="true">Criar acesso</button>
+    <button data-aba="entrar" role="tab" aria-selected="false">Já tenho acesso</button>
+  </div>
+
+  <form id="f" novalidate>
+    <label data-so="cadastro"><span>Seu nome</span><input type="text" name="nome" autocomplete="name" placeholder="Ex.: Ana Souza"></label>
+    <label><span>E-mail</span><input type="email" name="email" autocomplete="email" placeholder="voce@exemplo.com"></label>
+    <label data-so="cadastro"><span>WhatsApp</span><input type="tel" name="whats" autocomplete="tel" placeholder="+33 6 12 34 56 78"><small>Com o código do país.</small></label>
+    <label><span id="rot-senha">Crie uma senha</span><input type="password" name="senha" autocomplete="new-password" placeholder="pelo menos 6 caracteres"></label>
+    <label class="aceite" data-so="cadastro"><input type="checkbox" name="aceite"><span style="font-weight:600;margin:0">Aceito receber contato da Ti Artes por WhatsApp e e-mail sobre o app. <a href="../../privacidade.html" target="_blank" rel="noopener">Privacidade</a></span></label>
+    <p class="msg" id="msg" role="status" aria-live="polite"></p>
+    <button class="btn" id="enviar" type="submit">Começar meus 20 minutos</button>
+  </form>
+
+  <p class="nota">Os 20 minutos começam quando você cria o acesso e não reiniciam. O app é de exemplo: nada do que você fizer sai do seu aparelho.</p>
+  <a class="voltar" href="../">← Voltar</a>
+</main>
+<script>
+'use strict';
+const COFRE = 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre/rotta-teste';
+const DEMO = '../../londres/#/adm/today';
+let aba = 'cadastro';
+const f = document.getElementById('f'), msg = document.getElementById('msg'), bt = document.getElementById('enviar');
+function trocaAba(a) {
+  aba = a;
+  document.querySelectorAll('.abas button').forEach(b => { const on = b.dataset.aba === a; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  document.querySelectorAll('[data-so]').forEach(el => el.hidden = el.dataset.so !== a);
+  document.getElementById('rot-senha').textContent = a === 'cadastro' ? 'Crie uma senha' : 'Sua senha';
+  f.senha.autocomplete = a === 'cadastro' ? 'new-password' : 'current-password';
+  bt.textContent = a === 'cadastro' ? 'Começar meus 20 minutos' : 'Entrar';
+  msg.textContent = ''; msg.className = 'msg';
+}
+document.querySelectorAll('.abas button').forEach(b => b.onclick = () => trocaAba(b.dataset.aba));
+f.onsubmit = async (e) => {
+  e.preventDefault();
+  const d = { acao: aba, email: f.email.value, senha: f.senha.value };
+  if (aba === 'cadastro') Object.assign(d, { nome: f.nome.value, whats: f.whats.value, aceite: f.aceite.checked, origem: new URLSearchParams(location.search).get('de') || 'rotta' });
+  bt.disabled = true; msg.className = 'msg'; msg.textContent = '';
+  try {
+    const r = await fetch(COFRE, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(d) });
+    const j = await r.json().catch(() => ({}));
+    if (j.erro) { msg.textContent = j.msg || 'Não deu certo. Confira os dados.'; if (j.erro === 'existe') trocaAba('entrar'), msg.textContent = j.msg; return; }
+    try { localStorage.setItem('rotta_teste', JSON.stringify({ nome: j.nome, fim: j.fim })); } catch (_) {}
+    if (j.acabou) { msg.textContent = 'O seu teste de 20 minutos já acabou. Veja os planos ou fale com a gente.'; return; }
+    msg.className = 'msg ok'; msg.textContent = 'Pronto! Abrindo o seu painel…';
+    location.href = DEMO;
+  } catch (_) { msg.textContent = 'Sem conexão. Tente de novo em instantes.'; }
+  finally { bt.disabled = false; }
+};
+</script>
+</body>
+</html>
