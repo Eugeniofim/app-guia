@@ -12,7 +12,13 @@
    que nenhum banco fica gravado no codigo. */
 const SUPA_URL = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.supabaseUrl) || '';
 const SUPA_KEY = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.supabaseKey) || '';
-const QUEUE_KEY = 'vi_queue_v1';
+/* A fila tem dono. Os apps moram todos no mesmo endereço (guia.eugeniofim.com)
+   e dividiam a chave 'vi_queue_v1': o que ficava pendente num app era mandado
+   pelo app de outra guia para a sala DELA — a demonstração da raiz, sem banco,
+   enchia a fila, e o primeiro app com banco aberto naquele aparelho a esvaziava
+   no banco errado. Mesma regra do IA_NS do assistente: o prefixo do DB_KEY
+   (mario_queue_v1…); a raiz continua 'vi_queue_v1'. 18/10/2026. */
+const QUEUE_KEY = (typeof DB_KEY !== 'undefined' ? String(DB_KEY).replace(/_db_v\d+$/, '') : 'vi') + '_queue_v1';
 
 /* Sem prazo maximo, uma requisicao pendurada trava o app inteiro: foi isso
    que fez o login demorar um minuto. 12s e generoso ate para 3G ruim. */
@@ -48,7 +54,11 @@ function supaFetch(path, opts = {}) {
 
 /* ---------- fila offline ---------- */
 function qAll() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; } catch (e) { return []; } }
-function qPush(job) { const q = qAll(); q.push(job); localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
+/* Sem banco não há fila: no tempo da demonstração o envio "falhava" (não
+   havia para onde mandar) e cada mexida em reserva ficava guardada aqui —
+   e seria mandada para o banco de verdade no dia em que ele fosse ligado.
+   Achado ao ligar a sala da Yalla, 18/10/2026. */
+function qPush(job) { if (!SUPA_URL) return; const q = qAll(); q.push(job); localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
 async function qFlush() {
   const q = qAll(); if (!q.length) return;
   const rest = [];
@@ -156,7 +166,7 @@ function cloudPushState() {
 /* Migracao unica: aparelhos que ja estao em uso tem reservas sem a marca.
    Tratar todas como pendentes manteria os fantasmas para sempre. Reserva
    com mais de uma hora ja teve tempo de subir — e se de fato nao subiu, a
-   fila (vi_queue_v1) reenvia por conta propria. */
+   fila (QUEUE_KEY) reenvia por conta propria. */
 function migraMarcaDeSincronia() {
   if (localStorage.getItem('vi_migr_naNuvem') === '1') return;
   const limite = Date.now() - 3600e3;
