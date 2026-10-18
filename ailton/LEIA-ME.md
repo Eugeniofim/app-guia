@@ -74,3 +74,9 @@ Tudo do site dele, `ailtonguiaviena.at`:
 2. Tabela `despesas` na nuvem (hoje a contabilidade guarda no aparelho).
 3. Domínio, se quiser (ex.: app.ailtonguiaviena.at).
 4. Tirar `meta robots noindex` do `index.html` quando estiver no ar.
+
+## Proposta (18/10/2026)
+
+R$ 3.500, sem mensalidade: 50% na entrada, 50% na entrega, em 10 dias. Tudo do
+protótipo menos o atendimento automático. Supabase e GitHub na conta do Aílton
+(plano grátis). O endereço continua rottaguide.com/ailton (decisão do Eugênio).
