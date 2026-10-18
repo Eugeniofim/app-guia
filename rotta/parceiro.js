@@ -60,8 +60,8 @@
     if (fim && !fim.dataset.ok) {
       fim.dataset.ok = '1';
       const h = fim.querySelector('h2'), p = fim.querySelector('p'), b = fim.querySelector('a.btn.pri[href*="wa.me/"]');
-      if (h) h.textContent = `Gostou? ${P.da === 'da' ? 'A' : 'O'} ${P.nome} te indicou.`;
-      if (p) p.textContent = `Quem monta é o Eugênio, do Studio Ti Artes — o mesmo que fez o app ${P.da} ${P.negocio}. Deixe seu nome e WhatsApp: ele te chama e monta o seu, com os seus passeios, sem compromisso.`;
+      if (h) h.insertAdjacentHTML('beforebegin', `<span class="indicou">${P.da === 'da' ? 'A' : 'O'} ${esc(P.nome)} te indicou</span>`);
+      if (p) p.textContent = `Quem monta é o Eugênio, do Studio Ti Artes — o mesmo que fez o app ${P.da} ${P.negocio}. Deixe seu nome e WhatsApp: ele monta um app de exemplo com o seu nome e os seus passeios, e te mostra. Sem compromisso.`;
       if (b) b.textContent = 'Falar com o Eugênio no WhatsApp';
     }
   };
