@@ -5,7 +5,17 @@
    ===================================================== */
 'use strict';
 
-const AUTH_KEY = 'vi_session_v1';
+/* A sessão tem o nome do app — 18/10/2026.
+
+   Todos os apps de guia.eugeniofim.com/<pasta>/ são o MESMO endereço e
+   dividem o localStorage. Com 'vi_session_v1' em todos, entrar no /mario/
+   fazia o /mari/, no mesmo aparelho, achar que estava logado com o token
+   do Mario: a regra da sala recusava, aparecia "a sessão caiu", e sair de
+   um app deslogava todos. Mesma regra do IA_NS e da QUEUE_KEY: o prefixo
+   do DB_KEY. A raiz segue 'vi_session_v1'.
+   Por isso o auth.js carrega DEPOIS do store.js no index.html. */
+const AUTH_KEY = (typeof DB_KEY !== 'undefined' ? String(DB_KEY).replace(/_db_v\d+$/, '') : 'vi') + '_session_v1';
+const AUTH_KEY_VELHA = 'vi_session_v1';
 let SESSION = null;   // { access_token, refresh_token, expires_at, user }
 
 /* Prazo para TODA chamada de rede daqui.
@@ -193,4 +203,55 @@ async function claimOwnership() {
   } catch (e) { return { ok: false }; }
 }
 
+/* --------- a sessão que ficou na chave antiga ---------
+   Quem já estava logada antes de 18/10 guardou a sessão em 'vi_session_v1'.
+   Sem isto, a atualização deslogaria a dona. Mas aquela chave era de TODOS
+   os apps do endereço: a sessão só vem para cá se o usuário dela for o DONO
+   desta sala (app_config.owner_uid, que qualquer um pode ler). De outra
+   pessoa, fica onde está, e quem é dono daqui entra de novo uma vez.
+   Ela MUDA de chave (sai da antiga), não é copiada: o Supabase troca o
+   refresh_token a cada renovação e um token reaproveitado derruba a sessão.
+   Duas cópias em dois apps acabariam deslogando os dois. */
+function authUidDe(s) {
+  if (s && s.user && s.user.id) return s.user.id;
+  try {   /* a sessão do link do e-mail chega sem user: o id está no token */
+    const p = String(s.access_token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(p.padEnd(p.length + (4 - p.length % 4) % 4, '='))).sub || null;
+  } catch (e) { return null; }
+}
+async function authMigraVelha() {
+  if (AUTH_KEY === AUTH_KEY_VELHA || SESSION) return false;
+  if (typeof SUPA_URL === 'undefined' || !SUPA_URL) return false;
+  const cru = localStorage.getItem(AUTH_KEY_VELHA);
+  let velha = null;
+  try { velha = JSON.parse(cru); } catch (e) { return false; }
+  const uid = velha && velha.access_token && authUidDe(velha);
+  if (!uid) return false;
+  let dono = null;
+  try {
+    const r = await comPrazo(SUPA_URL + '/rest/v1/app_config?id=eq.1&select=owner_uid', {
+      headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY, ...salaHeaders('GET') },
+    });
+    if (!r.ok) return false;
+    const cur = await r.json();
+    dono = cur && cur[0] && cur[0].owner_uid;
+  } catch (e) { return false; }   /* sem rede: tenta de novo na próxima abertura */
+  if (!dono || dono !== uid) return false;
+  /* ela pode ter entrado (aqui ou noutra aba) enquanto a rede respondia */
+  if (SESSION || localStorage.getItem(AUTH_KEY) || localStorage.getItem(AUTH_KEY_VELHA) !== cru) return false;
+  authSave(velha);
+  localStorage.removeItem(AUTH_KEY_VELHA);
+  return true;
+}
+
 authLoad();
+
+/* Roda quando todos os scripts já carregaram (o SUPA_URL mora no cloud.js).
+   Deu certo e ela está na porta do painel: abre o painel. */
+if (typeof document !== 'undefined') {
+  const migra = () => authMigraVelha().then((ok) => {
+    if (ok && /^#\/adm/.test(location.hash) && typeof route === 'function') route();
+  }).catch(() => {});
+  if (document.readyState === 'loading') addEventListener('DOMContentLoaded', migra);
+  else setTimeout(migra, 0);
+}
