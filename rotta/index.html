@@ -125,13 +125,13 @@ a.cartao:hover{border-color:var(--rota)}
 .chegada .pedido{display:grid;gap:12px;margin-top:14px}
 .chegada .pedido label{display:grid;gap:6px;font-weight:700;font-size:14px;color:#fff}
 .chegada .pedido label small{font-weight:400;font-size:12.5px;color:#B9CBC6}
-.chegada .pedido label .opc{display:inline}
+.chegada .pedido label .opc{display:inline;font-size:12.5px;font-weight:400;color:#B9CBC6}
 .chegada .pedido input:not([type=checkbox]){min-height:48px;padding:0 14px;border-radius:12px;border:1.5px solid #3D5550;background:#fff;color:var(--tinta);font:16px var(--corpo)}
 .chegada .pedido input:focus{outline:3px solid var(--menta);outline-offset:1px}
 .chegada .pedido .aceite{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:13.5px;color:#DDE8E5;line-height:1.4}
 .chegada .pedido .aceite input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--menta)}
 .chegada .pedido .aceite a{color:var(--menta)}
-.chegada .pedido .btn.pri{width:100%;background:var(--menta);color:var(--tinta)}
+.chegada .pedido .btn.pri{width:100%;background:var(--menta);color:var(--tinta);font-family:inherit;cursor:pointer}
 .chegada .pedido .btn.pri:disabled{opacity:.6}
 .chegada .pedidoMsg{margin:0;font-size:14px;min-height:1px}
 .chegada .pedidoMsg.erro{color:#FFB4A3}
@@ -228,13 +228,13 @@ a.cartao:hover{border-color:var(--rota)}
           <form class="pedido" id="pedido" novalidate>
             <label>Seu nome<input name="nome" autocomplete="name" required maxlength="80" placeholder="Ex.: Ana Souza"></label>
             <label>WhatsApp<input name="whats" type="tel" autocomplete="tel" required maxlength="24" placeholder="+49 152 1234 5678"><small>Com o código do país.</small></label>
-            <label>Onde você guia <small class="opc">(opcional)</small><input name="cidade" maxlength="80" placeholder="Ex.: Berlim, Lisboa, Roma"></label>
-            <label class="aceite"><input type="checkbox" name="aceite"> Aceito receber contato da Ti Artes por WhatsApp e e-mail sobre o app. <a href="https://guia.eugeniofim.com/privacidade.html" target="_blank" rel="noopener">Privacidade</a></label>
+            <label><span>Onde você guia <small class="opc">(opcional)</small></span><input name="cidade" maxlength="80" placeholder="Ex.: Berlim, Lisboa, Roma"></label>
+            <label class="aceite"><input type="checkbox" name="aceite"><span>Aceito receber contato da Ti Artes por WhatsApp e e-mail sobre o app. <a href="https://guia.eugeniofim.com/privacidade.html" target="_blank" rel="noopener">Privacidade</a></span></label>
             <button class="btn pri" type="submit" id="pedidoBt">Quero o meu app montado</button>
             <p class="pedidoMsg" id="pedidoMsg" role="status" aria-live="polite"></p>
           </form>
           <div class="linha2">
-            <a class="btn sec" href="https://wa.me/5541991566444?text=Oi%20Eug%C3%AAnio%21%20Vi%20o%20Rotta%20e%20quero%20saber%20mais%20sobre%20o%20app." target="_blank" rel="noopener">Prefiro chamar agora no WhatsApp</a>
+            <a class="btn sec" href="https://wa.me/5541991566444?text=Oi%20Eug%C3%AAnio%21%20Vi%20o%20Rotta%20e%20quero%20saber%20mais%20sobre%20o%20app." target="_blank" rel="noopener">Chamar agora no WhatsApp</a>
             <a class="btn sec" href="manual-rotta.pdf" download>Baixar o manual (PDF)</a>
           </div>
         </div>
