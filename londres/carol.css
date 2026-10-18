@@ -739,3 +739,37 @@
 /* 18/10: WhatsApp também no topo, ao lado do Instagram */
 .hub .rede.wa{background:#25D366;color:#fff}
 .hub .rede.wa svg{width:22px;height:22px}
+
+/* 18/10: "Peça seu protótipo personalizado" — na faixa de baixo (vitrine e painel) e o formulário */
+.faixaTroca .ftRot{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;opacity:1!important;margin:0 0 6px}
+.faixaTroca .ftDemo{opacity:.65}
+body.em-adm #demoFaixa .ftRot{display:flex!important}
+body.em-adm #demoFaixa .ftDemo{display:none}
+@media (max-width:520px){.faixaTroca .ftDemo{display:none}
+  /* no celular o botão fica à esquerda: a seta do "conheça o app" passa livre à direita */
+  .faixaTroca .ftRot{justify-content:flex-start;padding-left:2px}
+  .faixaTroca .ftSeg .nota-app{bottom:calc(100% + 6px)}
+  .faixaTroca .ftSeg .nota-app span{margin-bottom:46px}}
+.ftPede{border:1px solid #FFB27A;background:rgba(255,178,122,.12);color:#FFC79E;border-radius:999px;padding:5px 12px;cursor:pointer;
+  font:800 12.5px/1.2 var(--f-ui);letter-spacing:.01em}
+.ftPede:hover{background:rgba(255,178,122,.24)}
+.ftPede:focus-visible{outline:3px solid #FF9A5C;outline-offset:2px}
+.ppFundo{position:fixed;inset:0;z-index:2100;background:rgba(10,7,14,.72);display:grid;place-items:end center;padding:12px}
+@media (min-width:560px){.ppFundo{place-items:center}}
+.ppCaixa{position:relative;width:100%;max-width:420px;max-height:calc(100dvh - 24px);overflow:auto;background:#FFF8F2;color:#2A0F40;
+  border-radius:22px;padding:22px 20px 20px;box-shadow:0 30px 60px -20px rgba(0,0,0,.6);font-family:var(--f-ui)}
+.ppCaixa h2{font:800 22px/1.15 var(--f-display);letter-spacing:-.01em;margin:4px 0 0;padding-right:28px}
+.ppEtq{font:800 11px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:#B3470C}
+.ppSub{font-size:14.5px;line-height:1.45;color:#5B4A6B;margin:8px 0 6px}
+.ppCaixa label{display:block;font-size:13.5px;font-weight:700;margin-top:12px}
+.ppCaixa label small{font-weight:500;color:#7A6A88}
+.ppCaixa input:not([type=checkbox]){display:block;width:100%;margin-top:5px;min-height:46px;padding:10px 12px;border:1.5px solid #E2D3C8;border-radius:12px;
+  background:#fff;color:#2A0F40;font:500 16px/1.2 var(--f-ui)}
+.ppCaixa input:focus{outline:none;border-color:#FF7A2F;box-shadow:0 0 0 3px rgba(255,122,47,.18)}
+.ppAceite{display:flex!important;gap:9px;align-items:flex-start;font-weight:500!important;color:#5B4A6B;line-height:1.35}
+.ppAceite input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:#FF7A2F}
+.ppErro{margin-top:10px;color:#B3261E;font-size:13.5px;font-weight:700}
+.ppEnvia{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;margin-top:16px;border:0;border-radius:14px;
+  background:#25D366;color:#073B1E;font:800 16px/1 var(--f-ui);text-decoration:none;cursor:pointer}
+.ppEnvia:hover{background:#20bd5a}
+.ppFecha{position:absolute;top:10px;right:12px;width:36px;height:36px;border:0;border-radius:50%;background:rgba(42,15,64,.08);color:#2A0F40;font-size:22px;line-height:1;cursor:pointer}
