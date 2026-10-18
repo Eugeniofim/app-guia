@@ -729,8 +729,10 @@
 .nota-mao .seta{flex:none;width:52px;height:42px}
 .nota-mao span{transform:rotate(-3deg);padding-bottom:20px}
 .nota-vitrine{padding-left:14px}
-.protobar .nota-app{position:absolute;right:6%;bottom:calc(100% - 8px);margin:0;align-items:flex-end;flex-direction:row}
-.protobar .nota-app span{margin-bottom:24px;padding:2px 10px 4px;border-radius:12px;background:rgba(20,14,26,.82);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.faixaTroca .ftSeg{position:relative}
+/* presa ao grupo de botões (não à tela): no computador os botões ficam no meio */
+.faixaTroca .ftSeg .nota-app{position:absolute;right:4px;bottom:calc(100% + 10px);margin:0;align-items:flex-end;flex-direction:row}
+.faixaTroca .ftSeg .nota-app span{margin-bottom:24px;padding:2px 10px 4px;border-radius:12px;background:rgba(20,14,26,.82);box-shadow:0 6px 18px rgba(0,0,0,.35)}
 @media (prefers-reduced-motion:no-preference){.nota-mao .seta{animation:setaBalanca 2.4s ease-in-out infinite}}
 @keyframes setaBalanca{50%{translate:0 3px}}
 

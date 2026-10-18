@@ -2884,8 +2884,8 @@ route();
       const icPainel = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>';
       /* 18/10: no lugar do cartão "Abra o Painel da guia", uma setinha à mão aponta para cá */
       const notaApp = noPainel ? '' : `<p class="nota-mao nota-app" aria-hidden="true"><span>conheça o app por aqui</span><svg class="seta" viewBox="0 0 64 52"><path d="M6 6C20 6 42 12 49 42" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M40 34l9 10 9-11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></p>`;
-      el.innerHTML = `${notaApp}<p class="ftRot">Demonstração com uma guia fictícia — nada sai deste aparelho</p>
-        <div class="ftSeg" role="tablist" aria-label="Lado do app">
+      el.innerHTML = `<p class="ftRot">Demonstração com uma guia fictícia — nada sai deste aparelho</p>
+        <div class="ftSeg" role="tablist" aria-label="Lado do app">${notaApp}
           <a href="#/" role="tab" aria-selected="${!noPainel}" class="${noPainel ? 'ir' : 'on'}">${icLoja}<span><b>Vitrine de passeios</b><small>${noPainel ? 'o que o cliente vê' : 'você está aqui'}</small></span>${noPainel ? '<i class="seta" aria-hidden="true">→</i>' : ''}</a>
           <a href="#/adm/today" role="tab" aria-selected="${noPainel}" class="${noPainel ? 'on' : 'ir'}">${icPainel}<span><b>Painel da guia</b><small>${noPainel ? 'você está aqui' : 'onde mora a inteligência'}</small></span>${noPainel ? '' : '<i class="seta" aria-hidden="true">→</i>'}</a>
         </div>`;
