@@ -2447,7 +2447,8 @@ function admAgenda() {
       lista.push({ date: b.date, time: b.time, capacity: cap, tour: x, left, booked: cap - left, pastOnly: true });
     });
 
-  const sel = admAgenda._d && byDay[admAgenda._d] ? admAgenda._d
+  /* 18/10: o dia tocado vale mesmo sem saída (pode ter tarefa); sem toque, o 1º dia com saída */
+  const sel = admAgenda._d && admAgenda._d.slice(0, 7) === cur ? admAgenda._d
             : (Object.keys(byDay).sort()[0] || isoToday());
   /* nomes de dia e mês no idioma escolhido, direto do navegador (5/1/2026 é segunda) */
   const WD = [5, 6, 7, 8, 9, 10, 11].map(d => new Date(2026, 0, d).toLocaleDateString(locale(), { weekday: 'short' }).replace('.', ''));
@@ -2890,6 +2891,10 @@ route();
           <a href="#/" role="tab" aria-selected="${!noPainel}" class="${noPainel ? 'ir' : 'on'}">${icLoja}<span><b>Vitrine de passeios</b><small>${noPainel ? 'o que o cliente vê' : 'você está aqui'}</small></span>${noPainel ? '<i class="seta" aria-hidden="true">→</i>' : ''}</a>
           <a href="#/adm/today" role="tab" aria-selected="${noPainel}" class="${noPainel ? 'on' : 'ir'}">${icPainel}<span><b>Painel da guia</b><small>${noPainel ? 'você está aqui' : 'onde mora a inteligência'}</small></span>${noPainel ? '' : '<i class="seta" aria-hidden="true">→</i>'}</a>
         </div>`;
+      /* 18/10: dentro do painel a faixa + a barra de abas comiam metade da tela do celular.
+         Lá ela vira UMA linha fina: voltar para a vitrine e pedir o protótipo. */
+      if (noPainel) el.innerHTML = `<div class="ftFina"><a href="#/" class="ftVolta">${icLoja}<span>← Vitrine</span></a>
+        <button type="button" class="ftPede">✦ Peça seu protótipo <span class="ftLongo">personalizado </span>grátis</button></div>`;
       el.querySelector('.ftPede').onclick = abrePedidoPrototipo;
       if (typeof faixaAcimaDaBarra === 'function') faixaAcimaDaBarra();
       document.documentElement.style.setProperty('--faixa-h', el.offsetHeight + 'px');

@@ -11,6 +11,8 @@
    Vazio em supabaseUrl = o app roda so no aparelho, sem nuvem: e assim que o
    demo funciona (painel aberto, nada sai do aparelho de quem olha). */
 var APP_CONFIG = {
+  /* Contabilidade (18/10/2026): perfil do país e prefixo do recibo. 'UK' | 'AT' */
+  contab: { pais: 'UK', prefixo: 'LB' },
   supabaseUrl: '',   /* demo: sem banco. Num app de cliente: 'https://SEU-PROJETO.supabase.co' */
   supabaseKey: '',   /* a chave "publishable" do projeto; nunca a secreta */
   sala: '',          /* schema do banco; vazio = public / sem banco */
