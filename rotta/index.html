@@ -122,6 +122,22 @@ a.cartao:hover{border-color:var(--rota)}
 .chegada .linha2{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .chegada .btn.sec{background:transparent;color:#fff;border-color:#3D5550}
 .chegada .btn.sec:hover{border-color:var(--menta)}
+.chegada .pedido{display:grid;gap:12px;margin-top:14px}
+.chegada .pedido label{display:grid;gap:6px;font-weight:700;font-size:14px;color:#fff}
+.chegada .pedido label small{font-weight:400;font-size:12.5px;color:#B9CBC6}
+.chegada .pedido label .opc{display:inline}
+.chegada .pedido input:not([type=checkbox]){min-height:48px;padding:0 14px;border-radius:12px;border:1.5px solid #3D5550;background:#fff;color:var(--tinta);font:16px var(--corpo)}
+.chegada .pedido input:focus{outline:3px solid var(--menta);outline-offset:1px}
+.chegada .pedido .aceite{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:13.5px;color:#DDE8E5;line-height:1.4}
+.chegada .pedido .aceite input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--menta)}
+.chegada .pedido .aceite a{color:var(--menta)}
+.chegada .pedido .btn.pri{width:100%;background:var(--menta);color:var(--tinta)}
+.chegada .pedido .btn.pri:disabled{opacity:.6}
+.chegada .pedidoMsg{margin:0;font-size:14px;min-height:1px}
+.chegada .pedidoMsg.erro{color:#FFB4A3}
+.chegada .pedido.feito label,.chegada .pedido.feito .btn{display:none}
+.chegada .pedido.feito .pedidoMsg{font-size:16px;color:#fff;font-weight:700}
+
 .rodape{text-align:center;font-size:13px;color:var(--cinza);margin-top:30px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 .zap-flut{position:fixed;right:16px;bottom:16px;z-index:50;display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#08321A;font-weight:800;font-size:14.5px;text-decoration:none;border-radius:999px;padding:12px 16px;box-shadow:0 10px 24px rgba(0,0,0,.25);min-height:48px}
@@ -158,8 +174,8 @@ a.cartao:hover{border-color:var(--rota)}
     <div class="resto">
       <p class="lede">Um app com o seu nome onde o cliente vê as vagas e reserva sozinho, as reservas ficam num lugar só, você vê quem já pagou, e um assistente de IA faz as mudanças por você.</p>
       <div class="acoes">
-        <a class="btn pri" href="experimentar/">Experimentar grátis · 20 min</a>
-        <a class="btn sec" href="#rota">Ver vídeo e planos</a>
+        <a class="btn pri" href="https://rottaguide.com/demo/" target="_blank" rel="noopener">Ver o app de exemplo · grátis</a>
+        <a class="btn sec" href="#contato">Quero o meu app montado</a>
       </div>
       <p class="prova"><i></i><span>Já no ar com guias brasileiros em <b>Munique, Berlim, Copenhague</b> e na <b>Alsácia</b>.</span></p>
     </div>
@@ -206,11 +222,19 @@ a.cartao:hover{border-color:var(--rota)}
       </li>
       <li class="parada fim">
         <div class="p-rot">Chegada</div>
-        <div class="chegada">
-          <h2>Gostou? Responda a mensagem.</h2>
-          <p>Eu monto o seu app com os seus passeios, sem compromisso, para você ver como fica.</p>
+        <div class="chegada" id="contato">
+          <h2>Quer o seu app montado?</h2>
+          <p>Deixe seu nome e WhatsApp. A gente te chama e monta o app com os seus passeios, sem compromisso, para você ver como fica.</p>
+          <form class="pedido" id="pedido" novalidate>
+            <label>Seu nome<input name="nome" autocomplete="name" required maxlength="80" placeholder="Ex.: Ana Souza"></label>
+            <label>WhatsApp<input name="whats" type="tel" autocomplete="tel" required maxlength="24" placeholder="+49 152 1234 5678"><small>Com o código do país.</small></label>
+            <label>Onde você guia <small class="opc">(opcional)</small><input name="cidade" maxlength="80" placeholder="Ex.: Berlim, Lisboa, Roma"></label>
+            <label class="aceite"><input type="checkbox" name="aceite"> Aceito receber contato da Ti Artes por WhatsApp e e-mail sobre o app. <a href="https://guia.eugeniofim.com/privacidade.html" target="_blank" rel="noopener">Privacidade</a></label>
+            <button class="btn pri" type="submit" id="pedidoBt">Quero o meu app montado</button>
+            <p class="pedidoMsg" id="pedidoMsg" role="status" aria-live="polite"></p>
+          </form>
           <div class="linha2">
-            <a class="btn pri" href="https://wa.me/5541991566444?text=Oi%20Eug%C3%AAnio%21%20Vi%20o%20Rotta%20e%20quero%20saber%20mais%20sobre%20o%20app." target="_blank" rel="noopener">Falar comigo no WhatsApp</a>
+            <a class="btn sec" href="https://wa.me/5541991566444?text=Oi%20Eug%C3%AAnio%21%20Vi%20o%20Rotta%20e%20quero%20saber%20mais%20sobre%20o%20app." target="_blank" rel="noopener">Prefiro chamar agora no WhatsApp</a>
             <a class="btn sec" href="manual-rotta.pdf" download>Baixar o manual (PDF)</a>
           </div>
         </div>
@@ -244,6 +268,33 @@ caixa.onclick = () => {
   document.querySelectorAll('a[href*="experimentar"]').forEach(a => { const u = new URL(a.getAttribute('href'), location.href); u.searchParams.set('de', de); a.href = u.href; });
   if (typeof ligaPagar === 'function') ligaPagar();
 } catch (_) {} })();
+</script>
+<script>
+/* PEDIDO DE CONTATO (18/10/2026): no lugar do teste de 20 min com senha — a pessoa
+   deixa nome e WhatsApp e a gente chama. Vai para o CRM da Rotta (com o parceiro
+   que indicou) e para a Prospecção do TI ARTES OS. */
+(function () {
+  const f = document.getElementById('pedido'); if (!f) return;
+  const msg = document.getElementById('pedidoMsg'), bt = document.getElementById('pedidoBt');
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    let origem = 'rotta'; try { origem = localStorage.getItem('rotta_de') || new URLSearchParams(location.search).get('de') || 'rotta'; } catch (_) {}
+    const d = { acao: 'contato', nome: f.nome.value, whats: f.whats.value, cidade: f.cidade.value, aceite: f.aceite.checked, origem };
+    msg.className = 'pedidoMsg'; msg.textContent = '';
+    if (!d.nome.trim()) { msg.className = 'pedidoMsg erro'; msg.textContent = 'Escreva o seu nome.'; f.nome.focus(); return; }
+    if (d.whats.replace(/\D/g, '').length < 8) { msg.className = 'pedidoMsg erro'; msg.textContent = 'Confira o WhatsApp, com o código do país.'; f.whats.focus(); return; }
+    if (!d.aceite) { msg.className = 'pedidoMsg erro'; msg.textContent = 'Marque que aceita o contato, para a gente poder te chamar.'; return; }
+    bt.disabled = true; bt.textContent = 'Enviando…';
+    try {
+      const r = await fetch('https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre/rotta-teste', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(d) });
+      const j = await r.json().catch(() => ({}));
+      if (!j.ok) { msg.className = 'pedidoMsg erro'; msg.textContent = j.msg || 'Não deu certo. Confira os dados.'; return; }
+      f.classList.add('feito');
+      msg.textContent = 'Pronto, ' + d.nome.trim().split(/\s+/)[0] + '! A gente te chama no WhatsApp para montar o seu app.';
+    } catch (_) { msg.className = 'pedidoMsg erro'; msg.textContent = 'Sem conexão. Tente de novo, ou chame no WhatsApp aqui embaixo.'; }
+    finally { bt.disabled = false; bt.textContent = 'Quero o meu app montado'; }
+  };
+})();
 </script>
 <script src="parceiro.js?v=1"></script>
 </body>
