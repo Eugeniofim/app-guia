@@ -2832,8 +2832,10 @@ function admSettings() {
       await Promise.all(chaves.map(k => caches.delete(k)));
     } catch (e) {}
     try {
-      localStorage.removeItem('vi_db_v1');
-      localStorage.removeItem('vi_queue_v1');
+      /* as chaves DESTE app: com as da raiz escritas à mão, o botão apagava
+         a demonstração da raiz e deixava a cópia daqui intacta (18/10/2026) */
+      localStorage.removeItem(DB_KEY);
+      localStorage.removeItem(QUEUE_KEY);
       localStorage.removeItem('vi_migr_naNuvem');
     } catch (e) {}
     location.reload();
