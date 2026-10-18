@@ -86,6 +86,35 @@ h1 em{font-style:normal;color:var(--rota)}
 @keyframes chega{to{opacity:1;transform:none}}
 
 /* a rota: três paradas até a chegada */
+/* IA (18/10/2026): o assistente vem dentro do app; atendimento e marketing são camadas extras */
+.ia{margin-top:56px;max-width:1040px;margin-left:auto;margin-right:auto}
+.ia-tit{font-family:var(--disp);font-weight:800;font-size:clamp(26px,5vw,36px);letter-spacing:-.02em;line-height:1.05;margin-top:8px;max-width:760px;text-wrap:balance}
+.ia-grade{display:grid;gap:12px;margin-top:18px}
+@media (min-width:860px){.ia-grade{grid-template-columns:1fr 1.25fr 1fr;align-items:start}}
+.ia-c{background:var(--branco);border:1.5px solid var(--linha);border-radius:20px;padding:18px}
+.ia-c h3{font-family:var(--disp);font-weight:800;font-size:21px;letter-spacing:-.015em;line-height:1.12;margin-top:10px}
+.ia-c p{margin-top:8px;font-size:15.5px;color:var(--cinza)}
+.ia-c small{display:block;margin-top:10px;font-size:13.5px;color:var(--rota-2);font-weight:700}
+.ia-selo{display:inline-block;padding:4px 10px;border-radius:999px;font:600 11.5px/1.3 var(--mono);letter-spacing:.04em;text-transform:uppercase}
+.ia-selo.dentro{background:var(--rota);color:#fff}
+.ia-selo.extra{background:#E6EEEA;color:var(--rota-2)}
+.ia-ex{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.ia-ex li{background:#ECF3F0;border-radius:12px 12px 12px 4px;padding:8px 11px;font-size:14.5px;color:var(--tinta)}
+.ia-c.escuro{background:var(--tinta);border-color:var(--tinta);color:#DDE8E5}
+.ia-c.escuro h3{color:#fff}
+.ia-c.escuro p{color:#B9CBC6}
+.ia-c.escuro .ia-selo.extra{background:#24413B;color:var(--menta)}
+.ia-vs{display:grid;gap:8px;margin-top:12px}
+.ia-vs div{border-radius:14px;padding:10px 12px;display:grid;gap:4px;font-size:14.5px;line-height:1.4}
+.ia-vs b{font-size:12.5px;letter-spacing:.02em}
+.ia-vs .ruim{background:#22302D;color:#8FA39E}
+.ia-vs .ruim span{text-decoration:line-through;text-decoration-color:rgba(255,180,163,.6)}
+.ia-vs .ruim b{color:#FFB4A3}
+.ia-vs .bom{background:#E7F7F2;color:var(--tinta)}
+.ia-vs .bom b{color:var(--rota-2)}
+.ia-c.escuro .ia-dor{color:#fff;font-weight:700;margin-top:12px}
+.ia-pe{margin-top:14px;font-size:15.5px;color:var(--cinza);max-width:760px}
+.ia-pe b{color:var(--tinta)}
 .rota{margin-top:56px;position:relative;max-width:760px;margin-left:auto;margin-right:auto}
 .rota-tit{font-family:var(--disp);font-weight:800;font-size:clamp(26px,5vw,36px);letter-spacing:-.02em;line-height:1.05}
 .rota-sub{color:var(--cinza);margin-top:6px}
@@ -183,6 +212,40 @@ a.cartao:hover{border-color:var(--rota)}
       </div>
       <p class="prova"><i></i><span>Já no ar com guias brasileiros em <b>Munique, Berlim, Copenhague</b> e na <b>Alsácia</b>.</span></p>
     </div>
+  </section>
+
+  <section class="ia" id="ia" aria-labelledby="iaTit">
+    <div class="etiqueta">Inteligência artificial de verdade</div>
+    <h2 class="ia-tit" id="iaTit">O app trabalha por você, até quando você está guiando.</h2>
+    <div class="ia-grade">
+      <article class="ia-c">
+        <span class="ia-selo dentro">Já vem dentro do app · plano Pro</span>
+        <h3>Assistente de IA</h3>
+        <p>Você fala ou escreve, e ele faz por você, em todas as abas do app:</p>
+        <ul class="ia-ex">
+          <li>“Muda o preço do passeio de sábado para € 40”</li>
+          <li>“Quem ainda não pagou o sinal?”</li>
+          <li>“Fecha a tarde de domingo”</li>
+        </ul>
+        <small>Mostra o que vai fazer antes de gravar.</small>
+      </article>
+      <article class="ia-c escuro">
+        <span class="ia-selo extra">Camada extra</span>
+        <h3>Agente de atendimento no Instagram e no WhatsApp</h3>
+        <p>Não é aquele chatbot de menu, com perguntas prontas. Ele pensa: lê o seu app, com passeios, vagas, preços e regras, e conversa com o seu cliente como você conversaria.</p>
+        <div class="ia-vs">
+          <div class="ruim"><b>✕ Chatbot comum</b><span>“Digite 1 para passeios, 2 para preços…”</span></div>
+          <div class="bom"><b>✓ Agente com IA</b><span>“Oi, Juliana! Sábado de manhã ainda tem vaga para 4 no passeio do centro histórico. Te mando o link para reservar?”</span></div>
+        </div>
+        <p class="ia-dor">Você no meio de um tour e o cliente perguntando? Ele responde na hora, e você não perde a venda.</p>
+      </article>
+      <article class="ia-c">
+        <span class="ia-selo extra">Camada extra</span>
+        <h3>Agente de marketing</h3>
+        <p>Posts, stories e anúncios prontos a partir dos seus passeios e das suas fotos. Você aprova e publica.</p>
+      </article>
+    </div>
+    <p class="ia-pe"><b>O assistente de IA já vem dentro do app.</b> Atendimento e marketing são camadas extras: a Ti Artes implanta para você.</p>
   </section>
 
   <section class="rota" id="rota">
