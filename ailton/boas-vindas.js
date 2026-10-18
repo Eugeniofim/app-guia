@@ -22,7 +22,7 @@ admToday = function () {
   const nome = (typeof primeiroNome === 'function' ? primeiroNome((DB.settings && DB.settings.admName) || (typeof guiaNome === 'function' && guiaNome()) || 'Aílton') : 'Aílton');
   const html = `<section class="card bvCard" id="bvCard">
     <button class="bvX" id="bvX" aria-label="Fechar">×</button>
-    <div class="bvLogo">${typeof logoImg === 'function' ? logoImg(64, 'escuro') : '<b>Ailton Guia Viena</b>'}</div>
+    <div class="bvLogo">${typeof logoImg === 'function' ? logoImg(72, 'claro') : '<b>Ailton Guia Viena</b>'}</div>
     <h2 class="bvTit">Bem-vindo ao seu app, ${esc(nome)}!</h2>
     <p class="bvSub">Aqui é o seu lado — o painel onde você comanda tudo. É só seu: os seus clientes, as suas reservas e os seus números moram aqui. Dê uma volta à vontade; nada quebra.</p>
     <div class="bvPassos">
@@ -30,12 +30,14 @@ admToday = function () {
       <button class="bvP" type="button" id="bvAssist"><span class="bvN">2</span><span><b>Fale com o assistente</b><small>O botão no canto. Peça em voz ou por escrito — ele mexe em todas as abas e mostra antes de gravar.</small></span></button>
       <a class="bvP" href="#/" target="_blank" rel="noopener"><span class="bvN">3</span><span><b>Veja o que o cliente vê</b><small>Abre a primeira tela do app, do jeito que o seu cliente abre.</small></span></a>
     </div>
-    <button class="cta bvOk" id="bvOk">Vamos começar ✨</button>
+    <button class="cta bvOk" id="bvOk">Vamos começar — me mostre o painel</button>
   </section>`;
   const h1 = stage.querySelector('.pageh');
   if (h1) h1.insertAdjacentHTML('afterend', html); else stage.insertAdjacentHTML('afterbegin', html);
   const fechar = () => { bvMarca(); const c = document.getElementById('bvCard'); if (c) c.remove(); };
-  document.getElementById('bvOk').onclick = fechar;
+  /* Aílton (17/10): as dicas do menu só começam DEPOIS deste cartão — antes
+     as duas coisas apareciam juntas, uma por cima da outra */
+  document.getElementById('bvOk').onclick = () => { fechar(); DB.settings.tutorialAdm = true; setTimeout(() => viewAdm('today'), 30); };
   document.getElementById('bvX').onclick = fechar;
   const a = document.getElementById('bvAssist');
   if (a) a.onclick = () => { fechar(); if (typeof iaAbre === 'function') { if (typeof iaMonta === 'function') iaMonta(); iaAbre(); } };

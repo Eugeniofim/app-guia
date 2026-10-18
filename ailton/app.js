@@ -217,7 +217,7 @@ const Coach = {
     target.scrollIntoView({ block: 'center', behavior: 'instant' });
     const b = document.createElement('div');
     b.className = 'coach'; b.setAttribute('role', 'dialog');
-    b.innerHTML = `<span class="coach-tag">💡 ${t('tutTag')} · ${this.i + 1}/${this.steps.length}</span>
+    b.innerHTML = `<span class="coach-tag">${t('tutTag')} ${this.i + 1} de ${this.steps.length}</span>
       <div class="coach-txt">${esc(tl(s.txt))}</div>
       <div class="coach-row">
         <button class="coach-skip">${t('tutSkip')}</button>
@@ -1232,10 +1232,11 @@ function admToday() {
     </section>`);
   $('#goLate')?.addEventListener('click', () => go('/adm/bookings'));
   $('#goPedidos')?.addEventListener('click', () => go('/adm/bookings'));
-  Coach.start([
+  /* nunca junto com o cartão de boas-vindas (boas-vindas.js chama de novo ao fechar) */
+  if (!(typeof bvJaViu === 'function' && !bvJaViu())) Coach.start([
     { sel: '#nb-tours',    txt: { pt: 'Aqui você cria e edita seus passeios — quantos quiser, com o calendário de cada um.', en: 'Create and edit your tours here — as many as you want, each with its own calendar.', fr: 'Créez et modifiez vos visites ici — autant que vous voulez, chacune avec son calendrier.', it: 'Qui create e modificate i vostri tour — quanti volete, ognuno con il suo calendario.', de: 'Hier legen Sie Ihre Touren an und bearbeiten sie — so viele Sie wollen, jede mit eigenem Kalender.', es: 'Aquí creas y editas tus tours — los que quieras, cada uno con su calendario.' } },
     { sel: '#nb-bookings', txt: { pt: 'Cada reserva aparece aqui: quem pagou tudo, quem pagou o sinal, quem atrasou.', en: 'Every booking lands here: paid in full, deposit only, or late.', fr: 'Chaque réservation arrive ici : payée en entier, acompte seulement ou en retard.', it: 'Ogni prenotazione arriva qui: pagata tutta, solo acconto o in ritardo.', de: 'Jede Buchung landet hier: voll bezahlt, nur Anzahlung oder überfällig.', es: 'Cada reserva llega aquí: pagada entera, solo anticipo o atrasada.' } },
-    { sel: '#nb-money',    txt: { pt: 'O extrato que vai para o contador: cliente, serviço, valor, forma e data de pagamento.', en: 'The statement for your accountant: guest, service, amount, method and date.', fr: 'Le relevé pour votre comptable : client, service, montant, moyen et date de paiement.', it: 'L’estratto per il commercialista: cliente, servizio, importo, metodo e data di pagamento.', de: 'Die Übersicht für Ihre Steuerberatung: Gast, Leistung, Betrag, Zahlungsart und Datum.', es: 'El extracto para tu contable: cliente, servicio, importe, forma y fecha de pago.' } },
+    { sel: '#nb-contab',   txt: { pt: 'A Contabilidade: o que entrou e saiu, recibo de cada pagamento e o pacote pronto para o seu contador.', en: 'The statement for your accountant: guest, service, amount, method and date.', fr: 'Le relevé pour votre comptable : client, service, montant, moyen et date de paiement.', it: 'L’estratto per il commercialista: cliente, servizio, importo, metodo e data di pagamento.', de: 'Die Übersicht für Ihre Steuerberatung: Gast, Leistung, Betrag, Zahlungsart und Datum.', es: 'El extracto para tu contable: cliente, servicio, importe, forma y fecha de pago.' } },
     { sel: '#viewSite',    txt: { pt: 'A qualquer momento, veja o site exatamente como o cliente vê.', en: 'At any time, see the site exactly as your guest does.', fr: 'À tout moment, voyez le site exactement comme votre client le voit.', it: 'In qualsiasi momento, vedete il sito esattamente come lo vede il cliente.', de: 'Sehen Sie die Website jederzeit genau so, wie Ihr Gast sie sieht.', es: 'En cualquier momento, ve el sitio exactamente como lo ve tu cliente.' } },
   ], 'tutorialAdm');
 }

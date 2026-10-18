@@ -196,6 +196,21 @@ viewTour = function (id) {
   const prog = document.querySelector('.tourbody .sec');
   if (x && x.fotosAilton && x.fotosAilton.length && prog && !document.querySelector('.avTourFotos'))
     prog.insertAdjacentHTML('afterend', `<div class="sec avTourFotos"><span class="seclabel">Com o Aílton neste passeio</span>${avFotosRetrato(x.fotosAilton, 'quatro')}</div>`);
+  /* celular: barra fixa "Reservar" que leva ao quadro de reserva; some
+     quando o quadro já está na tela */
+  const book = document.getElementById('book');
+  if (x && book && !document.querySelector('.avReservaBar')) {
+    const consulta = !(+x.price > 0);
+    const bar = document.createElement('div');
+    bar.className = 'avReservaBar';
+    bar.innerHTML = consulta
+      ? `<span><b>Sob consulta</b><small>roteiro e valor com o Aílton</small></span><a href="${esc(waLink('Olá, Aílton! Quero saber sobre ' + tl(x.name) + '.'))}" target="_blank" rel="noopener">Pedir no WhatsApp</a>`
+      : `<span><b>${eur(x.price)}</b><small>por grupo até 5 pessoas</small></span><button type="button">Reservar</button>`;
+    app.appendChild(bar);
+    const btn = bar.querySelector('button');
+    if (btn) btn.onclick = () => book.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => bar.classList.toggle('some', e.isIntersecting))).observe(book);
+  }
 };
 
 /* Avaliações: os depoimentos reais (do site dele, Ajustes → Depoimentos) +
