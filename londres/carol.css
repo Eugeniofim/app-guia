@@ -733,3 +733,7 @@
 .protobar .nota-app span{margin-bottom:24px;padding:2px 10px 4px;border-radius:12px;background:rgba(20,14,26,.82);box-shadow:0 6px 18px rgba(0,0,0,.35)}
 @media (prefers-reduced-motion:no-preference){.nota-mao .seta{animation:setaBalanca 2.4s ease-in-out infinite}}
 @keyframes setaBalanca{50%{translate:0 3px}}
+
+/* 18/10: WhatsApp também no topo, ao lado do Instagram */
+.hub .rede.wa{background:#25D366;color:#fff}
+.hub .rede.wa svg{width:22px;height:22px}

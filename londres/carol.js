@@ -91,6 +91,7 @@ function viewHub() {
   const aval = (DB.avaliacoes || []).filter(a => a.publicar);
   const redes = [
     st.insta ? { u: 'https://instagram.com/' + String(st.insta).replace(/^@/, ''), ic: ICONE_IG, n: 'Instagram', c: 'ig' } : null,
+    st.whats ? { u: waLink('Olá, Bia! Vim pelo app e queria saber mais sobre os tours em Londres.'), ic: ICONE_WA, n: 'WhatsApp', c: 'wa' } : null,
     linkExterno(st.site) ? { u: linkExterno(st.site), ic: ICONE_SITE, n: 'Site', c: 'site' } : null,
     linkExterno(st.youtube) ? { u: linkExterno(st.youtube), ic: IC.yt, n: 'YouTube', c: 'yt' } : null,
     st.email ? { u: 'mailto:' + st.email, ic: IC.email, n: 'E-mail', c: 'mail' } : null,
