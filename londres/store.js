@@ -221,6 +221,20 @@ const TERMOS_PADRAO = {
 let DB = null;
 function load() {
   try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
+  /* ARMADILHA PAGA NO MARIO (14/10/2026) E NA YALLA (18/10/2026): o aparelho
+     que abriu a DEMONSTRACAO guarda clientes e reservas de exemplo (DB.demo)
+     e, na fila, os envios que nao tinham para onde ir. No dia em que o
+     config.js ganha o banco, a sincronia mandaria esse exemplo para os dados
+     de verdade. Com nuvem, demonstracao guardada vira app vazio (so o idioma
+     fica), a fila vai embora, e o aparelho recebe o que esta no banco.
+     Sem nuvem (o prototipo) isto nao faz nada. */
+  if (DB && DB.demo && temNuvem()) {
+    const lang = DB.settings && DB.settings.lang;
+    try { localStorage.removeItem(typeof QUEUE_KEY !== 'undefined' ? QUEUE_KEY : 'londres_queue_v1'); } catch (e) {}
+    DB = _blank();
+    if (lang) DB.settings = { ...(DB.settings || {}), lang };
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  }
   /* O app esta em producao. Aparelho novo (ou navegador limpo) tem que
      comecar VAZIO e receber o que esta na nuvem — nunca publicar um catalogo
      inventado por cima do dela. Antes isto semeava a demonstracao e o save()
