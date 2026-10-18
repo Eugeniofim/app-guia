@@ -722,3 +722,14 @@
    assistente (gaveta z 950) — "não consigo digitar". Aberta, a gaveta passa
    por cima de tudo que é fixo embaixo. */
 #iaGaveta.aberta{z-index:1001}
+
+/* 18/10: setinhas à mão no demo (no lugar do cartão "Abra o Painel da guia") */
+.nota-mao{display:flex;align-items:flex-end;gap:2px;margin:6px 0 -6px;color:#FFB27A;
+  font:600 23px/1.05 "Caveat",cursive;letter-spacing:.01em;text-shadow:0 1px 10px rgba(0,0,0,.55);pointer-events:none}
+.nota-mao .seta{flex:none;width:52px;height:42px}
+.nota-mao span{transform:rotate(-3deg);padding-bottom:20px}
+.nota-vitrine{padding-left:14px}
+.protobar .nota-app{position:absolute;right:6%;bottom:calc(100% - 8px);margin:0;align-items:flex-end;flex-direction:row}
+.protobar .nota-app span{margin-bottom:24px;padding:2px 10px 4px;border-radius:12px;background:rgba(20,14,26,.82);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+@media (prefers-reduced-motion:no-preference){.nota-mao .seta{animation:setaBalanca 2.4s ease-in-out infinite}}
+@keyframes setaBalanca{50%{translate:0 3px}}

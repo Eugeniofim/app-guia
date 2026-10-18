@@ -96,6 +96,9 @@ function viewHub() {
     st.email ? { u: 'mailto:' + st.email, ic: IC.email, n: 'E-mail', c: 'mail' } : null,
   ].filter(Boolean);
   const bt = (id, ic, tit, sub, cls = '') => `<button class="lk ${cls}" id="${id}"><span class="ic">${ic}</span><span><b>${tit}</b><small>${sub}</small></span><span class="go" aria-hidden="true">→</span></button>`;
+  /* demo público (sem nuvem): setinhas escritas à mão para quem está conhecendo o app */
+  const demo = typeof temNuvem === 'function' && !temNuvem();
+  const seta = (cls) => `<svg class="seta ${cls}" viewBox="0 0 64 52" aria-hidden="true"><path d="M58 6C44 6 22 12 15 42" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M6 33l9 11 9-10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   app.innerHTML = `
   <div class="hub carol">
     <div class="hub-bg hub-textura" style="background-image:url(${esc(st.homePhoto || 'fotos/p-tower-bridge.jpg')})"></div>
@@ -110,9 +113,10 @@ function viewHub() {
           `<a class="rede ${r.c}" href="${esc(r.u)}" target="_blank" rel="noopener" aria-label="${r.n}" title="${r.n}">${r.ic}</a>`).join('')}</nav>` : ''}
       </div>
 
-      ${typeof temNuvem === 'function' && !temNuvem() ? `<button class="adm-demo" id="admEntryTopo"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></span><span><i class="etq">Para guias</i><b>Abra o Painel da guia</b><small>Onde mora a inteligência: reservas, quem pagou, agenda e o assistente — tudo personalizável</small></span><span class="go" aria-hidden="true">→</span></button>` : ''}
+      ${''/* 18/10: o cartão "Abra o Painel da guia" saiu; no demo, duas setinhas à mão apontam o caminho */}
 
       <p class="hubRot">Com a Bia</p>
+      ${demo ? `<p class="nota-mao nota-vitrine">${seta('')}<span>aqui seus clientes<br>escolhem o passeio</span></p>` : ''}
       ${bt('goTours', ICONE_MENU.passeios, t('seeTours'), t('seeToursSub'), 'main')}
       ${bt('goConsult', IC.consulta, 'Consultoria de roteiro', 'Você já planejou? Eu valido em 1 hora, por vídeo')}
 
@@ -147,7 +151,6 @@ function viewHub() {
   $('#goAbout').onclick = () => go('/about');
   $('#goAval').onclick = () => go('/avaliacoes');
   $('#admEntry').onclick = () => go('/adm/today');
-  if ($('#admEntryTopo')) $('#admEntryTopo').onclick = () => go('/adm/today');
   fallbackPhoto($('#hubFace'), '☺');
 }
 
