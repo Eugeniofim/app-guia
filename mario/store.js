@@ -534,6 +534,9 @@ function load() {
      do Mario mostrava a Cristina Bonatto e companhia com o banco zerado. */
   if (DB && DB.demo && temNuvem()) {
     const lang = DB.settings && DB.settings.lang;
+    /* a fila de envios do tempo da demonstração também vai embora: senão as
+       reservas de exemplo subiriam para o banco de verdade (18/10/2026) */
+    try { localStorage.removeItem(typeof QUEUE_KEY !== 'undefined' ? QUEUE_KEY : 'mario_queue_v1'); } catch (e) {}
     DB = _blank();
     if (lang) DB.settings = { ...(DB.settings || {}), lang };
     localStorage.setItem(DB_KEY, JSON.stringify(DB));

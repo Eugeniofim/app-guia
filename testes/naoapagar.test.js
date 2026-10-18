@@ -53,7 +53,7 @@ t('com passeios no aparelho, publicar volta a funcionar', async()=>{
 t('a FILA tambem nao pode reenviar catalogo vazio', async()=>{
   const c=amb();
   /* simula uma fila que ficou com um envio de catalogo vazio */
-  vm.runInContext(`localStorage.setItem('vi_queue_v1', JSON.stringify([
+  vm.runInContext(`localStorage.setItem(QUEUE_KEY, JSON.stringify([
     {path:'appstate?id=eq.1', method:'PATCH', body:{data:{tours:[],rules:[],departures:[]}}}
   ]));`,c);
   await vm.runInContext('qFlush()',c);
@@ -63,7 +63,7 @@ t('a FILA tambem nao pode reenviar catalogo vazio', async()=>{
 
 t('a fila AINDA reenvia um catalogo com passeios', async()=>{
   const c=amb();
-  vm.runInContext(`localStorage.setItem('vi_queue_v1', JSON.stringify([
+  vm.runInContext(`localStorage.setItem(QUEUE_KEY, JSON.stringify([
     {path:'appstate?id=eq.1', method:'PATCH', body:{data:{tours:[{id:'natal-fn'}],rules:[]}}}
   ]));`,c);
   await vm.runInContext('qFlush()',c);
