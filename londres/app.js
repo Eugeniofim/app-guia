@@ -2802,7 +2802,7 @@ function viewLogin(mode) {
     busy(false);
 
     DB.settings.authRequired = true;
-    localStorage.setItem('vi_db_v1', JSON.stringify(DB));   /* grava aqui, sem empurrar */
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));   /* grava aqui, sem empurrar (era 'vi_db_v1' fixo: a trava do painel não ficava gravada) */
     toast(t('loginHi'));
     go('/adm/today');
   };

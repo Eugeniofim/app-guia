@@ -99,6 +99,11 @@ console.log('a fila de envios');
     /removeItem\(DB_KEY\)/.test(bloco) && /removeItem\(QUEUE_KEY\)/.test(bloco) && !/'vi_db_v1'|'vi_queue_v1'/.test(bloco),
     'com as chaves da raiz fixas, o botão apagava a demonstração e deixava a cópia daqui');
 
+  /* --- o login grava a trava no DB deste app --- */
+  ok('o login grava no DB_KEY deste app, não na chave fixa da raiz',
+    !/setItem\(\s*['"]vi_db_v1['"]/.test(app) && /authRequired = true;\s*localStorage\.setItem\(DB_KEY,/.test(app),
+    "com 'vi_db_v1' fixo a trava do painel não ficava gravada e o DB dela ia para a demonstração da raiz");
+
   console.log(falhas ? `\n${falhas} FALHA(S)` : '\ntudo passou');
   process.exit(falhas ? 1 : 0);
 })();

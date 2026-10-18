@@ -4,7 +4,7 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'ailton-v0.3.1';
+const VERSION = 'ailton-v0.3.2';
 /* o essencial para abrir sem internet. Fotos das paradas NÃO entram aqui:
    são dezenas e o app baixa conforme a pessoa navega (e guarda na volta). */
 const CORE = [
