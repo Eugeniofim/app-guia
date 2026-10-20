@@ -1,7 +1,7 @@
-/* 18/10/2026: o app do Mario mudou para rottaguide.com/mariodalpra.
+/* 20/10/2026: o app do Mario mora em guiabrasileiroemmunique.app.
    Este service worker substitui o antigo nos celulares que já tinham o app
-   instalado: apaga o cache do Mario, se desliga e recarrega as abas, que
-   então caem no index.html novo (o redirecionamento). */
+   instalado aqui: apaga o cache do Mario, se desliga e recarrega as abas,
+   que então caem no index.html novo (o redirecionamento). */
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
