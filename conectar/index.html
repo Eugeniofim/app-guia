@@ -7,9 +7,9 @@
 <title>Conectar o Instagram · Ti Artes</title>
 <style>
   :root{ --fundo:#0e1d1c; --cartao:#142827; --tinta:#ecebe8; --suave:#9fb0ad;
-         --marca:#2EE6C5; --linha:#23403d; --erro:#ff8a7a; }
+         --marca:#2EE6C5; --linha:#23403d; --erro:#ff8a7a; --balao:#1d3a37; --baloEu:#1f5a50; }
   @media (prefers-color-scheme: light){ :root{ --fundo:#f6f8f7; --cartao:#fff; --tinta:#14201f;
-         --suave:#5b6b68; --linha:#dde7e5; } }
+         --suave:#5b6b68; --linha:#dde7e5; --balao:#eef3f2; --baloEu:#d6f5ee; } }
   *{ box-sizing:border-box }
   body{ margin:0; background:var(--fundo); color:var(--tinta); padding:24px 16px 64px;
         font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
@@ -17,12 +17,14 @@
   .marca{ display:flex; align-items:center; gap:10px; margin-bottom:22px }
   .marca img{ width:36px; height:36px; border-radius:9px }
   .marca b{ font-size:15px; letter-spacing:.02em }
+  .marca .lang{ margin-left:auto; font-size:13px; color:var(--suave) } .marca .lang a{ margin-left:8px }
   h1{ font-size:24px; line-height:1.25; margin:0 0 8px }
   .lede{ color:var(--suave); margin:0 0 22px }
   .cartao{ background:var(--cartao); border:1px solid var(--linha); border-radius:14px; padding:20px; margin-bottom:14px }
   .bt{ display:block; width:100%; text-align:center; text-decoration:none; border:0; cursor:pointer;
        background:var(--marca); color:#06201c; font:600 16px/1 system-ui; padding:15px; border-radius:11px }
   .bt.fraco{ background:transparent; color:var(--suave); border:1px solid var(--linha); font-weight:500; margin-top:10px }
+  .bt[disabled]{ opacity:.55; cursor:default }
   .perfil{ display:flex; align-items:center; gap:14px }
   .perfil img{ width:62px; height:62px; border-radius:50%; object-fit:cover; background:var(--linha) }
   .perfil .ini{ width:62px; height:62px; border-radius:50%; background:var(--marca); color:#06201c;
@@ -33,90 +35,171 @@
          border-radius:999px; padding:5px 12px; font-size:13px; font-weight:600; margin-bottom:12px }
   h2{ font-size:15px; margin:0 0 8px }
   ol{ margin:0; padding-left:20px; color:var(--suave) } ol li{ margin-bottom:6px }
-  .en{ color:var(--suave); font-size:14px; border-top:1px solid var(--linha); margin-top:22px; padding-top:16px }
+  .rodape{ color:var(--suave); font-size:14px; border-top:1px solid var(--linha); margin-top:22px; padding-top:16px }
   .erro{ color:var(--erro) }
   a{ color:var(--marca) }
+  .dica{ color:var(--suave); font-size:13px; margin:6px 0 0; line-height:1.45 }
+  .lista{ display:flex; flex-direction:column; gap:8px; margin-top:10px }
+  .conv{ display:flex; gap:10px; align-items:center; width:100%; text-align:left; background:var(--balao); border:1px solid var(--linha);
+         border-radius:11px; padding:10px 12px; color:var(--tinta); font:inherit; cursor:pointer }
+  .conv.on{ border-color:var(--marca) }
+  .conv .ini{ width:36px; height:36px; border-radius:50%; background:var(--marca); color:#06201c; display:grid; place-items:center; font:700 15px/1 system-ui; flex:none }
+  .conv b{ display:block; font-size:14px } .conv span{ display:block; color:var(--suave); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .fio{ display:flex; flex-direction:column; gap:6px; margin:12px 0; max-height:320px; overflow:auto; padding:2px }
+  .msg{ max-width:85%; padding:8px 12px; border-radius:12px; background:var(--balao); font-size:14px; line-height:1.4 }
+  .msg.nos{ align-self:flex-end; background:var(--baloEu) }
+  .msg small{ display:block; color:var(--suave); font-size:11px; margin-top:2px }
+  textarea{ width:100%; min-height:72px; border:1px solid var(--linha); border-radius:11px; background:var(--fundo); color:var(--tinta); padding:10px 12px; font:inherit; resize:vertical }
+  .linha{ display:flex; gap:8px; margin-top:8px } .linha .bt{ width:auto; flex:1; padding:12px }
+  .ok{ color:var(--marca); font-size:14px; margin:8px 0 0 }
 </style>
 </head>
 <body>
 <main>
   <div class="marca">
     <img src="/ti-artes-perfil.jpg" alt="">
-    <b>Ti Artes · Atendimento automático</b>
+    <b data-t="marca">Ti Artes · Atendimento automático</b>
+    <span class="lang"><a href="?lang=pt" id="lpt">PT</a><a href="?lang=en" id="len">EN</a></span>
   </div>
 
-  <h1>Conecte o seu Instagram</h1>
-  <p class="lede">O assistente passa a responder as mensagens diretas da sua conta profissional —
-  sobre passeios, datas, vagas e preços — no idioma de quem escreve.
-  <span class="en" style="border:0;padding:0;margin:0;display:block">Connect your Instagram professional account so the assistant can reply to your direct messages.</span></p>
+  <h1 data-t="titulo">Conecte o seu Instagram</h1>
+  <p class="lede" data-t="lede">O assistente passa a responder as mensagens diretas da sua conta profissional — sobre passeios, datas, vagas e preços — no idioma de quem escreve.</p>
 
-  <div class="cartao" id="quadro">
-    <p class="lede" style="margin:0">Carregando…</p>
-  </div>
+  <div class="cartao" id="quadro"><p class="lede" style="margin:0" data-t="carregando">Carregando…</p></div>
+
+  <div class="cartao" id="caixa" style="display:none"></div>
 
   <div class="cartao">
-    <h2>O que acontece quando você conecta</h2>
-    <ol>
-      <li>Você autoriza no próprio Instagram — nós nunca vemos a sua senha.</li>
-      <li>Guardamos o identificador da conta e a autorização, para poder responder por ela.</li>
-      <li>Mensagens ficam guardadas por 24 horas; escrever <b>apagar</b> na conversa limpa tudo na hora.</li>
-      <li>Você desconecta quando quiser, aqui ou no próprio Instagram.</li>
-    </ol>
+    <h2 data-t="oque">O que acontece quando você conecta</h2>
+    <ol id="passos"></ol>
   </div>
 
-  <p class="en">
-    <b>What happens when you connect.</b> You authorize inside Instagram — we never see your password.
-    We store the account identifier and the authorization so the assistant can reply on your behalf.
-    Conversations are kept for 24 hours; writing <b>delete</b> in the chat erases everything immediately.
-    You can disconnect at any time, here or from Instagram.<br>
-    <a href="/privacidade.html">Privacy policy</a> · <a href="/termos.html">Terms</a> · <a href="/dados.html">Data deletion</a>
-  </p>
+  <p class="rodape"><a href="/privacidade.html" data-t="priv">Política de privacidade</a> · <a href="/termos.html" data-t="termos">Termos</a> · <a href="/dados.html" data-t="dados">Exclusão de dados</a></p>
 </main>
 
 <script src="../config.js"></script>
 <script>
-/* O endereço do cofre vem do config.js, como tudo que é banco neste repo.
-   Quem está conectando: o padrão é "revisor", assim quem abre esta página
-   para testar NUNCA sobrescreve a conta de um cliente de verdade. O painel
-   de cada guia abre esta mesma página com o slug dele. */
+/* O endereço do cofre vem do config.js. Quem está conectando: o padrão é "sandbox" — quem abre
+   esta página pra testar (o revisor da Meta, por exemplo) conecta a PRÓPRIA conta numa linha de
+   teste e nunca sobrescreve a conta de um cliente de verdade. O painel de cada guia abre esta
+   mesma página com o slug dele (?cliente=slug). Idioma: ?lang=en|pt, senão o do navegador. */
 const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
 const p = new URLSearchParams(location.search);
-const CLIENTE = (p.get('cliente') || 'revisor').slice(0, 60);
-const quadro = document.getElementById('quadro');
-const esc = (s) => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const CLIENTE = (p.get('cliente') || 'sandbox').slice(0, 60);
+const EN = p.get('lang') === 'en' || (!p.get('lang') && !/^pt/i.test(navigator.language || ''));
+const T = EN ? {
+  marca: 'Ti Artes · Automated assistant', titulo: 'Connect your Instagram', lede: 'The assistant will reply to the direct messages of your professional account — tours, dates, availability and prices — in the language the person writes in.',
+  carregando: 'Loading…', oque: 'What happens when you connect', priv: 'Privacy policy', termos: 'Terms', dados: 'Data deletion',
+  passos: ['You authorize inside Instagram — we never see your password.', 'We store the account identifier and the authorization so the assistant can reply on your behalf.', 'Conversations are kept for 72 hours; writing <b>delete</b> in the chat erases everything immediately.', 'You can disconnect at any time, here or from Instagram.'],
+  conectar: 'Connect my Instagram', dicaConectar: 'Opens the official Instagram login. You will be asked to allow "Ti Artes Atendimento" to read your profile and manage your messages.',
+  profissional: 'Requires a professional account (Business or Creator).', conectado: '● Connected', idConta: 'Instagram account ID: ', outra: 'Connect another account',
+  erroConectar: 'Could not connect. Please try again.', erroServidor: 'Could not reach the server.', semApp: 'This app does not have the assistant enabled yet.',
+  caixaT: 'Inbox — your Instagram direct messages', caixaD: 'The last conversations of the connected account, read through the Instagram API. Pick a person to see the thread and reply from here.',
+  atualizar: 'Refresh', dicaAtualizar: 'Reads the conversations again from Instagram.', nenhuma: 'No conversations yet. Send a direct message to this account from another Instagram account and press Refresh.',
+  responder: 'Reply as the business', dicaEnviar: 'Sends your text to the selected person through the Instagram API. It appears in their Instagram inbox as a message from this account.',
+  enviar: 'Send message', enviando: 'Sending…', enviado: 'Sent ✓ — open the Instagram inbox of that person to see it.', escreva: 'Write a message…', eles: 'them', nos: 'you', bilheteVelho: 'This inbox session expired. Press "Connect another account" to open it again.',
+} : {
+  marca: 'Ti Artes · Atendimento automático', titulo: 'Conecte o seu Instagram', lede: 'O assistente passa a responder as mensagens diretas da sua conta profissional — sobre passeios, datas, vagas e preços — no idioma de quem escreve.',
+  carregando: 'Carregando…', oque: 'O que acontece quando você conecta', priv: 'Política de privacidade', termos: 'Termos', dados: 'Exclusão de dados',
+  passos: ['Você autoriza no próprio Instagram — nós nunca vemos a sua senha.', 'Guardamos o identificador da conta e a autorização, para poder responder por ela.', 'Mensagens ficam guardadas por 72 horas; escrever <b>apagar</b> na conversa limpa tudo na hora.', 'Você desconecta quando quiser, aqui ou no próprio Instagram.'],
+  conectar: 'Conectar meu Instagram', dicaConectar: 'Abre o login oficial do Instagram. Ele vai pedir pra você permitir que a "Ti Artes Atendimento" leia o seu perfil e gerencie as suas mensagens.',
+  profissional: 'Precisa ser uma conta profissional (Empresa ou Criador).', conectado: '● Conectado', idConta: 'ID da conta no Instagram: ', outra: 'Conectar outra conta',
+  erroConectar: 'Não consegui conectar. Tente de novo.', erroServidor: 'Não consegui falar com o servidor.', semApp: 'Este app ainda não tem o atendimento ligado.',
+  caixaT: 'Caixa de entrada — o direct da conta', caixaD: 'As últimas conversas da conta conectada, lidas pela API do Instagram. Escolha uma pessoa pra ver a conversa e responder daqui.',
+  atualizar: 'Atualizar', dicaAtualizar: 'Lê as conversas de novo no Instagram.', nenhuma: 'Nenhuma conversa ainda. Mande um direct pra esta conta de outra conta do Instagram e aperte Atualizar.',
+  responder: 'Responder como a empresa', dicaEnviar: 'Manda o seu texto pra pessoa escolhida pela API do Instagram. Aparece no direct dela como mensagem desta conta.',
+  enviar: 'Enviar mensagem', enviando: 'Enviando…', enviado: 'Enviada ✓ — abra o direct da pessoa no Instagram pra ver.', escreva: 'Escreva uma mensagem…', eles: 'ela', nos: 'você', bilheteVelho: 'Esta sessão da caixa venceu. Aperte "Conectar outra conta" pra abrir de novo.',
+};
+document.documentElement.lang = EN ? 'en' : 'pt-BR';
+document.querySelectorAll('[data-t]').forEach(e => { if (T[e.dataset.t]) e.textContent = T[e.dataset.t]; });
+document.getElementById('passos').innerHTML = T.passos.map(x => '<li>' + x + '</li>').join('');
+document.getElementById(EN ? 'len' : 'lpt').style.fontWeight = '700';
+['lpt', 'len'].forEach(id => { const a = document.getElementById(id); const u = new URL(location.href); u.searchParams.set('lang', id === 'len' ? 'en' : 'pt'); a.href = u.search; });
 
-const linkConectar = COFRE + '/ig-conectar?cliente=' + encodeURIComponent(CLIENTE)
-  + '&voltar=' + encodeURIComponent(location.origin + location.pathname + '?cliente=' + encodeURIComponent(CLIENTE));
+const quadro = document.getElementById('quadro'), caixa = document.getElementById('caixa');
+const esc = (s) => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const voltar = location.origin + location.pathname + '?cliente=' + encodeURIComponent(CLIENTE) + (p.get('lang') ? '&lang=' + encodeURIComponent(p.get('lang')) : '');
+const linkConectar = COFRE + '/ig-conectar?cliente=' + encodeURIComponent(CLIENTE) + '&voltar=' + encodeURIComponent(voltar);
+
+/* o bilhete da caixa vem na volta do login (?b=) e fica só nesta aba */
+const KB = 'caixa:' + CLIENTE;
+if (p.get('b')) { try { sessionStorage.setItem(KB, p.get('b')); } catch (_) {} const u = new URL(location.href); u.searchParams.delete('b'); u.searchParams.delete('ig'); u.searchParams.delete('u'); history.replaceState(null, '', u.toString()); }
+const bilhete = () => { try { return sessionStorage.getItem(KB) || ''; } catch (_) { return ''; } };
 
 function desconectado(msg) {
+  caixa.style.display = 'none';
   quadro.innerHTML =
     (msg ? '<p class="erro" style="margin:0 0 12px">' + esc(msg) + '</p>' : '') +
-    '<a class="bt" href="' + esc(linkConectar) + '">Conectar meu Instagram</a>' +
-    '<p class="lede" style="margin:12px 0 0;font-size:14px">Precisa ser uma conta <b>profissional</b> (Empresa ou Criador).<br>' +
-    '<span class="en" style="border:0;padding:0;margin:0">Requires a professional account (Business or Creator).</span></p>';
+    '<a class="bt" href="' + esc(linkConectar) + '" title="' + esc(T.dicaConectar) + '">' + esc(T.conectar) + '</a>' +
+    '<p class="dica">' + esc(T.dicaConectar) + '</p>' +
+    '<p class="lede" style="margin:12px 0 0;font-size:14px">' + esc(T.profissional) + '</p>';
 }
-
 function conectado(d) {
   const ini = (d.usuario || '?')[0].toUpperCase();
   quadro.innerHTML =
-    '<span class="selo">● Conectado / Connected</span>' +
+    '<span class="selo">' + esc(T.conectado) + '</span>' +
     '<div class="perfil">' +
       (d.foto ? '<img src="' + esc(d.foto) + '" alt="">' : '<div class="ini">' + esc(ini) + '</div>') +
       '<div><p class="arroba">@' + esc(d.usuario || '—') + '</p>' +
-      '<p class="id">Instagram account ID: ' + esc(d.conta) + '</p></div>' +
+      '<p class="id">' + esc(T.idConta) + esc(d.conta) + '</p></div>' +
     '</div>' +
-    '<a class="bt fraco" href="' + esc(linkConectar) + '">Conectar outra conta / Connect another account</a>';
+    '<a class="bt fraco" href="' + esc(linkConectar) + '" title="' + esc(T.dicaConectar) + '">' + esc(T.outra) + '</a>';
+  if (bilhete()) abrirCaixa(); else caixa.style.display = 'none';
 }
 
-if (!COFRE) desconectado('Este app ainda não tem o atendimento ligado.');
+/* ---------- a caixa de entrada ---------- */
+let ATUAL = null, CONVS = [];
+const api = (rota, opt) => fetch(COFRE + '/' + rota + (rota.includes('?') ? '&' : '?') + 'cliente=' + encodeURIComponent(CLIENTE), { ...(opt || {}), headers: { 'x-bilhete': bilhete(), 'content-type': 'application/json', ...((opt && opt.headers) || {}) } }).then(r => r.json());
+function abrirCaixa() {
+  caixa.style.display = '';
+  caixa.innerHTML = '<h2>' + esc(T.caixaT) + '</h2><p class="dica" style="margin:0 0 10px">' + esc(T.caixaD) + '</p>' +
+    '<button class="bt fraco" id="btAtualizar" type="button" title="' + esc(T.dicaAtualizar) + '" style="margin:0">' + esc(T.atualizar) + '</button>' +
+    '<div class="lista" id="lista"><p class="dica">' + esc(T.carregando) + '</p></div><div id="fio"></div>';
+  document.getElementById('btAtualizar').onclick = carregarConversas;
+  carregarConversas();
+}
+async function carregarConversas() {
+  const r = await api('ig-caixa').catch(() => ({ erro: 'rede' }));
+  const lista = document.getElementById('lista'); if (!lista) return;
+  if (r.erro === 'bilhete') { lista.innerHTML = '<p class="erro">' + esc(T.bilheteVelho) + '</p>'; return; }
+  CONVS = (r.conversas || []);
+  if (!CONVS.length) { lista.innerHTML = '<p class="dica">' + esc(r.erro ? r.erro : T.nenhuma) + '</p>'; return; }
+  lista.innerHTML = CONVS.map(c => '<button type="button" class="conv ' + (ATUAL === c.de ? 'on' : '') + '" data-de="' + esc(c.de) + '" title="' + esc(EN ? 'Open this conversation' : 'Abrir esta conversa') + '">' +
+    '<span class="ini">' + esc((c.usuario || '?')[0].toUpperCase()) + '</span><span style="min-width:0;flex:1"><b>@' + esc(c.usuario || c.de) + '</b><span>' + esc((c.deQuem === 'nos' ? (T.nos + ': ') : '') + c.texto) + '</span></span></button>').join('');
+  lista.querySelectorAll('[data-de]').forEach(b => b.onclick = () => abrirConversa(b.dataset.de));
+  if (ATUAL) abrirConversa(ATUAL);
+}
+async function abrirConversa(de) {
+  ATUAL = de; document.querySelectorAll('.conv').forEach(b => b.classList.toggle('on', b.dataset.de === de));
+  const c = CONVS.find(x => x.de === de) || {}; const fio = document.getElementById('fio');
+  fio.innerHTML = '<p class="dica">' + esc(T.carregando) + '</p>';
+  const r = await api('ig-caixa-msgs?de=' + encodeURIComponent(de)).catch(() => ({ erro: 'rede' }));
+  const msgs = r.mensagens || [];
+  fio.innerHTML = '<div class="fio">' + (msgs.length ? msgs.map(m => '<div class="msg ' + (m.deQuem === 'nos' ? 'nos' : '') + '">' + esc(m.texto) + '<small>' + esc(m.deQuem === 'nos' ? T.nos : '@' + (c.usuario || T.eles)) + ' · ' + esc(String(m.quando).slice(0, 16).replace('T', ' ')) + '</small></div>').join('') : '<p class="dica">' + esc(r.erro || '') + '</p>') + '</div>' +
+    '<h2 style="margin-top:6px">' + esc(T.responder) + ' → @' + esc(c.usuario || de) + '</h2>' +
+    '<textarea id="txt" placeholder="' + esc(T.escreva) + '"></textarea>' +
+    '<div class="linha"><button class="bt" id="btEnviar" type="button" title="' + esc(T.dicaEnviar) + '">' + esc(T.enviar) + '</button></div>' +
+    '<p class="dica">' + esc(T.dicaEnviar) + '</p><p class="ok" id="okEnvio"></p>';
+  const f = document.querySelector('#fio .fio'); if (f) f.scrollTop = f.scrollHeight;
+  document.getElementById('btEnviar').onclick = async () => {
+    const txt = document.getElementById('txt').value.trim(); if (!txt) return;
+    const bt = document.getElementById('btEnviar'); bt.disabled = true; bt.textContent = T.enviando;
+    const r2 = await api('ig-caixa-enviar', { method: 'POST', body: JSON.stringify({ cliente: CLIENTE, para: de, texto: txt }) }).catch(() => ({ erro: 'rede' }));
+    bt.disabled = false; bt.textContent = T.enviar;
+    const ok = document.getElementById('okEnvio');
+    if (r2.ok) { ok.textContent = T.enviado; document.getElementById('txt').value = ''; setTimeout(() => { carregarConversas(); }, 1500); }
+    else { ok.className = 'erro'; ok.textContent = r2.msg || r2.erro || 'erro'; }
+  };
+}
+
+if (!COFRE) desconectado(T.semApp);
 else fetch(COFRE + '/ig-perfil?cliente=' + encodeURIComponent(CLIENTE))
   .then(r => r.json())
   .then(d => {
-    const veio = p.get('ig');
-    if (veio === 'erro') return desconectado('Não consegui conectar. Tente de novo.');
+    if (p.get('ig') === 'erro') return desconectado(T.erroConectar);
     d.conectado ? conectado(d) : desconectado('');
   })
-  .catch(() => desconectado('Não consegui falar com o servidor.'));
+  .catch(() => desconectado(T.erroServidor));
 </script>
 </body>
 </html>
