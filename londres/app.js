@@ -2447,7 +2447,8 @@ function admAgenda() {
       lista.push({ date: b.date, time: b.time, capacity: cap, tour: x, left, booked: cap - left, pastOnly: true });
     });
 
-  const sel = admAgenda._d && byDay[admAgenda._d] ? admAgenda._d
+  /* 18/10: o dia tocado vale mesmo sem saída (pode ter tarefa); sem toque, o 1º dia com saída */
+  const sel = admAgenda._d && admAgenda._d.slice(0, 7) === cur ? admAgenda._d
             : (Object.keys(byDay).sort()[0] || isoToday());
   /* nomes de dia e mês no idioma escolhido, direto do navegador (5/1/2026 é segunda) */
   const WD = [5, 6, 7, 8, 9, 10, 11].map(d => new Date(2026, 0, d).toLocaleDateString(locale(), { weekday: 'short' }).replace('.', ''));
@@ -2882,11 +2883,19 @@ route();
       el.classList.add('faixaTroca');
       const icLoja = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v7h14v-7"/></svg>';
       const icPainel = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>';
-      el.innerHTML = `<p class="ftRot">Demonstração com uma guia fictícia — nada sai deste aparelho</p>
-        <div class="ftSeg" role="tablist" aria-label="Lado do app">
+      /* 18/10: no lugar do cartão "Abra o Painel da guia", uma setinha à mão aponta para cá */
+      const notaApp = noPainel ? '' : `<p class="nota-mao nota-app" aria-hidden="true"><span>conheça o app por aqui</span><svg class="seta" viewBox="0 0 64 52"><path d="M6 6C20 6 42 12 49 42" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M40 34l9 10 9-11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></p>`;
+      /* 18/10: "Peça seu protótipo personalizado" na vitrine E no painel — vira contato no CRM e mensagem no WhatsApp do Eugênio */
+      el.innerHTML = `<p class="ftRot"><span class="ftDemo">Guia fictícia — nada sai deste aparelho ·</span> <button type="button" class="ftPede">✦ Peça seu protótipo personalizado grátis</button></p>
+        <div class="ftSeg" role="tablist" aria-label="Lado do app">${notaApp}
           <a href="#/" role="tab" aria-selected="${!noPainel}" class="${noPainel ? 'ir' : 'on'}">${icLoja}<span><b>Vitrine de passeios</b><small>${noPainel ? 'o que o cliente vê' : 'você está aqui'}</small></span>${noPainel ? '<i class="seta" aria-hidden="true">→</i>' : ''}</a>
           <a href="#/adm/today" role="tab" aria-selected="${noPainel}" class="${noPainel ? 'on' : 'ir'}">${icPainel}<span><b>Painel da guia</b><small>${noPainel ? 'você está aqui' : 'onde mora a inteligência'}</small></span>${noPainel ? '' : '<i class="seta" aria-hidden="true">→</i>'}</a>
         </div>`;
+      /* 18/10: dentro do painel a faixa + a barra de abas comiam metade da tela do celular.
+         Lá ela vira UMA linha fina: voltar para a vitrine e pedir o protótipo. */
+      if (noPainel) el.innerHTML = `<div class="ftFina"><a href="#/" class="ftVolta">${icLoja}<span>← Vitrine</span></a>
+        <button type="button" class="ftPede">✦ Peça seu protótipo <span class="ftLongo">personalizado </span>grátis</button></div>`;
+      el.querySelector('.ftPede').onclick = abrePedidoPrototipo;
       if (typeof faixaAcimaDaBarra === 'function') faixaAcimaDaBarra();
       document.documentElement.style.setProperty('--faixa-h', el.offsetHeight + 'px');
     };
@@ -2898,6 +2907,59 @@ route();
   };
   if (document.body) poe(); else addEventListener('DOMContentLoaded', poe);
 })();
+
+/* PEÇA SEU PROTÓTIPO PERSONALIZADO (18/10/2026) — pedido do Eugênio: em todo
+   demo, na vitrine e no painel, um botão em que o guia deixa os dados e manda
+   mensagem no WhatsApp dele. Os dados vão para o CRM da Rotta (rota 'contato'
+   do cofre, motivo 'prototipo') e para a Prospecção do TI ARTES OS. O WhatsApp
+   abre no mesmo toque (senão o navegador bloqueia a janela nova). */
+function abrePedidoPrototipo() {
+  const WHATS_ESTUDIO = '5541991566444';
+  if (document.querySelector('.ppFundo')) return;
+  const fundo = document.createElement('div');
+  fundo.className = 'ppFundo';
+  fundo.innerHTML = `<form class="ppCaixa" role="dialog" aria-modal="true" aria-labelledby="ppTit" novalidate>
+    <button type="button" class="ppFecha" aria-label="Fechar">×</button>
+    <p class="ppEtq">Grátis · sem compromisso</p>
+    <h2 id="ppTit">Peça seu protótipo personalizado</h2>
+    <p class="ppSub">A gente monta este app com o seu nome, os seus passeios e as suas cores, e te manda o link pra ver no celular.</p>
+    <label>Seu nome<input name="nome" autocomplete="name" required></label>
+    <label>WhatsApp, com o código do país<input name="whats" type="tel" inputmode="tel" autocomplete="tel" placeholder="+33 6 12 34 56 78" required></label>
+    <label>Cidade onde você guia<input name="cidade" placeholder="Paris, Roma, Lisboa…"></label>
+    <label>Instagram <small>(opcional — é de lá que tiramos suas fotos e passeios)</small><input name="insta" placeholder="@seuperfil" autocapitalize="off"></label>
+    <label class="ppAceite"><input type="checkbox" name="aceite"> Aceito receber contato da Ti Artes por WhatsApp sobre o app</label>
+    <p class="ppErro" role="alert" hidden></p>
+    <button type="submit" class="ppEnvia">Pedir e mandar no WhatsApp</button>
+  </form>`;
+  document.body.appendChild(fundo);
+  const f = fundo.querySelector('form'), erro = fundo.querySelector('.ppErro');
+  const fecha = () => fundo.remove();
+  fundo.querySelector('.ppFecha').onclick = fecha;
+  fundo.addEventListener('click', (e) => { if (e.target === fundo) fecha(); });
+  fundo.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecha(); });
+  f.nome.focus();
+  f.onsubmit = (e) => {
+    e.preventDefault();
+    const v = (n) => String(f[n].value || '').trim();
+    const nome = v('nome'), whats = v('whats'), cidade = v('cidade'), insta = v('insta');
+    const falha = !nome ? ['nome', 'Escreva o seu nome.'] : whats.replace(/\D/g, '').length < 8 ? ['whats', 'Confira o WhatsApp, com o código do país.']
+      : !f.aceite.checked ? ['aceite', 'Marque que aceita o contato.'] : null;
+    if (falha) { erro.textContent = falha[1]; erro.hidden = false; f[falha[0]].focus(); return; }
+    const msg = `Oi Eugênio! Quero meu protótipo personalizado do Rotta (grátis).\nSou ${nome}${cidade ? ', guia em ' + cidade : ''}.`
+      + `${insta ? '\nInstagram: ' + insta : ''}\nMeu WhatsApp: ${whats}`;
+    const wa = 'https://wa.me/' + WHATS_ESTUDIO + '?text=' + encodeURIComponent(msg);
+    window.open(wa, '_blank', 'noopener');
+    let origem = 'rotta'; try { origem = localStorage.getItem('rotta_de') || 'rotta'; } catch (_) {}
+    const cofre = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre;
+    if (cofre) fetch(cofre.replace(/\/+$/, '') + '/rotta-teste', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ acao: 'contato', motivo: 'prototipo', nome, whats, cidade, insta, aceite: true, origem }) }).catch(() => {});
+    f.innerHTML = `<button type="button" class="ppFecha" aria-label="Fechar">×</button>
+      <p class="ppEtq">Pedido recebido</p><h2 id="ppTit">Obrigado, ${esc(nome.split(' ')[0])}!</h2>
+      <p class="ppSub">Abrimos o WhatsApp com a sua mensagem pronta: é só tocar em enviar. O Eugênio responde e monta o seu protótipo.</p>
+      <a class="ppEnvia" href="${esc(wa)}" target="_blank" rel="noopener">Abrir o WhatsApp de novo</a>`;
+    f.querySelector('.ppFecha').onclick = fecha;
+  };
+}
 
 /* PRIMEIRO DESENHO DA TELA — no FIM do arquivo, de proposito.
 

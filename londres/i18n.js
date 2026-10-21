@@ -5,7 +5,7 @@ const STR = {
   /* hub */
   role:        { pt: '{negocio} · {base}', en: '{negocio} · {base}' },
   tagline:     { pt: 'Tours privados em português com uma guia brasileira. Um grupo por dia, no seu ritmo.', en: 'Private tours in Portuguese with a Brazilian guide. One group per day.' },
-  seeTours:    { pt: 'Passeios e reserve', en: 'Tours & booking' },
+  seeTours:    { pt: 'Reserve seu passeio', en: 'Book your tour', fr: 'Réservez votre visite', it: 'Prenota il tuo tour', de: 'Buchen Sie Ihre Tour', es: 'Reserva tu tour' },
   seeToursSub: { pt: 'Tours privados comigo · um grupo por dia', en: 'Private tours with me · one group per day' },
   /* enquanto todo passeio e sob consulta, "reserva na hora" seria promessa falsa */
   seeToursSubQ:{ pt: 'Roteiros, fotos e pedido de valores', en: 'Itineraries, photos and quotes', fr: 'Itinéraires, photos et devis',

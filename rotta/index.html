@@ -8,7 +8,7 @@
 <meta name="description" content="O app de reservas e gestão feito para guia brasileiro na Europa. Navegue no protótipo, assista ao review e veja os planos.">
 <meta property="og:title" content="Rotta · o app do guia brasileiro na Europa">
 <meta property="og:description" content="Saia do caderno, do Excel e do WhatsApp espalhado. Protótipo, vídeo de 2 min e planos.">
-<meta property="og:image" content="https://guia.eugeniofim.com/rotta/capa-review-v.jpg">
+<meta property="og:image" content="https://rottaguide.com/capa-review-v.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500&family=Nunito+Sans:opsz,wght@6..12,400;6..12,700;6..12,800&display=swap" rel="stylesheet">
 <style>
@@ -58,6 +58,7 @@ h1 em{font-style:normal;color:var(--rota)}
 .btn.sec{background:var(--branco);border-color:var(--linha)}
 .btn.sec:hover{border-color:var(--rota)}
 @media (max-width:520px){.acoes .btn{flex:1 1 100%}}
+.btn{text-align:center;text-wrap:balance}
 .prova{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:14px;color:var(--cinza)}
 .prova b{color:var(--tinta)}
 .prova i{width:8px;height:8px;border-radius:50%;background:var(--rota);flex:none;box-shadow:0 0 0 4px rgba(47,122,111,.18)}
@@ -85,6 +86,35 @@ h1 em{font-style:normal;color:var(--rota)}
 @keyframes chega{to{opacity:1;transform:none}}
 
 /* a rota: três paradas até a chegada */
+/* IA (18/10/2026): o assistente vem dentro do app; atendimento e marketing são camadas extras */
+.ia{margin-top:56px;max-width:1040px;margin-left:auto;margin-right:auto}
+.ia-tit{font-family:var(--disp);font-weight:800;font-size:clamp(26px,5vw,36px);letter-spacing:-.02em;line-height:1.05;margin-top:8px;max-width:760px;text-wrap:balance}
+.ia-grade{display:grid;gap:12px;margin-top:18px}
+@media (min-width:860px){.ia-grade{grid-template-columns:1fr 1.25fr 1fr;align-items:start}}
+.ia-c{background:var(--branco);border:1.5px solid var(--linha);border-radius:20px;padding:18px}
+.ia-c h3{font-family:var(--disp);font-weight:800;font-size:21px;letter-spacing:-.015em;line-height:1.12;margin-top:10px}
+.ia-c p{margin-top:8px;font-size:15.5px;color:var(--cinza)}
+.ia-c small{display:block;margin-top:10px;font-size:13.5px;color:var(--rota-2);font-weight:700}
+.ia-selo{display:inline-block;padding:4px 10px;border-radius:999px;font:600 11.5px/1.3 var(--mono);letter-spacing:.04em;text-transform:uppercase}
+.ia-selo.dentro{background:var(--rota);color:#fff}
+.ia-selo.extra{background:#E6EEEA;color:var(--rota-2)}
+.ia-ex{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.ia-ex li{background:#ECF3F0;border-radius:12px 12px 12px 4px;padding:8px 11px;font-size:14.5px;color:var(--tinta)}
+.ia-c.escuro{background:var(--tinta);border-color:var(--tinta);color:#DDE8E5}
+.ia-c.escuro h3{color:#fff}
+.ia-c.escuro p{color:#B9CBC6}
+.ia-c.escuro .ia-selo.extra{background:#24413B;color:var(--menta)}
+.ia-vs{display:grid;gap:8px;margin-top:12px}
+.ia-vs div{border-radius:14px;padding:10px 12px;display:grid;gap:4px;font-size:14.5px;line-height:1.4}
+.ia-vs b{font-size:12.5px;letter-spacing:.02em}
+.ia-vs .ruim{background:#22302D;color:#8FA39E}
+.ia-vs .ruim span{text-decoration:line-through;text-decoration-color:rgba(255,180,163,.6)}
+.ia-vs .ruim b{color:#FFB4A3}
+.ia-vs .bom{background:#E7F7F2;color:var(--tinta)}
+.ia-vs .bom b{color:var(--rota-2)}
+.ia-c.escuro .ia-dor{color:#fff;font-weight:700;margin-top:12px}
+.ia-pe{margin-top:14px;font-size:15.5px;color:var(--cinza);max-width:760px}
+.ia-pe b{color:var(--tinta)}
 .rota{margin-top:56px;position:relative;max-width:760px;margin-left:auto;margin-right:auto}
 .rota-tit{font-family:var(--disp);font-weight:800;font-size:clamp(26px,5vw,36px);letter-spacing:-.02em;line-height:1.05}
 .rota-sub{color:var(--cinza);margin-top:6px}
@@ -100,7 +130,7 @@ a.cartao:hover{border-color:var(--rota)}
 .cartao h2{font-family:var(--disp);font-weight:800;font-size:23px;letter-spacing:-.015em;line-height:1.1}
 .cartao p{color:var(--cinza);margin-top:6px;font-size:15px}
 .cartao .btn{margin-top:14px;width:100%}
-.foto{display:block;aspect-ratio:16/8;background:url(../londres/fotos/p-tower-bridge.jpg) center 40%/cover;position:relative}
+.foto{display:block;aspect-ratio:16/8;background:url(https://rottaguide.com/demo/fotos/p-tower-bridge.jpg) center 40%/cover;position:relative}
 .foto span{position:absolute;left:12px;bottom:10px;background:rgba(19,32,30,.82);color:#fff;font-size:12.5px;font-weight:700;padding:5px 9px;border-radius:8px}
 .dica{display:flex;gap:8px;background:#E8F2EF;color:var(--rota-2);border-radius:12px;padding:10px 12px;font-size:14px;margin-top:12px}
 .vbox{background:var(--tinta);display:flex;justify-content:center}
@@ -118,10 +148,29 @@ a.cartao:hover{border-color:var(--rota)}
 .pl small{display:block;font-size:11.5px;color:var(--cinza);line-height:1.25;margin-top:2px}
 .chegada{background:var(--tinta);color:#DDE8E5;border-radius:20px;padding:18px;margin-top:8px}
 .chegada h2{color:#fff;font-family:var(--disp);font-weight:800;font-size:23px;letter-spacing:-.015em}
+.chegada h2 mark{background:none;color:var(--menta)}
+.chegada .indicou{display:inline-block;margin-bottom:8px;padding:4px 10px;border-radius:999px;background:#24413B;color:var(--menta);font:600 12px/1.3 var(--mono);letter-spacing:.04em;text-transform:uppercase}
 .chegada p{margin-top:6px;font-size:15px;color:#B9CBC6}
 .chegada .linha2{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .chegada .btn.sec{background:transparent;color:#fff;border-color:#3D5550}
 .chegada .btn.sec:hover{border-color:var(--menta)}
+.chegada .pedido{display:grid;gap:12px;margin-top:14px}
+.chegada .pedido label{display:grid;gap:6px;font-weight:700;font-size:14px;color:#fff}
+.chegada .pedido label small{font-weight:400;font-size:12.5px;color:#B9CBC6}
+.chegada .pedido label .opc{display:inline;font-size:12.5px;font-weight:400;color:#B9CBC6}
+.chegada .pedido input:not([type=checkbox]){min-height:48px;padding:0 14px;border-radius:12px;border:1.5px solid #3D5550;background:#fff;color:var(--tinta);font:16px var(--corpo)}
+.chegada .pedido input:focus{outline:3px solid var(--menta);outline-offset:1px}
+.chegada .pedido .aceite{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:13.5px;color:#DDE8E5;line-height:1.4}
+.chegada .pedido .aceite input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--menta)}
+.chegada .pedido .aceite a{color:var(--menta)}
+.chegada .pedido .btn.pri{width:100%;background:var(--menta);color:var(--tinta);font-family:inherit;cursor:pointer}
+.chegada .pedido .btn.pri:disabled{opacity:.6}
+@media (max-width:560px){.chegada .linha2 .btn{flex:1 1 100%}}
+.chegada .pedidoMsg{margin:0;font-size:14px;min-height:1px}
+.chegada .pedidoMsg.erro{color:#FFB4A3}
+.chegada .pedido.feito label,.chegada .pedido.feito .btn{display:none}
+.chegada .pedido.feito .pedidoMsg{font-size:16px;color:#fff;font-weight:700}
+
 .rodape{text-align:center;font-size:13px;color:var(--cinza);margin-top:30px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 .zap-flut{position:fixed;right:16px;bottom:16px;z-index:50;display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#08321A;font-weight:800;font-size:14.5px;text-decoration:none;border-radius:999px;padding:12px 16px;box-shadow:0 10px 24px rgba(0,0,0,.25);min-height:48px}
@@ -141,6 +190,7 @@ a.cartao:hover{border-color:var(--rota)}
 
   <section class="heroi">
     <div class="tit">
+      <div id="parceiroFaixa" hidden></div>
       <div class="etiqueta">App do guia brasileiro na Europa</div>
       <h1>Saia do caderno, do Excel e do <em>WhatsApp espalhado.</em></h1>
     </div>
@@ -157,11 +207,45 @@ a.cartao:hover{border-color:var(--rota)}
     <div class="resto">
       <p class="lede">Um app com o seu nome onde o cliente vê as vagas e reserva sozinho, as reservas ficam num lugar só, você vê quem já pagou, e um assistente de IA faz as mudanças por você.</p>
       <div class="acoes">
-        <a class="btn pri" href="experimentar/">Experimentar grátis · 20 min</a>
-        <a class="btn sec" href="#rota">Ver vídeo e planos</a>
+        <a class="btn pri" href="https://rottaguide.com/demo/" target="_blank" rel="noopener">Ver o app de exemplo · grátis</a>
+        <a class="btn sec" href="#contato">Peça seu protótipo personalizado grátis</a>
       </div>
       <p class="prova"><i></i><span>Já no ar com guias brasileiros em <b>Munique, Berlim, Copenhague</b> e na <b>Alsácia</b>.</span></p>
     </div>
+  </section>
+
+  <section class="ia" id="ia" aria-labelledby="iaTit">
+    <div class="etiqueta">Inteligência artificial de verdade</div>
+    <h2 class="ia-tit" id="iaTit">O app trabalha por você, até quando você está guiando.</h2>
+    <div class="ia-grade">
+      <article class="ia-c">
+        <span class="ia-selo dentro">Já vem dentro do app · plano Pro</span>
+        <h3>Assistente de IA</h3>
+        <p>Você fala ou escreve, e ele faz por você, em todas as abas do app:</p>
+        <ul class="ia-ex">
+          <li>“Muda o preço do passeio de sábado para € 40”</li>
+          <li>“Quem ainda não pagou o sinal?”</li>
+          <li>“Fecha a tarde de domingo”</li>
+        </ul>
+        <small>Mostra o que vai fazer antes de gravar.</small>
+      </article>
+      <article class="ia-c escuro">
+        <span class="ia-selo extra">Camada extra</span>
+        <h3>Agente de atendimento no Instagram e no WhatsApp</h3>
+        <p>Não é aquele chatbot de menu, com perguntas prontas. Ele pensa: lê o seu app, com passeios, vagas, preços e regras, e conversa com o seu cliente como você conversaria.</p>
+        <div class="ia-vs">
+          <div class="ruim"><b>✕ Chatbot comum</b><span>“Digite 1 para passeios, 2 para preços…”</span></div>
+          <div class="bom"><b>✓ Agente com IA</b><span>“Oi, Juliana! Sábado de manhã ainda tem vaga para 4 no passeio do centro histórico. Te mando o link para reservar?”</span></div>
+        </div>
+        <p class="ia-dor">Você no meio de um tour e o cliente perguntando? Ele responde na hora, e você não perde a venda.</p>
+      </article>
+      <article class="ia-c">
+        <span class="ia-selo extra">Camada extra</span>
+        <h3>Agente de marketing</h3>
+        <p>Posts, stories e anúncios prontos a partir dos seus passeios e das suas fotos. Você aprova e publica.</p>
+      </article>
+    </div>
+    <p class="ia-pe"><b>O assistente de IA já vem dentro do app.</b> Atendimento e marketing são camadas extras: a Ti Artes implanta para você.</p>
   </section>
 
   <section class="rota" id="rota">
@@ -170,7 +254,7 @@ a.cartao:hover{border-color:var(--rota)}
     <ol class="paradas">
       <li class="parada">
         <div class="p-rot">Parada 1 · 2 minutos</div>
-        <a class="cartao" href="../londres/" target="_blank" rel="noopener">
+        <a class="cartao" href="https://rottaguide.com/demo/" target="_blank" rel="noopener">
           <span class="foto"><span>Londres com a Bia · guia fictícia</span></span>
           <div class="corpo">
             <h2>Navegue no protótipo</h2>
@@ -205,11 +289,19 @@ a.cartao:hover{border-color:var(--rota)}
       </li>
       <li class="parada fim">
         <div class="p-rot">Chegada</div>
-        <div class="chegada">
-          <h2>Gostou? Responda a mensagem.</h2>
-          <p>Eu monto o seu app com os seus passeios, sem compromisso, para você ver como fica.</p>
+        <div class="chegada" id="contato">
+          <h2>Cadastre-se e peça seu protótipo personalizado <mark>gratuitamente</mark>.</h2>
+          <p>Deixe seu nome e WhatsApp. A gente monta um app de exemplo com o seu nome e os seus passeios, e te mostra. Sem compromisso.</p>
+          <form class="pedido" id="pedido" novalidate>
+            <label>Seu nome<input name="nome" autocomplete="name" required maxlength="80" placeholder="Ex.: Ana Souza"></label>
+            <label>WhatsApp<input name="whats" type="tel" autocomplete="tel" required maxlength="24" placeholder="+49 152 1234 5678"><small>Com o código do país.</small></label>
+            <label><span>Onde você guia <small class="opc">(opcional)</small></span><input name="cidade" maxlength="80" placeholder="Ex.: Berlim, Lisboa, Roma"></label>
+            <label class="aceite"><input type="checkbox" name="aceite"><span>Aceito receber contato da Ti Artes por WhatsApp e e-mail sobre o app. <a href="https://guia.eugeniofim.com/privacidade.html" target="_blank" rel="noopener">Privacidade</a></span></label>
+            <button class="btn pri" type="submit" id="pedidoBt">Quero meu protótipo grátis</button>
+            <p class="pedidoMsg" id="pedidoMsg" role="status" aria-live="polite"></p>
+          </form>
           <div class="linha2">
-            <a class="btn pri" href="https://wa.me/5541991566444?text=Oi%20Eug%C3%AAnio%21%20Vi%20o%20Rotta%20e%20quero%20saber%20mais%20sobre%20o%20app." target="_blank" rel="noopener">Falar comigo no WhatsApp</a>
+            <a class="btn sec" href="https://wa.me/5541991566444?text=Oi%20Eug%C3%AAnio%21%20Vi%20o%20Rotta%20e%20quero%20saber%20mais%20sobre%20o%20app." target="_blank" rel="noopener">Chamar agora no WhatsApp</a>
             <a class="btn sec" href="manual-rotta.pdf" download>Baixar o manual (PDF)</a>
           </div>
         </div>
@@ -244,5 +336,33 @@ caixa.onclick = () => {
   if (typeof ligaPagar === 'function') ligaPagar();
 } catch (_) {} })();
 </script>
+<script>
+/* PEDIDO DE CONTATO (18/10/2026): no lugar do teste de 20 min com senha — a pessoa
+   deixa nome e WhatsApp e a gente chama. Vai para o CRM da Rotta (com o parceiro
+   que indicou) e para a Prospecção do TI ARTES OS. */
+(function () {
+  const f = document.getElementById('pedido'); if (!f) return;
+  const msg = document.getElementById('pedidoMsg'), bt = document.getElementById('pedidoBt');
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    let origem = 'rotta'; try { origem = localStorage.getItem('rotta_de') || new URLSearchParams(location.search).get('de') || 'rotta'; } catch (_) {}
+    const d = { acao: 'contato', nome: f.nome.value, whats: f.whats.value, cidade: f.cidade.value, aceite: f.aceite.checked, origem };
+    msg.className = 'pedidoMsg'; msg.textContent = '';
+    if (!d.nome.trim()) { msg.className = 'pedidoMsg erro'; msg.textContent = 'Escreva o seu nome.'; f.nome.focus(); return; }
+    if (d.whats.replace(/\D/g, '').length < 8) { msg.className = 'pedidoMsg erro'; msg.textContent = 'Confira o WhatsApp, com o código do país.'; f.whats.focus(); return; }
+    if (!d.aceite) { msg.className = 'pedidoMsg erro'; msg.textContent = 'Marque que aceita o contato, para a gente poder te chamar.'; return; }
+    bt.disabled = true; bt.textContent = 'Enviando…';
+    try {
+      const r = await fetch('https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre/rotta-teste', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(d) });
+      const j = await r.json().catch(() => ({}));
+      if (!j.ok) { msg.className = 'pedidoMsg erro'; msg.textContent = j.msg || 'Não deu certo. Confira os dados.'; return; }
+      f.classList.add('feito');
+      msg.textContent = 'Pronto, ' + d.nome.trim().split(/\s+/)[0] + '! A gente te chama no WhatsApp para montar o seu protótipo.';
+    } catch (_) { msg.className = 'pedidoMsg erro'; msg.textContent = 'Sem conexão. Tente de novo, ou chame no WhatsApp aqui embaixo.'; }
+    finally { bt.disabled = false; bt.textContent = 'Quero meu protótipo grátis'; }
+  };
+})();
+</script>
+<script src="parceiro.js?v=1"></script>
 </body>
 </html>

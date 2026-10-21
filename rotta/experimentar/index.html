@@ -69,7 +69,7 @@ input:focus{border-color:var(--rota);outline:none}
     <label><span>E-mail</span><input type="email" name="email" autocomplete="email" placeholder="voce@exemplo.com"></label>
     <label data-so="cadastro"><span>WhatsApp</span><input type="tel" name="whats" autocomplete="tel" placeholder="+33 6 12 34 56 78"><small>Com o código do país.</small></label>
     <label><span id="rot-senha">Crie uma senha</span><input type="password" name="senha" autocomplete="new-password" placeholder="pelo menos 6 caracteres"></label>
-    <label class="aceite" data-so="cadastro"><input type="checkbox" name="aceite"><span style="font-weight:600;margin:0">Aceito receber contato da Ti Artes por WhatsApp e e-mail sobre o app. <a href="../../privacidade.html" target="_blank" rel="noopener">Privacidade</a></span></label>
+    <label class="aceite" data-so="cadastro"><input type="checkbox" name="aceite"><span style="font-weight:600;margin:0">Aceito receber contato da Ti Artes por WhatsApp e e-mail sobre o app. <a href="https://guia.eugeniofim.com/privacidade.html" target="_blank" rel="noopener">Privacidade</a></span></label>
     <p class="msg" id="msg" role="status" aria-live="polite"></p>
     <button class="btn" id="enviar" type="submit">Começar meus 20 minutos</button>
   </form>
@@ -80,7 +80,7 @@ input:focus{border-color:var(--rota);outline:none}
 <script>
 'use strict';
 const COFRE = 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre/rotta-teste';
-const DEMO = '../../londres/#/adm/today';
+const DEMO = 'https://rottaguide.com/demo/#/adm/today';
 let aba = 'cadastro';
 const f = document.getElementById('f'), msg = document.getElementById('msg'), bt = document.getElementById('enviar');
 function trocaAba(a) {
@@ -125,5 +125,6 @@ f.onsubmit = async (e) => {
   if (typeof ligaPagar === 'function') ligaPagar();
 } catch (_) {} })();
 </script>
+<script src="../parceiro.js?v=1"></script>
 </body>
 </html>
