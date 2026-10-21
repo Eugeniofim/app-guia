@@ -112,9 +112,10 @@ textarea.inp{min-height:90px;padding:10px 12px;resize:vertical}
 
 <div class="fundo" id="fundo" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
 
+<script src="../config.js?v=1"></script>
 <script>
 'use strict';
-const API = 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre/rotta-crm';
+const API = (window.ROTTA_CONFIG || {}).cofre + '/rotta-crm';
 const TIPOS = [
   { t: 'potencial', n: 'Potencial', sub: 'Testou o app ou está decidindo' },
   { t: 'comprou',   n: 'Comprou',   sub: 'Cliente ativo' },

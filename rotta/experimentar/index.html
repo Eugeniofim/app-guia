@@ -77,9 +77,10 @@ input:focus{border-color:var(--rota);outline:none}
   <p class="nota">Os 20 minutos começam quando você cria o acesso e não reiniciam. O app é de exemplo: nada do que você fizer sai do seu aparelho.</p>
   <a class="voltar" href="../">← Voltar</a>
 </main>
+<script src="../config.js?v=1"></script>
 <script>
 'use strict';
-const COFRE = 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre/rotta-teste';
+const COFRE = (window.ROTTA_CONFIG || {}).cofre + '/rotta-teste';
 const DEMO = 'https://rottaguide.com/demo/#/adm/today';
 let aba = 'cadastro';
 const f = document.getElementById('f'), msg = document.getElementById('msg'), bt = document.getElementById('enviar');

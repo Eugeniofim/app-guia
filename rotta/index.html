@@ -210,7 +210,7 @@ a.cartao:hover{border-color:var(--rota)}
         <a class="btn pri" href="https://rottaguide.com/demo/" target="_blank" rel="noopener">Ver o app de exemplo · grátis</a>
         <a class="btn sec" href="#contato">Peça seu protótipo personalizado grátis</a>
       </div>
-      <p class="prova"><i></i><span>Já no ar com guias brasileiros em <b>Munique, Berlim, Copenhague</b> e na <b>Alsácia</b>.</span></p>
+      <p class="prova"><i></i><span>Já no ar com guias brasileiros em <b>Munique, Berlim, Copenhague</b> e na <b>França</b>.</span></p>
     </div>
   </section>
 
@@ -336,6 +336,7 @@ caixa.onclick = () => {
   if (typeof ligaPagar === 'function') ligaPagar();
 } catch (_) {} })();
 </script>
+<script src="config.js?v=1"></script>
 <script>
 /* PEDIDO DE CONTATO (18/10/2026): no lugar do teste de 20 min com senha — a pessoa
    deixa nome e WhatsApp e a gente chama. Vai para o CRM da Rotta (com o parceiro
@@ -353,7 +354,7 @@ caixa.onclick = () => {
     if (!d.aceite) { msg.className = 'pedidoMsg erro'; msg.textContent = 'Marque que aceita o contato, para a gente poder te chamar.'; return; }
     bt.disabled = true; bt.textContent = 'Enviando…';
     try {
-      const r = await fetch('https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre/rotta-teste', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(d) });
+      const r = await fetch((window.ROTTA_CONFIG || {}).cofre + '/rotta-teste', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(d) });
       const j = await r.json().catch(() => ({}));
       if (!j.ok) { msg.className = 'pedidoMsg erro'; msg.textContent = j.msg || 'Não deu certo. Confira os dados.'; return; }
       f.classList.add('feito');
