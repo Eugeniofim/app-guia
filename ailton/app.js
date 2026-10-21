@@ -207,14 +207,15 @@ const Coach = {
   steps: [], i: 0, el: null, keyFlag: '',
   start(steps, flag) {
     if (!DB.settings[flag]) return;
-    this.steps = steps.filter(s => $(s.sel)); this.i = 0; this.keyFlag = flag;
+    /* só itens visíveis (no celular o rodapé do menu some) */
+    this.steps = steps.filter(s => { const e = $(s.sel); return e && e.getClientRects().length; }); this.i = 0; this.keyFlag = flag;
     if (this.steps.length) this.show();
   },
   show() {
     this.hide();
     const s = this.steps[this.i]; const target = $(s.sel);
     if (!target) return this.next();
-    target.scrollIntoView({ block: 'center', behavior: 'instant' });
+    if (innerWidth >= 820) target.scrollIntoView({ block: 'center', behavior: 'instant' });
     const b = document.createElement('div');
     b.className = 'coach'; b.setAttribute('role', 'dialog');
     b.innerHTML = `<span class="coach-tag">${t('tutTag')} ${this.i + 1} de ${this.steps.length}</span>
@@ -223,6 +224,21 @@ const Coach = {
         <button class="coach-skip">${t('tutSkip')}</button>
         <button class="coach-next">${t('tutNext')} →</button>
       </div>`;
+    /* Celular: a dica entra no alto da página, como um cartão, sem
+       escurecer a tela nem cobrir nada; o item fica com um aro dourado. */
+    if (innerWidth < 820) {
+      b.classList.add('coach-inline');
+      if (target.closest('.rail')) $('.coach-txt', b).insertAdjacentHTML('afterend',
+        `<div class="coach-onde">No menu de baixo: <b>${esc(target.textContent.replace(/\s+/g, ' ').trim())}</b></div>`);
+      ($('#stage') || app).prepend(b);
+      target.classList.add('coach-hi');
+      target.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' });
+      scrollTo(0, 0);
+      this.el = b; this.spot = null; this.hiEl = target;
+      $('.coach-next', b).onclick = () => this.next();
+      $('.coach-skip', b).onclick = () => this.stop(true);
+      return;
+    }
     const spot = document.createElement('div');
     spot.className = 'coach-spot';
     document.body.append(spot, b);
@@ -236,7 +252,7 @@ const Coach = {
      (celular) — nunca por cima do item seguinte da lista. */
   posiciona() {
     const b = this.el, alvo = this.hiEl;
-    if (!b || !alvo) return;
+    if (!b || !alvo || !this.spot) return;
     const r = alvo.getBoundingClientRect(), bw = b.offsetWidth, bh = b.offsetHeight, m = 18;
     Object.assign(this.spot.style, { top: (r.top - 6) + 'px', left: (r.left - 6) + 'px', width: (r.width + 12) + 'px', height: (r.height + 12) + 'px' });
     let lado, top, left;
@@ -244,7 +260,9 @@ const Coach = {
     else if (innerWidth >= 760 && r.left - m - bw >= 10) { lado = 'esquerda'; left = r.left - m - bw; top = r.top + r.height / 2 - bh / 2; }
     else if (r.bottom + m + bh <= innerHeight - 10) { lado = 'baixo'; top = r.bottom + m; left = r.left + r.width / 2 - bw / 2; }
     else { lado = 'cima'; top = r.top - m - bh; left = r.left + r.width / 2 - bw / 2; }
-    top = Math.max(10, Math.min(innerHeight - bh - 10, top));
+    /* nunca atrás da faixa de baixo (Vitrine / Painel) */
+    const faixa = $('#demoFaixa'), chao = faixa && faixa.getClientRects().length ? Math.min(innerHeight, faixa.getBoundingClientRect().top) : innerHeight;
+    top = Math.max(10, Math.min(chao - bh - 10, top));
     left = Math.max(10, Math.min(innerWidth - bw - 10, left));
     b.dataset.lado = lado;
     const seta = (lado === 'baixo' || lado === 'cima') ? r.left + r.width / 2 - left : r.top + r.height / 2 - top;
