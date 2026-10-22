@@ -115,6 +115,10 @@ function navCss() {
   .rail{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
   .rail nav .navRot{margin:16px 10px 4px;font:700 10.5px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
   .rail nav .navRot:first-child{margin-top:4px}
+  /* o item aberto (22/10, como no painel da Bia): degradê suave da cor da marca + barrinha amarela à esquerda */
+  .rail nav .nb[data-tab]{position:relative;border-radius:12px}
+  .rail nav .nb[data-tab].on{background:linear-gradient(90deg,var(--accent-wash) 0%,var(--accent-wash) 55%,transparent 100%);color:var(--ink);font-weight:700;box-shadow:inset 3px 0 0 var(--brand-assinatura,#F2C230)}
+  .rail nav .nb[data-tab]:hover:not(.on){background:linear-gradient(90deg,var(--surface-2),transparent)}
   .rail .railfoot{padding-top:12px}
   .rail nav .nb[data-barra]{display:none}
   .navFolha{position:fixed;inset:0;z-index:950;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(10,14,24,.45)}
