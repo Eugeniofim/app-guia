@@ -292,7 +292,7 @@ const Pontos = (function () {
     },
     remove(id) { if (!String(id || '').startsWith('m-')) return false; DB.pontosMari = meus().filter(p => p.id !== id); if (typeof save === 'function') save(); return true; },
     /* todas as fotos que ela pode escolher para uma parada */
-    fotos() { return [...new Set(this.todos().map(p => p.foto).concat(['fotos/nyhavn2.jpg', 'fotos/nyhavn3.jpg', 'fotos/bikefam/nyhavn-noite.jpg', 'fotos/bike.jpg', 'fotos/mapa.jpg', 'fotos/kids/trolls.jpg', 'fotos/viking.jpg', 'fotos/carlsberg2.jpg', 'fotos/museu.jpg', 'fotos/arquitetura2.jpg', 'fotos/castelo.jpg', 'fotos/van.jpg']).filter(Boolean))]; },
+    fotos() { return [...new Set(this.todos().map(p => p.foto).concat(['fotos/nyhavn2.jpg', 'fotos/nyhavn3.jpg', 'fotos/bikefam/nyhavn-noite.jpg', 'fotos/bike.jpg', 'fotos/mapa.jpg', 'fotos/kids/trolls.jpg', 'fotos/viking.jpg', 'fotos/carlsberg2.jpg', 'fotos/museu.jpg', 'fotos/arquitetura2.jpg', 'fotos/castelo.jpg', 'fotos/aeroporto.jpg']).filter(Boolean))]; },
   };
 })();
 window.Pontos = Pontos;

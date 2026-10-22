@@ -361,7 +361,7 @@ const mariMostra = (k, v) => {
 };
 
 /* ---------- 4. as ferramentas novas ---------- */
-const AB_NOMES = 'today=Hoje · agenda=Agenda · tarefas=Tarefas · roteiros=Roteiros · faturas=Faturas · contratos=Contratos · agencias=Agências e empresas · equipe=Equipe e escala · parceiros=Parceiros · tours=Meus tours · bookings=Reservas · money=Extrato · reports=Relatórios · clients=Clientes (fichas) · orcamentos=Orçamentos · coupons=Cupons e brindes · look=Aparência · settings=Ajustes';
+const AB_NOMES = 'today=Hoje · agenda=Agenda (calendário) · tarefas=Agenda › Tarefas (a lista) · roteiros=Roteiros · faturas=Faturas · contratos=Contratos · agencias=Agências e empresas · equipe=Equipe e escala · parceiros=Parceiros · tours=Meus tours · bookings=Reservas · money=Extrato · reports=Relatórios · clients=Clientes (fichas) · orcamentos=Orçamentos · coupons=Cupons e brindes · look=Aparência · settings=Ajustes';
 IA_FERRAMENTAS.push(
   { name: 'ver_hoje', description: 'O dia dela: passeios de hoje e de amanhã (com cliente, ponto de encontro e quanto cada um paga no dia), tarefas atrasadas e de hoje, pedidos do Personalize sem resposta, aniversários e brindes para mandar. Use para "o que tenho hoje", "bom dia", "e amanhã?".', input_schema: obj() },
   { name: 'ver_ficha', description: 'Tudo de UM cliente pelo NOME (primeiro nome serve), WhatsApp ou código: ficha cadastral, reservas, quanto falta, pedidos do Personalize, brindes recebidos, anotações.', input_schema: obj({ cliente: S_('nome, WhatsApp, e-mail ou código da reserva') }, ['cliente']) },

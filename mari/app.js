@@ -2880,6 +2880,7 @@ function viewLogin(mode) {
       <p class="why center">${m === 'up' ? t('protectWhy') : t('loginSub')}</p>
       <label class="fld">${t('loginEmail')}
         <input id="lgEmail" type="email" autocomplete="email" inputmode="email" placeholder="voce@exemplo.com"></label>
+      ${m === 'in' && GUIA_CFG.loginDica ? `<p class="fine lgDica">${esc(GUIA_CFG.loginDica)}</p>` : ''}
       <label class="fld">${t('loginPass')}
         <input id="lgPass" type="password" autocomplete="${m === 'up' ? 'new-password' : 'current-password'}"></label>
       <p class="lgerro" id="lgErro" hidden></p>
@@ -2955,7 +2956,13 @@ function viewLogin(mode) {
   if (fg) fg.onclick = async () => {
     const email = $('#lgEmail').value.trim();
     if (!email) { $('#lgEmail').focus(); return toast(t('loginNoEmail')); }
-    await authReset(email); toast(t('loginSent', { e: email }));
+    fg.disabled = true;
+    const r = await authReset(email); fg.disabled = false;
+    /* 22/10: o aviso fica NA tela (o toast sumia e ninguém sabia se tinha ido) */
+    const er = $('#lgErro');
+    if (r && r.ok === false) { if (er) { er.hidden = false; er.classList.remove('ok'); er.textContent = 'Não consegui mandar agora: ' + (r.error || 'tente de novo em 1 minuto') + '.'; } return; }
+    if (er) { er.hidden = false; er.classList.add('ok'); er.textContent = `Se ${email} for o e-mail da conta, o link chega em 1 a 2 minutos. Olhe também o lixo eletrônico (spam).`; }
+    toast(t('loginSent', { e: email }));
   };
   $('#lgHome').onclick = () => go('/');
   $('#lgEmail').focus();

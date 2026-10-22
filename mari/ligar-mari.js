@@ -92,7 +92,7 @@ admSettings = function () {
    As abas chegam de vários arquivos (Atendimento e Marketing vêm do motor do assistente, que carrega
    depois deste), então agrupa na hora de desenhar. Aba nova sem grupo cai em "Mais". */
 const NAV_GRUPOS = [
-  ['Dia a dia', ['today', 'agenda', 'tarefas']],
+  ['Dia a dia', ['today', 'agenda']],           /* Tarefas mora DENTRO da Agenda (22/10) */
   ['Tours e reservas', ['bookings', 'tours', 'roteiros']],
   ['Clientes', ['clients', 'agencias']],
   ['Vendas e documentos', ['orcamentos', 'faturas', 'contratos']],

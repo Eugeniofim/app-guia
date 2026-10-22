@@ -40,6 +40,9 @@ var APP_CONFIG = {
     cidade: 'Copenhague, Dinamarca',
     whats: '+4552765827',
     insta: 'tournadinamarca',
+    email: 'tournadinamarca@gmail.com',
+    /* a dica do login (22/10): a equipe digitava o Gmail novo, e a conta é o Hotmail dela */
+    loginDica: 'A conta é o e-mail Hotmail da Mari (mari.mi…@hotmail.com), não o Gmail.',   /* o e-mail que o cliente vê ("Fale comigo por e-mail", 22/10) */
     badge: 'Experiências autênticas na terra do hygge',
     /* o selo recortado em circulo, fundo transparente (o original vinha num
        quadrado cinza e aparecia como uma bolinha cinza na abertura) */

@@ -130,8 +130,13 @@ function appHome() {
   return location.origin + location.pathname.replace(/index\.html$/, '');
 }
 
+/* 22/10/2026: tournadinamarca.com ainda não está na lista de endereços do login (Supabase → URL Configuration).
+   Até entrar, o link do e-mail volta pelo endereço antigo, que está — lá ela cria a senha nova, e a senha vale nos dois.
+   Sem isto o link caía no Site URL (o app do estúdio) e "esqueci a senha" parecia não funcionar. */
+function appVolta() { return /(^|\.)tournadinamarca\.com$/.test(location.hostname) ? 'https://guia.eugeniofim.com/mari/' : appHome(); }
+
 async function authReset(email) {
-  const r = await authFetch('recover?redirect_to=' + encodeURIComponent(appHome()), { email });
+  const r = await authFetch('recover?redirect_to=' + encodeURIComponent(appVolta()), { email });
   return { ok: r.ok, error: r.data.msg || r.data.message };
 }
 

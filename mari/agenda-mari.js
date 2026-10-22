@@ -322,11 +322,70 @@ function agCss() {
   if (document.getElementById('agCss')) return;
   const s = document.createElement('style'); s.id = 'agCss';
   s.textContent = `
-  .tfAdd{display:grid;grid-template-columns:1fr auto;gap:8px}
-  .tfAdd .linha2{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  .tfAdd input[type=text],.tfAdd textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit}
-  .tfAdd textarea{min-height:64px;grid-column:1/-1;resize:vertical}
-  .tfAdd select,.tfAdd input[type=date],.tfAdd input[type=time]{min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit}
+  /* o anotar curto (22/10): o que é + Anotar; dia · hora · importante; o resto em "Mais opções" */
+  .tfAdd2 [hidden]{display:none!important}
+  .tfAdd2 .tfL1{display:flex;gap:8px;align-items:stretch}
+  .tfAdd2 .tfL1 input{flex:1;min-width:0;min-height:46px;padding:0 14px;border:1px solid var(--line-2,var(--line));border-radius:12px;background:var(--surface);color:var(--ink);font:500 15px/1.3 var(--f-ui)}
+  .tfAdd2 .tfL1 input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+  .tfAdd2 .tfL1 .cta{flex:none;min-height:46px;border-radius:12px}
+  .tfAdd2 .tfL2,.tfAdd2 .tfL3{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+  .tfAdd2 .tfC{display:inline-flex;align-items:center;gap:4px;min-height:40px;padding:0 4px 0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink-3);font:700 11px/1 var(--f-ui);letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+  .tfAdd2 .tfC input,.tfAdd2 .tfC select{border:0;background:transparent;min-height:38px;padding:0 8px 0 2px;color:var(--ink);font:500 14px/1 var(--f-ui);letter-spacing:0;text-transform:none;max-width:150px}
+  .tfAdd2 .tfC:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .tfAdd2 .tfTg{padding:0 13px;gap:7px;color:var(--ink-2)}
+  .tfAdd2 .tfTg input{width:16px;height:16px;min-height:0;padding:0;accent-color:var(--danger)}
+  .tfAdd2 .tfTg:has(input:checked){background:var(--danger-wash);border-color:var(--danger);color:var(--danger)}
+  .tfAdd2 .tfMais{min-height:40px;padding:0 10px;border:0;background:transparent;color:var(--ink-2);font:600 13px/1 var(--f-ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  .tfAdd2 .tfL3 textarea{flex-basis:100%;min-height:64px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;resize:vertical}
+  /* a Agenda: cabeçalho com as duas vistas */
+  .agHead{align-items:center}
+  .agSeg{display:inline-flex;gap:3px;padding:4px;border-radius:999px;background:var(--surface-2)}
+  .agSeg a{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 16px;border-radius:999px;color:var(--ink-2);font:600 14px/1 var(--f-ui);text-decoration:none}
+  .agSeg a svg{width:17px;height:17px}
+  .agSeg a.on{background:var(--surface);color:var(--ink);box-shadow:var(--sh-1)}
+  .agSeg a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .agBadge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--ink);color:var(--paper);font:700 11px/1 var(--f-ui)}
+  .agBadge.bad{background:var(--danger);color:#fff}
+  .agMesNav{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .agMes{flex:1;text-align:center;font:700 17px/1.2 var(--f-display);text-transform:capitalize}
+  .agSeta{width:40px;height:40px;flex:none;border:0;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);color:var(--ink);cursor:pointer}
+  .agSeta svg{width:18px;height:18px}
+  .agSeta:hover{background:var(--accent-wash)}
+  .agDiaT{display:flex;flex-direction:column;gap:3px}
+  .agRel{font:700 10.5px/1 var(--f-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .agDiaT h2{margin:0;font:700 19px/1.25 var(--f-display)}
+  .agDiaRes{margin:4px 0 0;color:var(--ink-3);font-size:13px}
+  .agLinhas{margin-top:8px}
+  .agLinhas .deprow{display:block;padding:12px 0;border-top:1px solid var(--line)}
+  .agLinhas > :first-child{border-top:0}
+  .agLinhas .deprow .tfK{margin-bottom:5px}
+  .agLinhas .deprow .paxlist{align-items:center}
+  .agLinhas .deprow .pill{margin-left:0}
+  .agLinhas .tf{border-bottom:0;border-top:1px solid var(--line)}
+  .agVazio{padding:14px 0 6px}
+  .agAdd{margin-top:12px;padding-top:4px;border-top:1px dashed var(--line)}
+  .ck.ckG{border-color:#4285F4;color:#4285F4;font-size:12px}
+  .ck.ckNota{border-style:dashed;color:var(--ink-3)}
+  .agLista{max-width:820px}
+  .agFiltro{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+  .agFiltro button{min-height:36px;padding:0 14px;border:0;border-radius:999px;background:var(--surface-2);color:var(--ink-2);font:600 13px/1 var(--f-ui);cursor:pointer}
+  .agFiltro button.on{background:var(--ink);color:var(--paper)}
+  .agFeitas{margin-top:12px;border-top:1px solid var(--line)}
+  .agFeitas > summary{cursor:pointer;padding:12px 0 6px;color:var(--ink-3);font:700 11px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase}
+  .agGoo{margin-top:18px}
+  .agGoo > summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:54px;padding:0 18px;border-radius:16px;background:var(--surface);box-shadow:var(--sh-1);cursor:pointer}
+  .agGoo > summary::-webkit-details-marker{display:none}
+  .agGoo > summary svg{width:18px;height:18px;color:var(--ink-2);flex:none}
+  .agGoo > summary .agGooV{margin-left:auto;color:var(--ink-2);font:600 13px/1 var(--f-ui);text-decoration:underline;text-underline-offset:3px}
+  .agGoo[open] > summary .agGooV{visibility:hidden}
+  .agGoo #gcCard{margin-top:10px}
+  .agGoo #gcCard > h3{display:none}
+  .agModal{max-width:620px;width:100%;max-height:90vh;overflow:auto}
+  .agModalT{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+  .agModalT h3{margin:0}
+  .agModalP{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+  .agModalP .del{margin-left:auto}
+  @media(max-width:620px){.agHead{gap:10px}.agSeg{width:100%}.agSeg a{flex:1;justify-content:center}}
   .tfGrupo{margin:14px 0 4px;font:700 11px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
   .tfGrupo.bad{color:var(--danger)}
   .tf{display:flex;gap:10px;align-items:flex-start;padding:10px 4px;border-bottom:1px solid var(--line)}
@@ -351,7 +410,14 @@ function agCss() {
   .tfB{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 12px/1 var(--f-ui);cursor:pointer;text-decoration:none}
   .tfB:hover{background:var(--surface-2);color:var(--ink)}
   .tfB svg{width:14px;height:14px;flex:none}
-  .tfB.del{padding:0 9px}.tfB.del:hover{color:var(--danger);border-color:var(--danger)}
+  .tfB.del{color:var(--danger)}.tfB.del:hover{border-color:var(--danger);background:var(--danger-wash);color:var(--danger)}
+  .tf2 > .tx{display:block;text-align:left;background:none;border:0;padding:2px 0;margin:0;font:inherit;color:inherit;cursor:pointer;border-radius:8px}
+  .tf2 > .tx:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .tf2 .tfMeta{display:flex}
+  .tf2 .nota{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;color:var(--ink-2);font-size:13px;margin-top:4px}
+  .tfEd{width:40px;height:40px;flex:none;border:0;border-radius:50%;display:grid;place-items:center;background:transparent;color:var(--ink-3);cursor:pointer;margin:-6px -4px 0 0}
+  .tfEd:hover{background:var(--surface-2);color:var(--ink)}
+  .tfEd svg{width:17px;height:17px}
   .agmk{display:flex;gap:3px;align-items:center;justify-content:center;min-height:12px;margin-top:3px}
   .agmk .mk-t{width:7px;height:7px;border-radius:50%;background:#F2C230;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
   .agmk .mk-f{width:7px;height:7px;border-radius:2px;background:#5B8DEF}
@@ -404,47 +470,56 @@ function agMarcaTarefa(x) {
 }
 const AG_MARCA_NOME = { tour: 'Tour', transfer: 'Transfer' };
 function agLinhaTarefa(o, opts) {
-  const x = o.x, dia = o.dia;
-  const quando = [dia ? (dia === agHoje() ? 'hoje' : dia === addDays(agHoje(), 1) ? 'amanhã' : agData(dia)) : '', x.hora ? x.hora + (x.horaFim ? '–' + x.horaFim : '') : '', x.repete ? AG_REP[x.repete] + (x.ate ? ' até ' + agDataCurta(x.ate) : '') : ''].filter(Boolean).join(' · ');
+  const x = o.x, dia = o.dia, semDia = opts && opts.semDia;
+  const quando = [dia && !semDia ? (dia === agHoje() ? 'hoje' : dia === addDays(agHoje(), 1) ? 'amanhã' : agData(dia)) : '', x.hora ? x.hora + (x.horaFim ? '–' + x.horaFim : '') : '', x.repete ? AG_REP[x.repete] + (x.ate ? ' até ' + agDataCurta(x.ate) : '') : ''].filter(Boolean).join(' · ');
   const marca = agMarcaTarefa(x);
   const tags = `${AG_MARCA_NOME[marca] ? `<span class="tfK ${marca}">${marca === 'transfer' ? AG_IC.carro : '<i></i>'}${AG_MARCA_NOME[marca]}</span>` : x.tipo !== 'tarefa' ? `<span class="tag">${x.tipo === 'anotacao' ? 'Anotação' : 'Compromisso'}</span>` : ''}${x.area === 'pessoal' ? '<span class="tag pessoal">Pessoal</span>' : ''}${x.prioridade === 'alta' ? '<span class="tag alta">Importante</span>' : ''}`;
-  const gl = (dia || x.data) ? agGoogleLink(Object.assign(agEventoTarefa(x, dia || x.data), {})) : '';
+  /* a linha é limpa: marcar, ler e (no lápis ou tocando no texto) abrir. Apagar e "pôr no Google" moram dentro do Editar (22/10) */
   return `<div class="tf tf2 ${o.feita ? 'feita' : ''}" data-tf="${esc(x.id)}" data-dia="${esc(dia || '')}">
-    ${x.tipo === 'anotacao' ? '<span class="ck" style="border-style:dashed;color:var(--ink-3)">✎</span>' : `<button type="button" class="ck ${o.feita ? 'on' : ''}" data-ck aria-label="${o.feita ? 'Desmarcar' : 'Marcar como feita'}">✓</button>`}
-    <div class="tx"><b>${esc(x.texto)}</b>
-      <div class="tfMeta">${tags}${quando ? `<span class="tfQ">${x.hora ? AG_IC.relogio : ''}${esc(quando)}</span>` : ''}</div>
-      ${x.nota && !(opts && opts.semNota) ? `<div class="nota">${esc(x.nota)}</div>` : ''}
-      <div class="tfAcs">${gl && !GCal.ligada() ? `<a class="tfB" target="_blank" rel="noopener" href="${esc(gl)}" title="Pôr no Google Agenda">${AG_IC.cal}Google</a>` : ''}<button type="button" class="tfB" data-ed>${AG_IC.lapis}Editar</button><button type="button" class="tfB del" data-del aria-label="Apagar" title="Apagar">${AG_IC.lixo}</button></div></div>
+    ${x.tipo === 'anotacao' ? '<span class="ck ckNota" aria-hidden="true">✎</span>' : `<button type="button" class="ck ${o.feita ? 'on' : ''}" data-ck aria-label="${o.feita ? 'Desmarcar' : 'Marcar como feita'}">✓</button>`}
+    <button type="button" class="tx" data-ed><b>${esc(x.texto)}</b>${tags || quando ? `<span class="tfMeta">${tags}${quando ? `<span class="tfQ">${x.hora ? AG_IC.relogio : ''}${esc(quando)}</span>` : ''}</span>` : ''}${x.nota && !(opts && opts.semNota) ? `<span class="nota">${esc(x.nota)}</span>` : ''}</button>
+    <button type="button" class="tfEd" data-ed aria-label="Editar: ${esc(x.texto)}" title="Editar">${AG_IC.lapis}</button>
   </div>`;
 }
 function agLigaLinhas(root, redesenha) {
+  if (!root) return;
   root.querySelectorAll('.tf[data-tf]').forEach(el => {
     const id = el.dataset.tf, dia = el.dataset.dia;
     const ck = el.querySelector('[data-ck]');
     if (ck) ck.onclick = () => { const x = Tarefas.get(id); if (!x) return; Tarefas.concluir(id, !Tarefas.feitaEm(x, dia || x.data), dia || x.data); redesenha(); };
-    el.querySelector('[data-del]').onclick = () => { const x = Tarefas.get(id); if (x && confirm(`Apagar "${x.texto}"?`)) { Tarefas.remove(id); toast('Apagada'); redesenha(); } };
-    el.querySelector('[data-ed]').onclick = () => agEditar(id, redesenha);
+    el.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => agEditar(id, redesenha, dia));
   });
 }
 
-/* o formulário de anotar (o mesmo para novo e editar) */
-function agFormHtml(x, diaPadrao) {
+/* o formulário de anotar (o mesmo para novo e editar), curto (22/10: "deixar menos poluído"):
+   1ª linha o que é + Anotar; 2ª linha dia, hora e importante; o resto (até que horas, repetir,
+   tipo, área, detalhes) fica em "Mais opções" — aberto sozinho quando a tarefa já usa alguma delas.
+   semDia: no painel do dia o dia já está escolhido (vai escondido). */
+function agFormHtml(x, diaPadrao, opts) {
+  const novo = !x;
   x = x || { tipo: 'tarefa', texto: '', nota: '', data: diaPadrao || '', hora: '', horaFim: '', area: 'pro', prioridade: 'media', repete: '', ate: '', lembrar: 30 };
   const op = (obj, v) => Object.entries(obj).map(([k, n]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${n}</option>`).join('');
-  return `<div class="tfAdd">
-    <input type="text" id="tfTexto" maxlength="200" placeholder="O que é? (ex.: ligar pro hotel, dentista, ideia de passeio…)" value="${esc(x.texto)}">
-    <button type="button" class="cta sm" id="tfOk">${x.id ? 'Salvar' : 'Anotar'}</button>
-    <div class="linha2">
-      <select id="tfTipo" aria-label="Tipo">${op({ tarefa: 'Tarefa', compromisso: 'Compromisso', anotacao: 'Anotação' }, x.tipo)}</select>
-      <select id="tfArea" aria-label="Área">${op(AG_AREAS, x.area)}</select>
-      <input type="date" id="tfData" value="${esc(x.data)}" aria-label="Dia">
-      <input type="time" id="tfHora" value="${esc(x.hora)}" aria-label="Hora">
-      <input type="time" id="tfFim" value="${esc(x.horaFim || '')}" aria-label="Até que horas" title="Até que horas (opcional)">
-      <select id="tfRep" aria-label="Repetir">${op(AG_REP, x.repete || '')}</select>
-      <input type="date" id="tfAte" value="${esc(x.ate || '')}" aria-label="Repetir até" title="Repetir até (opcional)" ${x.repete ? '' : 'hidden'}>
-      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="tfAlta" ${x.prioridade === 'alta' ? 'checked' : ''}> importante</label>
+  const aberto = !!(x.horaFim || x.repete || x.nota || (x.tipo && x.tipo !== 'tarefa') || x.area === 'pessoal');
+  const semDia = opts && opts.semDia;
+  return `<div class="tfAdd tfAdd2">
+    <div class="tfL1">
+      <input type="text" id="tfTexto" maxlength="200" autocomplete="off" aria-label="O que é" placeholder="${novo ? 'O que você quer anotar?' : 'O que é'}" value="${esc(x.texto)}">
+      <button type="button" class="cta sm" id="tfOk">${x.id ? 'Salvar' : 'Anotar'}</button>
     </div>
-    <textarea id="tfNota" placeholder="Detalhes (opcional): a ideia inteira, o endereço, o que levar…">${esc(x.nota || '')}</textarea>
+    <div class="tfL2">
+      ${semDia ? `<input type="hidden" id="tfData" value="${esc(x.data)}">` : `<label class="tfC"><span>Dia</span><input type="date" id="tfData" value="${esc(x.data)}"></label>`}
+      <label class="tfC"><span>Hora</span><input type="time" id="tfHora" value="${esc(x.hora)}"></label>
+      <label class="tfC tfTg"><input type="checkbox" id="tfAlta" ${x.prioridade === 'alta' ? 'checked' : ''}><span>Importante</span></label>
+      <button type="button" class="tfMais" aria-expanded="${aberto}">${aberto ? 'Menos opções' : 'Mais opções'}</button>
+    </div>
+    <div class="tfL3" ${aberto ? '' : 'hidden'}>
+      <label class="tfC"><span>Até</span><input type="time" id="tfFim" value="${esc(x.horaFim || '')}"></label>
+      <label class="tfC"><span>Repetir</span><select id="tfRep">${op(AG_REP, x.repete || '')}</select></label>
+      <label class="tfC" ${x.repete ? '' : 'hidden'}><span>até o dia</span><input type="date" id="tfAte" value="${esc(x.ate || '')}"></label>
+      <label class="tfC"><span>Tipo</span><select id="tfTipo">${op({ tarefa: 'Tarefa', compromisso: 'Compromisso', anotacao: 'Anotação (sem ✓)' }, x.tipo)}</select></label>
+      <label class="tfC"><span>Área</span><select id="tfArea">${op(AG_AREAS, x.area)}</select></label>
+      <textarea id="tfNota" aria-label="Detalhes" placeholder="Detalhes (opcional): o endereço, o que levar…">${esc(x.nota || '')}</textarea>
+    </div>
   </div>`;
 }
 function agLeForm(root) {
@@ -459,54 +534,99 @@ function agLeForm(root) {
     repete: data ? q('#tfRep').value : '', ate: data && q('#tfRep').value ? q('#tfAte').value : '', prioridade: q('#tfAlta').checked ? 'alta' : 'media' };
 }
 function agLigaForm(root, aoSalvar, id) {
+  if (!root || !root.querySelector('#tfTexto')) return;
   const rep = root.querySelector('#tfRep'), ate = root.querySelector('#tfAte');
-  rep.onchange = () => { ate.hidden = !rep.value; };
-  const vai = () => { const c = agLeForm(root); if (!c) return; if (id) Tarefas.update(id, c); else Tarefas.add(c); toast(id ? 'Salvo' : (c.tipo === 'anotacao' ? 'Anotado' : 'Anotado na agenda')); aoSalvar(); };
+  rep.onchange = () => { (ate.closest('.tfC') || ate).hidden = !rep.value; };
+  const mais = root.querySelector('.tfMais'), l3 = root.querySelector('.tfL3');
+  if (mais && l3) mais.onclick = () => { const abre = l3.hidden; l3.hidden = !abre; mais.setAttribute('aria-expanded', String(abre)); mais.textContent = abre ? 'Menos opções' : 'Mais opções'; };
+  const vai = () => { const c = agLeForm(root); if (!c) return; if (id) Tarefas.update(id, c); else Tarefas.add(c); toast(id ? 'Salvo' : (c.tipo === 'anotacao' ? 'Anotado' : c.data ? 'Anotado na agenda' : 'Anotado na lista')); aoSalvar(); };
   root.querySelector('#tfOk').onclick = vai;
   root.querySelector('#tfTexto').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); vai(); } };
 }
-function agEditar(id, redesenha) {
+function agEditar(id, redesenha, dia) {
   const x = Tarefas.get(id); if (!x) return;
+  agCss();
+  const gl = (dia || x.data) && !GCal.ligada() ? agGoogleLink(agEventoTarefa(x, dia || x.data)) : '';
   const fundo = document.createElement('div'); fundo.className = 'modalbg';
   fundo.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:grid;place-items:center;padding:16px';
-  fundo.innerHTML = `<div class="card" style="max-width:640px;width:100%;max-height:90vh;overflow:auto"><h3>Editar</h3>${agFormHtml(x)}
-    <div style="display:flex;justify-content:flex-end;margin-top:10px"><button type="button" class="mini" id="tfFecha">Fechar</button></div></div>`;
+  fundo.innerHTML = `<div class="card agModal" role="dialog" aria-modal="true" aria-label="Editar">
+    <div class="agModalT"><h3>Editar</h3><button type="button" class="mini" id="tfFecha">Fechar</button></div>
+    ${agFormHtml(x)}
+    <div class="agModalP">
+      ${gl ? `<a class="tfB" target="_blank" rel="noopener" href="${esc(gl)}">${AG_IC.cal}Pôr no Google Agenda</a>` : ''}
+      <button type="button" class="tfB del" id="tfApaga">${AG_IC.lixo}Apagar</button>
+    </div></div>`;
   document.body.appendChild(fundo);
-  const fecha = () => fundo.remove();
+  const fecha = () => { fundo.remove(); document.removeEventListener('keydown', esc_); };
+  const esc_ = (e) => { if (e.key === 'Escape') fecha(); };
+  document.addEventListener('keydown', esc_);
   fundo.onclick = (e) => { if (e.target === fundo) fecha(); };
   fundo.querySelector('#tfFecha').onclick = fecha;
+  fundo.querySelector('#tfApaga').onclick = () => { if (!confirm(`Apagar "${x.texto}"?`)) return; Tarefas.remove(id); toast('Apagada'); fecha(); redesenha(); };
   agLigaForm(fundo, () => { fecha(); redesenha(); }, id);
   fundo.querySelector('#tfTexto').focus();
 }
 
 /* =====================================================
-   ABA TAREFAS
+   AGENDA — UMA aba só, com duas vistas (22/10/2026)
+
+   Pedido do Eugênio: "inserir tarefas dentro de agenda… tá meio redundante…
+   deixar menos poluído, claro e intuitivo". Antes eram duas abas no menu
+   (Agenda e Tarefas) mostrando as mesmas tarefas.
+   - Calendário (#/adm/agenda): o mês e, ao lado, O DIA — tours, transfers,
+     tarefas e o Google numa lista só, pela hora; embaixo, o "anotar" curto.
+   - Tarefas (#/adm/tarefas): a lista de fazer (atrasadas, hoje, amanhã…),
+     com o mesmo "anotar" em cima e as feitas guardadas numa gaveta.
+   - O Google Agenda vira uma linha no pé (abre quando ela quer mexer).
+   A vista vem do endereço (o link de cada uma continua valendo, e o
+   assistente ainda abre "tarefas").
    ===================================================== */
-function admTarefas() {
-  agCss();
-  const filtro = admTarefas._f || 'tudo';
+const AG_IC_LISTA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/></svg>';
+const AG_SETA = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'}"/></svg>`;
+function admTarefas() { return admAgendaMari(); }
+function agCabecalho(lista) {
+  const G = Tarefas.grupos();
+  const pend = G.atrasadas.length + G.hoje.filter(o => !o.feita && o.x.tipo !== 'anotacao').length;
+  return `<div class="pagehead agHead"><h1 class="pageh">${t('agTitle')}</h1>
+    <nav class="agSeg" aria-label="Ver a agenda como">
+      <a href="#/adm/agenda" class="${lista ? '' : 'on'}" ${lista ? '' : 'aria-current="page"'}>${AG_IC.cal}<span>Calendário</span></a>
+      <a href="#/adm/tarefas" class="${lista ? 'on' : ''}" ${lista ? 'aria-current="page"' : ''}>${AG_IC_LISTA}<span>Tarefas</span>${pend ? `<span class="agBadge ${G.atrasadas.length ? 'bad' : ''}" aria-label="${pend} para fazer">${pend}</span>` : ''}</a>
+    </nav></div>`;
+}
+function agGoogleLinha() {
+  const lig = GCal.ligada();
+  return `<details class="agGoo" ${admAgendaMari._goo ? 'open' : ''}><summary>${AG_IC.cal}<b>Google Agenda</b><span class="pill ${lig ? 'ok' : ''}">${lig ? '✓ ligado' : 'não ligado'}</span><span class="agGooV">${lig ? 'ver' : 'ligar'}</span></summary>${agCartaoGoogle()}</details>`;
+}
+function agLigaGoogleLinha(redesenha) {
+  const d = document.querySelector('details.agGoo'); if (d) d.ontoggle = () => { admAgendaMari._goo = d.open; };
+  agLigaCartaoGoogle(redesenha);
+}
+function agVistaLista() {
+  const filtro = admAgendaMari._f || 'tudo';
   const G = Tarefas.grupos();
   const passa = (o) => filtro === 'tudo' || (filtro === 'pessoal' ? o.x.area === 'pessoal' : o.x.area !== 'pessoal');
-  const bloco = (tit, lista, cls) => { const l = lista.filter(passa); return l.length ? `<p class="tfGrupo ${cls || ''}">${tit} · ${l.length}</p>${l.map(o => agLinhaTarefa(o)).join('')}` : ''; };
-  const corpo = [bloco('Atrasadas', G.atrasadas, 'bad'), bloco('Hoje', G.hoje), bloco('Amanhã', G.amanha), bloco('Próximos 7 dias', G.proximas), bloco('Mais pra frente', G.depois), bloco('Sem dia', G.semDia), bloco('Anotações', G.anotacoes), bloco('Feitas (últimas)', G.feitas)].join('');
-  admShell('tarefas', `
-    <div class="pagehead"><h1 class="pageh">Tarefas e anotações</h1>
-      <div class="chips">${[['tudo', 'Tudo'], ['pro', 'Trabalho'], ['pessoal', 'Pessoal']].map(([k, n]) => `<button class="chip ${filtro === k ? 'on' : ''}" data-f="${k}">${n}</button>`).join('')}</div></div>
-    <section class="card"><h3>Anotar</h3>${agFormHtml(null, agHoje())}
-      <p class="why">Com dia, entra na Agenda${GCal.ligada() ? ' e no seu Google Agenda, com lembrete no celular' : ''}. Sem dia, fica na lista. Ou é só pedir ao assistente: "anota: ligar pro hotel sexta às 10h".</p></section>
-    <section class="card" id="tfLista">${corpo || '<p class="empty">Nada anotado ainda.</p>'}</section>
-    ${GCal.ligada() ? '' : `<p class="why">📅 Quer que tudo isso apareça sozinho no seu Google Agenda, com lembrete no celular? <a href="#/adm/settings" class="mini">Ligar em Ajustes → Google Agenda</a></p>`}`);
-  $$('[data-f]').forEach(b => b.onclick = () => { admTarefas._f = b.dataset.f; admTarefas(); });
-  const st = document.getElementById('stage') || document;
-  agLigaForm(st.querySelector('.tfAdd').parentNode, admTarefas);
-  agLigaLinhas(document.getElementById('tfLista'), admTarefas);
+  const temPessoal = Tarefas.all().some(x => x.area === 'pessoal');
+  const bloco = (tit, lista, cls, semDia) => { const l = lista.filter(passa); return l.length ? `<p class="tfGrupo ${cls || ''}">${tit} · ${l.length}</p>${l.map(o => agLinhaTarefa(o, { semDia })).join('')}` : ''; };
+  const corpo = [bloco('Atrasadas', G.atrasadas, 'bad'), bloco('Hoje', G.hoje, '', true), bloco('Amanhã', G.amanha, '', true), bloco('Próximos 7 dias', G.proximas), bloco('Mais pra frente', G.depois), bloco('Sem dia', G.semDia), bloco('Anotações', G.anotacoes)].join('');
+  const feitas = G.feitas.filter(passa);
+  return `<section class="card agLista">
+      <div id="agForm">${agFormHtml(null, agHoje())}</div>
+      ${temPessoal || filtro !== 'tudo' ? `<div class="agFiltro" role="group" aria-label="Mostrar">${[['tudo', 'Tudo'], ['pro', 'Trabalho'], ['pessoal', 'Pessoal']].map(([k, n]) => `<button type="button" class="${filtro === k ? 'on' : ''}" data-f="${k}" aria-pressed="${filtro === k}">${n}</button>`).join('')}</div>` : ''}
+      <div id="tfLista">${corpo || '<p class="empty">Nada para fazer. Anote a primeira no campo acima — com dia, ela aparece no calendário.</p>'}
+      ${feitas.length ? `<details class="agFeitas"><summary>Feitas · ${feitas.length}</summary>${feitas.map(o => agLinhaTarefa(o)).join('')}</details>` : ''}</div>
+    </section>`;
 }
-
-/* =====================================================
-   AGENDA DO MÊS — passeios + tarefas + Google
-   ===================================================== */
 function admAgendaMari() {
   agCss();
+  const lista = /^#\/adm\/tarefas/.test(location.hash);
+  if (lista) {
+    admShell('agenda', agCabecalho(true) + agVistaLista() + agGoogleLinha());
+    $$('[data-f]').forEach(b => b.onclick = () => { admAgendaMari._f = b.dataset.f; admAgendaMari(); });
+    agLigaForm(document.getElementById('agForm'), admAgendaMari);
+    agLigaLinhas(document.getElementById('tfLista'), admAgendaMari);
+    agLigaGoogleLinha(admAgendaMari);
+    return;
+  }
   const cur = admAgendaMari._m || agHoje().slice(0, 7);
   const [Y, M] = cur.split('-').map(Number);
   const first = `${cur}-01`, daysIn = new Date(Y, M, 0).getDate(), last = `${cur}-${AG_PAD(daysIn)}`;
@@ -518,11 +638,11 @@ function admAgendaMari() {
   const byDay = {};
   deps.forEach(d => (byDay[d.date] = byDay[d.date] || []).push(d));
   Bookings.all().filter(b => b.status !== 'cancelled' && b.date >= first && b.date <= last).forEach(b => {
-    const lista = byDay[b.date] = byDay[b.date] || [];
-    if (lista.some(d => d.time === b.time && d.tour && d.tour.id === b.tourId)) return;
+    const lst = byDay[b.date] = byDay[b.date] || [];
+    if (lst.some(d => d.time === b.time && d.tour && d.tour.id === b.tourId)) return;
     const x = Tours.get(b.tourId); if (!x) return;
     const cap = x.max || 0, left = Cal.seatsLeft(x.id, b.date, b.time, cap);
-    lista.push({ date: b.date, time: b.time, capacity: cap, tour: x, left, booked: cap - left, pastOnly: true });
+    lst.push({ date: b.date, time: b.time, capacity: cap, tour: x, left, booked: cap - left, pastOnly: true });
   });
   /* só as saídas com gente marcam o dia (o catálogo dela tem horário em quase todo dia) */
   const comGente = (d) => d.booked > 0;
@@ -531,54 +651,60 @@ function admAgendaMari() {
   const sel = admAgendaMari._d && admAgendaMari._d.slice(0, 7) === cur ? admAgendaMari._d : (cur === agHoje().slice(0, 7) ? agHoje() : first);
   const WD = [5, 6, 7, 8, 9, 10, 11].map(d => new Date(2026, 0, d).toLocaleDateString(locale(), { weekday: 'short' }).replace('.', ''));
   const MN = [...Array(12)].map((_, m) => new Date(2026, m, 1).toLocaleDateString(locale(), { month: 'long' }));
+  const conta = (iso) => {
+    let nTour = 0, nTransfer = 0, nTarefa = 0;
+    for (const x of (byDay[iso] || []).filter(comGente)) { if (x.tour && x.tour.type === 'transfer') nTransfer++; else nTour++; }
+    for (const x of (tfDia[iso] || [])) { const k = agMarcaTarefa(x); if (k === 'transfer') nTransfer++; else if (k === 'tour') nTour++; else nTarefa++; }
+    return { nTour, nTransfer, nTarefa, nG: GCal.eventosDoDia(iso).length };
+  };
+  const rotulo = (n) => [n.nTour ? n.nTour + ' tour' + (n.nTour > 1 ? 's' : '') : '', n.nTransfer ? n.nTransfer + ' transfer' + (n.nTransfer > 1 ? 's' : '') : '', n.nTarefa ? n.nTarefa + ' tarefa' + (n.nTarefa > 1 ? 's' : '') : '', n.nG ? n.nG + ' no Google' : ''].filter(Boolean).join(' · ');
   let cells = '';
   for (let i = 0; i < startWd; i++) cells += '<span class="agc empty"></span>';
   for (let d = 1; d <= daysIn; d++) {
-    const iso = `${cur}-${AG_PAD(d)}`;
-    const list = (byDay[iso] || []).filter(comGente);
-    let nTour = 0, nTransfer = 0, nTarefa = 0;
-    for (const x of list) { if (x.tour && x.tour.type === 'transfer') nTransfer++; else nTour++; }
-    for (const x of (tfDia[iso] || [])) { const k = agMarcaTarefa(x); if (k === 'transfer') nTransfer++; else if (k === 'tour') nTour++; else nTarefa++; }
-    const nG = GCal.eventosDoDia(iso).length;
-    const mk = `${'<i class="mk-t"></i>'.repeat(Math.min(nTour, 3))}${nTransfer ? AG_IC.carro : ''}${nTarefa ? '<i class="mk-f"></i>' : ''}${nG ? '<i class="mk-g"></i>' : ''}`;
-    const rot = [nTour ? nTour + ' tour' + (nTour > 1 ? 's' : '') : '', nTransfer ? nTransfer + ' transfer' : '', nTarefa ? nTarefa + ' tarefa' + (nTarefa > 1 ? 's' : '') : '', nG ? nG + ' no Google' : ''].filter(Boolean).join(', ');
-    cells += `<button class="agc ${nTour + nTransfer ? 'has' : ''} ${iso === sel ? 'on' : ''} ${iso === agHoje() ? 'today' : ''}" data-d="${iso}" aria-label="${d}${rot ? ': ' + rot : ''}">
+    const iso = `${cur}-${AG_PAD(d)}`, n = conta(iso);
+    const mk = `${'<i class="mk-t"></i>'.repeat(Math.min(n.nTour, 3))}${n.nTransfer ? AG_IC.carro : ''}${n.nTarefa ? '<i class="mk-f"></i>' : ''}${n.nG ? '<i class="mk-g"></i>' : ''}`;
+    const rot = rotulo(n);
+    cells += `<button class="agc ${n.nTour + n.nTransfer ? 'has' : ''} ${iso === sel ? 'on' : ''} ${iso === agHoje() ? 'today' : ''}" data-d="${iso}" aria-label="${d}${rot ? ': ' + rot : ''}" ${iso === sel ? 'aria-pressed="true"' : ''}>
       <b>${d}</b><span class="agmk" aria-hidden="true">${mk}</span></button>`;
   }
-  const selDeps = (byDay[sel] || []).sort((a, b) => a.time.localeCompare(b.time));
-  const comReserva = selDeps.filter(comGente);
-  const tfs = Tarefas.doDia(sel), gEv = GCal.eventosDoDia(sel);
-  admShell('agenda', `
-    <div class="pagehead"><h1 class="pageh">${t('agTitle')}</h1>
-      <div class="chips">
-        <button class="mini" id="agPrev" aria-label="${t('agPrev')}">←</button>
-        <button class="chip on">${MN[M - 1]} ${Y}</button>
-        <button class="mini" id="agNext" aria-label="${t('agNext')}">→</button>
-        <button class="mini" id="agNow">${t('agToday')}</button>
-      </div></div>
-    <div class="two-col">
-      <section class="card">
+  /* O DIA: tours, transfers, Google e tarefas numa lista só, pela hora */
+  const itens = [];
+  for (const d of (byDay[sel] || []).filter(comGente)) {
+    const bs = DB.bookings.filter(b => b.tourId === d.tour.id && b.date === d.date && b.time === d.time && b.status !== 'cancelled');
+    const gl = agGoogleLink(agEventoSaida(d.tour, d.date, d.time, bs));
+    const tr = d.tour.type === 'transfer';
+    itens.push([d.time || '', `<div class="deprow agIt"><div class="tinfo"><span class="tfK ${tr ? 'transfer' : 'tour'}">${tr ? AG_IC.carro + 'Transfer' : '<i></i>Tour'}</span><b>${esc(d.time)} · ${esc(tl(d.tour.name))}</b>
+        <small>${t('agBooked', { n: d.booked })} · ${t('agFree', { n: d.left })}</small>
+        <div class="paxlist">${bs.map(b => `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(String(b.name || '').split(' ')[0])} ×${esc(b.pax)}${Bookings.due(b) > 0 ? ' · no dia ' + eur(Bookings.due(b)) : ''}</span>`).join('')}
+        ${GCal.ligada() ? '' : `<a class="tfB" target="_blank" rel="noopener" href="${esc(gl)}" title="Pôr no Google Agenda">${AG_IC.cal}Google</a>`}</div></div></div>`]);
+  }
+  for (const e of GCal.eventosDoDia(sel)) itens.push([e.hora || '', `<div class="tf agIt agG"><span class="ck ckG" aria-hidden="true">G</span><div class="tx"><b>${esc(e.titulo)}</b><small>${e.hora ? esc(e.hora + (e.horaFim ? '–' + e.horaFim : '')) : 'dia inteiro'}${e.local ? ' · ' + esc(e.local) : ''} · Google Agenda</small></div></div>`]);
+  for (const o of Tarefas.doDia(sel)) itens.push([o.x.hora || '', agLinhaTarefa(o, { semDia: true })]);
+  itens.sort((a, b) => (a[0] || '99:99').localeCompare(b[0] || '99:99'));
+  const nSel = conta(sel), rotSel = rotulo(nSel);
+  const dt = new Date(sel + 'T12:00:00').toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
+  const rel = sel === agHoje() ? 'hoje' : sel === addDays(agHoje(), 1) ? 'amanhã' : '';
+  admShell('agenda', `${agCabecalho(false)}
+    <div class="two-col agDuas">
+      <section class="card agCal">
+        <div class="agMesNav">
+          <button type="button" class="agSeta" id="agPrev" aria-label="${t('agPrev')}">${AG_SETA(-1)}</button>
+          <b class="agMes">${MN[M - 1]} ${Y}</b>
+          <button type="button" class="agSeta" id="agNext" aria-label="${t('agNext')}">${AG_SETA(1)}</button>
+          <button type="button" class="mini" id="agNow">${t('agToday')}</button>
+        </div>
         <div class="agrid head">${WD.map(w => `<span class="agwd">${w}</span>`).join('')}</div>
         <div class="agrid" id="agGrid">${cells}</div>
         <p class="why agLeg"><span><i style="width:8px;height:8px;border-radius:50%;background:#F2C230;display:inline-block"></i>tour</span><span>${AG_IC.carro}transfer</span><span><i style="width:8px;height:8px;border-radius:2px;background:#5B8DEF;display:inline-block"></i>tarefa ou anotação</span>${GCal.ligada() ? '<span><i style="width:8px;height:8px;border-radius:50%;border:1.5px solid #4285F4;display:inline-block"></i>seu Google Agenda</span>' : ''}</p>
       </section>
-      <section class="card">
-        <h3>${t('agDayOf', { d: fmtDate(sel) })}</h3>
-        ${comReserva.length ? comReserva.map(d => {
-          const bs = DB.bookings.filter(b => b.tourId === d.tour.id && b.date === d.date && b.time === d.time && b.status !== 'cancelled');
-          const gl = agGoogleLink(agEventoSaida(d.tour, d.date, d.time, bs));
-          return `<div class="deprow"><div class="tinfo"><span class="tfK ${d.tour.type === 'transfer' ? 'transfer' : 'tour'}" style="margin-bottom:4px">${d.tour.type === 'transfer' ? AG_IC.carro + 'Transfer' : '<i></i>Tour'}</span><b>${esc(d.time)} · ${esc(tl(d.tour.name))}</b>
-              <small>${t('agBooked', { n: d.booked })} · ${t('agFree', { n: d.left })}</small></div>
-            <div class="paxlist">${bs.map(b => `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(String(b.name || '').split(' ')[0])} ×${esc(b.pax)}${Bookings.due(b) > 0 ? ' · no dia ' + eur(Bookings.due(b)) : ''}</span>`).join('')}
-            ${GCal.ligada() ? '' : `<a class="mini" target="_blank" rel="noopener" href="${esc(gl)}">📅 Google</a>`}</div></div>`;
-        }).join('') : `<p class="empty">Nenhum passeio reservado neste dia.</p>`}
-        ${gEv.length ? `<p class="tfGrupo">Seu Google Agenda</p>${gEv.map(e => `<div class="tf"><span class="ck" style="border-color:#4285F4;color:#4285F4">G</span><div class="tx"><b>${esc(e.titulo)}</b><small>${e.hora ? esc(e.hora + (e.horaFim ? '–' + e.horaFim : '')) : 'dia inteiro'}${e.local ? ' · ' + esc(e.local) : ''}</small></div></div>`).join('')}` : ''}
-        <p class="tfGrupo">Tarefas e anotações</p>
-        <div id="agTfs">${tfs.length ? tfs.map(o => agLinhaTarefa(o)).join('') : '<p class="empty" style="margin:4px 0">Nada anotado para este dia.</p>'}</div>
-        <details class="agDiaAdd" style="margin-top:12px"><summary class="cta sm" style="display:inline-flex;cursor:pointer">+ Anotar neste dia</summary><div id="agForm" style="margin-top:10px">${agFormHtml(null, sel)}</div></details>
+      <section class="card agDia" aria-live="polite">
+        <div class="agDiaT">${rel ? `<small class="agRel">${rel}</small>` : ''}<h2>${esc(dt.charAt(0).toUpperCase() + dt.slice(1))}</h2></div>
+        <p class="agDiaRes">${rotSel ? esc(rotSel) : 'Dia livre — nada marcado.'}</p>
+        <div class="agLinhas" id="agTfs">${itens.map(i => i[1]).join('')}</div>
+        <div class="agAdd"><p class="tfGrupo">Anotar neste dia</p><div id="agForm">${agFormHtml(null, sel, { semDia: true })}</div></div>
       </section>
     </div>
-    ${agCartaoGoogle()}`);
+    ${agGoogleLinha()}`);
   const shift = (n) => { const d = new Date(Y, M - 1 + n, 1); admAgendaMari._m = d.getFullYear() + '-' + AG_PAD(d.getMonth() + 1); admAgendaMari._d = null; admAgendaMari(); };
   $('#agPrev').onclick = () => shift(-1);
   $('#agNext').onclick = () => shift(1);
@@ -586,7 +712,7 @@ function admAgendaMari() {
   $$('#agGrid .agc[data-d]').forEach(c => c.onclick = () => { admAgendaMari._d = c.dataset.d; admAgendaMari(); });
   agLigaLinhas(document.getElementById('agTfs'), admAgendaMari);
   agLigaForm(document.getElementById('agForm'), admAgendaMari);
-  agLigaCartaoGoogle(admAgendaMari);
+  agLigaGoogleLinha(admAgendaMari);
   /* os compromissos do Google do mês (uma vez a cada 10 min) */
   const c = GCal.eventosDoCache()[cur];
   if (GCal.ligada() && GCal.cfg().lerEventos !== false && (!c || Date.now() - c.em > 600000) && !admAgendaMari._lendo) {
@@ -772,10 +898,7 @@ function agLigaCartaoGoogle(redesenha) {
    LIGAR NO APP: aba nova, rotas e Ajustes
    ===================================================== */
 STR.admTarefas = { pt: 'Tarefas', en: 'Tasks' };
-if (!ADM_TABS.some(([id]) => id === 'tarefas')) {
-  const i = ADM_TABS.findIndex(([id]) => id === 'agenda');
-  ADM_TABS.splice(i < 0 ? 1 : i + 1, 0, ['tarefas', 'admTarefas']);
-}
+/* 22/10: Tarefas saiu do menu — é a segunda vista da Agenda (o endereço #/adm/tarefas continua valendo) */
 admToday = admTodayMari;
 admAgenda = admAgendaMari;
 const _viewAdmAgenda = viewAdm;

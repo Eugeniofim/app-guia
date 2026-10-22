@@ -679,7 +679,7 @@ function _seed() {
       includes: { pt: ["Guia brasileira em português"], en: ["Brazilian guide, in Portuguese"] },
       notIncludes: { pt: ["Ingressos das atrações", "Refeições"], en: ["Attraction tickets", "Meals"] },
       stops: [
-        { t: '', ph: "fotos/van.jpg", lat: 0, lng: 0,
+        { t: '', ph: "fotos/aeroporto.jpg", lat: 0, lng: 0,
           n: { pt: "Recepção no aeroporto", en: "Airport welcome" },
           d: { pt: "Espero você no desembarque com o nome na plaquinha, e já explico como a cidade funciona.", en: "I wait at arrivals with your name on a sign and explain how the city works." } },
         { t: '', ph: "fotos/mapa.jpg", lat: 0, lng: 0,
@@ -689,7 +689,7 @@ function _seed() {
           n: { pt: "Chegada tranquila", en: "An easy arrival" },
           d: { pt: "Você chega ao hotel sabendo onde comer, como pagar e o que fazer no primeiro dia.", en: "You get to the hotel knowing where to eat, how to pay and what to do on day one." } },
       ],
-      photo: "fotos/van.jpg",
+      photo: "fotos/aeroporto.jpg",
       tagline: { pt: "Do aeroporto ao hotel, com guia brasileira", en: "From the airport to your hotel, with a Brazilian guide" },
       price: 0, priceMode: 'pp',
       min: 1, max: 20, payPolicy: 'split', status: 'live', order: 17,
@@ -886,6 +886,14 @@ function semeiaNovidades() {
       DB.settings.homeText = { pt: 'Experiências autênticas na terra do hygge. Tours privados e personalizados em português por toda a Dinamarca e Malmö, na Suécia.',
         en: 'Authentic experiences in the land of hygge. Private, tailor-made tours in Portuguese all over Denmark and in Malmö, Sweden.' };
     DB.settings.fraseV2 = true; mudou = true;
+  }
+  /* o transfer sem foto de carro (pedido de 22/10/2026): a van vira o aeroporto, na capa e nas paradas */
+  if (!DB.settings.fotoTransferV2) {
+    for (const x of DB.tours) {
+      if (x.photo === 'fotos/van.jpg') x.photo = 'fotos/aeroporto.jpg';
+      for (const st of (x.stops || [])) if (st && st.ph === 'fotos/van.jpg') st.ph = 'fotos/aeroporto.jpg';
+    }
+    DB.settings.fotoTransferV2 = true; mudou = true;
   }
   return mudou;
 }
