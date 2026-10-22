@@ -55,6 +55,7 @@ var APP_CONFIG = {
       ['copenhague', 'Copenhague',        'Copenhagen'],
       ['arredores',  'Arredores',         'Around Copenhagen'],
       ['suecia',     'Suécia',            'Sweden'],
+      ['dinamarca',  'Pela Dinamarca',    'Around Denmark'],   /* longe de Copenhague, de carro (LEGOLAND, 22/10/2026) */
       ['servicos',   'Serviços',          'Services'],
     ],
   },

@@ -308,6 +308,31 @@ function route() {
   document.body.classList.toggle('em-adm', p[0] === 'adm');
   faixaAcimaDaBarra();
   scrollTo(0, 0);
+  _assinaturaTela = assinaturaTela();
+}
+
+/* A TELA NÃO TREME MAIS (22/10/2026). "A vitrine e o painel estão tremendo e subindo do nada":
+   de 25 em 25 s a nuvem (e a sincronia das tarefas/fichas) chamava route() — e o route() redesenha
+   tudo, repete a animação de entrada e volta ao topo — MESMO SEM NADA NOVO (com ela logada não havia
+   a checagem de "nada mudou"; e cada coisa que ela gravava voltava 25 s depois e redesenhava de novo).
+   Agora: (1) só redesenha se os dados que aparecem na tela mudaram de verdade; (2) quando redesenha
+   por causa da nuvem, fica na mesma altura e sem animação; (3) nunca por cima de quem está digitando. */
+let _assinaturaTela = '';
+function assinaturaTela() {
+  try {
+    const priv = typeof ITENS_COLS !== 'undefined' ? ITENS_COLS.map(k => DB[k]) : [];
+    return JSON.stringify([DB.tours, DB.rules, DB.departures, DB.blocks, DB.coupons, DB.settings, DB.bookings, DB.seatCounts, DB.pedidos, priv]);
+  } catch (e) { return String(Math.random()); }
+}
+function redesenhaSuave(forcar) {
+  if (!forcar && assinaturaTela() === _assinaturaTela) return false;          /* nada mudou: a tela fica quieta */
+  if (isBusyEditing()) { pendingSync = true; return false; }
+  const y = scrollY;
+  document.body.classList.add('sem-anima');
+  route();
+  scrollTo(0, y);
+  requestAnimationFrame(() => { scrollTo(0, y); setTimeout(() => document.body.classList.remove('sem-anima'), 450); });
+  return true;
 }
 
 /* A faixa do rodape (proposta / demonstracao) e a barra de abas do painel
@@ -645,12 +670,21 @@ function fallbackPhoto(img, html) {
 }
 
 const TYPE_LABEL = { day: 'fDay', walk: 'fWalk', photo: 'fPhoto', session: 'tSession', bike: 'fBike',
-                     carro: 'fCarro', transfer: 'fTransfer' };
+                     carro: 'fCarro', transfer: 'fTransfer', boat: 'fBoat' };
 
+/* o resumo do cartão (22/10/2026, como na vitrine da Bia): a frase curta do tour, ou a 1ª frase do texto */
+function tourResumo(x) {
+  const tg = x.tagline ? tl(x.tagline) : '';
+  if (tg) return tg;
+  const d = tl(x.desc || '') || '';
+  const f = (d.match(/^.{20,170}?[.!?](\s|$)/) || [d.slice(0, 150) + (d.length > 150 ? '…' : '')])[0];
+  return f.trim();
+}
 function viewShowcase() {
   const tours = Tours.live();
-  const filter = viewShowcase._f || 'all';
-  const list = filter === 'all' ? tours : tours.filter(x => x.type === filter || (filter === 'photo' && x.type === 'photo'));
+  const filter = viewShowcase._f || 'all', onde = viewShowcase._r || 'all';
+  const regs = regioes().filter(([v]) => v !== 'servicos' && tours.some(x => x.region === v));   /* "Serviços" não é lugar */
+  const list = tours.filter(x => (filter === 'all' || x.type === filter) && (onde === 'all' || x.region === onde));
   app.innerHTML = `
   <header class="topbar">
     <button class="backbtn" id="bk" aria-label="${t('back')}">←</button>
@@ -659,8 +693,11 @@ function viewShowcase() {
   </header>
   <main class="wrap">
     <h1 class="pageh">${t('chooseTour')}</h1>
+    ${regs.length > 1 ? `<div class="chips" id="filtrosOnde" role="group" aria-label="${LANG === 'en' ? 'Where' : 'Onde'}">
+      <button class="chip ${onde === 'all' ? 'on' : ''}" data-r="all">${LANG === 'en' ? 'Everywhere' : 'Todos os lugares'}</button>
+      ${regs.map(([v, pt, en]) => `<button class="chip ${onde === v ? 'on' : ''}" data-r="${esc(v)}">📍 ${esc(LANG === 'en' ? en : pt)}</button>`).join('')}</div>` : ''}
     <div class="chips" id="filters">
-      ${['all', 'walk', 'carro', 'bike', 'day', 'transfer', 'session'].filter(f => f === 'all' || Tours.live().some(x => x.type === f)).map(f =>
+      ${['all', 'walk', 'carro', 'bike', 'boat', 'day', 'transfer', 'session'].filter(f => f === 'all' || Tours.live().some(x => x.type === f)).map(f =>
         `<button class="chip ${filter === f ? 'on' : ''}" data-f="${f}">${t(f === 'all' ? 'fAll' : TYPE_LABEL[f])}</button>`).join('')}
     </div>
     <div class="cards" id="tourCards">
@@ -671,7 +708,8 @@ function viewShowcase() {
           </span>
           <span class="bd">
             <b>${esc(tl(x.name))}</b>
-            <small class="meta">${regiaoLabel(x.region)} · ${t('upTo')} ${x.max} ${t('people')}</small>
+            ${tourResumo(x) ? `<span class="tdesc">${esc(tourResumo(x))}</span>` : ''}
+            <small class="meta">${[regiaoLabel(x.region), x.duration, LANG === 'en' ? 'Private' : 'Privativo'].filter(Boolean).map(esc).join(' · ')}</small>
             <span class="cardfoot">
               <span class="pr">${!+x.price ? t('priceAsk') : `${x.priceLate && x.earlySeats && x.priceMode !== 'session' ? `<u>${t('fromPrice')}</u> ` : ''}${eur(x.price)}
                 <i>${x.priceMode === 'session' ? t('perSession') : t('perPerson')}</i>`}</span>
@@ -685,6 +723,7 @@ function viewShowcase() {
   bindLang(app);
   $('#bk').onclick = () => go('/');
   $$('#filters .chip').forEach(c => c.onclick = () => { viewShowcase._f = c.dataset.f; viewShowcase(); });
+  $$('#filtrosOnde .chip').forEach(c => c.onclick = () => { viewShowcase._r = c.dataset.r; viewShowcase(); });
   $$('.tourcard').forEach(c => c.onclick = () => go('/tour/' + c.dataset.id));
 }
 
@@ -1280,7 +1319,7 @@ function onCloudRejected() {
 
 function admShell(tab, inner) {
   /* a sincronia por linha (nuvem-itens.js) liga na primeira tela do painel com ela logada */
-  if (typeof itLigar === 'function') itLigar(() => { if (isBusyEditing()) pendingSync = true; else route(); });
+  if (typeof itLigar === 'function') itLigar(() => redesenhaSuave());
   app.innerHTML = `
   <div class="adm">
     <aside class="rail">
@@ -1417,7 +1456,7 @@ function admTourEdit(id) {
     <h1 class="pageh">${isNew ? t('newTour').replace('+ ', '') : esc(x.name.pt)}</h1>
     <div class="formgrid">
       <section class="card">
-        <label class="fld">${t('tType')}<select id="fType">${selOpts([['day','tDay'],['walk','tWalk'],['photo','tPhotoT'],['session','tSession'],['bike','tBike']], x.type)}</select></label>
+        <label class="fld">${t('tType')}<select id="fType">${selOpts([['day','tDay'],['walk','tWalk'],['carro','fCarro'],['bike','tBike'],['boat','fBoat'],['transfer','fTransfer'],['photo','tPhotoT'],['session','tSession']], x.type)}</select></label>
         <label class="fld">${t('tRegion')}<select id="fRegion">${regiaoOpts(x.region)}</select></label>
         <label class="fld">${t('tName')}<input id="fNamePt" value="${esc(x.name.pt)}"></label>
         <label class="optin enswitch"><input type="checkbox" id="verEn">
@@ -2952,7 +2991,7 @@ addEventListener('hashchange', () => {
    Nao bloqueia o arranque: o app abre com o preco em euro e o valor em real
    entra quando a cotacao chegar. Se nunca chegar, simplesmente nao aparece. */
 if (typeof fxAtualiza === 'function') {
-  fxAtualiza().then((c) => { if (c && LANG === 'pt' && !isBusyEditing()) route(); });
+  fxAtualiza().then((c) => { if (c && LANG === 'pt' && !isBusyEditing()) redesenhaSuave(true); });
 }
 
 /* ---------- nuvem ---------- */
@@ -2962,9 +3001,8 @@ cloudStart((r) => {
     const b = r.fresh[r.fresh.length - 1];
     toast('🎉 ' + t('xNovaReserva') + ': ' + b.name + ' · ' + eur(b.total));
   }
-  /* re-render seguro: nunca por cima de trabalho em andamento */
-  if (isBusyEditing()) { pendingSync = true; return; }
-route();
+  /* re-render seguro: só se algo mudou, nunca por cima de trabalho em andamento, sem pular para o topo */
+  redesenhaSuave();
 });
 
 /* PRIMEIRO DESENHO DA TELA — no FIM do arquivo, de proposito.

@@ -85,19 +85,104 @@ admSettings = function () {
     const velho = dc.onclick; dc.onclick = (e) => { if (!confirm('Isto apaga também os seus 19 passeios. Para tirar só os exemplos, use "Começar de verdade" no topo. Apagar TUDO mesmo?')) return; if (velho) velho.call(dc, e); }; }
 };
 
-/* A ordem das abas: o dia a dia em cima (Hoje, Agenda, Tarefas, Reservas, Clientes), depois os
-   documentos que ela manda para o cliente, depois o que ela configura de vez em quando, e por
-   último os módulos trancados e os ajustes. As abas chegam de vários arquivos (Atendimento e
-   Marketing vêm do motor do assistente, que carrega depois deste), então ordena na hora de desenhar. */
-const ABAS_ORDEM = ['today', 'agenda', 'tarefas', 'bookings', 'clients', 'orcamentos', 'roteiros', 'faturas', 'contratos', 'agencias',
-  'tours', 'equipe', 'parceiros', 'coupons', 'money', 'reports', 'inbox', 'marketing', 'look', 'settings'];
+/* O MENU DO PAINEL EM GRUPOS (22/10/2026 — "organizar bem o menu lateral", como no protótipo da Bia).
+   No computador: a lista com o título de cada grupo, e ela ROLA até o fim (antes o "Ajustes" ficava
+   cortado no pé da tela). No celular: a barra de baixo com os 4 mais usados + "Menu", que abre uma
+   folha com todos os grupos (antes eram 20 botões numa tira rolando de lado).
+   As abas chegam de vários arquivos (Atendimento e Marketing vêm do motor do assistente, que carrega
+   depois deste), então agrupa na hora de desenhar. Aba nova sem grupo cai em "Mais". */
+const NAV_GRUPOS = [
+  ['Dia a dia', ['today', 'agenda', 'tarefas']],
+  ['Tours e reservas', ['bookings', 'tours', 'roteiros']],
+  ['Clientes', ['clients', 'agencias']],
+  ['Vendas e documentos', ['orcamentos', 'faturas', 'contratos']],
+  ['Equipe e parceiros', ['equipe', 'parceiros']],
+  ['Dinheiro', ['money', 'reports']],
+  ['Crescer', ['coupons', 'inbox', 'marketing']],
+  ['Configurar', ['look', 'settings']],
+];
+const NAV_BARRA = ['today', 'agenda', 'bookings', 'clients'];     /* a barra de baixo, no celular */
+const ABAS_ORDEM = NAV_GRUPOS.flatMap(([, ids]) => ids);
 function ordenaAbas() {
   const pos = (id) => { const i = ABAS_ORDEM.indexOf(id); return i < 0 ? ABAS_ORDEM.length - 2.5 : i; };   /* aba nova sem lugar: antes de Aparência */
   const orig = ADM_TABS.map(([id]) => id);
   ADM_TABS.sort((a, b) => pos(a[0]) - pos(b[0]) || orig.indexOf(a[0]) - orig.indexOf(b[0]));
 }
+function navCss() {
+  if (document.getElementById('navCss')) return;
+  const st = document.createElement('style'); st.id = 'navCss';
+  st.textContent = `
+  .rail{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+  .rail nav .navRot{margin:16px 10px 4px;font:700 10.5px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  .rail nav .navRot:first-child{margin-top:4px}
+  .rail .railfoot{padding-top:12px}
+  .rail nav .nb[data-barra]{display:none}
+  .navFolha{position:fixed;inset:0;z-index:950;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(10,14,24,.45)}
+  .navFolha[hidden]{display:none}
+  .navFolha .nfCaixa{background:var(--surface);border-radius:22px 22px 0 0;max-height:86vh;overflow-y:auto;padding:14px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+  .navFolha .nfTopo{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .navFolha .nfTopo b{font:700 17px/1.2 var(--f-display)}
+  .navFolha .nfRot{margin:14px 2px 6px;font:700 10.5px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  .navFolha .nfGrade{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .navFolha .nfGrade .nb{width:100%;justify-content:flex-start;text-align:left;min-height:44px;border-radius:12px;background:var(--surface-2)}
+  .navFolha .nfGrade .nb.on{background:var(--accent);color:var(--accent-ink)}
+  .navFolha .nfPe{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  @media(max-width:820px){
+    .rail nav .navRot{display:none}
+    .rail nav .nb[data-tab]{display:none}
+    .rail nav .nb[data-barra]{display:flex}
+    .rail nav{width:100%;justify-content:space-around}
+    .rail nav .nb{flex:1;justify-content:center;min-width:0;padding:8px 4px;font-size:12.5px}
+    .rail{overflow-x:hidden}
+  }`;
+  document.head.appendChild(st);
+}
+function navFolhaAbre(tabAtual) {
+  let f = document.getElementById('navFolha');
+  if (!f) { f = document.createElement('div'); f.id = 'navFolha'; f.className = 'navFolha'; document.body.appendChild(f); }
+  const nome = (id) => { const k = (ADM_TABS.find(([x]) => x === id) || [])[1]; return k ? t(k) : id; };
+  const tem = new Set(ADM_TABS.map(([id]) => id));
+  const usados = new Set();
+  const grupos = NAV_GRUPOS.map(([rot, ids]) => { const l = ids.filter(id => tem.has(id)); l.forEach(id => usados.add(id)); return [rot, l]; }).filter(([, l]) => l.length);
+  const sobra = ADM_TABS.map(([id]) => id).filter(id => !usados.has(id));
+  if (sobra.length) grupos.push(['Mais', sobra]);
+  f.innerHTML = `<div class="nfCaixa" role="dialog" aria-label="Menu do painel">
+    <div class="nfTopo"><b>Menu</b><button type="button" class="mini" id="nfFecha" aria-label="Fechar">Fechar</button></div>
+    ${grupos.map(([rot, l]) => `<p class="nfRot">${esc(rot)}</p><div class="nfGrade">${l.map(id => `<button type="button" class="nb ${id === tabAtual ? 'on' : ''}" data-nfir="${id}">${esc(nome(id))}</button>`).join('')}</div>`).join('')}
+    <div class="nfPe"><button type="button" class="mini" id="nfSite">👁 ${t('viewSite')}</button><button type="button" class="mini ghost" id="nfSair">← ${t('exit')}</button></div></div>`;
+  f.hidden = false;
+  const fecha = () => { f.hidden = true; };
+  f.onclick = (e) => { if (e.target === f) fecha(); };
+  f.querySelector('#nfFecha').onclick = fecha;
+  f.querySelectorAll('[data-nfir]').forEach(b => b.onclick = () => { fecha(); go('/adm/' + b.dataset.nfir); });
+  f.querySelector('#nfSite').onclick = () => { fecha(); go('/'); };
+  f.querySelector('#nfSair').onclick = () => { fecha(); const s = document.getElementById('exitAdm'); if (s) s.click(); else go('/'); };
+}
 const _admShellLigar = admShell;
-admShell = function () { ordenaAbas(); return _admShellLigar.apply(this, arguments); };
+admShell = function (tab) {
+  ordenaAbas(); navCss();
+  const r = _admShellLigar.apply(this, arguments);
+  const f = document.getElementById('navFolha'); if (f) f.hidden = true;
+  const nav = document.querySelector('.rail nav'); if (!nav || nav.dataset.agrupado) return r;
+  const botoes = {}; nav.querySelectorAll('.nb[data-tab]').forEach(b => { botoes[b.dataset.tab] = b; });
+  const usados = new Set(); nav.innerHTML = '';
+  const grupo = (titulo, ids) => {
+    const nos = ids.map(id => botoes[id]).filter(Boolean); if (!nos.length) return;
+    const h = document.createElement('p'); h.className = 'navRot'; h.textContent = titulo; nav.appendChild(h);
+    nos.forEach(b => { nav.appendChild(b); usados.add(b.dataset.tab); });
+  };
+  NAV_GRUPOS.forEach(([t2, ids]) => grupo(t2, ids));
+  const sobra = Object.values(botoes).filter(b => !usados.has(b.dataset.tab));
+  if (sobra.length) grupo('Mais', sobra.map(b => b.dataset.tab));
+  /* a barra do celular: cópias dos 4 mais usados + "Menu" (no computador ficam escondidas) */
+  NAV_BARRA.forEach(id => { const o = botoes[id]; if (!o) return; const c = o.cloneNode(true); c.removeAttribute('id'); c.removeAttribute('data-tab'); c.dataset.barra = id; c.onclick = () => go('/adm/' + id); nav.appendChild(c); });
+  const mais = document.createElement('button'); mais.type = 'button'; mais.className = 'nb navMais' + (NAV_BARRA.includes(tab) ? '' : ' on'); mais.dataset.barra = 'menu';
+  mais.textContent = 'Menu'; mais.setAttribute('aria-haspopup', 'dialog'); mais.onclick = () => navFolhaAbre(tab); nav.appendChild(mais);
+  nav.dataset.agrupado = '1';
+  /* a aba aberta sempre à vista no menu do computador */
+  const on = nav.querySelector('.nb.on[data-tab]'); if (on && on.scrollIntoView) { try { on.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
+  return r;
+};
 
 /* O app.js desenha a primeira tela ANTES de os módulos da Mari carregarem: sem isto, o cartão de
    mudança e o de parceiros não apareciam na primeira abertura, e um link de voucher/roteiro/escala

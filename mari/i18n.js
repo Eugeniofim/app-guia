@@ -133,7 +133,7 @@ const STR = {
   fTransfer:   { pt: 'Transfer', en: 'Transfer' },
   /* A Mari e parceira do grupo do aeroporto ao embarque de volta — e isso
      precisa aparecer antes de qualquer preco. */
-  parceiraLinha: { pt: 'Do aeroporto até o embarque de volta, eu fico com vocês.', en: 'From the airport to your flight home, I am with you.' },
+  parceiraLinha: { pt: 'Guia disponível desde o fechamento do serviço até o embarque de volta. Seremos o seu apoio desde a chegada até o seu retorno.', en: 'Your guide is available from the moment you book until your flight home. We are here for you from your arrival until you return.' },
   persLink:    { pt: 'Personalize seu passeio com a Mari', en: 'Plan your trip with Mari' },
   persLinkSub: { pt: 'Conte o que vocês querem e eu monto do jeito de vocês', en: 'Tell me what you want and I build it your way' },
   trfLink:     { pt: 'Transfer e receptivo', en: 'Transfers & airport pick-up' },
@@ -160,6 +160,7 @@ const STR = {
   persMsgOi:   { pt: 'Oi Mari! Quero montar um roteiro com você. {nome}', en: 'Hi Mari! I would like to plan a trip with you. {nome}' },
   persMsgQuem: { pt: '{a} adultos e {c} crianças', en: '{a} adults and {c} children' },
   fCarro:      { pt: 'De carro', en: 'By car' },
+  fBoat:       { pt: 'De barco', en: 'By boat' },
   priceAsk:    { pt: 'Sob consulta', en: 'On request' },
   priceAskWhy: { pt: 'O valor depende do grupo e do roteiro — escolha a data e receba o orçamento no WhatsApp.', en: 'The price depends on the group and the route — pick a date and get a quote on WhatsApp.' },
   fromPrice:   { pt: 'a partir de', en: 'from' },
@@ -383,7 +384,7 @@ const STR = {
 
   /* ADM comum */
   admToday:   { pt: 'Hoje', en: 'Today' },
-  admTours:   { pt: 'Meus passeios', en: 'My tours' },
+  admTours:   { pt: 'Meus tours', en: 'My tours' },
   admBookings:{ pt: 'Reservas', en: 'Bookings' },
   admMoney:   { pt: 'Extrato', en: 'Statement' },
   admCoupons: { pt: 'Cupons e brindes', en: 'Coupons & gifts' },

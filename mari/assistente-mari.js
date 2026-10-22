@@ -361,7 +361,7 @@ const mariMostra = (k, v) => {
 };
 
 /* ---------- 4. as ferramentas novas ---------- */
-const AB_NOMES = 'today=Hoje · agenda=Agenda · tarefas=Tarefas · roteiros=Roteiros · faturas=Faturas · contratos=Contratos · agencias=Agências e empresas · equipe=Equipe e escala · parceiros=Parceiros · tours=Meus passeios · bookings=Reservas · money=Extrato · reports=Relatórios · clients=Clientes (fichas) · orcamentos=Orçamentos · coupons=Cupons e brindes · look=Aparência · settings=Ajustes';
+const AB_NOMES = 'today=Hoje · agenda=Agenda · tarefas=Tarefas · roteiros=Roteiros · faturas=Faturas · contratos=Contratos · agencias=Agências e empresas · equipe=Equipe e escala · parceiros=Parceiros · tours=Meus tours · bookings=Reservas · money=Extrato · reports=Relatórios · clients=Clientes (fichas) · orcamentos=Orçamentos · coupons=Cupons e brindes · look=Aparência · settings=Ajustes';
 IA_FERRAMENTAS.push(
   { name: 'ver_hoje', description: 'O dia dela: passeios de hoje e de amanhã (com cliente, ponto de encontro e quanto cada um paga no dia), tarefas atrasadas e de hoje, pedidos do Personalize sem resposta, aniversários e brindes para mandar. Use para "o que tenho hoje", "bom dia", "e amanhã?".', input_schema: obj() },
   { name: 'ver_ficha', description: 'Tudo de UM cliente pelo NOME (primeiro nome serve), WhatsApp ou código: ficha cadastral, reservas, quanto falta, pedidos do Personalize, brindes recebidos, anotações.', input_schema: obj({ cliente: S_('nome, WhatsApp, e-mail ou código da reserva') }, ['cliente']) },
@@ -980,7 +980,7 @@ Você é o assistente de ${guiaNome()} (Mariane), dona do Tour na Dinamarca: gui
 - Nunca diga "não consigo" nem "faça na aba X" sem tentar a ferramenta. Sem ferramenta → abrir_aba e diga o que tocar.
 
 ## VOCÊ ALCANÇA TODAS AS ABAS
-Hoje: ver_hoje · Orçamentos: ver_orcamentos, criar_orcamento, editar_orcamento · Equipe e escala: ver_dados equipe, mexer equipe, escalar, link_escala · Voucher: voucher · Parceiros: ver_dados parceiros, mexer parceiros · Roteiros: ver_roteiros, criar_roteiro, editar_roteiro, link_roteiro · Faturas: ver_faturas, criar_fatura, marcar_fatura · Contratos: ver_contratos, criar_contrato · Agências: ver_dados agencias, mexer agencias, preco_agencia · Agenda e Tarefas: anotar_tarefa, concluir_tarefa, ver_dados tarefas, mexer tarefas, apagar_registro, google_agenda · Meus passeios: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, adicionar/remover_horario · Agenda de saídas: ver_agenda, ver_bloqueios, bloquear/liberar_datas · Reservas: ver_reservas, criar/alterar/cancelar_reserva, registrar_pagamento, link_pagamento · Clientes (fichas): ver_clientes, ver_ficha, contas_do_cliente, ver_dados fichas/clientes, mexer fichas (ficha cadastral), mexer clientes (cliente novo sem reserva) · Pedidos do "Personalize seu passeio": ver_dados pedidos, mexer pedidos (respondido) · Cupons e brindes: ver_cupons, criar/apagar_cupom, ver_dados brindes/brindesPendentes, mexer brindes · Relatórios e extrato: ver_relatorio · Ajustes: ver_ajustes, alterar_ajustes · Memória e diário: guardar/apagar_memoria, anotar/ver_diario · Qualquer tela: abrir_aba (${AB_NOMES}).
+Hoje: ver_hoje · Orçamentos: ver_orcamentos, criar_orcamento, editar_orcamento · Equipe e escala: ver_dados equipe, mexer equipe, escalar, link_escala · Voucher: voucher · Parceiros: ver_dados parceiros, mexer parceiros · Roteiros: ver_roteiros, criar_roteiro, editar_roteiro, link_roteiro · Faturas: ver_faturas, criar_fatura, marcar_fatura · Contratos: ver_contratos, criar_contrato · Agências: ver_dados agencias, mexer agencias, preco_agencia · Agenda e Tarefas: anotar_tarefa, concluir_tarefa, ver_dados tarefas, mexer tarefas, apagar_registro, google_agenda · Meus tours: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, adicionar/remover_horario · Agenda de saídas: ver_agenda, ver_bloqueios, bloquear/liberar_datas · Reservas: ver_reservas, criar/alterar/cancelar_reserva, registrar_pagamento, link_pagamento · Clientes (fichas): ver_clientes, ver_ficha, contas_do_cliente, ver_dados fichas/clientes, mexer fichas (ficha cadastral), mexer clientes (cliente novo sem reserva) · Pedidos do "Personalize seu passeio": ver_dados pedidos, mexer pedidos (respondido) · Cupons e brindes: ver_cupons, criar/apagar_cupom, ver_dados brindes/brindesPendentes, mexer brindes · Relatórios e extrato: ver_relatorio · Ajustes: ver_ajustes, alterar_ajustes · Memória e diário: guardar/apagar_memoria, anotar/ver_diario · Qualquer tela: abrir_aba (${AB_NOMES}).
 
 ## ONDE GUARDAR CADA COISA
 - Coisa para fazer ou lembrar → anotar_tarefa (texto curto + nota). Com hora marcada = compromisso. Ideia solta = tipo anotacao. Vida pessoal = area pessoal.
@@ -1309,6 +1309,9 @@ iavSugestoes = function () {
   }
   return out.slice(0, 6);
 };
+
+/* depois de cada coisa que o assistente faz, a tela se atualiza na mesma altura e sem a animação de entrada */
+iaRedesenhaTela = function () { if (typeof isBusyEditing === 'function' && isBusyEditing()) return; if (typeof redesenhaSuave === 'function') redesenhaSuave(true); };
 
 /* o motor já desenhou a gaveta antes deste arquivo: redesenha com o que é dela */
 if (typeof iaAtualizaFab === 'function') iaAtualizaFab();

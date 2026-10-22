@@ -144,7 +144,7 @@ function viewParceiros() {
   <main class="wrap prcPub">
     <div class="prcHero"><small>${parcEN() ? 'For those who travel with me' : 'Para quem viaja comigo'}</small>
       <h1>${parcEN() ? 'My partners’ discounts' : 'Descontos dos meus parceiros'}</h1>
-      <p>${parcEN() ? 'Shops I know and recommend. Show your tour voucher (or use the code) to get the discount.' : 'Lojas que eu conheço e indico. É só mostrar o voucher do seu passeio (ou usar o código) para ganhar o desconto.'}</p></div>
+      <p>${parcEN() ? 'When you book a tour or service, you get exclusive discounts with Tour na Dinamarca’s partners. To use yours, just ask your guide.' : 'Ao adquirir um tour ou serviço, você tem acesso a descontos exclusivos com os parceiros do Tour na Dinamarca. Para usar o seu, é só pedir à sua guia.'}</p></div>
     ${l.length ? `<div class="prcGrid">${l.map(parcCardHtml).join('')}</div>`
       : `<section class="card prcVazio"><p class="desc">${parcEN() ? 'Coming soon: the list of shops is being prepared.' : 'Em breve: estou preparando a lista das lojas.'}</p></section>`}
     <a class="cta" href="${esc(waLink(parcEN() ? 'Hi! A question about the partner discounts…' : 'Oi, Mari! Uma dúvida sobre os descontos dos parceiros…'))}" target="_blank" rel="noopener">${parcEN() ? 'Questions? Message me on WhatsApp' : 'Dúvidas? Fale comigo no WhatsApp'}</a>

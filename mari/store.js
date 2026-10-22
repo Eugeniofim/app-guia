@@ -103,6 +103,75 @@ function _blank() {
            } } };
 }
 
+/* PASSEIO DE BARCO pelos canais (22/10/2026: "criar um passeio de barco, crie algo").
+   A capa é a foto que a própria Mari mandou (Christianshavn: a ponte, o canal e a torre da
+   Igreja do Salvador). Entra UMA vez no catálogo dela (semeiaNovidades); se ela apagar, não volta. */
+const TOUR_BARCO = { id: "barco-canais", type: "boat", region: "copenhague",
+      name: { pt: "Copenhague de barco pelos canais", en: "Copenhagen by boat through the canals" },
+      tagline: { pt: "A cidade vista da água", en: "The city seen from the water" },
+      desc: { pt: "Copenhague vista da água: um passeio de barco pelos canais, saindo de Nyhavn e passando pelas casinhas coloridas, por Christianshavn, pela Ópera, pelo Palácio de Christiansborg e pelo porto, até a Pequena Sereia. Eu vou junto, contando em português a história de cada ponte e de cada prédio — sem pressa e sem fone de ouvido. Pode ser no barco regular ou num barco privativo só para o seu grupo; no fim, dá para emendar um almoço em Nyhavn.",
+              en: "Copenhagen seen from the water: a boat trip through the canals, leaving from Nyhavn and passing the colourful houses, Christianshavn, the Opera House, Christiansborg Palace and the harbour, all the way to the Little Mermaid. I come along and tell you, in Portuguese, the story of every bridge and building — no rush and no headphones. It can be on the regular boat or on a private boat just for your group; afterwards, lunch in Nyhavn is right there." },
+      meeting: { pt: "Nyhavn, no cais dos barcos", en: "Nyhavn, at the boat pier" },
+      duration: "2h", distance: '', effort: 'easy',
+      includes: { pt: ["Guia brasileira em português", "Passeio de barco pelos canais (cerca de 1 hora)", "Caminhada por Nyhavn antes do embarque"],
+                  en: ["Brazilian guide, in Portuguese", "Canal boat trip (about 1 hour)", "A walk around Nyhavn before boarding"] },
+      notIncludes: { pt: ["Bilhete do barco (regular ou privativo, conforme o grupo)", "Refeições"], en: ["Boat ticket (regular or private, depending on the group)", "Meals"] },
+      stops: [
+        { t: '', ph: "fotos/nyhavn.jpg", lat: 55.6798, lng: 12.5911,
+          n: { pt: "Nyhavn", en: "Nyhavn" },
+          d: { pt: "O porto colorido, cartão-postal da cidade. É daqui que o barco sai — e é aqui que H.C. Andersen morou.", en: "The colourful harbour, the city’s postcard. This is where the boat leaves from — and where H.C. Andersen lived." } },
+        { t: '', ph: "fotos/barco.jpg", lat: 55.6727, lng: 12.5911,
+          n: { pt: "Canais de Christianshavn", en: "Christianshavn canals" },
+          d: { pt: "O bairro holandês de Copenhague, com casas-barco, pontes baixas e a torre em espiral da Igreja do Salvador lá no alto.", en: "Copenhagen’s Dutch quarter, with houseboats, low bridges and the spiral spire of the Church of Our Saviour up above." } },
+        { t: '', ph: "", lat: 55.6818, lng: 12.6008,
+          n: { pt: "Ópera de Copenhague", en: "Copenhagen Opera House" },
+          d: { pt: "O prédio moderno sobre a água, bem de frente para o Palácio de Amalienborg, do outro lado do porto.", en: "The modern building on the water, right across the harbour from Amalienborg Palace." } },
+        { t: '', ph: "fotos/christiansborg.jpg", lat: 55.6761, lng: 12.5800,
+          n: { pt: "Palácio de Christiansborg", en: "Christiansborg Palace" },
+          d: { pt: "O palácio do Parlamento, visto do canal que o contorna — um ângulo que quem anda pela rua não vê.", en: "The Parliament palace, seen from the canal around it — an angle you don’t get from the street." } },
+        { t: '', ph: "fotos/sereia.jpg", lat: 55.6929, lng: 12.5993,
+          n: { pt: "A Pequena Sereia", en: "The Little Mermaid" },
+          d: { pt: "A estátua mais famosa da cidade, vista da água. Depois, a volta para Nyhavn.", en: "The city’s most famous statue, seen from the water. Then back to Nyhavn." } },
+      ],
+      photo: "fotos/barco.jpg",
+      price: 0, priceMode: 'pp',
+      min: 1, max: 20, payPolicy: 'split', status: 'live', order: 3.5,
+    };
+
+/* LEGOLAND e LEGO House (22/10/2026: "especificar que é um tour longe, de carro"). Billund fica a
+   cerca de 260 km de Copenhague, umas 3 h de carro em cada sentido (ponte do Grande Belt). */
+const TOUR_LEGO = { id: "legoland-legohouse", type: "carro", region: "dinamarca",
+      name: { pt: "Experiência LEGOLAND e LEGO House", en: "LEGOLAND and LEGO House experience" },
+      tagline: { pt: "Um dia inteiro em Billund, a terra do LEGO", en: "A full day in Billund, the home of LEGO" },
+      desc: { pt: "Um dia inteiro em Billund, a cidade onde o LEGO nasceu. Atenção: é um tour longe e de carro — Billund fica a cerca de 260 km de Copenhague, umas 3 horas de viagem em cada sentido, atravessando a ponte do Grande Belt. Saímos cedo da sua hospedagem e passamos o dia entre o parque LEGOLAND (a Miniland com cidades inteiras feitas de pecinhas, montanhas-russas e atrações para todas as idades) e a LEGO House, a casa do tijolinho, com zonas para construir, a história da marca e a árvore gigante de LEGO. Voltamos à noite. Perfeito para famílias com crianças — e para adultos que nunca deixaram de brincar.",
+              en: "A full day in Billund, the town where LEGO was born. Note: this is a long tour by car — Billund is about 260 km from Copenhagen, roughly 3 hours each way, across the Great Belt Bridge. We leave early from your accommodation and spend the day between the LEGOLAND park (Miniland with whole cities made of bricks, roller coasters and rides for all ages) and LEGO House, the home of the brick, with building zones, the history of the brand and the giant LEGO tree. We come back in the evening. Perfect for families with children — and for grown-ups who never stopped playing." },
+      meeting: { pt: "Saímos cedo da sua hospedagem", en: "We leave early from your accommodation" },
+      duration: "Dia inteiro (cerca de 13 h, com a viagem)", distance: "≈ 260 km de Copenhague", effort: 'easy',
+      includes: { pt: ["Guia brasileira em português", "Ida e volta de carro (cerca de 3 h cada trecho)", "Ajuda com os ingressos e com o roteiro do dia"],
+                  en: ["Brazilian guide, in Portuguese", "Return trip by car (about 3 h each way)", "Help with tickets and with planning the day"] },
+      notIncludes: { pt: ["Ingressos da LEGOLAND e da LEGO House", "Refeições"], en: ["LEGOLAND and LEGO House tickets", "Meals"] },
+      stops: [
+        { t: '', ph: "", lat: 55.6761, lng: 12.5683,
+          n: { pt: "Saída de Copenhague", en: "Leaving Copenhagen" },
+          d: { pt: "Saímos cedo da sua hospedagem. São umas 3 horas de estrada até Billund, com uma parada no caminho.", en: "We leave early from your accommodation. It is about 3 hours on the road to Billund, with a stop on the way." } },
+        { t: '', ph: "", lat: 55.3423, lng: 11.0315,
+          n: { pt: "Ponte do Grande Belt", en: "Great Belt Bridge" },
+          d: { pt: "Uma das maiores pontes suspensas do mundo, ligando a ilha da Zelândia à Fiônia.", en: "One of the longest suspension bridges in the world, linking Zealand to Funen." } },
+        { t: '', ph: "fotos/kids/legoland.jpg", lat: 55.7353, lng: 9.1266,
+          n: { pt: "LEGOLAND Billund", en: "LEGOLAND Billund" },
+          d: { pt: "O parque original: a Miniland com cidades inteiras feitas de pecinhas, montanhas-russas e atrações para todas as idades.", en: "The original park: Miniland with whole cities made of bricks, roller coasters and rides for every age." } },
+        { t: '', ph: "fotos/kids/legohouse.jpg", lat: 55.7409, lng: 9.1316,
+          n: { pt: "LEGO House", en: "LEGO House" },
+          d: { pt: "A casa do tijolinho, no centro de Billund: zonas para construir, a história do LEGO e a árvore gigante feita de pecinhas.", en: "The home of the brick, in the centre of Billund: building zones, the history of LEGO and the giant tree made of bricks." } },
+        { t: '', ph: "", lat: 55.6761, lng: 12.5683,
+          n: { pt: "Volta para Copenhague", en: "Back to Copenhagen" },
+          d: { pt: "Chegamos à noite na sua hospedagem.", en: "We are back at your accommodation in the evening." } },
+      ],
+      photo: "fotos/kids/legoland.jpg",
+      price: 0, priceMode: 'pp',
+      min: 1, max: 8, payPolicy: 'split', status: 'live', order: 12.5,
+    };
+
 /* Bike em família — o roteiro que ela faz com crianças (PDF "Roteiro-bike-familia",
    06/10/2026: "CRIAR ESSE PASSEIO LÁ DENTRO PRA MARI"). 16 paradas, o texto é o dela. */
 const TOUR_BIKE_FAMILIA = { id: "bike-familia", type: "bike", region: "copenhague",
@@ -176,8 +245,8 @@ function _seed() {
   /* A apresentacao dela. Tudo daqui e do PDF "Apresentação atualizada" e da
      reuniao de 23/09/2026. Ela reescreve em Ajustes -> Sobre voce. */
   db.settings.homeText = {
-    pt: 'Experiências autênticas na terra do hygge. Tours privados em português por Copenhague, arredores e Malmö.',
-    en: 'Authentic experiences in the land of hygge. Private tours in Portuguese in Copenhagen, around it and Malmö.',
+    pt: 'Experiências autênticas na terra do hygge. Tours privados e personalizados em português por toda a Dinamarca e Malmö, na Suécia.',
+    en: 'Authentic experiences in the land of hygge. Private, tailor-made tours in Portuguese all over Denmark and in Malmö, Sweden.',
   };
   db.settings.photo = 'arte/mari.jpg';
   db.settings.bio = {
@@ -780,6 +849,7 @@ function load() {
     localStorage.setItem(DB_KEY, JSON.stringify(DB));
   }
   DB.settings = fillSettings(DB.settings);
+  semeiaNovidades();
   /* catálogo novo de 06/10/2026: o bike em família entra UMA vez (se ela apagar, não volta) */
   if (!(+DB.settings.catalogoV >= 2)) {
     if (!temNuvem() && Array.isArray(DB.tours) && DB.tours.length && !DB.tours.some(x => x.id === TOUR_BIKE_FAMILIA.id)) DB.tours.push(JSON.parse(JSON.stringify(TOUR_BIKE_FAMILIA)));
@@ -787,6 +857,37 @@ function load() {
     try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); } catch (e) {}
   }
   return DB;
+}
+/* NOVIDADES DO CATÁLOGO, uma vez só (como na Dulcineia). Com o banco ligado o catálogo dela vem da
+   nuvem, então isto roda também DEPOIS de cada busca (cloud.js); se ela estiver logada, o app grava
+   no banco — da próxima vez a nuvem já tem. A marca fica nos ajustes: se ela apagar, não volta. */
+const NOVIDADES_CATALOGO = [
+  { tour: TOUR_BARCO, marca: 'barcoSemeado', regra: 'r-barco', hora: '11:00', lugares: 12 },
+  { tour: TOUR_LEGO, marca: 'legoSemeado', regra: 'r-lego', hora: '07:00', lugares: 8 },
+];
+function semeiaNovidades() {
+  if (!DB || !DB.settings) return false;
+  if (!Array.isArray(DB.tours) || !DB.tours.length) return false;        /* catálogo ainda não chegou */
+  /* só no catálogo DELA (tem os tours dela): num catálogo qualquer (teste, outro app) não mexe */
+  if (!DB.tours.some(x => x.id === 'walking-tour' || x.id === 'bike-familia')) return false;
+  if (!Array.isArray(DB.rules)) DB.rules = [];
+  let mudou = false;
+  for (const n of NOVIDADES_CATALOGO) {
+    if (DB.settings[n.marca]) continue;
+    if (!DB.tours.some(x => x.id === n.tour.id)) DB.tours.push(JSON.parse(JSON.stringify(n.tour)));
+    if (!DB.rules.some(r => r.tourId === n.tour.id))
+      DB.rules.push({ id: n.regra, tourId: n.tour.id, weekdays: [0, 1, 2, 3, 4, 5, 6], time: n.hora, capacity: n.lugares, from: isoToday(), until: addDays(isoToday(), 180) });
+    DB.settings[n.marca] = true; mudou = true;
+  }
+  /* a frase do topo nova (22/10/2026) — só se ainda for a antiga: se ela escreveu a dela, fica a dela */
+  if (!DB.settings.fraseV2) {
+    const ht = DB.settings.homeText || {};
+    if (String(ht.pt || '').trim() === 'Experiências autênticas na terra do hygge. Tours privados em português por Copenhague, arredores e Malmö.')
+      DB.settings.homeText = { pt: 'Experiências autênticas na terra do hygge. Tours privados e personalizados em português por toda a Dinamarca e Malmö, na Suécia.',
+        en: 'Authentic experiences in the land of hygge. Private, tailor-made tours in Portuguese all over Denmark and in Malmö, Sweden.' };
+    DB.settings.fraseV2 = true; mudou = true;
+  }
+  return mudou;
 }
 function save() {
   localStorage.setItem(DB_KEY, JSON.stringify(DB));
