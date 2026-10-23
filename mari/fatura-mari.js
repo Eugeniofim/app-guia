@@ -581,11 +581,13 @@ function admFaturaDoc(id) {
   const avisos = [!em.nome ? 'faltam os seus dados (quadro "DE") — em Faturas → Seus dados' : '', T.semCotacao ? 'falta a cotação do euro' : '', f.pagamento.forma === 'PIX' && f.moeda === 'EUR' ? 'o Pix só recebe em real' : ''].filter(Boolean);
   app.innerHTML = `<div class="fatTela">
     <div class="fatBarra"><a class="mini" href="#/adm/faturas/${encodeURIComponent(f.id)}">← editar</a>
-      <span><button class="mini" id="fdCopia">Copiar mensagem para o WhatsApp</button><button class="cta sm" id="fdPdf">Imprimir / Salvar em PDF</button></span></div>
+      <span><button class="mini" id="fdCopia">Copiar mensagem para o WhatsApp</button><button class="mini" id="fdImp" title="Para quem prefere o Imprimir do navegador">Imprimir</button><button class="cta sm" id="fdPdf">Gerar PDF</button></span></div>
     ${avisos.length ? `<p class="fatAviso fatDica" style="text-align:left">Antes de mandar: ${esc(avisos.join(' · '))}.</p>` : ''}
     <div id="fatPrint">${fatDocHtml(f, fatDensidade(f))}</div>
     <p class="why fatDica">No "Imprimir", escolha <b>Salvar como PDF</b>. O arquivo sai com o número e o nome do cliente; mande no WhatsApp ou no e-mail.</p></div>`;
-  $('#fdPdf').onclick = () => window.print();
+  /* 23/10: PDF de verdade (pdf-mari.js) — o Imprimir do navegador falhava no celular e saía em branco */
+  pdfLiga($('#fdPdf'), () => $('#fatPrint'), () => document.title);
+  $('#fdImp').onclick = () => window.print();
   $('#fdCopia').onclick = async () => {
     const pg = f.pagamento || {};
     let quem = '';

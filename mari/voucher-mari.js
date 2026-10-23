@@ -246,7 +246,7 @@ function admVoucherDoc(code) {
   const temZap = voDig(b.whats).length >= 8;
   app.innerHTML = `<div class="voTela">
     <div class="voBarra"><a class="mini" href="#${esc(volta)}" id="voVolta">← voltar</a>
-      <span class="bts"><button class="mini" id="voWa">${temZap ? 'Mandar no WhatsApp' : 'Copiar a mensagem'}</button><button class="mini" id="voCopia">Copiar link</button><button class="cta sm" id="voPdf">Imprimir / Salvar PDF</button></span></div>
+      <span class="bts"><button class="mini" id="voWa">${temZap ? 'Mandar no WhatsApp' : 'Copiar a mensagem'}</button><button class="mini" id="voCopia">Copiar link</button><button class="mini" id="voImp" title="Para quem prefere o Imprimir do navegador">Imprimir</button><button class="cta sm" id="voPdf">Gerar PDF</button></span></div>
     <div id="voPrint">${voDocHtml(d, '')}</div>
     <section class="card voEdit"><h3>O que levar <small class="why" style="font-weight:500">vale para todos os vouchers</small></h3>
       <p class="why">Uma linha por item. Os descontos vêm da aba <a href="#/adm/parceiros">Parceiros</a> (só os ligados e com nome).</p>
@@ -255,7 +255,9 @@ function admVoucherDoc(code) {
       <p class="why" style="margin-top:10px">No "Imprimir", escolha <b>Salvar como PDF</b>. O arquivo sai com o código e o nome do cliente.</p>
     </section></div>`;
   Voucher.linkQr(b.id).then(u => voPoeQr('#voPrint .vo-qr', u)).catch(() => {});
-  $('#voPdf').onclick = () => window.print();
+  /* 23/10: PDF de verdade (pdf-mari.js) — o Imprimir do navegador falhava no celular e saía em branco */
+  pdfLiga($('#voPdf'), () => $('#voPrint'), () => document.title);
+  $('#voImp').onclick = () => window.print();
   $('#voCopia').onclick = async () => { const u = await Voucher.link(b.id); try { await navigator.clipboard.writeText(u); toast('Link do voucher copiado'); } catch (e) { prompt('Copie:', u); } };
   $('#voWa').onclick = async () => {
     const txt = await Voucher.mensagem(b.id);

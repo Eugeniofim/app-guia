@@ -302,11 +302,13 @@ function admContratoDoc(id) {
   document.title = `Contrato ${x.num} - ${x.cliente.nome || 'cliente'}`;
   app.innerHTML = `<div class="ctrTela">
     <div class="orcBarra"><a class="mini" href="#/adm/contratos/${encodeURIComponent(x.id)}">← editar</a>
-      <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="cta sm" id="ctrPdf">Imprimir / Salvar em PDF</button></span></div>
+      <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini" id="ctrImp" title="Para quem prefere o Imprimir do navegador">Imprimir</button><button class="cta sm" id="ctrPdf">Gerar PDF</button></span></div>
     ${Contrato.modeloProprio() ? '' : '<p class="why ctrDica" style="color:var(--ink-2)">Este contrato usa o <b>modelo inicial</b> do app — troque pelo texto do seu contrato em Contratos → Modelo do contrato.</p>'}
     <div id="ctrPrint">${ctrDocHtml(x)}</div>
     <p class="why ctrDica">No "Imprimir", escolha <b>Salvar como PDF</b>. Depois mande para o cliente assinar (ou assinem os dois no dia).</p></div>`;
-  $('#ctrPdf').onclick = () => window.print();
+  /* 23/10: PDF de verdade (pdf-mari.js) — o Imprimir do navegador falhava no celular e saía em branco */
+  pdfLiga($('#ctrPdf'), () => $('#ctrPrint'), () => document.title);
+  $('#ctrImp').onclick = () => window.print();
   addEventListener('afterprint', () => { document.title = 'Tour na Dinamarca — ' + ((typeof guiaNome === 'function' && guiaNome()) || 'Mari'); }, { once: true });
 }
 

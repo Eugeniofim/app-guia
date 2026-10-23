@@ -295,17 +295,50 @@ function admOrcDoc(id) {
   document.title = `Proposta ${o.num} - ${o.cliente.nome || o.titulo || 'cliente'}`;
   app.innerHTML = `<div style="padding:16px;background:var(--paper);min-height:100vh">
     <div class="orcBarra"><a class="mini" href="#/adm/orcamentos/${encodeURIComponent(o.id)}">← editar</a>
-      <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini" id="odCopia">Copiar o resumo para o WhatsApp</button><button class="cta sm" id="odPdf">Imprimir / Salvar em PDF</button></span></div>
+      <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini" id="odLink">Mandar link no WhatsApp</button><button class="mini" id="odImp" title="Para quem prefere o Imprimir do navegador">Imprimir</button><button class="cta sm" id="odPdf">Gerar PDF</button></span></div>
     <div id="orcPrint">${orcDocHtml(o)}</div>
-    <p class="why" style="text-align:center;max-width:794px;margin:12px auto">No "Imprimir", escolha <b>Salvar como PDF</b>. O arquivo sai com o nome do cliente; mande no WhatsApp ou no e-mail.</p></div>`;
-  $('#odPdf').onclick = () => window.print();
-  $('#odCopia').onclick = async () => {
-    const T = Orc.totais(o);
-    const txt = `Oi${o.cliente.nome ? ', ' + o.cliente.nome.split(' ')[0] : ''}! Segue a proposta (${o.num})${orcPeriodo(o) ? ' para ' + orcPeriodo(o) : ''}: ${T.qtd} serviço(s), total de ${eur(T.total)}${T.qtdOpc ? ` (com opcionais: ${eur(T.totalComOpcionais)})` : ''}. Te mando o PDF com todos os detalhes. Qualquer dúvida, me chama!`;
-    try { await navigator.clipboard.writeText(txt); toast('Resumo copiado — cole no WhatsApp e mande o PDF junto'); } catch (e) { prompt('Copie:', txt); }
+    <p class="why" style="text-align:center;max-width:794px;margin:12px auto"><b>Gerar PDF</b> monta o arquivo com o nome do cliente: no celular, toque em <b>Enviar</b> e escolha o WhatsApp; no computador, ele baixa e você anexa no WhatsApp ou no e-mail. Ou mande o <b>link</b>: o cliente abre a proposta no celular, sem senha.</p></div>`;
+  /* 23/10: PDF de verdade (pdf-mari.js). O "Imprimir → Salvar como PDF" falhava no celular dela e saía em branco */
+  const resumo = (comLink) => { const T = Orc.totais(o);
+    return `Oi${o.cliente.nome ? ', ' + o.cliente.nome.split(' ')[0] : ''}! Segue a proposta (${o.num})${orcPeriodo(o) ? ' para ' + orcPeriodo(o) : ''}: ${T.qtd} serviço(s), total de ${eur(T.total)}${T.qtdOpc ? ` (com opcionais: ${eur(T.totalComOpcionais)})` : ''}.${comLink ? '' : ' Todos os detalhes estão no PDF.'} Qualquer dúvida, me chama!`; };
+  pdfLiga($('#odPdf'), () => $('#orcPrint'), () => document.title, { texto: () => resumo(false) });
+  $('#odImp').onclick = () => window.print();
+  $('#odLink').onclick = async () => {
+    const b = $('#odLink'); b.disabled = true;
+    try {
+      const url = await orcLinkCliente(o), fone = orcFoneDoCliente(o);
+      const txt = resumo(true) + '\n\nA proposta completa está aqui (abre no celular, sem senha):\n' + url;
+      window.open(fone ? waLink(txt, fone) : 'https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+      try { await navigator.clipboard.writeText(url); toast('WhatsApp aberto (o link também foi copiado)'); } catch (e) { toast('WhatsApp aberto'); }
+    } catch (e) { toast('Não consegui montar o link: ' + ((e && e.message) || 'erro')); }
+    b.disabled = false;
   };
   addEventListener('afterprint', () => { document.title = 'Tour na Dinamarca — ' + ((typeof guiaNome === 'function' && guiaNome()) || 'Mari'); }, { once: true });
 }
+
+/* ---------- o link da proposta para o cliente (23/10/2026) ----------
+   A Mari perguntou: "e se mando assim tem que ter senha?" — não: a proposta viaja DENTRO do link
+   (publico-mari.js, #/oc/…), o cliente abre no celular sem senha e sem o app ler a nuvem dela. */
+function orcParaLink(o) {
+  const { id, num, cliente, titulo, destaque, ini, fim, pessoas, hotel, notaValores, itens, sugestoes, resumo, rotuloOpc, resumoOpc, condicoes, rodape } = o;
+  return { id, num, cliente: { nome: (cliente && cliente.nome) || '' }, titulo, destaque, ini, fim, pessoas, hotel, notaValores, itens, sugestoes, resumo, rotuloOpc, resumoOpc, condicoes, rodape };
+}
+function orcLinkCliente(o) { return Publico.link('oc', orcParaLink(o)); }
+/* o WhatsApp do cliente, se a ficha dele tiver (pela chave do orçamento); senão o WhatsApp abre para ela escolher o contato */
+function orcFoneDoCliente(o) {
+  const k = String((o.cliente && o.cliente.chave) || '').toLowerCase(); if (!k) return '';
+  try {
+    const c = Clients.all().find(x => String(x.chave || x.email || x.whats || x.name || '').toLowerCase() === k);
+    const d = String((c && c.whats) || '').replace(/\D/g, ''); return d.length >= 8 ? d : '';
+  } catch (e) { return ''; }
+}
+window.ROTAS_EXTRA = window.ROTAS_EXTRA || {};
+ROTAS_EXTRA['oc'] = (partes) => abrePublico(partes, (o) => {
+  orcCss();
+  o.itens = (o.itens || []).map(Orc.item);
+  paginaPublica(`Proposta ${o.num || ''} - ${(o.cliente && o.cliente.nome) || o.titulo || 'Tour na Dinamarca'}`, `<div id="orcPrint">${orcDocHtml(o)}</div>`,
+    { waTexto: `Oi, Mari! Vi a proposta ${o.num || ''}${o.cliente && o.cliente.nome ? ' (' + o.cliente.nome + ')' : ''}.` });
+});
 
 /* ---------- ligar no app ---------- */
 STR.admOrcamentos = { pt: 'Orçamentos', en: 'Quotes' };

@@ -1127,11 +1127,13 @@ async function admRoteiroDoc(id) {
   rtPaginaCss(true);
   app.innerHTML = `<div class="rtDocWrap" style="padding:16px 8px;background:var(--paper);min-height:100vh">
     <div class="rtBarra"><a class="mini" href="#/adm/roteiros/${encodeURIComponent(r.id)}">← editar</a>
-      <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini" id="rdLink">Copiar o link do cliente</button><button class="cta sm" id="rdPdf">Imprimir / Salvar em PDF</button></span></div>
+      <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini" id="rdLink">Copiar o link do cliente</button><button class="mini" id="rdImp" title="Para quem prefere o Imprimir do navegador">Imprimir</button><button class="cta sm" id="rdPdf">Gerar PDF</button></span></div>
     <p class="why rtDica">Montando as páginas…</p>
     <div id="rtPrint" class="rtDoc"></div>
     <p class="why rtDica">No "Imprimir", escolha <b>Salvar como PDF</b>, papel A4, sem margens. O arquivo sai com o nome do cliente.</p></div>`;
-  $('#rdPdf').onclick = async () => { const b = $('#rdPdf'); b.disabled = true; await rtMapasProntos($('#rtPrint'), 6000); b.disabled = false; window.print(); };
+  /* 23/10: PDF de verdade (pdf-mari.js) — o Imprimir do navegador falhava no celular e saía em branco; espera os mapas, como antes */
+  pdfLiga($('#rdPdf'), () => $('#rtPrint'), () => document.title, { antes: () => rtMapasProntos($('#rtPrint'), 6000) });
+  $('#rdImp').onclick = async () => { const b = $('#rdImp'); b.disabled = true; await rtMapasProntos($('#rtPrint'), 6000); b.disabled = false; window.print(); };
   $('#rdLink').onclick = async () => { const url = await Roteiro.linkCliente(r.id); try { await navigator.clipboard.writeText(url); toast('Link do cliente copiado'); } catch (e) { prompt('Copie o link:', url); } };
   const alvo = $('#rtPrint');
   try { const n = await rtPaginas(r, alvo); const d = document.querySelector('.rtDica'); if (d) d.textContent = `${n} página(s) em A4 — o que você vê é o que sai no PDF.`; }

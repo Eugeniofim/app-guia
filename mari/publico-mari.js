@@ -50,7 +50,8 @@ function paginaPublica(titulo, html, opts) {
     <p class="why center" style="margin:10px 0 30px">${esc(opts.rodape || 'Qualquer dúvida, fale com a Mari no WhatsApp.')} <a href="${esc(waLink(opts.waTexto || 'Oi, Mari!'))}" target="_blank" rel="noopener">WhatsApp</a></p>
   </div>`;
   document.title = titulo;
-  const b = document.getElementById('pubPdf'); if (b) b.onclick = () => window.print();
+  /* 23/10: PDF de verdade também do lado do cliente (pdf-mari.js) */
+  const b = document.getElementById('pubPdf'); if (b) { if (typeof pdfLiga === 'function') pdfLiga(b, () => document.getElementById('pubPrint'), () => document.title); else b.onclick = () => window.print(); }
 }
 function paginaPublicaErro(msg) {
   paginaPublica('Tour na Dinamarca', `<section class="card"><h1 class="pageh">Não consegui abrir este link</h1><p class="why">${esc(msg || 'O link pode ter sido cortado ao copiar. Peça à Mari para mandar de novo.')}</p></section>`, { semImprimir: true });
