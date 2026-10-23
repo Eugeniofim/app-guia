@@ -21,7 +21,9 @@
    mesmo no celular; quando passa de uma folha, corta entre os blocos (nunca no
    meio de um serviço). As duas bibliotecas vêm do cdnjs na hora do primeiro
    PDF (precisa de internet, como para mandar).
-   Uso: pdfLiga(botão, () => elemento, () => 'Nome do arquivo')
+   Uso: pdfLiga(botão, () => elemento, () => 'Nome do arquivo', { aoEntregar(modo) })
+   aoEntregar('enviado' | 'baixado'): o documento marca a si mesmo (23/10: "quando enviamos o
+   orçamento ele não fica como enviado — só se fizermos a alteração manual").
    ===================================================== */
 'use strict';
 
@@ -109,6 +111,7 @@ function pdfLiga(botao, alvo, nome, opts) {
   opts = opts || {};
   pdfCss();
   const rotulo = botao.textContent;
+  const entregou = (modo) => { if (opts.aoEntregar) { try { opts.aoEntregar(modo); } catch (e) {} } };
   botao.onclick = async () => {
     const el = typeof alvo === 'function' ? alvo() : alvo; if (!el) return;
     if (opts.antes) { try { await opts.antes(); } catch (e) {} }
@@ -126,12 +129,12 @@ function pdfLiga(botao, alvo, nome, opts) {
         ${share ? '' : `<p class="why">${pdfCelular() ? 'Baixe e mande pelo WhatsApp (clipe → Documento).' : 'O arquivo foi para a pasta Downloads. No WhatsApp: clipe → Documento.'}</p>`}`;
       const q = (k) => painel.querySelector(`[data-pdf="${k}"]`);
       if (q('enviar')) q('enviar').onclick = async () => {
-        try { await navigator.share({ files: [r.file], title: r.arquivo.replace(/\.pdf$/, ''), text: opts.texto ? opts.texto() : '' }); }
-        catch (e) { if (!e || e.name !== 'AbortError') { toast('Não abriu o compartilhar — baixei o arquivo'); pdfBaixa(r); } }
+        try { await navigator.share({ files: [r.file], title: r.arquivo.replace(/\.pdf$/, ''), text: opts.texto ? opts.texto() : '' }); entregou('enviado'); }
+        catch (e) { if (!e || e.name !== 'AbortError') { toast('Não abriu o compartilhar — baixei o arquivo'); pdfBaixa(r); entregou('baixado'); } }
       };
-      q('baixar').onclick = () => pdfBaixa(r);
+      q('baixar').onclick = () => { pdfBaixa(r); entregou('baixado'); };
       q('abrir').onclick = () => { const u = URL.createObjectURL(r.blob); if (!window.open(u, '_blank')) location.href = u; };
-      if (!share) pdfBaixa(r);
+      if (!share) { pdfBaixa(r); entregou('baixado'); }
     } catch (e) {
       painel.innerHTML = `<p class="pdfErro">Não consegui montar o PDF: ${esc((e && e.message) || 'erro')}. Confira a internet e toque de novo.</p>`;
     } finally { botao.disabled = false; botao.textContent = rotulo; }

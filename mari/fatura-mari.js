@@ -586,7 +586,7 @@ function admFaturaDoc(id) {
     <div id="fatPrint">${fatDocHtml(f, fatDensidade(f))}</div>
     <p class="why fatDica">No "Imprimir", escolha <b>Salvar como PDF</b>. O arquivo sai com o número e o nome do cliente; mande no WhatsApp ou no e-mail.</p></div>`;
   /* 23/10: PDF de verdade (pdf-mari.js) — o Imprimir do navegador falhava no celular e saía em branco */
-  pdfLiga($('#fdPdf'), () => $('#fatPrint'), () => document.title);
+  pdfLiga($('#fdPdf'), () => $('#fatPrint'), () => document.title, { aoEntregar: () => { const x = Fatura.get(f.id); if (x && x.status === 'emitida') { Fatura.atualiza(f.id, { status: 'enviada' }); toast('Fatura marcada como enviada'); } } });
   $('#fdImp').onclick = () => window.print();
   $('#fdCopia').onclick = async () => {
     const pg = f.pagamento || {};

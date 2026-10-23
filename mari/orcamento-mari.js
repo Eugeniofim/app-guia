@@ -62,10 +62,6 @@ function orcPeriodo(o) {
   if (!b || +a === +b) return f(a) + ' ' + a.getFullYear();
   return f(a) + (a.getFullYear() !== b.getFullYear() ? ' ' + a.getFullYear() : '') + ' – ' + f(b) + ' ' + b.getFullYear();
 }
-function orcDiaDaViagem(o, iso) {
-  const a = orcData(o.ini), d = orcData(iso); if (!a || !d) return '';
-  return String(Math.round((d - a) / 86400000) + 1).padStart(2, '0');
-}
 const orcEur = (v) => v === null || v === undefined || v === '' || isNaN(+v) ? '' : (+v).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 const orcMd = (s) => esc(s || '').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
 
@@ -93,6 +89,7 @@ function orcCss() {
   .od-dia{text-align:center;line-height:1}
   .od-dia b{display:block;font-family:"Playfair Display",Georgia,serif;font-size:22px;font-weight:700;color:var(--od-verde)}
   .od-dia small{display:block;font-size:9.5px;letter-spacing:.12em;color:var(--od-ink3);margin-top:3px}
+  .od-dia small:first-child{margin:0 0 3px}
   .od-rot{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--od-verm);font-weight:600}
   .od-tit{font-family:"Playfair Display",Georgia,serif;font-weight:700;font-size:15.5px;margin:2px 0 3px}
   .od-txt{font-size:12px;color:var(--od-ink2);line-height:1.45}
@@ -171,7 +168,9 @@ function orcDocHtml(o) {
   const T = Orc.totais(o), st = DB.settings || {};
   const base = o.itens.filter(i => !i.opcional).sort((a, b) => String(a.data).localeCompare(String(b.data))), opc = o.itens.filter(i => i.opcional);
   const preco = (i) => i.valor === null || i.valor === '' || isNaN(+i.valor) ? '<i>sob consulta</i>' : `<b>${orcEur(i.valor)}</b><span>${esc(i.unidade || 'EUR')}</span>`;
-  const dia = (i) => { const d = orcData(i.data); return d ? `<b>${orcDiaDaViagem(o, i.data) || ''}</b><small>${ORC_DS[d.getDay()]}</small><small>${String(d.getDate()).padStart(2, '0')} ${ORC_MES[d.getMonth()].toUpperCase()}</small>` : '<b>—</b>'; };
+  /* 23/10: a Mari achou confuso o número grande ("01", "02"… o dia da viagem) em cima da data — saiu.
+     Agora a coluna é a própria data, como numa folhinha: dia da semana, o dia grande e o mês. */
+  const dia = (i) => { const d = orcData(i.data); return d ? `<small>${ORC_DS[d.getDay()]}</small><b>${String(d.getDate()).padStart(2, '0')}</b><small>${ORC_MES[d.getMonth()].toUpperCase()}</small>` : '<b>—</b>'; };
   const linha = (i) => `<div class="od-it"><div class="od-dia">${dia(i)}</div>
       <div><div class="od-rot">${esc(i.rotulo)}</div><div class="od-tit">${esc(i.titulo)}</div>${i.texto ? `<div class="od-txt">${esc(i.texto)}</div>` : ''}</div>
       <div class="od-pr">${preco(i)}${i.nota ? `<small>${esc(i.nota)}</small>` : ''}</div></div>`;
@@ -301,7 +300,7 @@ function admOrcDoc(id) {
   /* 23/10: PDF de verdade (pdf-mari.js). O "Imprimir → Salvar como PDF" falhava no celular dela e saía em branco */
   const resumo = (comLink) => { const T = Orc.totais(o);
     return `Oi${o.cliente.nome ? ', ' + o.cliente.nome.split(' ')[0] : ''}! Segue a proposta (${o.num})${orcPeriodo(o) ? ' para ' + orcPeriodo(o) : ''}: ${T.qtd} serviço(s), total de ${eur(T.total)}${T.qtdOpc ? ` (com opcionais: ${eur(T.totalComOpcionais)})` : ''}.${comLink ? '' : ' Todos os detalhes estão no PDF.'} Qualquer dúvida, me chama!`; };
-  pdfLiga($('#odPdf'), () => $('#orcPrint'), () => document.title, { texto: () => resumo(false) });
+  pdfLiga($('#odPdf'), () => $('#orcPrint'), () => document.title, { texto: () => resumo(false), aoEntregar: () => orcMarcaEnviado(o) });
   $('#odImp').onclick = () => window.print();
   $('#odLink').onclick = async () => {
     const b = $('#odLink'); b.disabled = true;
@@ -309,6 +308,7 @@ function admOrcDoc(id) {
       const url = await orcLinkCliente(o), fone = orcFoneDoCliente(o);
       const txt = resumo(true) + '\n\nA proposta completa está aqui (abre no celular, sem senha):\n' + url;
       window.open(fone ? waLink(txt, fone) : 'https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+      orcMarcaEnviado(o);
       try { await navigator.clipboard.writeText(url); toast('WhatsApp aberto (o link também foi copiado)'); } catch (e) { toast('WhatsApp aberto'); }
     } catch (e) { toast('Não consegui montar o link: ' + ((e && e.message) || 'erro')); }
     b.disabled = false;
@@ -324,6 +324,13 @@ function orcParaLink(o) {
   return { id, num, cliente: { nome: (cliente && cliente.nome) || '' }, titulo, destaque, ini, fim, pessoas, hotel, notaValores, itens, sugestoes, resumo, rotuloOpc, resumoOpc, condicoes, rodape };
 }
 function orcLinkCliente(o) { return Publico.link('oc', orcParaLink(o)); }
+/* mandou (PDF compartilhado ou baixado, ou o link no WhatsApp): o rascunho vira "enviado" sozinho.
+   Aceito e perdido ficam como estão (mandar de novo não desfaz a resposta do cliente). */
+function orcMarcaEnviado(o) {
+  const x = Orc.get(o.id); if (!x || (x.status && x.status !== 'rascunho')) return false;
+  Orc.atualiza(x.id, { status: 'enviado', enviadoEm: new Date().toISOString().slice(0, 10) }); o.status = 'enviado';
+  toast('Orçamento marcado como enviado'); return true;
+}
 /* o WhatsApp do cliente, se a ficha dele tiver (pela chave do orçamento); senão o WhatsApp abre para ela escolher o contato */
 function orcFoneDoCliente(o) {
   const k = String((o.cliente && o.cliente.chave) || '').toLowerCase(); if (!k) return '';
