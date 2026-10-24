@@ -361,7 +361,7 @@ const mariMostra = (k, v) => {
 };
 
 /* ---------- 4. as ferramentas novas ---------- */
-const AB_NOMES = 'today=Hoje · agenda=Agenda (calendário) · tarefas=Agenda › Tarefas (a lista) · roteiros=Roteiros · faturas=Faturas · contratos=Contratos · agencias=Agências e empresas · equipe=Equipe e escala · parceiros=Parceiros · tours=Meus tours · bookings=Reservas · money=Extrato · reports=Relatórios · clients=Clientes (fichas) · orcamentos=Orçamentos · coupons=Cupons e brindes · look=Aparência · settings=Ajustes';
+const AB_NOMES = 'today=Hoje · agenda=Agenda (o calendário do mês) · tarefas=a LISTA de tarefas ("minhas tarefas", "o que tenho pra fazer") · roteiros=Roteiros · faturas=Faturas · contratos=Contratos · agencias=Agências e empresas · equipe=Equipe e escala · parceiros=Parceiros · tours=Meus tours · bookings=Reservas · money=Extrato · reports=Relatórios · clients=Clientes (fichas) · orcamentos=Orçamentos · coupons=Cupons e brindes · look=Aparência · settings=Ajustes';
 IA_FERRAMENTAS.push(
   { name: 'ver_hoje', description: 'O dia dela: passeios de hoje e de amanhã (com cliente, ponto de encontro e quanto cada um paga no dia), tarefas atrasadas e de hoje, pedidos do Personalize sem resposta, aniversários e brindes para mandar. Use para "o que tenho hoje", "bom dia", "e amanhã?".', input_schema: obj() },
   { name: 'ver_ficha', description: 'Tudo de UM cliente pelo NOME (primeiro nome serve), WhatsApp ou código: ficha cadastral, reservas, quanto falta, pedidos do Personalize, brindes recebidos, anotações.', input_schema: obj({ cliente: S_('nome, WhatsApp, e-mail ou código da reserva') }, ['cliente']) },
@@ -375,6 +375,7 @@ IA_FERRAMENTAS.push(
   { name: 'ver_roteiros', description: 'Os roteiros personalizados (aba Roteiros). Sem roteiro = a lista; com = dia por dia, as paradas e o caminho.', input_schema: obj({ roteiro: S_('cliente ou número RT-0001 (opcional)') }) },
   { name: 'criar_roteiro', description: 'Monta um ROTEIRO PERSONALIZADO (documento A4 no modelo dela + link para o celular do cliente, com mapas). Jeitos: do_pedido = nome de quem mandou o Personalize (o app monta os dias pelos gostos e idades do pedido); do_passeio = um passeio dela como base (ex.: bike-familia); dias com os lugares que ela falar ("Nyhavn", "Tivoli", "Jardim do Rei") — o app acha no banco de lugares com mapa, foto e texto; dia sem lugares + gostos = o app sugere. Lugar fora do banco entra sem mapa (ou mande "nome https://maps.google…" que a coordenada sai do link). Se ela NÃO disse os lugares, NÃO invente: mande só os gostos (e os dias sem lugares) — o app sugere 5–6 paradas perto umas das outras. como: só se ela disser (padrão a pé). cliente: como ela chama ("Família Lima").', input_schema: obj({ cliente: S_(), whats: S_(), ini: S_('chegada: dia falado ou AAAA-MM-DD'), fim: S_('volta'), como: { type: 'string', enum: Object.keys(MARI_MODO) }, gostos: { type: 'array', items: { type: 'string', enum: (typeof PONTOS_TAGS !== 'undefined' ? PONTOS_TAGS.map(t => t[0]) : ['criancas']) } }, subtitulo: S_('linha embaixo do título, ex.: "Um dia de bicicleta em Copenhagen – com crianças"'), do_pedido: S_(), do_passeio: S_('passeio_id'), dias: { type: 'array', items: obj({ data: S_(), titulo: S_(), lugares: { type: 'array', items: { type: 'string' } } }) } }) },
   { name: 'editar_roteiro', description: 'Muda um roteiro. acao: por_lugares (põe lugares no fim do dia), tirar_lugar, organizar (ordem do caminho mais curto; a 1ª parada fica), sugerir_dia (troca as paradas do dia pela sugestão dos gostos), novo_dia, tirar_dia, mudar (campos). Apagar o roteiro = apagar_registro. dia = número (1 = o primeiro); organizar sem dia = todos os dias.', input_schema: obj({ roteiro: S_('cliente ou número'), acao: { type: 'string', enum: ['por_lugares', 'tirar_lugar', 'organizar', 'sugerir_dia', 'novo_dia', 'tirar_dia', 'mudar'] }, dia: { type: 'integer' }, lugares: { type: 'array', items: { type: 'string' } }, lugar: S_('nome ou número da parada, para tirar_lugar'), organizar: { type: 'boolean', description: 'com por_lugares: depois de pôr, organiza o dia pelo caminho ("põe X e organiza")' }, gostos: { type: 'array', items: { type: 'string', enum: (typeof PONTOS_TAGS !== 'undefined' ? PONTOS_TAGS.map(t => t[0]) : ['criancas']) } }, campos: obj({ titulo: S_(), subtitulo: S_(), ini: S_(), fim: S_(), como: { type: 'string', enum: Object.keys(MARI_MODO) }, obs: S_('dicas no fim do roteiro'), cliente: S_(), whats: S_(), titulo_do_dia: S_(), data_do_dia: S_() }) }, ['roteiro', 'acao']) },
+  { name: 'link_orcamento', description: 'O link da proposta (orçamento) para o cliente abrir no celular, SEM senha, e a mensagem pronta para ELA mandar no WhatsApp. Use para "manda o orçamento do Glauber", "me dá o link da proposta". Não envia nada.', input_schema: obj({ orcamento: S_('número (ORC-0003) ou nome do cliente') }, ['orcamento']) },
   { name: 'link_roteiro', description: 'O link do roteiro para o celular do cliente (mapas + salvar em PDF) e a mensagem pronta para ELA mandar. Não envia nada.', input_schema: obj({ roteiro: S_() }, ['roteiro']) },
   { name: 'ver_faturas', description: 'As faturas (invoice): sem fatura = a lista com o que está em aberto; com = as linhas e o total. Valores prontos do app.', input_schema: obj({ fatura: S_('número (109) ou para quem (opcional)'), so_em_aberto: { type: 'boolean' } }) },
   { name: 'criar_fatura', description: 'Gera uma fatura no modelo dela. de_orcamento = o orçamento (cliente ou ORC-0001): uma linha por serviço com valor; de_reserva = nome do cliente ou código da reserva; ou para + itens. Valores em EURO (valor_eur): em real, o app converte pela cotação do dia. moeda real (padrão) ou euro. Repita o total que a ferramenta devolver.', input_schema: obj({ de_orcamento: S_(), de_reserva: S_(), para: S_('cliente ou agência'), itens: { type: 'array', items: obj({ descricao: S_(), qtd: { type: 'number' }, valor_eur: { type: 'number' } }, ['descricao', 'valor_eur']) }, moeda: { type: 'string', enum: ['real', 'euro'] }, forma: { type: 'string', enum: ['PIX', 'Wise', 'Transferência'] }, prazo_dias: { type: 'number' } }) },
@@ -398,7 +399,7 @@ IA_FERRAMENTAS.push(
   { name: 'editar_orcamento', description: 'Muda um orçamento que existe (pelo número ou pelo nome do cliente): acao campos (cliente, titulo, destaque, ini, fim, pessoas, hotel, resumo, resumoOpc, condicoes, rodape), adicionar (um serviço novo em item), mudar_item / tirar_item (qual = número do serviço na lista ou parte do título), status (rascunho, enviado, aceito, perdido).',
     input_schema: obj({ orcamento: S_('número (ORC-0001) ou cliente'), acao: { type: 'string', enum: ['campos', 'adicionar', 'mudar_item', 'tirar_item', 'status'] }, campos: { type: 'object', additionalProperties: true }, item: obj({ dia: S_(), rotulo: S_(), titulo: S_(), texto: S_(), valor: N_(), unidade: S_(), nota: S_(), opcional: { type: 'boolean' } }), qual: S_(), status: { type: 'string', enum: ['rascunho', 'enviado', 'aceito', 'perdido'] } }, ['orcamento', 'acao']) },
 );
-for (const n of ['ver_hoje', 'ver_ficha', 'contas_do_cliente', 'link_pagamento', 'ver_dados', 'ver_diario', 'abrir_aba', 'ver_orcamentos', 'link_escala', 'voucher', 'ver_roteiros', 'link_roteiro', 'ver_faturas', 'ver_contratos']) IA_LEITURA.add(n);
+for (const n of ['ver_hoje', 'ver_ficha', 'contas_do_cliente', 'link_pagamento', 'ver_dados', 'ver_diario', 'abrir_aba', 'ver_orcamentos', 'link_escala', 'voucher', 'ver_roteiros', 'link_roteiro', 'link_orcamento', 'ver_faturas', 'ver_contratos']) IA_LEITURA.add(n);
 /* registrar pagamento aceita Wise; e a regra da Mari aparece no cartão */
 for (const f of IA_FERRAMENTAS) if (f.name === 'registrar_pagamento') {
   f.description = 'Registra dinheiro que entrou numa reserva (reserva = código OU nome do cliente). tipo: "sinal" ("o sinal caiu", "pagou a metade") · "resto" ("pagou o resto", "quitou", "pagou no dia") · "outro" (um valor que ela disse). Sem valor, o APP sabe quanto é o sinal ou o resto — nunca calcule nem pergunte. "pagou no dia" = metodo cash.';
@@ -512,6 +513,16 @@ const MARI_LER = {
     const l = Roteiro.all();
     return l.length ? l.slice(-30).map(r => ({ numero: r.num, cliente: r.cliente.nome || '—', periodo: (typeof rtPeriodo === 'function' && rtPeriodo(r)) || 'sem datas', dias: r.dias.length, paradas: r.dias.reduce((n, d) => n + d.paradas.length, 0), status: r.status })) : 'nenhum roteiro ainda';
   },
+  async link_orcamento(i) {
+    const q = mariAchaOrc(i.orcamento); if (q.erro) return q;
+    const o = q.o; if (!o.itens.length) return E_('o orçamento ainda não tem nenhum serviço');
+    const url = await orcLinkCliente(o), C = mariOrcContas(o);
+    const nome = (o.cliente.nome || '').split(' ')[0];
+    return { orcamento: o.num, cliente: o.cliente.nome, situacao: o.status, total: C.total, link: url,
+      mensagem_pronta: `Oi${nome ? ', ' + nome : ''}! Tudo bem? Segue a proposta (${o.num})${orcPeriodo(o) ? ' para ' + orcPeriodo(o) : ''}, total de ${C.total}. Abre no celular, sem senha:\n${url}\nQualquer dúvida, me chama!`,
+      pdf: 'para mandar o PDF: aba Orçamentos → o ' + o.num + ' → "Ver o documento" → "Gerar PDF" → "Enviar" (no computador ele baixa)',
+      regra: 'mostre a mensagem pronta para ela copiar; você não envia nada. Quando ela disser que mandou, editar_orcamento status enviado (se ainda for rascunho).' };
+  },
   async link_roteiro(i) {
     const q = mariAchaRot(i.roteiro); if (q.erro) return q;
     const r = q.r; if (!r.dias.some(d => d.paradas.length)) return E_('o roteiro ainda não tem nenhuma parada');
@@ -540,7 +551,8 @@ const MARI_LER = {
     return l.length ? l.slice(-30).map(mariOrcVer) : 'nenhum orçamento' + (q ? ' com "' + i.busca + '"' : '');
   },
   abrir_aba(i) {
-    const ok = ADM_TABS.some(([id]) => id === i.aba); if (!ok) return E_('aba não existe');
+    /* 24/10: Tarefas saiu do menu (é a 2ª vista da Agenda), mas o endereço #/adm/tarefas continua — antes dava "aba não existe" */
+    const ok = i.aba === 'tarefas' || ADM_TABS.some(([id]) => id === i.aba); if (!ok) return E_('aba não existe');
     let destino = '/adm/' + i.aba;
     if (i.aba === 'clients' && i.item) { const r = mariAchaCliente(i.item); if (!r.erro) destino += '/' + encodeURIComponent(r.chave); }
     if (i.aba === 'tours' && i.item && Tours.get(i.item)) destino += '/' + i.item;
@@ -980,7 +992,7 @@ Você é o assistente de ${guiaNome()} (Mariane), dona do Tour na Dinamarca: gui
 - Nunca diga "não consigo" nem "faça na aba X" sem tentar a ferramenta. Sem ferramenta → abrir_aba e diga o que tocar.
 
 ## VOCÊ ALCANÇA TODAS AS ABAS
-Hoje: ver_hoje · Orçamentos: ver_orcamentos, criar_orcamento, editar_orcamento · Equipe e escala: ver_dados equipe, mexer equipe, escalar, link_escala · Voucher: voucher · Parceiros: ver_dados parceiros, mexer parceiros · Roteiros: ver_roteiros, criar_roteiro, editar_roteiro, link_roteiro · Faturas: ver_faturas, criar_fatura, marcar_fatura · Contratos: ver_contratos, criar_contrato · Agências: ver_dados agencias, mexer agencias, preco_agencia · Agenda e Tarefas: anotar_tarefa, concluir_tarefa, ver_dados tarefas, mexer tarefas, apagar_registro, google_agenda · Meus tours: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, adicionar/remover_horario · Agenda de saídas: ver_agenda, ver_bloqueios, bloquear/liberar_datas · Reservas: ver_reservas, criar/alterar/cancelar_reserva, registrar_pagamento, link_pagamento · Clientes (fichas): ver_clientes, ver_ficha, contas_do_cliente, ver_dados fichas/clientes, mexer fichas (ficha cadastral), mexer clientes (cliente novo sem reserva) · Pedidos do "Personalize seu passeio": ver_dados pedidos, mexer pedidos (respondido) · Cupons e brindes: ver_cupons, criar/apagar_cupom, ver_dados brindes/brindesPendentes, mexer brindes · Relatórios e extrato: ver_relatorio · Ajustes: ver_ajustes, alterar_ajustes · Memória e diário: guardar/apagar_memoria, anotar/ver_diario · Qualquer tela: abrir_aba (${AB_NOMES}).
+Hoje: ver_hoje · Orçamentos: ver_orcamentos, criar_orcamento, editar_orcamento, link_orcamento · Equipe e escala: ver_dados equipe, mexer equipe, escalar, link_escala · Voucher: voucher · Parceiros: ver_dados parceiros, mexer parceiros · Roteiros: ver_roteiros, criar_roteiro, editar_roteiro, link_roteiro · Faturas: ver_faturas, criar_fatura, marcar_fatura · Contratos: ver_contratos, criar_contrato · Agências: ver_dados agencias, mexer agencias, preco_agencia · Agenda e Tarefas: anotar_tarefa, concluir_tarefa, ver_dados tarefas, mexer tarefas, apagar_registro, google_agenda · Meus tours: ver_passeios, criar_passeio, alterar_passeio, mudar_preco, adicionar/remover_horario · Agenda de saídas: ver_agenda, ver_bloqueios, bloquear/liberar_datas · Reservas: ver_reservas, criar/alterar/cancelar_reserva, registrar_pagamento, link_pagamento · Clientes (fichas): ver_clientes, ver_ficha, contas_do_cliente, ver_dados fichas/clientes, mexer fichas (ficha cadastral), mexer clientes (cliente novo sem reserva) · Pedidos do "Personalize seu passeio": ver_dados pedidos, mexer pedidos (respondido) · Cupons e brindes: ver_cupons, criar/apagar_cupom, ver_dados brindes/brindesPendentes, mexer brindes · Relatórios e extrato: ver_relatorio · Ajustes: ver_ajustes, alterar_ajustes · Memória e diário: guardar/apagar_memoria, anotar/ver_diario · Qualquer tela: abrir_aba (${AB_NOMES}).
 
 ## ONDE GUARDAR CADA COISA
 - Coisa para fazer ou lembrar → anotar_tarefa (texto curto + nota). Com hora marcada = compromisso. Ideia solta = tipo anotacao. Vida pessoal = area pessoal.
@@ -994,7 +1006,7 @@ Hoje: ver_hoje · Orçamentos: ver_orcamentos, criar_orcamento, editar_orcamento
 - Fatura/invoice → criar_fatura (do orçamento, da reserva ou linhas em euro); "a Sub4 pagou a fatura" → marcar_fatura paga. Contrato → criar_contrato do orçamento. Agência nova → mexer agencias; preço da tabela dela → preco_agencia.
 - Guia ou motorista num passeio → escalar ("o César faz o Kronborg da Ana"). Mandar a escala para alguém da equipe → link_escala. Pessoa nova na equipe → mexer equipe criar.
 - Voucher de uma reserva → voucher (link + mensagem prontos). Parceiro com desconto (loja, % e como usar) → mexer parceiros (ativo true para aparecer no site).
-- Orçamento / proposta de serviços (cliente ou agência pediu) → criar_orcamento NA HORA com o que ela deu (o cartão é a conferência); mudança no MESMO → editar_orcamento; "mandei"/"aceitou"/"perdi" → editar_orcamento status. O PDF ela salva na aba Orçamentos (abrir_aba orcamentos com o número).
+- Orçamento / proposta de serviços (cliente ou agência pediu) → criar_orcamento NA HORA com o que ela deu (o cartão é a conferência); mudança no MESMO → editar_orcamento; "mandei"/"aceitou"/"perdi" → editar_orcamento status. Mandar para o cliente → link_orcamento (link que abre no celular SEM senha + mensagem pronta). O PDF: aba Orçamentos → o orçamento → "Ver o documento" → "Gerar PDF" → "Enviar" (WhatsApp, e-mail…; no computador ele baixa). Mandar pelo PDF ou pelo link já marca "enviado" sozinho. Nunca diga "Imprimir → Salvar como PDF" (é o jeito velho; falhava no celular).
 
 ## ORÇAMENTO — o modelo dela
 Cada serviço = um dia da viagem: rotulo em maiúsculas ("TRANSFER DE CHEGADA · GRUPO", "CITY TOUR · DIA INTEIRO · 9H ÀS 17H", "JANTAR DE ENCERRAMENTO"), titulo ("Aeroporto de Copenhagen → Hotel"), texto (veículo, o que inclui) e valor em EUR por grupo; sem valor = sob consulta. Extras que o cliente pode querer = opcional true. Sugestões de restaurante = sugestoes.cartoes (até 3). Condições padrão: 50% na reserva, o resto na viagem. Depois do cartão, repita o total que a ferramenta devolveu e ofereça abrir o PDF.
@@ -1013,6 +1025,8 @@ web_search só para o que NÃO está no app: horário e fechamento de atração 
 - Pagamento: ${st.saldoNoDia ? 'metade (50%) na reserva, por Pix ou Wise; o restante em EURO, em DINHEIRO, no dia do passeio' : 'conforme a reserva'}. ${st.pixKey ? 'Pix configurado.' : 'Pix ainda não configurado em Ajustes.'} ${st.wiseLink ? 'Wise configurado.' : 'Wise ainda não configurado.'}
 - Saída: da hospedagem do cliente. Público 50+/60+: ritmo tranquilo, mobilidade e saúde importam (estão na ficha cadastral).
 - Brindes: quem reserva ganha PDFs de presente (aba Cupons e brindes).
+- Documentos (orçamento, fatura, contrato, voucher, roteiro): o botão "Gerar PDF" monta o arquivo; no celular "Enviar" abre o WhatsApp/e-mail, no computador baixa. Orçamento também tem "Mandar link no WhatsApp".
+- Agenda: uma aba só, com duas vistas — Calendário (o mês e o dia) e Tarefas (a lista do que fazer). "Anotar" fica nas duas.
 - Crianças: as ideias dela (Tivoli, zoológico, Den Blå Planet, Experimentarium, planetário, trolls, Bakken, LEGOLAND, LEGO House…) aparecem no "Personalize" quando o grupo tem criança.
 
 ## FORMATO
@@ -1200,7 +1214,7 @@ iaChamar = async function (mensagens) {
    anexo (foto/PDF) não vira foto de marketing */
 const _mariConversa = iaConversa;
 iaConversa = async function (texto, anexos) {
-  if (iaOcupado) return;
+  if (iaOcupado) { if (typeof iavManda === 'function') iavManda(texto, anexos); return; }   /* 24/10: ocupado → fila (antes sumia) */
   mariFerrTurno = 0; mariEscTurno = 0; mariConferiu = false; mariCancelouTurno = 0;
   mariNumerosTurno = new Set();
   try { for (const v of mariNumerosDoHistorico(iaLe(IA_HIST, []))) mariNumerosTurno.add(v); mariColheNumeros(texto); mariColheNumeros(iaAgora()); mariColheNumeros((Mkt.get().memoria || []).map(x => x.texto).join(' ')); mariColheNumeros(mariDiarioTexto(14)); } catch (e) {}

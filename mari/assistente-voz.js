@@ -30,7 +30,7 @@ const LER = ('speechSynthesis' in window) ? window.speechSynthesis : null;
 /* microfone só em endereço seguro (https ou localhost) */
 const iavTemMic = () => !!FALA_REC && (location.protocol === 'https:' || location.hostname === 'localhost');
 const iavVozOn = () => iaLe(IAV_VOZ, false) === true;
-const IAV = { rec: null, juntado: '', antes: '', naMao: false, cancelou: false, t0: 0, relogio: null, anexos: [], menu: false, ultima: '' };
+const IAV = { rec: null, juntado: '', antes: '', naMao: false, cancelou: false, t0: 0, relogio: null, anexos: [], menu: false, ultima: '', fila: [] };
 
 /* ícones (traço fino, 24px) */
 const IAV_IC = {
@@ -330,6 +330,7 @@ iaDesenha = function () {
       <span class="ouvTxt" id="iavOuvTxt">Estou ouvindo — fale normal.</span>
       <button type="button" class="chip" id="iavDescarta">descartar</button><button type="button" class="chip on" id="iavManda">enviar</button></div>
     <div id="iaAnexo"></div>
+    <div id="iavFila" hidden></div>
     ${demo ? `<div class="iavDemoPe"><button type="button" class="cta sm" id="iaConecta">✦ Ligar a IA</button><small>Sem a IA ligada, os pedidos acima rodam de exemplo.</small></div>` : `
     <form id="iaForm">
       <input type="file" id="iaArq" accept="image/*,application/pdf" multiple hidden>
@@ -357,14 +358,14 @@ iaDesenha = function () {
   msgs.querySelectorAll('[data-sug]').forEach(b => b.onclick = () => {
     const s = sugs[+b.dataset.sug]; const hero = msgs.querySelector('#iavHero');
     if (demo) { iavMoveOrbeTopo(); if (hero) hero.remove(); iaRodaCenario(s); }
-    else iaConversa(s[1]);
+    else iavManda(s[1]);
   });
   const cn = corpo.querySelector('#iaConecta');
   if (cn) cn.onclick = () => { if (typeof irParaCreditos === 'function') { iaFecha(); irParaCreditos(); } else { iaMostrandoChave = true; _iaDesenhaBase(); } };
   if (!demo) {
     const f = corpo.querySelector('#iaForm'), ta = corpo.querySelector('#iaTxt'), arq = corpo.querySelector('#iaArq');
     f.onsubmit = (e) => { e.preventDefault(); const v = ta.value.trim(); if (!v && !IAV.anexos.length) return; if (IAV.rec) { IAV.naMao = true; try { IAV.rec.stop(); } catch (x) {} }
-      const anx = IAV.anexos; IAV.anexos = []; iaMostraAnexo(); ta.value = ''; ta.style.height = ''; iaConversa(v, anx); };
+      const anx = IAV.anexos; IAV.anexos = []; iaMostraAnexo(); ta.value = ''; ta.style.height = ''; iavManda(v, anx); };
     ta.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey && !('ontouchstart' in window)) { e.preventDefault(); f.requestSubmit(); } };
     ta.oninput = () => { ta.style.height = ''; ta.style.height = Math.min(140, ta.scrollHeight) + 'px'; };
     corpo.querySelector('#iaClip').onclick = () => arq.click();
@@ -392,7 +393,7 @@ iaDesenha = function () {
   }
   corpo.querySelector('#iavDescarta').onclick = () => { IAV.cancelou = true; iavParaOuvir(false); };
   corpo.querySelector('#iavManda').onclick = () => iavParaOuvir(true);
-  iaMostraAnexo(); iaMostraGasto(); iavMenu();
+  iaMostraAnexo(); iaMostraGasto(); iavMenu(); iavPintaFila();
   msgs.scrollTop = msgs.scrollHeight;
   if (typeof crFaixa === 'function' && modulo('assistente') === true) crFaixa('iaCrFaixa');
 };
@@ -536,12 +537,64 @@ async function iavLeArquivo(file) {
    O motor recebe os anexos como data URL — imagem vira foto, PDF vira documento. */
 const _iavConversaMotor = iaConversa;
 iaConversa = async function (texto, anexos) {
-  if (iaOcupado) return;
+  if (iaOcupado) { iavManda(texto, anexos); return; }
   const urls = (!anexos ? [] : Array.isArray(anexos) ? anexos : [anexos]).map(a => typeof a === 'string' ? a : a.data).filter(Boolean);
   iavPararFala(); IAV.ultima = ''; Orbe.estado('pensando');
+  /* "Pensando… 12 s": o modelo forte leva uns segundos — sem o relógio parecia travado */
+  const t0 = Date.now(), rel = setInterval(() => { const p = iaEl && iaEl.g.querySelector('#iaMsgs .iaB.pensa'); const s = Math.round((Date.now() - t0) / 1000);
+    if (p && s >= 3) p.textContent = (s >= 25 ? 'Ainda pensando — é um pedido grande' : 'Pensando') + '… ' + s + ' s'; }, 1000);
   try { return await _iavConversaMotor(texto, urls); }
-  finally { Orbe.estado('repouso'); if (IAV.ultima && iavVozOn()) iavFalar(IAV.ultima); }
+  finally { clearInterval(rel); Orbe.estado('repouso'); if (IAV.ultima && iavVozOn()) iavFalar(IAV.ultima);
+    if (IAV.fila.length) setTimeout(() => { if (iaOcupado || !IAV.fila.length) return; const n = IAV.fila.shift(); iavPintaFila(); iaConversa(n.texto, n.anexos); }, 60); }
 };
+
+/* =====================================================
+   NADA SE PERDE (24/10/2026)
+   Mari: "quando falo com o assistente pelo telefone ou escrevo não consigo logo enviar a mensagem,
+   parece que tranca". Era isto: com o assistente ocupado (pensando, ou esperando ela tocar no
+   cartão de Confirmar), o enviar ficava desligado e o que ela FALAVA ia embora — o motor descartava
+   a mensagem em silêncio e o campo já estava limpo.
+   Agora: ocupado → a mensagem entra na fila (aparece acima do campo, dá para tirar) e vai sozinha
+   quando ele terminar. Com cartão aberto, mensagem nova = "deixa isso pra lá": o cartão fecha sem
+   gravar e a nova segue. O enviar fica sempre ligado.
+   ===================================================== */
+function iavManda(texto, anexos) {
+  texto = String(texto || '').trim(); anexos = anexos || [];
+  if (!texto && !anexos.length) return;
+  if (!iaOcupado) { iaConversa(texto, anexos); return; }
+  if (IAV.fila.length >= 3) { toast('Já tem 3 mensagens esperando — espere ele responder'); return; }
+  IAV.fila.push({ texto, anexos });
+  if (iaCartaoPendente) { iaCartaoTrocado = true; try { iaCartaoPendente(false); } catch (e) {} }
+  iavPintaFila();
+}
+function iavPintaFila() {
+  const el = iaEl && iaEl.g.querySelector('#iavFila'); if (!el) return;
+  el.hidden = !IAV.fila.length;
+  el.innerHTML = IAV.fila.map((m, k) => `<div class="iavFilaIt"><span>Na fila: “${esc(m.texto.length > 70 ? m.texto.slice(0, 70) + '…' : (m.texto || 'anexo'))}”</span><button type="button" data-tira="${k}" aria-label="Tirar da fila">×</button></div>`).join('')
+    + (IAV.fila.length ? '<small>Vai sozinha assim que ele terminar de responder.</small>' : '');
+  el.querySelectorAll('[data-tira]').forEach(b => b.onclick = () => { IAV.fila.splice(+b.dataset.tira, 1); iavPintaFila(); });
+}
+/* o enviar fica ligado mesmo ocupado (vai para a fila); as sugestões, essas sim, esperam */
+iaTravado = function (sim) {
+  if (!iaEl) return;
+  iaEl.g.querySelectorAll('.iaSug button, #iaMsgs [data-sug]').forEach(x => x.disabled = sim);
+  const f = iaEl.g.querySelector('#iaForm'); if (f) f.classList.toggle('ocupado', !!sim);
+  const b = iaEl.g.querySelector('#iaEnviar'); if (b) b.disabled = false;
+};
+
+/* no celular, o teclado cobria o campo e o botão de enviar: a gaveta acompanha a parte VISÍVEL da tela */
+if (window.visualViewport && !window.__iavTeclado) {
+  window.__iavTeclado = true;
+  const vv = window.visualViewport;
+  const ajusta = () => {
+    const g = document.getElementById('iaGaveta'); if (!g) return;
+    if (window.innerWidth > 640 || !g.classList.contains('aberta')) { g.style.top = ''; g.style.height = ''; g.style.bottom = ''; return; }
+    g.style.top = Math.round(vv.offsetTop) + 'px'; g.style.height = Math.round(vv.height) + 'px'; g.style.bottom = 'auto';
+    const m = g.querySelector('#iaMsgs'); if (m && document.activeElement && document.activeElement.id === 'iaTxt') m.scrollTop = m.scrollHeight;
+  };
+  vv.addEventListener('resize', ajusta); vv.addEventListener('scroll', ajusta);
+  document.addEventListener('focusin', (e) => { if (e.target && e.target.id === 'iaTxt') setTimeout(ajusta, 250); });
+}
 
 /* fechar a gaveta cala a voz e solta o microfone */
 const _iaFechaVoz = iaFecha;

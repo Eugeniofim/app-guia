@@ -135,3 +135,12 @@ body.iaSolta::after{content:"Solte aqui: vai para o assistente";position:fixed;i
 #iaGaveta.iav .iaAv{display:none}
 #iaGaveta.iav .iaModo{white-space:nowrap}
 #iaGaveta.iav header .iaCab{min-width:0}
+
+/* 24/10: a fila (mensagem mandada com ele ocupado — vai sozinha quando ele terminar) */
+#iaGaveta.iav #iavFila{margin:0 12px 6px;display:grid;gap:4px}
+#iaGaveta.iav #iavFila[hidden]{display:none}
+#iaGaveta.iav #iavFila .iavFilaIt{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border-radius:12px;background:rgba(242,194,48,.12);border:1px dashed rgba(242,194,48,.5);font-size:13px}
+#iaGaveta.iav #iavFila .iavFilaIt span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#iaGaveta.iav #iavFila .iavFilaIt button{width:30px;height:30px;flex:none;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:inherit;font-size:17px;line-height:1;cursor:pointer}
+#iaGaveta.iav #iavFila small{opacity:.72;font-size:11.5px;padding-left:4px}
+#iaGaveta.iav #iaForm.ocupado #iaEnviar{opacity:.85}
