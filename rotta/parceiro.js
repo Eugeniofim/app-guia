@@ -18,7 +18,7 @@
   'use strict';
   const PARCEIROS = {
     dulcineia: { nome: 'Dulcineia', da: 'da', negocio: 'Conexão Berlim', cidade: 'Berlim',
-      foto: 'https://rottaguide.com/dulcineia/foto.jpg', app: 'https://guia.eugeniofim.com/dulcineia/' },
+      foto: 'https://rottaguide.com/dulcineia/foto.jpg', app: 'https://conexaoberlim.com/' },
     igor: { nome: 'Igor', da: 'do' },
   };
   let de = '';
