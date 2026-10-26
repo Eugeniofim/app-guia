@@ -548,6 +548,14 @@
 #iaGaveta.iav #iaEnviar{width:44px;min-width:44px;height:44px;border-radius:12px;background:var(--v-sky);color:#292828;border:0;display:grid;place-items:center;cursor:pointer}
 #iaGaveta.iav #iaEnviar svg{width:19px;height:19px}
 #iaGaveta.iav #iaEnviar:disabled{opacity:.45}
+/* 26/10: a fila (mensagem mandada com ele ocupado — vai sozinha quando ele terminar) */
+#iaGaveta.iav #iavFila{margin:0 12px 6px;display:grid;gap:4px}
+#iaGaveta.iav #iavFila[hidden]{display:none}
+#iaGaveta.iav #iavFila .iavFilaIt{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border-radius:12px;background:var(--v-s1);border:1px dashed var(--v-sky);color:var(--v-tx2);font-size:13px}
+#iaGaveta.iav #iavFila .iavFilaIt span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#iaGaveta.iav #iavFila .iavFilaIt button{width:30px;height:30px;flex:none;border-radius:50%;border:0;background:var(--v-s2);color:inherit;font-size:17px;line-height:1;cursor:pointer}
+#iaGaveta.iav #iavFila small{color:var(--v-tx3);font-size:11.5px;padding-left:4px}
+#iaGaveta.iav #iaForm.ocupado #iaEnviar{opacity:.85}
 @media (max-width:360px){ .iavMic .t{display:none} .iavMic{padding:0 11px} }
 .iavDemoPe{padding:10px 14px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--v-line);display:flex;flex-direction:column;gap:6px;color:var(--v-tx3)}
 
