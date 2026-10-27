@@ -328,7 +328,10 @@ if (typeof Bookings !== 'undefined' && typeof Bookings.confirmarCliente === 'fun
     if (!kitPodeNuvem()) return _conf(id);
     b.clienteConfirmado = { em: new Date().toISOString(), publicandoKit: true };   /* a tela já mostra "avisado" */
     Promise.race([Kit.link(kitChaveDe(b)), new Promise(r => setTimeout(r, 5000))]).catch(() => {})
-      .finally(() => { delete b.clienteConfirmado; _conf(id); });
+      .finally(() => { delete b.clienteConfirmado;
+        /* o código vai NA reserva (o servidor lê primeiro aqui): a fila do privado sobe ~1 s depois e o e-mail sairia sem o link curto */
+        const t = kitTokens()[kitChaveDe(b)]; if (t && t.token && t.publicado) b.kitToken = t.token;
+        _conf(id); });
     return b;
   };
 }
