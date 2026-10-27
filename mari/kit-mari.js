@@ -319,6 +319,23 @@ if (typeof Equipe !== 'undefined' && typeof Equipe.escalar === 'function') {
   Equipe.escalar = function (code) { const r = _esc.apply(Equipe, arguments); try { const b = DB.bookings.find(x => x.id === code || x.code === code); if (b) Kit.agendar(kitChaveDe(b)); } catch (e) {} return r; };
 }
 
+/* "Avisar cliente" (27/10): o e-mail de confirmação (função avisos, no servidor) leva o link do kit.
+   O gatilho do banco dispara quando a reserva é marcada — então o kit é publicado ANTES (no máximo 5 s). */
+if (typeof Bookings !== 'undefined' && typeof Bookings.confirmarCliente === 'function') {
+  const _conf = Bookings.confirmarCliente.bind(Bookings);
+  Bookings.confirmarCliente = function (id) {
+    const b = Bookings.get(id); if (!b || b.clienteConfirmado) return null;
+    if (!kitPodeNuvem()) return _conf(id);
+    b.clienteConfirmado = { em: new Date().toISOString(), publicandoKit: true };   /* a tela já mostra "avisado" */
+    Promise.race([Kit.link(kitChaveDe(b)), new Promise(r => setTimeout(r, 5000))]).catch(() => {})
+      .finally(() => { delete b.clienteConfirmado; _conf(id); });
+    return b;
+  };
+}
+
+/* o servidor (e-mail de recibo e confirmação) só põe o link #/kt/ em app que sabe abrir o kit: avisa nos Ajustes (públicos) */
+if (typeof DB !== 'undefined' && DB && DB.settings && +DB.settings.kitVersao !== 1) { DB.settings.kitVersao = 1; try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); } catch (e) {} }
+
 /* ---------- ligar no app (aba escondida) ---------- */
 const _viewAdmKit = viewAdm;
 viewAdm = function (tab, arg) { if (tab === 'kit') return admKit(arg ? decodeURIComponent(arg) : ''); return _viewAdmKit(tab, arg); };

@@ -895,6 +895,12 @@ function semeiaNovidades() {
     }
     DB.settings.fotoTransferV2 = true; mudou = true;
   }
+  /* 27/10/2026: o e-mail ao cliente passou a SAIR de verdade (função avisos do servidor). A chave
+     "avisar clientes" nascia desligada sem ninguém ter escolhido: liga uma vez; ela desliga em Ajustes → Avisos. */
+  if (!DB.settings.avisoClientesV1) {
+    DB.settings.avisarClientes = true;
+    DB.settings.avisoClientesV1 = true; mudou = true;
+  }
   return mudou;
 }
 function save() {
