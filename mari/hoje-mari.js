@@ -54,6 +54,8 @@ function hjLembrete(b) {
     encontro ? `🚩 Encontro: ${encontro}` : '',
     `👥 ${b.pax} pessoa${+b.pax > 1 ? 's' : ''}`,
     falta > 0 ? `💶 No dia: ${eur(falta)}, em euro, em dinheiro` : '',
+    /* 27/10: o kit da viagem (vouchers, encontro, tudo) — o link curto, se ela já mandou o kit */
+    (typeof Kit !== 'undefined' && Kit.urlConhecida(String(b.email || b.whats || b.name || '').toLowerCase())) ? '🎟 O kit da sua viagem (vouchers e tudo): ' + Kit.urlConhecida(String(b.email || b.whats || b.name || '').toLowerCase()) : '',
     '',
     'Qualquer imprevisto, me chama aqui. Até lá!',
   ];

@@ -46,7 +46,7 @@ function pdfCarrega() {
 }
 /* os blocos onde a folha pode virar (o fim de cada um), por documento */
 const PDF_BLOCOS = '.od-top,.od-it,.od-opc,.od-sub,.od-cards,.od-total,.od-cond,.od-rod,.od-pe,.od-txtc,.od-sec,' +
-  '.fd-topo,.fd-bloco,.fd-tab tr,.fd-tot,.fd-pe,.vo-top,.vo-sec,.vo-pe,.rt-pg,.rt-dia,.rt-parada,.rt-map,section,h2,h3,p,li,tr';
+  '.fd-topo,.fd-bloco,.fd-tab tr,.fd-tot,.fd-pe,.vo-top,.vo-sec,.vo-pe,.rt-pg,.rt-dia,.rt-parada,.rt-map,.kt-bl,.kt-grade,section,h2,h3,p,li,tr';
 function pdfCortes(alturaTotal, folha, fins) {
   const cortes = []; let ini = 0;
   while (alturaTotal - ini > folha + 1) {
@@ -66,6 +66,8 @@ async function pdfDoElemento(el, nome) {
     onclone: (doc) => {
       const c = el.id ? doc.getElementById(el.id) : null; if (!c) return;
       c.style.width = LARG + 'px'; c.style.maxWidth = LARG + 'px'; c.style.margin = '0';
+      /* o que só serve na tela (botões, "pagar agora", "pôr na agenda") não vai para o papel */
+      c.querySelectorAll('.kt-tela,[data-pdf-fora]').forEach(x => { x.style.display = 'none'; });
       c.querySelectorAll('*').forEach(x => { const cs = doc.defaultView.getComputedStyle(x); if (cs.boxShadow !== 'none') x.style.boxShadow = 'none'; });
       const topo = c.getBoundingClientRect().top;
       altura = c.getBoundingClientRect().height;
