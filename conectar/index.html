@@ -87,6 +87,9 @@ const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
 const p = new URLSearchParams(location.search);
 const CLIENTE = (p.get('cliente') || 'sandbox').slice(0, 60);
 const EN = p.get('lang') === 'en' || (!p.get('lang') && !/^pt/i.test(navigator.language || ''));
+/* ?com=usuario: a caixa mostra SÓ a conversa com essa pessoa — pra gravar demonstração (o screencast do
+   App Review) sem expor as outras conversas da conta. Sem o parâmetro, lista as últimas 12. */
+const COM = (p.get('com') || '').replace(/^@/, '').toLowerCase().slice(0, 40);
 const T = EN ? {
   marca: 'Ti Artes · Automated assistant', titulo: 'Connect your Instagram', lede: 'The assistant will reply to the direct messages of your professional account — tours, dates, availability and prices — in the language the person writes in.',
   carregando: 'Loading…', oque: 'What happens when you connect', priv: 'Privacy policy', termos: 'Terms', dados: 'Data deletion',
@@ -118,7 +121,7 @@ document.getElementById(EN ? 'len' : 'lpt').style.fontWeight = '700';
 
 const quadro = document.getElementById('quadro'), caixa = document.getElementById('caixa');
 const esc = (s) => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const voltar = location.origin + location.pathname + '?cliente=' + encodeURIComponent(CLIENTE) + (p.get('lang') ? '&lang=' + encodeURIComponent(p.get('lang')) : '');
+const voltar = location.origin + location.pathname + '?cliente=' + encodeURIComponent(CLIENTE) + (p.get('lang') ? '&lang=' + encodeURIComponent(p.get('lang')) : '') + (COM ? '&com=' + encodeURIComponent(COM) : '');
 const linkConectar = COFRE + '/ig-conectar?cliente=' + encodeURIComponent(CLIENTE) + '&voltar=' + encodeURIComponent(voltar);
 
 /* o bilhete da caixa vem na volta do login (?b=) e fica só nesta aba */
@@ -162,7 +165,7 @@ async function carregarConversas() {
   const r = await api('ig-caixa').catch(() => ({ erro: 'rede' }));
   const lista = document.getElementById('lista'); if (!lista) return;
   if (r.erro === 'bilhete') { lista.innerHTML = '<p class="erro">' + esc(T.bilheteVelho) + '</p>'; return; }
-  CONVS = (r.conversas || []);
+  CONVS = (r.conversas || []).filter(c => !COM || String(c.usuario || '').toLowerCase() === COM);
   if (!CONVS.length) { lista.innerHTML = '<p class="dica">' + esc(r.erro ? r.erro : T.nenhuma) + '</p>'; return; }
   lista.innerHTML = CONVS.map(c => '<button type="button" class="conv ' + (ATUAL === c.de ? 'on' : '') + '" data-de="' + esc(c.de) + '" title="' + esc(EN ? 'Open this conversation' : 'Abrir esta conversa') + '">' +
     '<span class="ini">' + esc((c.usuario || '?')[0].toUpperCase()) + '</span><span style="min-width:0;flex:1"><b>@' + esc(c.usuario || c.de) + '</b><span>' + esc((c.deQuem === 'nos' ? (T.nos + ': ') : '') + c.texto) + '</span></span></button>').join('');
