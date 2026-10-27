@@ -23,8 +23,9 @@
 
 /* Lovely London (Carol) (21/10/2026): o que é PRIVADO e sobe linha a linha — o appstate é público
    (o site lê de lá), então nada daqui pode ir para ele. */
-const ITENS_COLS = ['pedidos', 'agencias', 'trabalhosAgencia', 'emails', 'motoristas', 'roteiros', 'giftcards', 'avaliacoes', 'tarefas', 'recados', 'pontos', 'fichas'];
-/* estas sao "dicionarios" no DB (chave -> valor); as outras sao listas com id */
+const ITENS_COLS = ['pedidos', 'agencias', 'trabalhosAgencia', 'emails', 'motoristas', 'roteiros', 'giftcards', 'avaliacoes', 'tarefas', 'recados', 'pontos', 'fichas', 'kits'];
+/* estas sao "dicionarios" no DB (chave -> valor); as outras sao listas com id.
+   kits (27/10/2026): o codigo do link curto do kit de cada cliente (kit-viagem.js) — privado */
 const ITENS_DIC = [];
 const IT_SOMBRA = 'lovely_sombra_v1', IT_FILA = 'lovely_fila_v1', IT_MARCA = 'lovely_marca_v1';
 /* a chave antiga do "em dia" (ate 18/10): nao vale mais nada, so e apagada */

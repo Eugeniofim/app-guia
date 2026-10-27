@@ -2316,6 +2316,8 @@ function admSettings() {
     if (v && !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(v)) return toast(t('admAvisoBad'));
     DB.settings.admEmail = v;
     if ($('#avCli')) DB.settings.avisarClientes = $('#avCli').checked;
+    /* 27/10/2026: a escolha dela vale no servidor (função avisos): sem isto ele trata como ligado */
+    if ($('#avCli')) DB.settings.avisoClientesEscolhido = true;
     /* campo que nao esta na tela (e-mail ao cliente desligado) guarda o que ja havia */
     const pega = (id) => $('#' + id).value.trim();
     if ($('#reciboIntroPt')) {
