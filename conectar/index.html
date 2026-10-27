@@ -152,7 +152,9 @@ function conectado(d) {
 
 /* ---------- a caixa de entrada ---------- */
 let ATUAL = null, CONVS = [];
-const api = (rota, opt) => fetch(COFRE + '/' + rota + (rota.includes('?') ? '&' : '?') + 'cliente=' + encodeURIComponent(CLIENTE), { ...(opt || {}), headers: { 'x-bilhete': bilhete(), 'content-type': 'application/json', ...((opt && opt.headers) || {}) } }).then(r => r.json());
+/* O bilhete vai na URL (?b=), não em cabeçalho: cabeçalho próprio ('x-bilhete') dispara o preflight do
+   CORS e o navegador recusa ("Failed to fetch") — foi assim que a caixa mostrou "rede" em 27/10. */
+const api = (rota, opt) => fetch(COFRE + '/' + rota + (rota.includes('?') ? '&' : '?') + 'cliente=' + encodeURIComponent(CLIENTE) + '&b=' + encodeURIComponent(bilhete()), { ...(opt || {}), headers: { 'content-type': 'application/json', ...((opt && opt.headers) || {}) } }).then(r => r.json());
 function abrirCaixa() {
   caixa.style.display = '';
   caixa.innerHTML = '<h2>' + esc(T.caixaT) + '</h2><p class="dica" style="margin:0 0 10px">' + esc(T.caixaD) + '</p>' +
@@ -187,7 +189,7 @@ async function abrirConversa(de) {
   document.getElementById('btEnviar').onclick = async () => {
     const txt = document.getElementById('txt').value.trim(); if (!txt) return;
     const bt = document.getElementById('btEnviar'); bt.disabled = true; bt.textContent = T.enviando;
-    const r2 = await api('ig-caixa-enviar', { method: 'POST', body: JSON.stringify({ cliente: CLIENTE, para: de, texto: txt }) }).catch(() => ({ erro: 'rede' }));
+    const r2 = await api('ig-caixa-enviar', { method: 'POST', body: JSON.stringify({ cliente: CLIENTE, bilhete: bilhete(), para: de, texto: txt }) }).catch(() => ({ erro: 'rede' }));
     bt.disabled = false; bt.textContent = T.enviar;
     const ok = document.getElementById('okEnvio');
     if (r2.ok) { ok.textContent = T.enviado; document.getElementById('txt').value = ''; setTimeout(() => { carregarConversas(); }, 1500); }
