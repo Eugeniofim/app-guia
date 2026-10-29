@@ -601,7 +601,8 @@ function ppCss() {
   .pp{--pp-fundo:#F6F3EE;--pp-ouro:var(--brand-dourado,#C9A23B);--pp-ouro-t:var(--brand-primaria,#5C4812);--pp-n:#1C1A17;--pp-t:#4B463F;--pp-escuro:var(--brand-primaria,#141414);--pp-claro:#FBF8F3;
     color-scheme:light;background:var(--pp-fundo);color:var(--pp-n);font-family:var(--f-ui),system-ui,sans-serif;max-width:794px;margin:0 auto;padding-bottom:28px}
   .pp p{margin:0 0 8px;font-size:14.5px;line-height:1.55;color:var(--pp-t)}
-  .pp-capa{position:relative;aspect-ratio:794/1123;min-height:480px;overflow:hidden;background:var(--pp-escuro);margin-bottom:26px}
+  .pp-capa{position:relative;width:100%;aspect-ratio:794/1123;min-height:480px;overflow:hidden;background:var(--pp-escuro);margin-bottom:26px}
+  /* com a altura limitada à tela, a largura não encolhe junto (sobrava uma faixa vazia ao lado no computador, 29/10/2026) */
   .pp-pg .pp-capa{max-height:calc(100svh - 56px)}
   .em-pdf .pp-capa{max-height:none!important}
   .pp-fotos{position:absolute;inset:0}
