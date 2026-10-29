@@ -670,7 +670,7 @@ admCoupons = function () {
    ===================================================== */
 const NAV_GRUPOS = [
   ['Dia a dia', ['today', 'tarefas', 'agenda']],
-  ['Passeios e reservas', ['tours', 'pontos', 'bookings', 'roteiros']],
+  ['Passeios e reservas', ['tours', 'pontos', 'bookings', 'orcamentos', 'roteiros']],
   ['Clientes', ['clients', 'avaliacoes']],
   ['Agências e pedidos', ['agencias', 'emails', 'transfer']],
   ['Dinheiro', ['financeiro', 'money', 'extrato', 'reports']],

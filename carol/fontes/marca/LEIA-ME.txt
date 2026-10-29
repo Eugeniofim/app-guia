@@ -1,0 +1,4 @@
+Fontes da marca Lovely London (as mesmas do site lovelylondon.uk): Giften Sans, Buvera (Yukita Creative) e Gastela (Iqbal Pauji).
+Sao COMERCIAIS. Ficam SO na copia local para conferir o visual. NAO publicar no repositorio publico.
+Para o app no ar usar estas fontes, a Carol precisa da licenca WEB (webfont) de cada uma — ou de quem fez o site.
+Sem estes arquivos o app usa as equivalentes livres (Playfair Display, Outfit, Allura — licenca SIL OFL).

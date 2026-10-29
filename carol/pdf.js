@@ -38,7 +38,9 @@ function pdfCarrega() {
 }
 /* os blocos onde a folha pode virar (o fim de cada um), por documento */
 /* onde a folha pode virar: o fim de cada bloco ou item — nunca logo depois de um título ou de um subtítulo */
-const PDF_BLOCOS = '.kt-bl,.kt-grade,.kt-par li,.kt-ok li,.kt-no li,.kt-levar li,.kt-ind,.kt-parc,.kt-pg,.kt-fino:not(.kt-fino0),section,tr';
+/* proposta (orcamento-premium.js): título nunca fecha a folha — pode virar depois da FOTO e de cada
+   parágrafo, nunca depois do nome do dia nem do "Roteiro personalizado" (28/10/2026) */
+const PDF_BLOCOS = '.kt-bl,.kt-grade,.kt-par li,.kt-ok li,.kt-no li,.kt-levar li,.kt-ind,.kt-parc,.kt-pg,.kt-fino:not(.kt-fino0),section,tr,.pp-foto,.pp p:not(.pp-kick),.pp li';
 function pdfCortes(alturaTotal, folha, fins) {
   const cortes = []; let ini = 0;
   while (alturaTotal - ini > folha + 1) {
@@ -58,6 +60,7 @@ async function pdfDoElemento(el, nome) {
     onclone: (doc) => {
       const c = el.id ? doc.getElementById(el.id) : null; if (!c) return;
       c.style.width = LARG + 'px'; c.style.maxWidth = LARG + 'px'; c.style.margin = '0';
+      c.classList.add('em-pdf');   /* o CSS sabe que é o papel (a capa da proposta ocupa a folha inteira) */
       /* o que só serve na tela (botões, "pagar agora", "pôr na agenda") não vai para o papel */
       c.querySelectorAll('.kt-tela,[data-pdf-fora]').forEach(x => { x.style.display = 'none'; });
       c.querySelectorAll('*').forEach(x => { const cs = doc.defaultView.getComputedStyle(x); if (cs.boxShadow !== 'none') x.style.boxShadow = 'none'; });
@@ -76,7 +79,10 @@ async function pdfDoElemento(el, nome) {
     const k = folhaCss / altura;
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (W - W * k) / 2, 0, W * k, H);
   } else {
-    const cortes = pdfCortes(altura, folhaCss, fins), limites = [0, ...cortes, altura];
+    const cortes = pdfCortes(altura, folhaCss, fins);
+    /* sobrou um fiapo para a última folha: a penúltima encolhe um pouco e leva junto */
+    if (cortes.length && altura - cortes[cortes.length - 1] < folhaCss * 0.15) cortes.pop();
+    const limites = [0, ...cortes, altura];
     for (let i = 0; i < limites.length - 1; i++) {
       const y0 = Math.round(limites[i] * pxPorCss), y1 = Math.min(canvas.height, Math.round(limites[i + 1] * pxPorCss));
       if (y1 - y0 < 4) continue;
@@ -84,7 +90,8 @@ async function pdfDoElemento(el, nome) {
       const g = fatia.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, fatia.width, fatia.height);
       g.drawImage(canvas, 0, y0, canvas.width, y1 - y0, 0, 0, canvas.width, y1 - y0);
       if (i) pdf.addPage();
-      pdf.addImage(fatia.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, W, (y1 - y0) / pxPorCss * W / LARG);
+      const h = (y1 - y0) / pxPorCss * W / LARG, k = h > H ? H / h : 1;
+      pdf.addImage(fatia.toDataURL('image/jpeg', 0.92), 'JPEG', (W - W * k) / 2, 0, W * k, h * k);
     }
   }
   const arquivo = String(nome || 'documento').replace(/[\\/:*?"<>|]+/g, '-').trim() + '.pdf';
@@ -111,7 +118,7 @@ function pdfLiga(botao, alvo, nome, opts) {
     if (opts.antes) { try { await opts.antes(); } catch (e) {} }
     botao.disabled = true; botao.textContent = 'Preparando o PDF…';
     let painel = document.getElementById('pdfPronto');
-    if (!painel) { painel = document.createElement('div'); painel.id = 'pdfPronto'; painel.className = 'pdfPronto'; (botao.closest('.ktBarra,header,.topbar') || botao.parentNode).insertAdjacentElement('afterend', painel); }
+    if (!painel) { painel = document.createElement('div'); painel.id = 'pdfPronto'; painel.className = 'pdfPronto'; (botao.closest('.ktBarra,.doc-barra,header,.topbar') || botao.parentNode).insertAdjacentElement('afterend', painel); }
     painel.hidden = false; painel.innerHTML = '<p>Preparando o PDF… (1 ou 2 segundos)</p>';
     try {
       const r = await pdfDoElemento(el, typeof nome === 'function' ? nome() : nome);

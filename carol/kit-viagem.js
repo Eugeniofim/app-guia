@@ -326,12 +326,10 @@ async function kitAbreCurto(partes) {
   if (!tok) return paginaPublicaErro();
   if (!(typeof temNuvem === 'function' && temNuvem())) return paginaPublicaErro(`Este link de viagem não abre aqui. Peça para ${kitComA()} mandar de novo pelo WhatsApp.`);
   app.innerHTML = '<main class="wrap"><p class="why center" style="margin-top:40px">Abrindo a sua viagem…</p></main>';
-  try {
-    const r = await supaFetch('rpc/kit', { method: 'POST', body: JSON.stringify({ p_token: tok }), headers: { Prefer: '' } });
-    const d = r.ok ? await r.json() : null;
-    if (!d || !d.servicos) return paginaPublicaErro(`Este link de viagem não existe mais. Peça para ${kitComA()} um novo pelo WhatsApp.`);
-    kitPaginaCliente(d, location.href);
-  } catch (e) { paginaPublicaErro('Sem internet para abrir a sua viagem. Tente de novo em instantes.'); }
+  const { ok, d } = await lerLinkPublico(tok);
+  if (!ok) return paginaPublicaErro('A conexão falhou ao abrir a sua viagem. Confira a internet e toque em "Tentar de novo".', true);
+  if (!d || !d.servicos) return paginaPublicaErro(`Este link de viagem não existe mais. Peça para ${kitComA()} um novo pelo WhatsApp.`);
+  try { kitPaginaCliente(d, location.href); } catch (e) { paginaPublicaErro('Não consegui montar a sua viagem agora. Toque em "Tentar de novo".', true); }
 }
 /* as rotas públicas (sem login): #/k/<código> e #/kt/<conteúdo> */
 const _rotaExtraKit = rotaExtra;

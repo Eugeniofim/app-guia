@@ -28,8 +28,16 @@ function supaFetch(path, opts = {}) {
   /* Sem nuvem configurada, nada vai para a rede: a fila local segura tudo,
      como se estivesse offline. E o modo "prototipo" de um cliente novo. */
   if (!SUPA_URL) return Promise.reject(new Error('sem nuvem configurada (config.js)'));
-  /* logada, fala como ela; deslogado, fala como visitante */
-  const tok = (typeof authToken === 'function' && authToken()) || SUPA_KEY;
+  /* Login vencido (celular parado a noite toda): renova ANTES de falar com o banco.
+     Mandar o vencido = 401 = a tela entende "não existe" (achado em 29/10/2026). */
+  if (!opts.visitante && typeof authVencida === 'function' && authVencida() && typeof authEnsure === 'function')
+    return authEnsure().then(() => supaFetchJa(path, opts), () => supaFetchJa(path, opts));
+  return supaFetchJa(path, opts);
+}
+function supaFetchJa(path, tudo) {
+  const { visitante, ...opts } = tudo;
+  /* logada, fala como ela; deslogado (ou link público), fala como visitante */
+  const tok = (!visitante && typeof authToken === 'function' && authToken()) || SUPA_KEY;
   const ctrl = new AbortController();
   const corta = setTimeout(() => ctrl.abort(), REDE_TIMEOUT);
   return fetch(SUPA_URL + '/rest/v1/' + path, {
@@ -186,7 +194,16 @@ function marcaSincronizada(id) {
   if (b && !b.naNuvem) { b.naNuvem = true; localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
 }
 
-async function cloudPushBooking(b) {
+/* o PATCH de uma reserva espera o POST dela: saindo juntos, o PATCH chegava antes, achava 0 linhas e
+   o que ela mudou (sinal, textos do orçamento) se perdia (29/10/2026) */
+const _postando = new Map();
+function cloudPushBooking(b) {
+  const p = _cloudPushBooking(b);
+  _postando.set(b.id, p);
+  p.finally(() => { if (_postando.get(b.id) === p) _postando.delete(b.id); });
+  return p;
+}
+async function _cloudPushBooking(b) {
   const body = { id: b.id, data: b };
   try {
     const r = await supaFetch('bookings', { method: 'POST', body: JSON.stringify(body) });
@@ -197,6 +214,8 @@ async function cloudPushBooking(b) {
   } catch (e) { qPush({ path: 'bookings', method: 'POST', body }); return { ok: false }; }
 }
 async function cloudUpdateBooking(b) {
+  const pend = _postando.get(b.id);
+  if (pend) await pend.catch(() => {});
   const body = { data: b };
   const path = 'bookings?id=eq.' + encodeURIComponent(b.id);
   try {

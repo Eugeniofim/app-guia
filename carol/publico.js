@@ -59,9 +59,25 @@ function paginaPublica(titulo, html, opts) {
   const b = document.getElementById('pubPdf');
   if (b) { if (typeof pdfLiga === 'function') pdfLiga(b, () => document.getElementById('pubPrint'), () => document.title); else b.onclick = () => window.print(); }
 }
-function paginaPublicaErro(msg) {
+function paginaPublicaErro(msg, tentar) {
   paginaPublica((typeof guiaNegocio === 'function' && guiaNegocio()) || 'Viagem',
-    `<section class="card pubErro"><h1 class="pageh">Não consegui abrir este link</h1><p class="why">${esc(msg || `O link pode ter sido cortado ao copiar. Peça para ${pubArtigo()} ${pubGuia()} mandar de novo.`)}</p></section>`, { semImprimir: true });
+    `<section class="card pubErro"><h1 class="pageh">Não consegui abrir este link</h1><p class="why">${esc(msg || `O link pode ter sido cortado ao copiar. Peça para ${pubArtigo()} ${pubGuia()} mandar de novo.`)}</p>${tentar ? '<button class="cta" id="pubDeNovo" type="button">Tentar de novo</button>' : ''}</section>`, { semImprimir: true });
+  const b = document.getElementById('pubDeNovo'); if (b) b.onclick = () => location.reload();
+}
+/* O link do cliente (proposta #/p, viagem #/k) é PÚBLICO: lê SEMPRE como visitante.
+   Até 29/10/2026 ele lia com a sessão de quem estivesse logada no aparelho: com o login
+   da noite anterior vencido, o banco recusou (401) e a tela disse "não existe mais" — com tudo
+   no banco. Agora: visitante sempre; falha de rede tenta 3 vezes e, se não der, diz que NÃO
+   CONSEGUIU abrir. "Não existe" só quando o banco responde que não existe. */
+async function lerLinkPublico(tok) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await supaFetch('rpc/kit', { method: 'POST', visitante: true, body: JSON.stringify({ p_token: tok }), headers: { Prefer: '' } });
+      if (r.ok) return { ok: true, d: await r.json() };
+    } catch (e) {}
+    await new Promise(res => setTimeout(res, 700 * (i + 1)));
+  }
+  return { ok: false, d: null };
 }
 /* abre um link público: decodifica e entrega o objeto para quem desenha */
 function abrePublico(partes, desenha) {
