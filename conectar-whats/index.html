@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Conectar o WhatsApp · Ti Artes</title>
+<style>
+  :root{ --fundo:#0e1d1c; --cartao:#142827; --tinta:#ecebe8; --suave:#9fb0ad;
+         --marca:#2EE6C5; --linha:#23403d; --erro:#ff8a7a; --balao:#1d3a37; }
+  @media (prefers-color-scheme: light){ :root{ --fundo:#f6f8f7; --cartao:#fff; --tinta:#14201f;
+         --suave:#5b6b68; --linha:#dde7e5; --balao:#eef3f2; } }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--fundo); color:var(--tinta); padding:24px 16px 64px;
+        font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main{ max-width:560px; margin:0 auto }
+  .marca{ display:flex; align-items:center; gap:10px; margin-bottom:22px }
+  .marca img{ width:36px; height:36px; border-radius:9px }
+  .marca b{ font-size:15px; letter-spacing:.02em }
+  .marca .lang{ margin-left:auto; font-size:13px; color:var(--suave) } .marca .lang a{ margin-left:8px }
+  h1{ font-size:24px; line-height:1.25; margin:0 0 8px }
+  .lede{ color:var(--suave); margin:0 0 22px }
+  .cartao{ background:var(--cartao); border:1px solid var(--linha); border-radius:14px; padding:20px; margin-bottom:14px }
+  .bt{ display:block; width:100%; text-align:center; text-decoration:none; border:0; cursor:pointer;
+       background:var(--marca); color:#06201c; font:600 16px/1.3 system-ui; padding:15px; border-radius:11px }
+  .bt.fraco{ background:transparent; color:var(--tinta); border:1px solid var(--linha); font-weight:600; margin-top:10px }
+  .bt[disabled]{ opacity:.55; cursor:default }
+  .selo{ display:inline-flex; align-items:center; gap:6px; background:rgba(46,230,197,.14); color:var(--marca);
+         border-radius:999px; padding:5px 12px; font-size:13px; font-weight:600; margin-bottom:12px }
+  .numero{ font-size:21px; font-weight:700; margin:0 } .nome{ color:var(--suave); margin:2px 0 0 }
+  h2{ font-size:16px; margin:0 0 6px }
+  ol{ margin:0; padding-left:20px; color:var(--suave) } ol li{ margin-bottom:6px }
+  .rodape{ color:var(--suave); font-size:14px; border-top:1px solid var(--linha); margin-top:22px; padding-top:16px }
+  .erro{ color:var(--erro) } .ok{ color:var(--marca); font-size:14px; margin:8px 0 0 }
+  a{ color:var(--marca) }
+  .dica{ color:var(--suave); font-size:13px; margin:6px 0 0; line-height:1.45 }
+  label{ display:block; font-size:14px; font-weight:600; margin:12px 0 4px }
+  input, textarea, select{ width:100%; border:1px solid var(--linha); border-radius:11px; background:var(--fundo); color:var(--tinta); padding:11px 12px; font:inherit }
+  textarea{ min-height:84px; resize:vertical }
+  .modelos{ display:flex; flex-direction:column; gap:6px; margin-top:12px }
+  .modelo{ display:flex; justify-content:space-between; gap:10px; background:var(--balao); border-radius:10px; padding:8px 12px; font-size:14px }
+  .modelo span{ color:var(--suave); white-space:nowrap }
+  .oculto{ display:none }
+</style>
+</head>
+<body>
+<main>
+  <div class="marca">
+    <img src="/ti-artes-perfil.jpg" alt="">
+    <b data-t="marca">Ti Artes · Atendimento automático</b>
+    <span class="lang"><a href="?lang=pt" id="lpt">PT</a><a href="?lang=en" id="len">EN</a></span>
+  </div>
+
+  <h1 data-t="titulo">Conecte o WhatsApp da sua empresa</h1>
+  <p class="lede" data-t="lede">O assistente passa a responder quem escreve para o seu WhatsApp — dúvidas, preços, datas e pedidos — e anota cada contato para a sua equipe.</p>
+
+  <div class="cartao" id="quadro"><p class="lede" style="margin:0" data-t="carregando">Carregando…</p></div>
+  <div class="cartao oculto" id="envio"></div>
+  <div class="cartao oculto" id="modelo"></div>
+
+  <div class="cartao">
+    <h2 data-t="oque">O que acontece quando você conecta</h2>
+    <ol id="passos"></ol>
+  </div>
+
+  <p class="rodape"><a href="/privacidade.html" data-t="priv">Política de privacidade</a> · <a href="/termos.html" data-t="termos">Termos</a> · <a href="/dados.html" data-t="dados">Exclusão de dados</a></p>
+</main>
+
+<script src="../config.js"></script>
+<script>
+/* "Conectar meu WhatsApp" (04/11/2026) — o Cadastro Incorporado da Meta.
+   Quem abre: o cliente, pelo link de CONVITE que a Ti Artes manda (?c=…), que diz em qual
+   linha do cofre o número entra. Sem convite, a página conecta na linha de teste 'sandbox'
+   (é o que o revisor da Meta usa) e nunca na de um cliente. Idioma: ?lang=en|pt.
+   O código que a Meta devolve vale 30 segundos: vai direto pro cofre, que troca pelo token. */
+const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
+const p = new URLSearchParams(location.search);
+const CONVITE = (p.get('c') || '').slice(0, 64);
+const EN = p.get('lang') === 'en' || (!p.get('lang') && !/^pt/i.test(navigator.language || ''));
+const T = EN ? {
+  marca: 'Ti Artes · Automated assistant', titulo: 'Connect your business WhatsApp', lede: 'The assistant replies to whoever writes to your WhatsApp — questions, prices, dates and requests — and logs every contact for your team.',
+  carregando: 'Loading…', oque: 'What happens when you connect', priv: 'Privacy policy', termos: 'Terms', dados: 'Data deletion',
+  passos: ['You sign in with Facebook in the official Meta window — we never see your password.', 'The number stays in YOUR business account at Meta. Ti Artes only gets permission to send and receive messages for it.', 'With the number you already use, you keep the WhatsApp Business app on your phone. When you answer a chat yourself, the assistant goes quiet in that chat.', 'Meta bills conversations directly to your business (the first 1,000 replies each month are free).', 'You can disconnect at any time in your Meta Business settings.'],
+  atual: 'Use the number I already have on WhatsApp Business', atualDica: 'Keeps the app on your phone working. Groups keep working; broadcast lists become read-only.',
+  novo: 'Use a new number', novoDica: 'A number that is not on WhatsApp yet. Meta sends a code by SMS or call to confirm it.',
+  semConfig: 'The connection is being set up by Ti Artes. Please try again later.', erroServidor: 'Could not reach the server.',
+  abrindo: 'Opening Meta…', conectando: 'Connecting… do not close this page.', cancelou: 'You closed the Meta window before finishing. Nothing was changed.',
+  conectado: '● Connected', nomeStatus: { APPROVED: 'Display name approved', PENDING_REVIEW: 'Display name under review by Meta', DECLINED: 'Display name declined — adjust it in WhatsApp Manager', NONE: '' },
+  pagamento: 'Last step: in WhatsApp Manager, add a payment method so replies keep flowing after the free 1,000 per month.', abrirGerenciador: 'Open WhatsApp Manager',
+  outro: 'Connect another number', bilheteVelho: 'This session expired. Connect again to send messages from here.',
+  envioT: 'Send a message', envioD: 'Sends from your business number through the WhatsApp Cloud API. It arrives in the person\'s WhatsApp as a message from your business.',
+  para: 'To (WhatsApp number with country code)', paraEx: 'e.g. 5541999998888', texto: 'Message', textoEx: 'Hi! Thanks for your message…', enviar: 'Send message', enviando: 'Sending…', enviado: 'Sent ✓ — check the WhatsApp of that number.',
+  janela: 'WhatsApp only accepts free-form text if the person wrote to you in the last 24 hours. Otherwise you need an approved template (below).',
+  modeloT: 'Create a message template', modeloD: 'Templates are the messages Meta approves for starting a conversation (reminders, confirmations). Use {{1}}, {{2}} for the parts that change.',
+  nome: 'Template name', nomeEx: 'visit_confirmation', categoria: 'Category', util: 'Utility (confirmations, reminders)', mkt: 'Marketing (offers, news)', idioma: 'Language',
+  corpo: 'Text', corpoEx: 'Hi {{1}}, your visit is confirmed for {{2}}. Reply here if you need to change it.', criar: 'Create template', criando: 'Creating…', criado: 'Created ✓ — sent to Meta for approval.',
+  seus: 'Templates in this account', nenhum: 'No templates yet.', status: { APPROVED: 'approved', PENDING: 'in review', REJECTED: 'rejected', PAUSED: 'paused', DISABLED: 'disabled' },
+} : {
+  marca: 'Ti Artes · Atendimento automático', titulo: 'Conecte o WhatsApp da sua empresa', lede: 'O assistente passa a responder quem escreve para o seu WhatsApp — dúvidas, preços, datas e pedidos — e anota cada contato para a sua equipe.',
+  carregando: 'Carregando…', oque: 'O que acontece quando você conecta', priv: 'Política de privacidade', termos: 'Termos', dados: 'Exclusão de dados',
+  passos: ['Você entra com o seu Facebook, na janela oficial da Meta — nós nunca vemos a sua senha.', 'O número fica na conta da SUA empresa na Meta. A Ti Artes só recebe permissão para mandar e receber mensagens por ele.', 'Com o número que você já usa, o app WhatsApp Business continua no seu celular. Quando você mesmo responde uma conversa, o assistente fica quieto naquela conversa.', 'A Meta cobra as conversas direto da sua empresa (as primeiras 1.000 respostas de cada mês são grátis).', 'Você desconecta quando quiser, nas configurações da sua empresa na Meta.'],
+  atual: 'Usar o número que já uso no WhatsApp Business', atualDica: 'O app continua funcionando no seu celular. Os grupos continuam; as listas de transmissão ficam só para leitura.',
+  novo: 'Usar um número novo', novoDica: 'Um número que ainda não está no WhatsApp. A Meta manda um código por SMS ou ligação para confirmar.',
+  semConfig: 'A conexão está sendo preparada pela Ti Artes. Tente de novo mais tarde.', erroServidor: 'Não consegui falar com o servidor.',
+  abrindo: 'Abrindo a Meta…', conectando: 'Conectando… não feche esta página.', cancelou: 'A janela da Meta foi fechada antes do fim. Nada foi alterado.',
+  conectado: '● Conectado', nomeStatus: { APPROVED: 'Nome aprovado', PENDING_REVIEW: 'Nome em análise pela Meta', DECLINED: 'Nome recusado — ajuste no WhatsApp Manager', NONE: '' },
+  pagamento: 'Último passo: no WhatsApp Manager, adicione uma forma de pagamento, para as respostas seguirem depois das 1.000 grátis do mês.', abrirGerenciador: 'Abrir o WhatsApp Manager',
+  outro: 'Conectar outro número', bilheteVelho: 'Esta sessão venceu. Conecte de novo para mandar mensagens daqui.',
+  envioT: 'Mandar uma mensagem', envioD: 'Sai do número da sua empresa pela API oficial do WhatsApp. Chega no WhatsApp da pessoa como mensagem da sua empresa.',
+  para: 'Para (WhatsApp com DDI e DDD)', paraEx: 'ex.: 5541999998888', texto: 'Mensagem', textoEx: 'Oi! Obrigado pela mensagem…', enviar: 'Enviar mensagem', enviando: 'Enviando…', enviado: 'Enviada ✓ — confira no WhatsApp desse número.',
+  janela: 'O WhatsApp só aceita texto livre se a pessoa escreveu para você nas últimas 24 horas. Fora disso, só com modelo aprovado (abaixo).',
+  modeloT: 'Criar um modelo de mensagem', modeloD: 'Modelos são as mensagens que a Meta aprova para começar uma conversa (lembretes, confirmações). Use {{1}}, {{2}} nas partes que mudam.',
+  nome: 'Nome do modelo', nomeEx: 'confirmacao_de_visita', categoria: 'Categoria', util: 'Utilidade (confirmações, lembretes)', mkt: 'Marketing (ofertas, novidades)', idioma: 'Idioma',
+  corpo: 'Texto', corpoEx: 'Oi {{1}}, sua visita está confirmada para {{2}}. Se precisar mudar, é só responder aqui.', criar: 'Criar modelo', criando: 'Criando…', criado: 'Criado ✓ — foi para a aprovação da Meta.',
+  seus: 'Modelos desta conta', nenhum: 'Nenhum modelo ainda.', status: { APPROVED: 'aprovado', PENDING: 'em análise', REJECTED: 'recusado', PAUSED: 'pausado', DISABLED: 'desativado' },
+};
+document.documentElement.lang = EN ? 'en' : 'pt-BR';
+document.querySelectorAll('[data-t]').forEach(e => { if (T[e.dataset.t]) e.textContent = T[e.dataset.t]; });
+document.getElementById('passos').innerHTML = T.passos.map(x => '<li>' + x + '</li>').join('');
+document.getElementById(EN ? 'len' : 'lpt').style.fontWeight = '700';
+['lpt', 'len'].forEach(id => { const a = document.getElementById(id); const u = new URL(location.href); u.searchParams.set('lang', id === 'len' ? 'en' : 'pt'); a.href = u.search; });
+
+const quadro = document.getElementById('quadro'), envio = document.getElementById('envio'), modelo = document.getElementById('modelo');
+const esc = (s) => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const post = (rota, corpo) => fetch(COFRE + '/' + rota, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo) }).then(r => r.json());
+
+/* depois de conectar: o cofre entrega um bilhete de 2 h, que fica só nesta aba */
+const KS = 'wa-conexao';
+const sessao = () => { try { return JSON.parse(sessionStorage.getItem(KS) || 'null'); } catch (_) { return null; } };
+const guardaSessao = (s) => { try { sessionStorage.setItem(KS, JSON.stringify(s)); } catch (_) {} };
+const comBilhete = (rota) => { const s = sessao() || {}; return COFRE + '/' + rota + '?cliente=' + encodeURIComponent(s.slug || '') + '&b=' + encodeURIComponent(s.bilhete || ''); };
+
+/* ---------- o botão da Meta ---------- */
+let CFG = null, RETORNO = null;
+/* a Meta conta pela janela o que foi escolhido (conta, número, se terminou ou cancelou) */
+window.addEventListener('message', (ev) => {
+  let host = ''; try { host = new URL(ev.origin).hostname; } catch (_) { return; }
+  if (!/(^|\.)facebook\.com$/.test(host)) return;
+  let d; try { d = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data; } catch (_) { return; }
+  if (d && d.type === 'WA_EMBEDDED_SIGNUP') RETORNO = { evento: d.event, ...(d.data || {}) };
+});
+function carregaSdk() {
+  return new Promise((ok, falha) => {
+    if (window.FB) return ok();
+    window.fbAsyncInit = () => { FB.init({ appId: CFG.appId, autoLogAppEvents: true, xfbml: false, version: CFG.versao }); ok(); };
+    const s = document.createElement('script');
+    s.src = 'https://connect.facebook.net/' + (EN ? 'en_US' : 'pt_BR') + '/sdk.js'; s.async = true; s.defer = true; s.crossOrigin = 'anonymous';
+    s.onerror = () => falha(new Error('sdk')); document.head.appendChild(s);
+  });
+}
+async function conectar(coexistencia) {
+  const aviso = document.getElementById('aviso');
+  quadro.querySelectorAll('button').forEach(b => b.disabled = true);
+  aviso.className = 'dica'; aviso.textContent = T.abrindo;
+  try { await carregaSdk(); } catch (_) { return desconectado(T.erroServidor); }
+  RETORNO = null;
+  FB.login((resp) => {
+    const code = resp && resp.authResponse && resp.authResponse.code;
+    if (!code) return desconectado(T.cancelou);
+    aviso.textContent = T.conectando;
+    /* o aviso da janela costuma chegar antes do código; espero um instante se não chegou */
+    const manda = () => post('wa-conectar', { convite: CONVITE || undefined, cliente: CONVITE ? undefined : 'sandbox', code,
+      waba_id: RETORNO && RETORNO.waba_id, phone_number_id: RETORNO && RETORNO.phone_number_id, coexistencia: !!coexistencia })
+      .then(r => { if (!r.ok) return desconectado(r.msg || r.erro); guardaSessao({ slug: r.slug, bilhete: r.bilhete }); conectado(r); })
+      .catch(() => desconectado(T.erroServidor));
+    if (RETORNO) manda(); else setTimeout(manda, 1200);
+  }, {
+    config_id: CFG.configId, response_type: 'code', override_default_response_type: true,
+    extras: coexistencia ? { setup: {}, featureType: 'whatsapp_business_app_onboarding', sessionInfoVersion: '3' } : { setup: {}, sessionInfoVersion: '3' },
+  });
+}
+
+function desconectado(msg) {
+  envio.classList.add('oculto'); modelo.classList.add('oculto');
+  const pronto = CFG && CFG.pronto;
+  quadro.innerHTML =
+    (msg ? '<p class="erro" style="margin:0 0 12px">' + esc(msg) + '</p>' : '') +
+    (pronto ? '' : '<p class="erro" style="margin:0 0 12px">' + esc(T.semConfig) + '</p>') +
+    '<button class="bt" id="btAtual" type="button" title="' + esc(T.atualDica) + '"' + (pronto ? '' : ' disabled') + '>' + esc(T.atual) + '</button>' +
+    '<p class="dica">' + esc(T.atualDica) + '</p>' +
+    '<button class="bt fraco" id="btNovo" type="button" title="' + esc(T.novoDica) + '"' + (pronto ? '' : ' disabled') + '>' + esc(T.novo) + '</button>' +
+    '<p class="dica">' + esc(T.novoDica) + '</p><p class="dica" id="aviso"></p>';
+  document.getElementById('btAtual').onclick = () => conectar(true);
+  document.getElementById('btNovo').onclick = () => conectar(false);
+}
+
+function conectado(d) {
+  const st = (T.nomeStatus[d.nome_status] || '');
+  quadro.innerHTML = '<span class="selo">' + esc(T.conectado) + '</span>' +
+    '<p class="numero">' + esc(d.numero || '—') + '</p><p class="nome">' + esc(d.nome || '') + (st ? ' · ' + esc(st) : '') + '</p>' +
+    '<p class="dica" style="margin-top:12px">' + esc(T.pagamento) + ' <a href="https://business.facebook.com/wa/manage/home/" target="_blank" rel="noopener">' + esc(T.abrirGerenciador) + '</a></p>' +
+    '<button class="bt fraco" id="btOutro" type="button">' + esc(T.outro) + '</button>';
+  document.getElementById('btOutro').onclick = () => { try { sessionStorage.removeItem(KS); } catch (_) {} desconectado(''); };
+  montaEnvio(); montaModelo();
+}
+
+/* ---------- mandar uma mensagem (o revisor da Meta precisa ver isto) ---------- */
+function montaEnvio() {
+  envio.classList.remove('oculto');
+  envio.innerHTML = '<h2>' + esc(T.envioT) + '</h2><p class="dica" style="margin:0 0 4px">' + esc(T.envioD) + '</p>' +
+    '<label for="para">' + esc(T.para) + '</label><input id="para" inputmode="tel" autocomplete="off" placeholder="' + esc(T.paraEx) + '">' +
+    '<label for="txt">' + esc(T.texto) + '</label><textarea id="txt" placeholder="' + esc(T.textoEx) + '"></textarea>' +
+    '<button class="bt" id="btEnviar" type="button" style="margin-top:12px" title="' + esc(T.envioD) + '">' + esc(T.enviar) + '</button>' +
+    '<p class="dica">' + esc(T.janela) + '</p><p class="ok" id="okEnvio"></p>';
+  document.getElementById('btEnviar').onclick = async () => {
+    const para = document.getElementById('para').value.replace(/\D/g, ''), texto = document.getElementById('txt').value.trim();
+    if (!para || !texto) return;
+    const bt = document.getElementById('btEnviar'), ok = document.getElementById('okEnvio');
+    bt.disabled = true; bt.textContent = T.enviando; ok.className = 'ok'; ok.textContent = '';
+    const s = sessao() || {};
+    const r = await post('wa-enviar', { cliente: s.slug, bilhete: s.bilhete, para, texto }).catch(() => ({ erro: T.erroServidor }));
+    bt.disabled = false; bt.textContent = T.enviar;
+    if (r.ok) { ok.textContent = T.enviado; document.getElementById('txt').value = ''; }
+    else { ok.className = 'erro'; ok.textContent = r.erro === 'bilhete' ? T.bilheteVelho : (r.erro || r.msg || 'erro'); }
+  };
+}
+
+/* ---------- criar um modelo (a outra permissão que a Meta revisa) ---------- */
+function montaModelo() {
+  modelo.classList.remove('oculto');
+  modelo.innerHTML = '<h2>' + esc(T.modeloT) + '</h2><p class="dica" style="margin:0 0 4px">' + esc(T.modeloD) + '</p>' +
+    '<label for="mNome">' + esc(T.nome) + '</label><input id="mNome" autocomplete="off" placeholder="' + esc(T.nomeEx) + '">' +
+    '<label for="mCat">' + esc(T.categoria) + '</label><select id="mCat"><option value="UTILITY">' + esc(T.util) + '</option><option value="MARKETING">' + esc(T.mkt) + '</option></select>' +
+    '<label for="mIdioma">' + esc(T.idioma) + '</label><select id="mIdioma"><option value="pt_BR"' + (EN ? '' : ' selected') + '>Português (BR)</option><option value="en_US"' + (EN ? ' selected' : '') + '>English (US)</option><option value="es">Español</option></select>' +
+    '<label for="mTxt">' + esc(T.corpo) + '</label><textarea id="mTxt" placeholder="' + esc(T.corpoEx) + '"></textarea>' +
+    '<button class="bt" id="btModelo" type="button" style="margin-top:12px">' + esc(T.criar) + '</button><p class="ok" id="okModelo"></p>' +
+    '<h2 style="margin-top:18px">' + esc(T.seus) + '</h2><div class="modelos" id="lista"></div>';
+  document.getElementById('btModelo').onclick = async () => {
+    const nome = document.getElementById('mNome').value.trim(), texto = document.getElementById('mTxt').value.trim();
+    if (!nome || !texto) return;
+    const bt = document.getElementById('btModelo'), ok = document.getElementById('okModelo');
+    bt.disabled = true; bt.textContent = T.criando; ok.className = 'ok'; ok.textContent = '';
+    const s = sessao() || {};
+    const r = await post('wa-modelo', { cliente: s.slug, bilhete: s.bilhete, nome, texto,
+      categoria: document.getElementById('mCat').value, idioma: document.getElementById('mIdioma').value }).catch(() => ({ erro: T.erroServidor }));
+    bt.disabled = false; bt.textContent = T.criar;
+    if (r.ok) { ok.textContent = T.criado + ' (' + r.nome + ')'; listaModelos(); }
+    else { ok.className = 'erro'; ok.textContent = r.erro === 'bilhete' ? T.bilheteVelho : (r.erro || 'erro'); }
+  };
+  listaModelos();
+}
+async function listaModelos() {
+  const el = document.getElementById('lista'); if (!el) return;
+  const r = await fetch(comBilhete('wa-modelos')).then(x => x.json()).catch(() => ({ erro: T.erroServidor }));
+  const l = r.modelos || [];
+  el.innerHTML = l.length ? l.map(m => '<div class="modelo"><b>' + esc(m.nome) + '</b><span>' + esc(T.status[m.status] || m.status) + ' · ' + esc(m.idioma) + '</span></div>').join('')
+    : '<p class="dica">' + esc(r.erro === 'bilhete' ? T.bilheteVelho : (r.erro || T.nenhum)) + '</p>';
+}
+
+/* ---------- abrir ---------- */
+if (!COFRE) { CFG = { pronto: false }; desconectado(T.erroServidor); }
+else fetch(COFRE + '/wa-config').then(r => r.json()).then(async c => {
+  CFG = c;
+  const s = sessao();
+  if (s && s.bilhete) {
+    const n = await fetch(comBilhete('wa-numero')).then(r => r.json()).catch(() => ({}));
+    if (n.ok) return conectado(n);
+  }
+  desconectado('');
+}).catch(() => { CFG = { pronto: false }; desconectado(T.erroServidor); });
+</script>
+</body>
+</html>
