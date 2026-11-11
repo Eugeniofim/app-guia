@@ -129,6 +129,13 @@ const KS = 'wa-conexao';
 const sessao = () => { try { return JSON.parse(sessionStorage.getItem(KS) || 'null'); } catch (_) { return null; } };
 const guardaSessao = (s) => { try { sessionStorage.setItem(KS, JSON.stringify(s)); } catch (_) {} };
 const comBilhete = (rota) => { const s = sessao() || {}; return COFRE + '/' + rota + '?cliente=' + encodeURIComponent(s.slug || '') + '&b=' + encodeURIComponent(s.bilhete || ''); };
+/* link de abertura do Eugênio (/wa-abrir no cofre, 11/11/2026): já traz o bilhete de um número
+   ligado (o da Ti Artes, para o vídeo da App Review). Fica só nesta aba e sai da barra de endereço. */
+if (p.get('b') && p.get('cliente')) {
+  guardaSessao({ slug: p.get('cliente').slice(0, 60), bilhete: p.get('b').slice(0, 64) });
+  p.delete('b'); p.delete('cliente');
+  history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p.toString() : '') + location.hash);
+}
 
 /* ---------- o botão da Meta ---------- */
 let CFG = null, RETORNO = null;
