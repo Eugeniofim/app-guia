@@ -25,6 +25,7 @@ const HJ_TIPO = {
   compromisso: { nome: 'Compromisso', cor: '#2EC4B6' },
   tarefa:      { nome: 'Tarefa',      cor: '#5B8DEF' },
   anotacao:    { nome: 'Anotação',    cor: '#9AA3B5' },
+  pessoal:     { nome: 'Pessoal',     cor: '#9B6BDF' },
   google:      { nome: 'Google',      cor: '#4285F4' },
   aniver:      { nome: 'Aniversário', cor: '#E879A6' },
   fatura:      { nome: 'Fatura',      cor: '#E5484D' },
@@ -75,9 +76,9 @@ function hjItensDoDia(d, C) {
   }
   for (const o of Tarefas.doDia(d)) {
     const m = agMarcaTarefa(o.x);
-    const k = m === 'transfer' ? 'transfer' : m === 'tour' ? 'passeio' : (o.x.tipo === 'compromisso' ? 'compromisso' : o.x.tipo === 'anotacao' ? 'anotacao' : 'tarefa');
+    const k = m === 'transfer' ? 'transfer' : m === 'tour' ? 'passeio' : m === 'pessoal' ? 'pessoal' : (o.x.tipo === 'compromisso' ? 'compromisso' : o.x.tipo === 'anotacao' ? 'anotacao' : 'tarefa');
     out.push({ k, hora: o.x.hora || '', fim: o.x.horaFim || '', titulo: o.x.texto, tarefa: o,
-      sub: [o.x.nota ? String(o.x.nota).replace(/\s+/g, ' ').slice(0, 90) : '', o.x.area === 'pessoal' ? 'pessoal' : '', o.x.prioridade === 'alta' ? 'importante' : ''] });
+      sub: [o.x.nota ? String(o.x.nota).replace(/\s+/g, ' ').slice(0, 90) : '', o.x.prioridade === 'alta' ? 'importante' : ''] });
   }
   if (typeof GCal !== 'undefined' && GCal.ligada && GCal.ligada()) for (const e of GCal.eventosDoDia(d))
     out.push({ k: 'google', hora: e.hora || '', fim: e.horaFim || '', titulo: e.titulo, sub: [e.local || ''] });
@@ -110,7 +111,7 @@ function hjAcoes(it) {
 }
 function hjLinha(it, passou, rotulo) {
   const T = HJ_TIPO[it.k] || HJ_TIPO.tarefa;
-  const ic = it.k === 'transfer' ? AG_IC.carro : it.k === 'passeio' ? '<i class="hjPt"></i>' : '';
+  const ic = it.k === 'transfer' ? AG_IC.carro : it.k === 'passeio' ? AG_IC.mala : it.k === 'pessoal' ? AG_IC.casa : '';
   const feita = it.tarefa && it.tarefa.feita;
   return `<div class="hjr ${passou ? 'passou' : ''} ${feita ? 'feita' : ''}" style="--tc:${T.cor}">
     <div class="hjr-h">${rotulo ? esc(rotulo) : it.hora ? esc(it.hora) + (it.fim ? `<small>${esc(it.fim)}</small>` : '') : '<small>o dia</small>'}</div><div class="hjr-bar"></div>
@@ -128,7 +129,7 @@ function hjBlocoDia(d, rotulo, C, destaque) {
   if (eHoje && !posto && it.some(x => x.hora)) html += `<div class="hjAgora">agora · ${agora}</div>`;
   const n = (k) => it.filter(x => x.k === k).length;
   const resumo = [n('passeio') ? n('passeio') + ' tour' + (n('passeio') > 1 ? 's' : '') : '', n('transfer') ? n('transfer') + ' transfer' : '',
-    (n('tarefa') + n('compromisso')) ? (n('tarefa') + n('compromisso')) + ' tarefa' + (n('tarefa') + n('compromisso') > 1 ? 's' : '') : '', n('google') ? n('google') + ' no Google' : ''].filter(Boolean).join(' · ');
+    (n('tarefa') + n('compromisso')) ? (n('tarefa') + n('compromisso')) + ' tarefa' + (n('tarefa') + n('compromisso') > 1 ? 's' : '') : '', n('pessoal') ? n('pessoal') + (n('pessoal') > 1 ? ' coisas pessoais' : ' coisa pessoal') : '', n('google') ? n('google') + ' no Google' : ''].filter(Boolean).join(' · ');
   return `<section class="hjDia ${destaque ? 'hoje' : ''}" id="hjd-${d}"><div class="hjDia-h"><b>${esc((rotulo ? rotulo + ' · ' : '') + hjNomeDia(d))}</b><small>${esc(resumo || 'nada marcado')}</small></div>
     ${it.length ? html : `<p class="hjVazio">${eHoje ? 'Dia livre. Bom para adiantar o que está atrasado ou o de amanhã.' : 'Nada marcado.'}</p>`}</section>`;
 }
@@ -136,8 +137,8 @@ function hjBlocoDia(d, rotulo, C, destaque) {
 function hjFaixa(C) {
   return `<div class="hjFaixa" role="list" aria-label="Próximos 14 dias">${Array.from({ length: 14 }, (_, i) => {
     const d = addDays(C.hoje, i), dt = new Date(d + 'T12:00:00'), it = hjItensDoDia(d, C);
-    const nT = it.filter(x => x.k === 'passeio').length, nC = it.filter(x => x.k === 'transfer').length, nF = it.filter(x => ['tarefa', 'compromisso'].includes(x.k)).length, nG = it.filter(x => x.k === 'google').length, nO = it.filter(x => ['aniver', 'fatura', 'roteiro'].includes(x.k)).length;
-    const mk = `${'<i class="mk-t"></i>'.repeat(Math.min(nT, 3))}${nC ? AG_IC.carro : ''}${nF ? '<i class="mk-f"></i>' : ''}${nG ? '<i class="mk-g"></i>' : ''}${nO ? '<i class="mk-o"></i>' : ''}`;
+    const nT = it.filter(x => x.k === 'passeio').length, nC = it.filter(x => x.k === 'transfer').length, nF = it.filter(x => ['tarefa', 'compromisso'].includes(x.k)).length, nG = it.filter(x => x.k === 'google').length, nO = it.filter(x => ['aniver', 'fatura', 'roteiro'].includes(x.k)).length, nP = it.filter(x => x.k === 'pessoal').length;
+    const mk = agMarcas(nT, nC, nP, nF, nG, nO);
     return `<button type="button" role="listitem" class="hjD ${i === 0 ? 'hoje' : ''} ${dt.getDay() === 0 || dt.getDay() === 6 ? 'fim' : ''}" data-hjdia="${d}" aria-label="${esc(hjNomeDia(d))}${it.length ? ', ' + it.length + ' marcado' + (it.length > 1 ? 's' : '') : ', livre'}">
       <small>${i === 0 ? 'hoje' : i === 1 ? 'amanhã' : HJ_DIA[dt.getDay()].slice(0, 3).toLowerCase()}</small><b>${dt.getDate()}</b><span class="agmk">${mk}</span></button>`;
   }).join('')}</div>`;
@@ -184,7 +185,7 @@ function admHojeMari() {
   const tarefas7 = Array.from({ length: 7 }, (_, i) => Tarefas.doDia(addDays(hoje, i + 1)).filter(o => ['tour', 'transfer'].includes(agMarcaTarefa(o.x)))).flat();
   const h = new Date().getHours();
   const ola = (h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite') + ', ' + esc((typeof guiaNome === 'function' && guiaNome()) || 'Mari') + '.';
-  const nHojeTours = itHoje.filter(x => ['passeio', 'transfer'].includes(x.k)).length, nHojeTf = itHoje.filter(x => ['tarefa', 'compromisso'].includes(x.k) && !(x.tarefa && x.tarefa.feita)).length;
+  const nHojeTours = itHoje.filter(x => ['passeio', 'transfer'].includes(x.k)).length, nHojeTf = itHoje.filter(x => ['tarefa', 'compromisso', 'pessoal'].includes(x.k) && !(x.tarefa && x.tarefa.feita)).length;
   const resumo = [nHojeTours ? `${nHojeTours} tour${nHojeTours > 1 ? 's' : ''} ou transfer hoje` : 'nenhum tour hoje', nHojeTf ? `${nHojeTf} tarefa${nHojeTf > 1 ? 's' : ''}` : '', recebeHoje ? `receber ${eur(recebeHoje)} no dia` : ''].filter(Boolean).join(' · ');
 
   /* ---------- a agenda (TI ARTES) ---------- */
@@ -208,9 +209,9 @@ function admHojeMari() {
   const lemb = (b) => b.whats ? `<a class="tfB" target="_blank" rel="noopener" href="${esc(waLink(hjLembrete(b), hjFone(b.whats)))}">${HJ_IC.whats}Mandar lembrete</a>` : '<span class="why">sem WhatsApp na reserva</span>';
   cards.push(hjCartao('🔔', 'Amanhã — lembretes de véspera', 0,
     (am.length || amTf.length ? '' : '<p class="empty">Nenhum tour amanhã.</p>') +
-    am.map(b => hjItem((Tours.get(b.tourId) || {}).type === 'transfer' ? AG_IC.carro : '<i class="hjPt"></i>', `${esc(b.time || '')} · ${esc(hjPrim(b.name))} · ${esc(hjTourNome(b))}`, `${b.pax} pessoa${+b.pax > 1 ? 's' : ''}${Bookings.due(b) > 0 ? ' · recebe no dia ' + eur(Bookings.due(b)) : ' · pago'}`,
+    am.map(b => hjItem((Tours.get(b.tourId) || {}).type === 'transfer' ? AG_IC.carro : AG_IC.mala, `${esc(b.time || '')} · ${esc(hjPrim(b.name))} · ${esc(hjTourNome(b))}`, `${b.pax} pessoa${+b.pax > 1 ? 's' : ''}${Bookings.due(b) > 0 ? ' · recebe no dia ' + eur(Bookings.due(b)) : ' · pago'}`,
       lemb(b) + (typeof voBotao === 'function' ? voBotao(b.id).replace('class="mini"', 'class="tfB"') : '') + `<a class="tfB" href="#/adm/clients/${encodeURIComponent(hjChave(b))}">${HJ_IC.ficha}Ficha</a>`)).join('') +
-    amTf.map(o => hjItem(agMarcaTarefa(o.x) === 'transfer' ? AG_IC.carro : '<i class="hjPt"></i>', `${esc(o.x.hora || '')}${o.x.hora ? ' · ' : ''}${esc(o.x.texto)}`, 'anotado como tarefa', '')).join('') +
+    amTf.map(o => hjItem(agMarcaTarefa(o.x) === 'transfer' ? AG_IC.carro : AG_IC.mala, `${esc(o.x.hora || '')}${o.x.hora ? ' · ' : ''}${esc(o.x.texto)}`, 'anotado como tarefa', '')).join('') +
     (prox14.length ? `<p class="hjMini">Próximos tours</p>${prox14.slice(0, 5).map(b => hjItem('📅', `${hjDt(b.date)} · ${esc(hjPrim(b.name))}`, `${esc(hjTourNome(b))}${b.time ? ' · ' + esc(b.time) : ''}`, b.whats ? `<a class="tfB" target="_blank" rel="noopener" href="${esc(waLink(hjLembrete(b), hjFone(b.whats)))}">${HJ_IC.whats}Lembrete</a>` : '')).join('')}` : ''),
     '<p class="why">A mensagem já vem pronta: o dia, o horário, o ponto de encontro e o que fica para pagar no dia, em euro.</p>'));
   /* 2. Quem pagou (7 dias) */

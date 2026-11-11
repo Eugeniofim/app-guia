@@ -405,6 +405,14 @@ function agCss() {
   .tfK{display:inline-flex;align-items:center;gap:5px;font:700 10.5px/1 var(--f-ui);letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2)}
   .tfK i{width:8px;height:8px;border-radius:50%;background:#F2C230;display:inline-block}
   .tfK svg{width:14px;height:14px}
+  .tfK.tour{background:var(--highlight-wash);color:var(--highlight-text)}
+  .tfK.pessoal{background:var(--ag-pes-wash);color:var(--ag-pes-text)}
+  .tfAdd2 .tfPes svg{width:16px;height:16px;flex:none}
+  .tfAdd2 .tfPes input{accent-color:#8B5CD6}
+  .tfAdd2 .tfPes:has(input:checked){background:var(--ag-pes-wash);border-color:#9B6BDF;color:var(--ag-pes-text)}
+  :root{--ag-pes-wash:#F1EAFC;--ag-pes-text:#5B32A6}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]):not([data-theme="dark"]){--ag-pes-wash:#2A2140;--ag-pes-text:#CDB4F6}}
+  :root[data-theme="dark"]{--ag-pes-wash:#2A2140;--ag-pes-text:#CDB4F6}
   .tf2 .nota{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .tfAcs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .tfB{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 12px/1 var(--f-ui);cursor:pointer;text-decoration:none}
@@ -418,7 +426,9 @@ function agCss() {
   .tfEd{width:40px;height:40px;flex:none;border:0;border-radius:50%;display:grid;place-items:center;background:transparent;color:var(--ink-3);cursor:pointer;margin:-6px -4px 0 0}
   .tfEd:hover{background:var(--surface-2);color:var(--ink)}
   .tfEd svg{width:17px;height:17px}
-  .agmk{display:flex;gap:3px;align-items:center;justify-content:center;min-height:12px;margin-top:3px}
+  .agmk{display:flex;flex-wrap:wrap;gap:2px 3px;align-items:center;justify-content:center;min-height:13px;margin-top:3px}
+  .agmk .mk-n{font:700 9.5px/1 var(--f-ui);margin-left:-2px;color:var(--ink-2)}
+  .agc.on .agmk .mk-n{color:var(--accent-ink)}
   .agmk .mk-t{width:7px;height:7px;border-radius:50%;background:#F2C230;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
   .agmk .mk-f{width:7px;height:7px;border-radius:2px;background:#5B8DEF}
   .agmk .mk-g{width:7px;height:7px;border-radius:50%;border:1.5px solid #4285F4}
@@ -457,23 +467,38 @@ const AG_IC = {
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   lapis: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
   lixo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
+  /* 11/11: a Mari pediu um sinal para cada coisa — malinha = tour com turista, casinha = pessoal */
+  mala: '<svg class="icMala" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="7.5" width="16" height="12" rx="2.2" fill="#F2C230"/><path d="M9 7.5V5.6A1.6 1.6 0 0 1 10.6 4h2.8A1.6 1.6 0 0 1 15 5.6v1.9M9 7.5v12M15 7.5v12"/></svg>',
+  casa: '<svg class="icCasa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.2 12 4.5l8 6.7V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z" fill="#B08CEB"/><path d="M10 20.5V15h4v5.5"/></svg>',
   relogio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
 };
 /* Ela também anota tour e transfer como tarefa ("Tour com Bruna Letícia", "Transfer de chegada"):
-   na agenda, o que é tour ganha a bolinha amarela e o que é transfer, o carrinho (pedido de 22/10). */
+   na agenda, o que é tour ganha a malinha e o que é transfer, o carrinho (pedido de 22/10).
+   11/11: "marquei que vão limpar o tapete lá de casa e tá a mesma cor do tour" — o que é
+   pessoal (Área = Pessoal) ganha a casinha lilás e vem antes de tudo. */
 function agMarcaTarefa(x) {
-  if (!x || x.tipo === 'anotacao') return 'tarefa';
+  if (!x) return 'tarefa';
+  if (x.area === 'pessoal') return 'pessoal';
+  if (x.tipo === 'anotacao') return 'tarefa';
   const s = String((x.texto || '') + ' ' + (x.nota || '')).toLowerCase();
   if (/\btransfers?\b|traslado|receptivo|aeroporto|airport|\bbuscar no hotel\b/.test(s)) return 'transfer';
   if (/\btours?\b|\bpasseios?\b|walking|city ?tour|\bguiar\b/.test(s)) return 'tour';
   return 'tarefa';
 }
-const AG_MARCA_NOME = { tour: 'Tour', transfer: 'Transfer' };
+const AG_MARCA_NOME = { tour: 'Tour', transfer: 'Transfer', pessoal: 'Pessoal' };
+const AG_MARCA_IC = (m) => m === 'transfer' ? AG_IC.carro : m === 'pessoal' ? AG_IC.casa : AG_IC.mala;
+/* palavras da vida dela: ao anotar algo NOVO, o "Pessoal" já vem marcado (ela vê e pode desmarcar) */
+const AG_PALAVRAS_PESSOAIS = /(^|[\s,.;:!?(])(casa|m[eé]dic[oa]|dentista|consulta|exame|escola|anivers[aá]rio|academia|cabeleireir[oa]|manicure|faxina|limpeza|limpar|tapete|mercado|supermercado|farm[aá]cia|filh[oa]s?|marido|fam[ií]lia|pessoal|banco|correio)(?=$|[\s,.;:!?)])/i;
+function agPareceePessoal(texto) { const s = String(texto || ''); return AG_PALAVRAS_PESSOAIS.test(s) && agMarcaTarefa({ texto: s }) === 'tarefa'; }
+/* os sinais de um dia: malinha (com o número, se mais de um tour), carrinho, casinha, quadradinho azul, anel do Google */
+function agMarcas(nTour, nTransfer, nPessoal, nTarefa, nG, nOutro) {
+  return `${nTour ? AG_IC.mala + (nTour > 1 ? `<small class="mk-n">${nTour}</small>` : '') : ''}${nTransfer ? AG_IC.carro : ''}${nPessoal ? AG_IC.casa : ''}${nTarefa ? '<i class="mk-f"></i>' : ''}${nG ? '<i class="mk-g"></i>' : ''}${nOutro ? '<i class="mk-o"></i>' : ''}`;
+}
 function agLinhaTarefa(o, opts) {
   const x = o.x, dia = o.dia, semDia = opts && opts.semDia;
   const quando = [dia && !semDia ? (dia === agHoje() ? 'hoje' : dia === addDays(agHoje(), 1) ? 'amanhã' : agData(dia)) : '', x.hora ? x.hora + (x.horaFim ? '–' + x.horaFim : '') : '', x.repete ? AG_REP[x.repete] + (x.ate ? ' até ' + agDataCurta(x.ate) : '') : ''].filter(Boolean).join(' · ');
   const marca = agMarcaTarefa(x);
-  const tags = `${AG_MARCA_NOME[marca] ? `<span class="tfK ${marca}">${marca === 'transfer' ? AG_IC.carro : '<i></i>'}${AG_MARCA_NOME[marca]}</span>` : x.tipo !== 'tarefa' ? `<span class="tag">${x.tipo === 'anotacao' ? 'Anotação' : 'Compromisso'}</span>` : ''}${x.area === 'pessoal' ? '<span class="tag pessoal">Pessoal</span>' : ''}${x.prioridade === 'alta' ? '<span class="tag alta">Importante</span>' : ''}`;
+  const tags = `${AG_MARCA_NOME[marca] ? `<span class="tfK ${marca}">${AG_MARCA_IC(marca)}${AG_MARCA_NOME[marca]}</span>` : x.tipo !== 'tarefa' ? `<span class="tag">${x.tipo === 'anotacao' ? 'Anotação' : 'Compromisso'}</span>` : ''}${x.prioridade === 'alta' ? '<span class="tag alta">Importante</span>' : ''}`;
   /* a linha é limpa: marcar, ler e (no lápis ou tocando no texto) abrir. Apagar e "pôr no Google" moram dentro do Editar (22/10) */
   return `<div class="tf tf2 ${o.feita ? 'feita' : ''}" data-tf="${esc(x.id)}" data-dia="${esc(dia || '')}">
     ${x.tipo === 'anotacao' ? '<span class="ck ckNota" aria-hidden="true">✎</span>' : `<button type="button" class="ck ${o.feita ? 'on' : ''}" data-ck aria-label="${o.feita ? 'Desmarcar' : 'Marcar como feita'}">✓</button>`}
@@ -499,7 +524,7 @@ function agFormHtml(x, diaPadrao, opts) {
   const novo = !x;
   x = x || { tipo: 'tarefa', texto: '', nota: '', data: diaPadrao || '', hora: '', horaFim: '', area: 'pro', prioridade: 'media', repete: '', ate: '', lembrar: 30 };
   const op = (obj, v) => Object.entries(obj).map(([k, n]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${n}</option>`).join('');
-  const aberto = !!(x.horaFim || x.repete || x.nota || (x.tipo && x.tipo !== 'tarefa') || x.area === 'pessoal');
+  const aberto = !!(x.horaFim || x.repete || x.nota || (x.tipo && x.tipo !== 'tarefa'));
   const semDia = opts && opts.semDia;
   return `<div class="tfAdd tfAdd2">
     <div class="tfL1">
@@ -509,6 +534,7 @@ function agFormHtml(x, diaPadrao, opts) {
     <div class="tfL2">
       ${semDia ? `<input type="hidden" id="tfData" value="${esc(x.data)}">` : `<label class="tfC"><span>Dia</span><input type="date" id="tfData" value="${esc(x.data)}"></label>`}
       <label class="tfC"><span>Hora</span><input type="time" id="tfHora" value="${esc(x.hora)}"></label>
+      <label class="tfC tfTg tfPes" title="Coisa sua, fora do trabalho — aparece com a casinha"><input type="checkbox" id="tfPessoal" ${x.area === 'pessoal' ? 'checked' : ''}>${AG_IC.casa}<span>Pessoal</span></label>
       <label class="tfC tfTg"><input type="checkbox" id="tfAlta" ${x.prioridade === 'alta' ? 'checked' : ''}><span>Importante</span></label>
       <button type="button" class="tfMais" aria-expanded="${aberto}">${aberto ? 'Menos opções' : 'Mais opções'}</button>
     </div>
@@ -517,7 +543,6 @@ function agFormHtml(x, diaPadrao, opts) {
       <label class="tfC"><span>Repetir</span><select id="tfRep">${op(AG_REP, x.repete || '')}</select></label>
       <label class="tfC" ${x.repete ? '' : 'hidden'}><span>até o dia</span><input type="date" id="tfAte" value="${esc(x.ate || '')}"></label>
       <label class="tfC"><span>Tipo</span><select id="tfTipo">${op({ tarefa: 'Tarefa', compromisso: 'Compromisso', anotacao: 'Anotação (sem ✓)' }, x.tipo)}</select></label>
-      <label class="tfC"><span>Área</span><select id="tfArea">${op(AG_AREAS, x.area)}</select></label>
       <textarea id="tfNota" aria-label="Detalhes" placeholder="Detalhes (opcional): o endereço, o que levar…">${esc(x.nota || '')}</textarea>
     </div>
   </div>`;
@@ -530,7 +555,7 @@ function agLeForm(root) {
   let tipo = q('#tfTipo').value; if (tipo === 'compromisso' && !hora) tipo = 'tarefa';
   let horaFim = hora ? q('#tfFim').value : '';
   if (horaFim && horaFim <= hora) { toast('O "até" é antes do começo — deixei sem hora de fim'); horaFim = ''; }
-  return { texto, nota: q('#tfNota').value.trim(), tipo, area: q('#tfArea').value, data, hora, horaFim,
+  return { texto, nota: q('#tfNota').value.trim(), tipo, area: q('#tfPessoal').checked ? 'pessoal' : 'pro', data, hora, horaFim,
     repete: data ? q('#tfRep').value : '', ate: data && q('#tfRep').value ? q('#tfAte').value : '', prioridade: q('#tfAlta').checked ? 'alta' : 'media' };
 }
 function agLigaForm(root, aoSalvar, id) {
@@ -541,6 +566,9 @@ function agLigaForm(root, aoSalvar, id) {
   if (mais && l3) mais.onclick = () => { const abre = l3.hidden; l3.hidden = !abre; mais.setAttribute('aria-expanded', String(abre)); mais.textContent = abre ? 'Menos opções' : 'Mais opções'; };
   const vai = () => { const c = agLeForm(root); if (!c) return; if (id) Tarefas.update(id, c); else Tarefas.add(c); toast(id ? 'Salvo' : (c.tipo === 'anotacao' ? 'Anotado' : c.data ? 'Anotado na agenda' : 'Anotado na lista')); aoSalvar(); };
   root.querySelector('#tfOk').onclick = vai;
+  /* anotação nova com cara de coisa pessoal ("limpar o tapete lá de casa"): já marca Pessoal, até ela mexer no botão */
+  const pes = root.querySelector('#tfPessoal'), txt = root.querySelector('#tfTexto');
+  if (pes && !id) { pes.onchange = () => { pes.dataset.mexeu = '1'; }; txt.oninput = () => { if (!pes.dataset.mexeu) pes.checked = agPareceePessoal(txt.value); }; }
   root.querySelector('#tfTexto').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); vai(); } };
 }
 function agEditar(id, redesenha, dia) {
@@ -652,17 +680,17 @@ function admAgendaMari() {
   const WD = [5, 6, 7, 8, 9, 10, 11].map(d => new Date(2026, 0, d).toLocaleDateString(locale(), { weekday: 'short' }).replace('.', ''));
   const MN = [...Array(12)].map((_, m) => new Date(2026, m, 1).toLocaleDateString(locale(), { month: 'long' }));
   const conta = (iso) => {
-    let nTour = 0, nTransfer = 0, nTarefa = 0;
+    let nTour = 0, nTransfer = 0, nTarefa = 0, nPessoal = 0;
     for (const x of (byDay[iso] || []).filter(comGente)) { if (x.tour && x.tour.type === 'transfer') nTransfer++; else nTour++; }
-    for (const x of (tfDia[iso] || [])) { const k = agMarcaTarefa(x); if (k === 'transfer') nTransfer++; else if (k === 'tour') nTour++; else nTarefa++; }
-    return { nTour, nTransfer, nTarefa, nG: GCal.eventosDoDia(iso).length };
+    for (const x of (tfDia[iso] || [])) { const k = agMarcaTarefa(x); if (k === 'transfer') nTransfer++; else if (k === 'tour') nTour++; else if (k === 'pessoal') nPessoal++; else nTarefa++; }
+    return { nTour, nTransfer, nTarefa, nPessoal, nG: GCal.eventosDoDia(iso).length };
   };
-  const rotulo = (n) => [n.nTour ? n.nTour + ' tour' + (n.nTour > 1 ? 's' : '') : '', n.nTransfer ? n.nTransfer + ' transfer' + (n.nTransfer > 1 ? 's' : '') : '', n.nTarefa ? n.nTarefa + ' tarefa' + (n.nTarefa > 1 ? 's' : '') : '', n.nG ? n.nG + ' no Google' : ''].filter(Boolean).join(' · ');
+  const rotulo = (n) => [n.nTour ? n.nTour + ' tour' + (n.nTour > 1 ? 's' : '') : '', n.nTransfer ? n.nTransfer + ' transfer' + (n.nTransfer > 1 ? 's' : '') : '', n.nTarefa ? n.nTarefa + ' tarefa' + (n.nTarefa > 1 ? 's' : '') : '', n.nPessoal ? n.nPessoal + (n.nPessoal > 1 ? ' coisas pessoais' : ' coisa pessoal') : '', n.nG ? n.nG + ' no Google' : ''].filter(Boolean).join(' · ');
   let cells = '';
   for (let i = 0; i < startWd; i++) cells += '<span class="agc empty"></span>';
   for (let d = 1; d <= daysIn; d++) {
     const iso = `${cur}-${AG_PAD(d)}`, n = conta(iso);
-    const mk = `${'<i class="mk-t"></i>'.repeat(Math.min(n.nTour, 3))}${n.nTransfer ? AG_IC.carro : ''}${n.nTarefa ? '<i class="mk-f"></i>' : ''}${n.nG ? '<i class="mk-g"></i>' : ''}`;
+    const mk = agMarcas(n.nTour, n.nTransfer, n.nPessoal, n.nTarefa, n.nG);
     const rot = rotulo(n);
     cells += `<button class="agc ${n.nTour + n.nTransfer ? 'has' : ''} ${iso === sel ? 'on' : ''} ${iso === agHoje() ? 'today' : ''}" data-d="${iso}" aria-label="${d}${rot ? ': ' + rot : ''}" ${iso === sel ? 'aria-pressed="true"' : ''}>
       <b>${d}</b><span class="agmk" aria-hidden="true">${mk}</span></button>`;
@@ -673,7 +701,7 @@ function admAgendaMari() {
     const bs = DB.bookings.filter(b => b.tourId === d.tour.id && b.date === d.date && b.time === d.time && b.status !== 'cancelled');
     const gl = agGoogleLink(agEventoSaida(d.tour, d.date, d.time, bs));
     const tr = d.tour.type === 'transfer';
-    itens.push([d.time || '', `<div class="deprow agIt"><div class="tinfo"><span class="tfK ${tr ? 'transfer' : 'tour'}">${tr ? AG_IC.carro + 'Transfer' : '<i></i>Tour'}</span><b>${esc(d.time)} · ${esc(tl(d.tour.name))}</b>
+    itens.push([d.time || '', `<div class="deprow agIt"><div class="tinfo"><span class="tfK ${tr ? 'transfer' : 'tour'}">${tr ? AG_IC.carro + 'Transfer' : AG_IC.mala + 'Tour'}</span><b>${esc(d.time)} · ${esc(tl(d.tour.name))}</b>
         <small>${t('agBooked', { n: d.booked })} · ${t('agFree', { n: d.left })}</small>
         <div class="paxlist">${bs.map(b => `<span class="pill ${Bookings.due(b) > 0 ? 'warn' : 'ok'}">${esc(String(b.name || '').split(' ')[0])} ×${esc(b.pax)}${Bookings.due(b) > 0 ? ' · no dia ' + eur(Bookings.due(b)) : ''}</span>`).join('')}
         ${GCal.ligada() ? '' : `<a class="tfB" target="_blank" rel="noopener" href="${esc(gl)}" title="Pôr no Google Agenda">${AG_IC.cal}Google</a>`}</div></div></div>`]);
@@ -695,7 +723,7 @@ function admAgendaMari() {
         </div>
         <div class="agrid head">${WD.map(w => `<span class="agwd">${w}</span>`).join('')}</div>
         <div class="agrid" id="agGrid">${cells}</div>
-        <p class="why agLeg"><span><i style="width:8px;height:8px;border-radius:50%;background:#F2C230;display:inline-block"></i>tour</span><span>${AG_IC.carro}transfer</span><span><i style="width:8px;height:8px;border-radius:2px;background:#5B8DEF;display:inline-block"></i>tarefa ou anotação</span>${GCal.ligada() ? '<span><i style="width:8px;height:8px;border-radius:50%;border:1.5px solid #4285F4;display:inline-block"></i>seu Google Agenda</span>' : ''}</p>
+        <p class="why agLeg"><span>${AG_IC.mala}tour com turista</span><span>${AG_IC.carro}transfer</span><span>${AG_IC.casa}pessoal</span><span><i style="width:8px;height:8px;border-radius:2px;background:#5B8DEF;display:inline-block"></i>tarefa de trabalho</span>${GCal.ligada() ? '<span><i style="width:8px;height:8px;border-radius:50%;border:1.5px solid #4285F4;display:inline-block"></i>seu Google Agenda</span>' : ''}</p>
       </section>
       <section class="card agDia" aria-live="polite">
         <div class="agDiaT">${rel ? `<small class="agRel">${rel}</small>` : ''}<h2>${esc(dt.charAt(0).toUpperCase() + dt.slice(1))}</h2></div>
