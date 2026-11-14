@@ -82,10 +82,13 @@
 /* O endereço do cofre vem do config.js. Quem está conectando: o padrão é "sandbox" — quem abre
    esta página pra testar (o revisor da Meta, por exemplo) conecta a PRÓPRIA conta numa linha de
    teste e nunca sobrescreve a conta de um cliente de verdade. O painel de cada guia abre esta
-   mesma página com o slug dele (?cliente=slug). Idioma: ?lang=en|pt, senão o do navegador. */
+   mesma página com o slug dele (?cliente=slug). Idioma: ?lang=en|pt, senão o do navegador.
+   14/11/2026 (a brecha): ?cliente=slug só RENOVA a conta que já está naquela linha. Ligar uma conta nova num
+   cliente pede o link com convite (?c=…), que o estúdio gera em /ig-convite; o cofre diz qual é a linha. */
 const COFRE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.cofre) || '';
 const p = new URLSearchParams(location.search);
-const CLIENTE = (p.get('cliente') || 'sandbox').slice(0, 60);
+const CONVITE = /^[a-f0-9]{32}$/.test(p.get('c') || '') ? p.get('c') : '';
+const CLIENTE = (p.get('cliente') || (CONVITE ? '' : 'sandbox')).slice(0, 60);
 const EN = p.get('lang') === 'en' || (!p.get('lang') && !/^pt/i.test(navigator.language || ''));
 /* ?com=usuario: a caixa mostra SÓ a conversa com essa pessoa — pra gravar demonstração (o screencast do
    App Review) sem expor as outras conversas da conta. Sem o parâmetro, lista as últimas 12. */
@@ -121,8 +124,8 @@ document.getElementById(EN ? 'len' : 'lpt').style.fontWeight = '700';
 
 const quadro = document.getElementById('quadro'), caixa = document.getElementById('caixa');
 const esc = (s) => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const voltar = location.origin + location.pathname + '?cliente=' + encodeURIComponent(CLIENTE) + (p.get('lang') ? '&lang=' + encodeURIComponent(p.get('lang')) : '') + (COM ? '&com=' + encodeURIComponent(COM) : '');
-const linkConectar = COFRE + '/ig-conectar?cliente=' + encodeURIComponent(CLIENTE) + '&voltar=' + encodeURIComponent(voltar);
+const voltar = location.origin + location.pathname + '?' + (CLIENTE ? 'cliente=' + encodeURIComponent(CLIENTE) : '') + (p.get('lang') ? '&lang=' + encodeURIComponent(p.get('lang')) : '') + (COM ? '&com=' + encodeURIComponent(COM) : '');
+const linkConectar = COFRE + '/ig-conectar?' + (CONVITE ? 'convite=' + CONVITE : 'cliente=' + encodeURIComponent(CLIENTE)) + '&voltar=' + encodeURIComponent(voltar);
 
 /* o bilhete da caixa vem na volta do login (?b=) e fica só nesta aba */
 const KB = 'caixa:' + CLIENTE;
@@ -198,10 +201,12 @@ async function abrirConversa(de) {
 }
 
 if (!COFRE) desconectado(T.semApp);
+/* aberto pelo convite: ainda não há conta pra mostrar (e o ig-perfil sem cliente cairia no demo) */
+else if (!CLIENTE) desconectado(p.get('ig') === 'erro' ? (p.get('motivo') || T.erroConectar) : '');
 else fetch(COFRE + '/ig-perfil?cliente=' + encodeURIComponent(CLIENTE))
   .then(r => r.json())
   .then(d => {
-    if (p.get('ig') === 'erro') return desconectado(T.erroConectar);
+    if (p.get('ig') === 'erro') return desconectado(p.get('motivo') || T.erroConectar);
     d.conectado ? conectado(d) : desconectado('');
   })
   .catch(() => desconectado(T.erroServidor));
