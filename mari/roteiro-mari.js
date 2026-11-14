@@ -550,17 +550,23 @@ function rtCss() {
   .rt-pg.capa{background:var(--rt-red)}
   .rt-pg.capa .rt-in{inset:0}
   .rt-pg.capa .rt-b{margin:0}
-  .rt-capa{position:relative;height:297mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#FBF6EE;padding:0 22mm;background:var(--rt-red);overflow:hidden}
-  .rt-cruz{position:absolute;inset:0;pointer-events:none}
+  /* 14/11 (2ª volta): "similar à proposta da Milla, aquele nível" — a capa ganhou a FOTO (Nyhavn, a mesma da
+     vitrine) em cima, com o corte inclinado como na proposta da Yalla, o painel vermelho com a cruz embaixo e o
+     selo na emenda */
+  .rt-capa{position:relative;height:297mm;color:#FBF6EE;background:var(--rt-red);overflow:hidden;text-align:center}
+  .rt-capaFoto{position:absolute;left:0;right:0;top:0;height:56%;background:#5c0816 center 62%/cover no-repeat}
+  .rt-capaSombra{position:absolute;left:0;right:0;top:30%;height:26%;background:linear-gradient(180deg,rgba(120,8,24,0) 0%,rgba(120,8,24,.45) 100%)}
+  .rt-corte{position:absolute;left:-10%;width:120%;top:calc(56% - 9mm);height:24mm;background:var(--rt-red);transform:rotate(-3deg)}
+  .rt-cruz{position:absolute;left:0;right:0;top:56%;bottom:0;pointer-events:none}
   .rt-cruz i{position:absolute;background:rgba(255,255,255,.075)}
   .rt-cruz i:first-child{top:0;bottom:0;left:30%;width:11mm}
-  .rt-cruz i:last-child{left:0;right:0;top:50%;height:11mm;margin-top:-5.5mm}
-  .rt-capa > *:not(.rt-cruz){position:relative}
-  .rt-capa .selo{width:34mm;height:34mm;border-radius:50%;box-shadow:0 0 0 2.4mm rgba(255,255,255,.16);display:block}
-  .rt-capa .eb{font:700 8.4px/1 "Karla",sans-serif;letter-spacing:.42em;text-transform:uppercase;color:#FBF6EE;opacity:.82;margin-top:12mm}
-  .rt-capa h1{font:400 60px/1.04 "Playfair Display",Georgia,serif;letter-spacing:-.005em;margin-top:6mm;color:#FBF6EE}
+  .rt-cruz i:last-child{left:0;right:0;top:58%;height:11mm;margin-top:-5.5mm}
+  .rt-capaTx{position:absolute;left:0;right:0;top:calc(56% - 21mm);bottom:0;display:flex;flex-direction:column;align-items:center;padding:0 22mm}
+  .rt-capa .selo{width:38mm;height:38mm;border-radius:50%;box-shadow:0 0 0 2.2mm #FBF6EE,0 0 0 3.6mm rgba(255,255,255,.22),0 16px 30px -12px rgba(0,0,0,.5);display:block}
+  .rt-capa .eb{font:700 8.4px/1 "Karla",sans-serif;letter-spacing:.42em;text-transform:uppercase;color:#FBF6EE;opacity:.82;margin-top:9mm}
+  .rt-capa h1{font:400 58px/1.04 "Playfair Display",Georgia,serif;letter-spacing:-.005em;margin-top:5mm;color:#FBF6EE}
   .rt-capa .sub{font:italic 400 21px/1.3 "Playfair Display",Georgia,serif;color:#FBF6EE;opacity:.9;margin-top:3.4mm;max-width:150mm}
-  .rt-capa hr{width:24mm;border:0;border-top:.8px solid rgba(251,246,238,.6);margin:9mm auto 8mm}
+  .rt-capa hr{width:24mm;border:0;border-top:.8px solid rgba(251,246,238,.6);margin:7mm auto 6mm}
   .rt-capa .para{font:italic 400 19px/1.3 "Playfair Display",Georgia,serif;color:#FBF6EE}
   .rt-capa .qd{font:600 8.6px/1.4 "Karla",sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#FBF6EE;opacity:.85;margin-top:4mm}
   .rt-capa .marca{position:absolute;bottom:13mm;left:0;right:0;font:600 7.6px/1 "Karla",sans-serif;letter-spacing:.42em;text-transform:uppercase;color:#FBF6EE;opacity:.65}
@@ -573,7 +579,8 @@ function rtCss() {
   .rt-pg .rt-banda{flex:1 1 auto;min-height:60mm;max-height:150mm}
   .rt-ind .lead{font-size:13.4px;line-height:1.62;color:var(--rt-ink2);max-width:150mm}
   .rt-ind ol{list-style:none;padding:0;margin:9mm 0 0;display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:column;column-gap:10mm}
-  .rt-ind li{display:grid;grid-template-columns:11mm 1fr;align-items:baseline;padding:3.4mm 0;border-bottom:.6px solid var(--rt-line)}
+  .rt-ind li{display:grid;grid-template-columns:11mm 1fr 14mm;gap:0 3mm;align-items:baseline;padding:3.4mm 0;border-bottom:.6px solid var(--rt-line)}
+  .rt-ind li .th{width:14mm;height:14mm;border-radius:50%;background:#E9E2D6 center/cover no-repeat;align-self:center}
   .rt-ind li > i{font:400 17px/1 "Playfair Display",Georgia,serif;font-style:normal;color:var(--rt-red)}
   .rt-ind li b{display:block;font:600 13px/1.3 "Karla",sans-serif;color:var(--rt-ink)}
   .rt-ind li small{display:block;font-size:10.6px;line-height:1.45;color:var(--rt-ink2);margin-top:1mm}
@@ -611,6 +618,22 @@ function rtCss() {
   .rt-st .fr{font:italic 400 13.2px/1.45 "Playfair Display",Georgia,serif;color:var(--rt-ink2);margin:0 0 1.6mm 8.6mm}
   .rt-st .tx{font-size:12px;line-height:1.6;color:#3A342E;margin-left:8.6mm}
   .rt-st.opc h3 .n{color:var(--rt-ink3)}
+  /* cada parada num CARTÃO com a própria foto (como os passeios na proposta da Milla): o número no círculo
+     vermelho é o mesmo do mapa; embaixo a hora, o nome em serifa, a frase em itálico e o texto */
+  .rt-cards{display:grid;grid-template-columns:1fr 1fr;gap:6mm;align-items:start}
+  .rt-card.rt-st{background:#FFFDF9;border-radius:3mm;overflow:hidden;padding:0;box-shadow:0 0 0 .7px #E4DACB,0 12px 24px -20px rgba(70,30,20,.4)}
+  .rt-card .ft{height:var(--ft,46mm);background:#E9E2D6 center/cover no-repeat}
+  .rt-card .ct{padding:3.4mm 4.4mm 4.6mm}
+  .rt-card .tg{display:flex;align-items:center;gap:2mm;flex-wrap:wrap;font:700 7.8px/1 "Karla",sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--rt-red2)}
+  .rt-card .tg .n{display:inline-grid;place-items:center;min-width:6.6mm;height:6.6mm;padding:0 1mm;border-radius:99px;background:var(--rt-red);color:#fff;font:700 10px/1 "Karla",sans-serif;letter-spacing:0}
+  .rt-card.opc .tg .n{background:#FBF6EE;color:var(--rt-red);box-shadow:inset 0 0 0 1.3px var(--rt-red)}
+  .rt-card.rt-st h3{display:block;font:600 16px/1.25 "Playfair Display",Georgia,serif;color:var(--rt-ink);margin:2.4mm 0 1.2mm}
+  .rt-card.rt-st .fr{margin:0 0 1.6mm;font:italic 400 12.6px/1.45 "Playfair Display",Georgia,serif;color:var(--rt-ink2)}
+  .rt-card.rt-st .tx{margin:0;font-size:11.4px;line-height:1.58;color:#3A342E}
+  .rt-cards.um{grid-template-columns:1fr}
+  .rt-cards.um .rt-card{display:grid;grid-template-columns:84mm 1fr}
+  .rt-cards.um .rt-card .ft{height:auto;min-height:58mm}
+  .rt-cards.um .rt-card .ct{padding:5mm 6mm}
   /* o mapa e o link do trecho */
   .rt-map{height:82mm;border-radius:2.6mm;background:#E9E2D6;position:relative;z-index:0;overflow:hidden}
   .rt-map.falhou{display:none}
@@ -624,7 +647,7 @@ function rtCss() {
   .rt-mk.ant{background:#9A9088}
   .rt-mk.opc{background:#FBF6EE;color:#C8102E;border-color:#C8102E}
   /* o começo de cada dia */
-  .rt-dia{padding:0 0 1mm}
+  .rt-dia{padding:0 0 4.4mm;border-bottom:1.6px solid var(--rt-red)}
   .rt-dia small{display:block;font:700 8.6px/1.3 "Karla",sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--rt-red2)}
   .rt-dia h2{font:400 30px/1.14 "Playfair Display",Georgia,serif;color:var(--rt-ink);margin:2.6mm 0 3.6mm}
   .rt-pg .rt-dia small,.rt-pg .rt-ind .rt-eb{display:none}
@@ -645,14 +668,27 @@ function rtCss() {
   .rtFlow .rt-b{margin:0 20px 26px}
   .rtFlow .rt-b-topo{margin:0 0 28px}
   .rtFlow .rt-b-map{margin-top:-8px}
-  .rtFlow .rt-capa{height:auto;min-height:min(640px,86vh);padding:64px 24px 70px}
-  .rtFlow .rt-capa .selo{width:116px;height:116px;box-shadow:0 0 0 9px rgba(255,255,255,.16)}
-  .rtFlow .rt-capa .eb{margin-top:40px;font-size:10px}
+  .rtFlow .rt-capa{height:auto;padding:0 0 76px}
+  .rtFlow .rt-capaFoto{position:relative;height:clamp(250px,62vw,360px)}
+  .rtFlow .rt-capaSombra{top:auto;bottom:auto;height:0}
+  .rtFlow .rt-corte{top:calc(clamp(250px,62vw,360px) - 30px);height:70px}
+  .rtFlow .rt-cruz{top:clamp(250px,62vw,360px)}
+  .rtFlow .rt-capaTx{position:relative;top:auto;bottom:auto;margin-top:-64px;padding:0 22px}
+  .rtFlow .rt-capa .selo{width:118px;height:118px;box-shadow:0 0 0 7px #FBF6EE,0 0 0 11px rgba(255,255,255,.22),0 16px 30px -12px rgba(0,0,0,.5)}
+  .rtFlow .rt-capa .eb{margin-top:28px;font-size:10px}
   .rtFlow .rt-capa h1{font-size:clamp(42px,12.5vw,60px);margin-top:20px}
   .rtFlow .rt-capa .sub{font-size:20px}
   .rtFlow .rt-capa hr{margin:30px auto 26px;width:70px}
   .rtFlow .rt-capa .qd{font-size:10px}
   .rtFlow .rt-capa .marca{bottom:26px;font-size:9px}
+  .rtFlow .rt-cards{grid-template-columns:1fr;gap:16px}
+  .rtFlow .rt-card .ft,.rtFlow .rt-cards.um .rt-card .ft{height:clamp(190px,52vw,260px);min-height:0}
+  .rtFlow .rt-cards.um .rt-card{display:block}
+  .rtFlow .rt-card .ct,.rtFlow .rt-cards.um .rt-card .ct{padding:14px 16px 18px}
+  .rtFlow .rt-card .tg{font-size:10px}.rtFlow .rt-card .tg .n{min-width:26px;height:26px;font-size:12.5px}
+  .rtFlow .rt-card.rt-st h3{font-size:21px;margin:10px 0 6px}.rtFlow .rt-card.rt-st .fr{font-size:16px;margin:0 0 8px}.rtFlow .rt-card.rt-st .tx{font-size:15px;margin-left:0}
+  .rtFlow .rt-ind li{grid-template-columns:40px 1fr 52px}.rtFlow .rt-ind li .th{width:52px;height:52px}
+  .rtFlow .rt-dia{padding-bottom:16px}
   .rtFlow .rt-cruz i:first-child{width:34px}.rtFlow .rt-cruz i:last-child{height:34px;margin-top:-17px}
   .rtFlow .rt-ind h2{font-size:30px}.rtFlow .rt-ind .rt-eb{font-size:10px}.rtFlow .rt-ind .lead{font-size:15px}
   .rtFlow .rt-ind ol{grid-template-columns:1fr;grid-auto-flow:row;grid-template-rows:none!important;margin-top:22px}
@@ -677,7 +713,7 @@ function rtCss() {
   .rtFlow .rt-chips span{font-size:13px;padding:7px 12px}
   .rtFlow .rt-obs{padding:18px 18px}.rtFlow .rt-obs h3{font-size:10.5px}.rtFlow .rt-obs p{font-size:15px}
   .rtFlow .rt-fim{grid-template-columns:52px 1fr;gap:14px;padding:22px 0}.rtFlow .rt-fim img{width:52px;height:52px}.rtFlow .rt-fim b{font-size:21px}.rtFlow .rt-fim span{font-size:13.5px}
-  @media(min-width:700px){.rtFlow .rt-cols{column-count:2;column-gap:36px}.rtFlow .rt-map{height:330px}.rtFlow .rt-ind ol{grid-template-columns:1fr 1fr;column-gap:30px}}
+  @media(min-width:700px){.rtFlow .rt-cards{grid-template-columns:1fr 1fr}.rtFlow .rt-cols{column-count:2;column-gap:36px}.rtFlow .rt-map{height:330px}.rtFlow .rt-ind ol{grid-template-columns:1fr 1fr;column-gap:30px}}
   /* o editor (painel) */
   .rtLista .linha{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
   .rtLista .linha .tx{flex:1;min-width:200px}.rtLista .linha small{display:block;color:var(--ink-3)}
@@ -751,13 +787,15 @@ function rtTituloArte(t) {
   return `${esc(w.slice(0, -n).join(' '))} <em>${esc(w.slice(-n).join(' '))}</em>`;
 }
 const rtDataCurta = (iso) => { const d = rtData(iso); return d ? `${d.getDate()} ${RT_MES[d.getMonth()].slice(0, 3)}` : ''; };
+const RT_CAPA_FOTO = 'home.jpg';   /* Nyhavn, a foto da vitrine dela */
 function rtTopoHtml(r) {
   const neg = (typeof guiaNegocio === 'function' && guiaNegocio()) || 'Tour na Dinamarca';
   const grande = r.titulo && r.titulo !== RT_TITULO ? r.titulo : 'København';
-  return `<header class="rt-capa"><div class="rt-cruz" aria-hidden="true"><i></i><i></i></div>
-    <img class="selo" src="arte/selo-mari-circ.png" alt="${esc(neg)}">
+  return `<header class="rt-capa"><div class="rt-capaFoto" style="background-image:url('${esc(RT_CAPA_FOTO)}')" role="img" aria-label="Nyhavn, Copenhague"></div><div class="rt-capaSombra" aria-hidden="true"></div>
+    <div class="rt-corte" aria-hidden="true"></div><div class="rt-cruz" aria-hidden="true"><i></i><i></i></div>
+    <div class="rt-capaTx"><img class="selo" src="arte/selo-mari-circ.png" alt="${esc(neg)}">
     <p class="eb">Roteiro personalizado</p><h1>${esc(grande)}</h1>${r.subtitulo ? `<p class="sub">${esc(r.subtitulo)}</p>` : ''}
-    ${r.cliente && r.cliente.nome || rtPeriodo(r) ? '<hr>' : ''}${r.cliente && r.cliente.nome ? `<p class="para">${esc(r.cliente.nome)}</p>` : ''}${rtPeriodo(r) ? `<p class="qd">${esc(rtPeriodo(r))}</p>` : ''}
+    ${r.cliente && r.cliente.nome || rtPeriodo(r) ? '<hr>' : ''}${r.cliente && r.cliente.nome ? `<p class="para">${esc(r.cliente.nome)}</p>` : ''}${rtPeriodo(r) ? `<p class="qd">${esc(rtPeriodo(r))}</p>` : ''}</div>
     <p class="marca">${esc(neg)}</p></header>`;
 }
 /* a página dos dias: o número de cada dia em vermelho, o título e por onde passa */
@@ -768,18 +806,25 @@ function rtIndiceHtml(r, foto) {
     <p class="lead">${nome ? `Pensado para ${esc(nome)}, d` : 'D'}ia a dia, na ordem do caminho. Cada dia tem o seu mapa, e os números das paradas no texto são os mesmos do mapa.</p>
     <ol style="grid-template-rows:repeat(${linhas},auto)">${r.dias.map((d, k) => {
       const lugares = d.paradas.slice(0, 3).map(p => p.nome).join(' · ') + (d.paradas.length > 3 ? ' …' : '');
-      return `<li><i>${String(k + 1).padStart(2, '0')}</i><div><b>${esc((d.titulo || rtTituloDosLugares(d) || 'Dia ' + (k + 1)).replace(/\*/g, ''))}</b><small>${esc([rtDataCurta(d.data), lugares].filter(Boolean).join(' · '))}</small></div></li>`; }).join('')}</ol>
+      const th = d.paradas.map(p => p.foto).find(Boolean);
+      return `<li><i>${String(k + 1).padStart(2, '0')}</i><div><b>${esc((d.titulo || rtTituloDosLugares(d) || 'Dia ' + (k + 1)).replace(/\*/g, ''))}</b><small>${esc([rtDataCurta(d.data), lugares].filter(Boolean).join(' · '))}</small></div>${th ? `<span class="th" style="background-image:url('${esc(th)}')"></span>` : '<span></span>'}</li>`; }).join('')}</ol>
     ${foto ? `<figure class="rt-banda"><img src="${esc(foto)}" alt="" decoding="async"></figure>` : ''}</section>`;
 }
 function rtParadaHtml(p, n) {
   return `<article class="rt-st${p.opcional ? ' opc' : ''}"><h3><span class="n">${String(n).padStart(2, '0')}</span><span class="nm">${esc(p.nome)}</span>${p.hora ? `<small>${esc(p.hora)}</small>` : ''}${p.opcional ? '<small class="opc">opcional</small>' : ''}</h3>
     ${p.frase ? `<p class="fr">${esc(p.frase)}</p>` : ''}${p.texto ? `<p class="tx">${esc(p.texto)}</p>` : ''}</article>`;
 }
-function rtTxtHtml(paradas, de, fotos, variante) {
-  const v = fotos.length && variante === 1 ? 1 : 0;
-  const polas = fotos.length ? `<div class="rt-polas">${fotos.map((f, k) => rtPola(f, RT_ROT[(de + k) % RT_ROT.length])).join('')}</div>` : '';
-  return `<section class="rt-txt rt-v${v}">${polas}<div class="rt-cols ${paradas.length < 2 ? 'um' : ''}">${paradas.map((p, k) => rtParadaHtml(p, de + k)).join('')}</div></section>`;
+function rtCardHtml(p, n) {
+  const tg = [p.hora, p.opcional ? 'opcional' : ''].filter(Boolean);
+  return `<article class="rt-st rt-card${p.opcional ? ' opc' : ''}">${p.foto ? `<div class="ft" style="background-image:url('${esc(p.foto)}')" role="img" aria-label="${esc(p.nome)}"></div>` : ''}
+    <div class="ct"><p class="tg"><span class="n">${String(n).padStart(2, '0')}</span>${tg.map(x => `<span>${esc(x)}</span>`).join('<span aria-hidden="true">·</span>')}</p>
+    <h3>${esc(p.nome)}</h3>${p.frase ? `<p class="fr">${esc(p.frase)}</p>` : ''}${p.texto ? `<p class="tx">${esc(p.texto)}</p>` : ''}</div></article>`;
 }
+function rtTxtHtml(paradas, de, fotos, variante) {
+  return `<section class="rt-txt"><div class="rt-cards ${paradas.length < 2 ? 'um' : ''}" style="--ft:46mm">${paradas.map((p, k) => rtCardHtml(p, de + k)).join('')}</div></section>`;
+}
+/* quantas fileiras de cartões têm foto (2 por fileira): é o que a foto pode encolher para o trecho caber */
+function rtFileirasComFoto(paradas) { if (paradas.length < 2) return 0; let n = 0; for (let i = 0; i < paradas.length; i += 2) if (paradas[i].foto || (paradas[i + 1] && paradas[i + 1].foto)) n++; return n; }
 function rtMapBlocoHtml(t, modo, semMapa) {
   const pts = rtPontosMapa(t), links = rtLinksTrechoDet(t, modo);
   if (!pts.length && !links.length) return '';
@@ -820,7 +865,7 @@ function rtBlocos(r, opts) {
   const todas = r.dias.flatMap(d => d.paradas);
   B.push({ k: 'topo', html: rtTopoHtml(r) });
   const indice = r.dias.length > 1;
-  if (indice) { const banda = todas.map(p => p.foto).find(Boolean); if (banda) usadas.add(banda); B.push({ k: 'indice', rotulo: 'O seu roteiro', html: rtIndiceHtml(r, banda) }); }
+  if (indice) B.push({ k: 'indice', rotulo: 'O seu roteiro', html: rtIndiceHtml(r, 'fotos/christianshavn.jpg') });
   let sec = 0;
   r.dias.forEach((d, di) => {
     const modo = rtModo(r, d);
@@ -861,10 +906,15 @@ async function rtPaginas(r, alvo) {
     grupos.push(g);
   }
   const base = 82 * mm, MIN = 58 * mm;          /* o mapa pode encolher até ~58 mm para o trecho caber na folha */
-  const H = (b) => (b._h === undefined ? (b._h = alt(b)) : b._h) + (b.k === 'map' && b.mapPx ? b.mapPx - base : 0);
+  /* e a foto dos cartões, de 46 até 34 mm (14/11: com os cartões de foto, o dia não deixa meia folha vazia) */
+  const FT = 46, FT_MIN = 34, fil = (b) => b.k === 'txt' ? (b.fil === undefined ? (b.fil = rtFileirasComFoto(b.paradas || [])) : b.fil) : 0;
+  const H = (b) => (b._h === undefined ? (b._h = alt(b)) : b._h) + (b.k === 'map' && b.mapPx ? b.mapPx - base : 0) - (b.k === 'txt' && b.ft ? (FT - b.ft) * mm * fil(b) : 0);
   const altG = (g) => g.reduce((t, b) => t + H(b), 0);
-  const folga = (g) => g.filter(b => b.k === 'map').reduce((t, b) => t + (b.mapPx || base) - MIN, 0);
-  const encolhe = (g, falta) => { for (const m of g.filter(b => b.k === 'map')) { const t = Math.min((m.mapPx || base) - MIN, falta); if (t > 0) { m.mapPx = (m.mapPx || base) - t; falta -= t; } } };
+  const folga = (g) => g.reduce((t, b) => t + (b.k === 'map' ? (b.mapPx || base) - MIN : b.k === 'txt' ? ((b.ft || FT) - FT_MIN) * mm * fil(b) : 0), 0);
+  const encolhe = (g, falta) => {
+    for (const m of g.filter(b => b.k === 'map')) { const t = Math.min((m.mapPx || base) - MIN, falta); if (t > 0) { m.mapPx = (m.mapPx || base) - t; falta -= t; } }
+    for (const x of g.filter(b => b.k === 'txt' && fil(b))) { const t = Math.min(((x.ft || FT) - FT_MIN) * mm * fil(x), falta); if (t > 0) { x.ft = (x.ft || FT) - t / (mm * fil(x)); falta -= t; } }
+  };
   const pags = [[]]; let livre = cap;
   const nova = () => { pags.push([]); livre = cap; };
   const vazia = () => !pags[pags.length - 1].length;
@@ -876,7 +926,7 @@ async function rtPaginas(r, alvo) {
     if (h <= livre) { poe(g); continue; }
     if (!vazia()) {
       /* 1) o mapa do próprio trecho encolhe um pouco */
-      if (h - livre <= folga(g) && h - livre <= 30 * mm) { encolhe(g, h - livre); poe(g); continue; }
+      if (h - livre <= folga(g) && h - livre <= 45 * mm) { encolhe(g, h - livre); poe(g); continue; }
       /* 2) o trecho lado a lado (texto | mapa) cabe no resto da folha */
       const tx = g.find(b => b.k === 'txt');
       if (tx && tx.lado && g.some(b => b.k === 'map')) { const gl = g.filter(b => b.k === 'dia').concat([{ k: 'lado', html: tx.lado }]); if (altG(gl) <= livre) { poe(gl); continue; } }
@@ -886,17 +936,25 @@ async function rtPaginas(r, alvo) {
     }
     if (h <= livre) { poe(g); continue; }
     if (h - livre <= folga(g)) { encolhe(g, h - livre); poe(g); continue; }
-    /* nem numa folha inteira: divide as paradas do trecho em duas partes */
+    /* nem numa folha inteira: divide as paradas do trecho em duas partes — a primeira com o MÁXIMO de cartões
+       que cabem no resto da folha (de preferência fileiras inteiras), não mais pela metade (14/11) */
     const k = g.findIndex(b => b.k === 'txt' && b.paradas.length > 1);
     if (k >= 0) {
-      const b = g[k], meio = Math.ceil(b.paradas.length / 2), pa = b.paradas.slice(0, meio), pc = b.paradas.slice(meio);
+      const b = g[k], n = b.paradas.length, antes = g.slice(0, k);
+      const cabe = (q) => { const A = { k: 'txt', html: rtTxtHtml(b.paradas.slice(0, q), b.de, b.fotos, b.variante), paradas: b.paradas.slice(0, q) }; const gg = antes.concat([A]); return altG(gg) - folga(gg) <= livre; };
+      let meio = 0;
+      for (let q = n - 1; q >= 2 && !meio; q--) if (q % 2 === 0 && cabe(q)) meio = q;
+      for (let q = n - 1; q >= 1 && !meio; q--) if (cabe(q)) meio = q;
+      if (!meio) meio = Math.ceil(n / 2);
+      const pa = b.paradas.slice(0, meio), pc = b.paradas.slice(meio);
       const A = { k: 'txt', html: rtTxtHtml(pa, b.de, b.fotos, b.variante), paradas: pa, de: b.de, fotos: b.fotos, variante: b.variante };
       const C = { k: 'txt', html: rtTxtHtml(pc, b.de + meio, [], 0), paradas: pc, de: b.de + meio, fotos: [], variante: 0 };
       grupos.splice(gi, 1, g.slice(0, k).concat([A]), [C].concat(g.slice(k + 1))); gi--; continue;
     }
     poe(g);
   }
-  pags.forEach(p => p.forEach((b, j) => { if (b.k === 'map' && b.mapPx) p[j] = Object.assign({}, b, { html: b.html.replace('<div class="rt-map"', `<div class="rt-map" style="height:${Math.round(b.mapPx)}px"`) }); }));
+  pags.forEach(p => p.forEach((b, j) => { if (b.k === 'map' && b.mapPx) p[j] = Object.assign({}, b, { html: b.html.replace('<div class="rt-map"', `<div class="rt-map" style="height:${Math.round(b.mapPx)}px"`) });
+    if (b.k === 'txt' && b.ft && b.ft < FT) p[j] = Object.assign({}, b, { html: b.html.replace('style="--ft:46mm"', `style="--ft:${b.ft.toFixed(1)}mm"`) }); }));
   med.remove();
   const neg = (typeof guiaNegocio === 'function' && guiaNegocio()) || 'Tour na Dinamarca';
   /* cada folha: em cima o dia em que ela está (o olho) e o número; embaixo o selo, o nome e "03 / 06" */
@@ -909,13 +967,22 @@ async function rtPaginas(r, alvo) {
   /* a folha que sobrou espaço: os mapas crescem e ocupam (mais fáceis de ler, a folha fica cheia como a dela) */
   const folhas = [...alvo.querySelectorAll('.rt-pg')];
   folhas.forEach((pg, k) => {
-    const inn = pg.querySelector('.rt-in'), mapas = [...inn.querySelectorAll('.rt-b-map .rt-map')], ult = inn.lastElementChild;
-    if (!mapas.length || !ult) return;
     if (pg.classList.contains('capa')) return;
-    let sobra = inn.clientHeight - (ult.getBoundingClientRect().bottom - inn.getBoundingClientRect().top) - 2 * mm;
-    if (k === folhas.length - 1) sobra = Math.min(sobra, 22 * mm);
-    const cada = Math.min(sobra / mapas.length, 60 * mm);
-    if (cada > 3 * mm) mapas.forEach(m => { m.style.height = (m.getBoundingClientRect().height + cada) + 'px'; });
+    const inn = pg.querySelector('.rt-in'), mapas = [...inn.querySelectorAll('.rt-b-map .rt-map')], ult = inn.lastElementChild;
+    if (!ult) return;
+    const sobra = () => inn.clientHeight - (ult.getBoundingClientRect().bottom - inn.getBoundingClientRect().top) - 2 * mm, fim = k === folhas.length - 1;
+    /* e as fotos dos cartões crescem até ~64 mm para a folha ficar cheia, como numa revista (14/11);
+       sem foto para crescer, o mapa pode crescer mais */
+    const grades = [...inn.querySelectorAll('.rt-cards:not(.um)')];
+    const fileiras = grades.reduce((t, gd) => { const c = [...gd.children]; let n = 0; for (let i = 0; i < c.length; i += 2) if (c[i].querySelector('.ft') || (c[i + 1] && c[i + 1].querySelector('.ft'))) n++; return t + n; }, 0);
+    if (mapas.length) {
+      const cada = Math.min((fim ? Math.min(sobra(), 22 * mm) : sobra()) / mapas.length, (fileiras ? 60 : 110) * mm);
+      if (cada > 3 * mm) mapas.forEach(m => { m.style.height = (m.getBoundingClientRect().height + cada) + 'px'; });
+    }
+    if (fileiras) {
+      const cada = Math.min((fim ? Math.min(sobra(), 30 * mm) : sobra()) / fileiras, 18 * mm);
+      if (cada > 3 * mm) grades.forEach(gd => { const at = parseFloat(gd.style.getPropertyValue('--ft')) || 46; gd.style.setProperty('--ft', (at + cada / mm).toFixed(1) + 'mm'); });
+    }
   });
   rtEscala(alvo);
   await rtMapas(alvo);
