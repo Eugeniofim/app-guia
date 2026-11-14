@@ -10,6 +10,10 @@
    - A assinatura dela: o título de cada grupo com uma linha tracejada que termina
      numa bicicletinha amarela (Copenhague é a cidade da bicicleta; a da Bia tem
      um aviãozinho).
+   - 14/11: "ela quer usar o vermelho da Dinamarca mais, inclusive na entrada da vitrine" — o
+     cartão do topo e o botão principal ficaram VERMELHOS (#C8102E), com a cruz da bandeira bem
+     de leve por trás (a mesma da capa do roteiro); o resto do vidro escuro ganhou os detalhes em
+     vermelho-claro (#FF8A96, legível sobre o azul-noite) no lugar do amarelo.
    - Sugestões novas: "Copenhague de barco" (o tour de barco) e o cartão
      "Indicações da Mari — Para a sua viagem" (onde ficar, chip, seguro, ingressos):
      cada linha abre o WhatsApp dela com a pergunta pronta.
@@ -97,48 +101,51 @@ function vtArruma() {
 function vtCss() {
   if (document.getElementById('vtCss')) return;
   const s = document.createElement('style'); s.id = 'vtCss';
-  /* paleta: noite do porto #121A2C · azul-marinho #1D2A44 · creme #FBF7EC · amarelo #F2C230 */
+  /* paleta: noite do porto #121A2C · azul-marinho #1D2A44 · creme #FBF7EC · vermelho da Dinamarca #C8102E (detalhe sobre o escuro #FF8A96) */
+  const CRUZ = 'linear-gradient(90deg,transparent calc(30% - 17px),rgba(255,255,255,.08) calc(30% - 17px),rgba(255,255,255,.08) calc(30% + 17px),transparent calc(30% + 17px)),linear-gradient(180deg,transparent calc(36% - 17px),rgba(255,255,255,.08) calc(36% - 17px),rgba(255,255,255,.08) calc(36% + 17px),transparent calc(36% + 17px))';
   s.textContent = `
   .hub.vt{place-items:start center;padding:20px 16px 48px;background-color:#0E1320}
   /* Nyhavn (22/10): no computador a foto mostra as fachadas coloridas e os barcos, não só o céu */
   .hub.vt .hub-bg{background-position:center 62%}
   .hub.vt .hub-bg::after{background:linear-gradient(180deg,rgba(14,19,32,.30) 0%,rgba(14,19,32,.52) 34%,rgba(14,19,32,.86) 78%,rgba(14,19,32,.94) 100%)}
   .hub.vt .hub-in{gap:8px}
-  .hub.vt .vcard{background:rgba(20,27,46,.74);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);border:1px solid rgba(251,247,236,.14);color:#FBF7EC;box-shadow:0 26px 60px -30px rgba(0,0,0,.7)}
-  .hub.vt .vcard .vi-mark img{box-shadow:0 0 0 3px rgba(251,247,236,.92),0 0 0 5px rgba(242,194,48,.55),0 18px 34px -16px rgba(0,0,0,.65)}
-  .hub.vt .vcard .vi-word small{color:#F2C230;letter-spacing:.24em}
+  .hub.vt .vcard{background:${CRUZ},rgba(200,16,46,.9);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);border:1px solid rgba(255,255,255,.22);color:#FBF7EC;box-shadow:0 26px 60px -30px rgba(0,0,0,.7)}
+  .hub.vt .vcard .vi-mark img{box-shadow:0 0 0 3px #FBF7EC,0 0 0 6px rgba(255,255,255,.28),0 18px 34px -16px rgba(0,0,0,.6)}
+  .hub.vt .vcard .vi-word small{color:rgba(251,247,236,.9);letter-spacing:.24em}
   .hub.vt .vcard .tagline{color:rgba(251,247,236,.88);font-size:15px;line-height:1.55;max-width:34ch;margin-left:auto;margin-right:auto}
-  .hub.vt .vcard .parceira{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:500;font-size:16.5px;line-height:1.45;color:#F2C230;max-width:31ch}
-  .hub.vt .vcard .parceira::before{background:#F2C230;opacity:.9}
-  .hub.vt .vtChip{display:inline-flex;align-items:center;gap:6px;margin:14px auto 2px;padding:6px 12px 6px 10px;border-radius:999px;border:1px solid rgba(242,194,48,.5);color:#FBF7EC;font:600 12px/1 var(--f-ui);letter-spacing:.01em}
-  .hub.vt .vtChip svg{width:14px;height:14px;color:#F2C230}
-  .hub.vt .vcard hr,.hub.vt .vcard [class*="lang"]{border-color:rgba(251,247,236,.14)}
-  .hub.vt .vcard [data-lang]{color:rgba(251,247,236,.72)}
-  .hub.vt .vcard [data-lang].on,.hub.vt .vcard [data-lang][aria-pressed="true"]{color:#141B2E}
+  .hub.vt .vcard .parceira{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:500;font-size:16.5px;line-height:1.45;color:#FBF7EC;max-width:31ch}
+  .hub.vt .vcard .parceira::before{background:#FBF7EC;opacity:.75}
+  .hub.vt .vtChip{display:inline-flex;align-items:center;gap:6px;margin:14px auto 2px;padding:6px 12px 6px 10px;border-radius:999px;border:1px solid rgba(251,247,236,.5);color:#FBF7EC;font:600 12px/1 var(--f-ui);letter-spacing:.01em}
+  .hub.vt .vtChip svg{width:14px;height:14px;color:#FBF7EC}
+  .hub.vt .vcard hr,.hub.vt .vcard [class*="lang"]{border-color:rgba(251,247,236,.24)}
+  .hub.vt .vcard [data-lang]{color:rgba(251,247,236,.86)}
+  .hub.vt .vcard [data-lang].on,.hub.vt .vcard [data-lang][aria-pressed="true"]{background:#FBF7EC;color:#A50D26}
+  .hub.vt .vcard .langsep{color:rgba(251,247,236,.4)}
   .hub.vt .vtRot{display:flex;align-items:center;gap:10px;margin:18px 4px 2px;color:rgba(251,247,236,.82);font:700 10.5px/1 var(--f-ui);letter-spacing:.17em;text-transform:uppercase}
   .hub.vt .vtRot span{white-space:nowrap}
-  .hub.vt .vtRota{flex:1;max-width:170px;height:18px;color:#F2C230;opacity:.85}
+  .hub.vt .vtRota{flex:1;max-width:170px;height:18px;color:#FF8A96;opacity:.9}
   .hub.vt .lk{background:rgba(20,27,46,.74);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(251,247,236,.12);color:#FBF7EC;box-shadow:none}
   .hub.vt .lk:hover{background:rgba(29,42,68,.86);transform:translateY(-1px);box-shadow:0 10px 26px -18px rgba(0,0,0,.8)}
   .hub.vt .lk small{color:rgba(251,247,236,.68)}
-  .hub.vt .lk .ic{background:rgba(242,194,48,.14);color:#F2C230}
+  .hub.vt .lk .ic.ic{background:rgba(200,16,46,.24);color:#FF8A96}
   .hub.vt .lk .ic.wa{background:#25D366;color:#fff}
-  .hub.vt .rede.ml{background:rgba(251,247,236,.14);color:#FBF7EC;border:1px solid rgba(251,247,236,.22)}
+  .hub.vt .rede.ml{background:rgba(251,247,236,.16);color:#FBF7EC;border:1px solid rgba(251,247,236,.3)}
   .hub.vt .lk .go{color:rgba(251,247,236,.5)}
-  .hub.vt .lk.main{background:#F2C230;border-color:#F2C230;color:#141B2E}
-  .hub.vt .lk.main small{color:rgba(20,27,46,.72)}
-  .hub.vt .lk.main .ic{background:rgba(20,27,46,.12);color:#141B2E}
-  .hub.vt .lk.main .go{color:#141B2E}
-  .hub.vt .lk.destaque{border-color:rgba(242,194,48,.55);box-shadow:none}
-  .hub.vt .lk.destaque .ic{background:#F2C230;color:#141B2E}
-  .hub.vt .lk:focus-visible{outline:2px solid #F2C230;outline-offset:3px}
+  .hub.vt .lk.main{background:#C8102E;border-color:#C8102E;color:#fff}
+  .hub.vt .lk.main:hover{background:#B00E28}
+  .hub.vt .lk.main small{color:rgba(255,255,255,.84)}
+  .hub.vt .lk.main .ic.ic{background:rgba(255,255,255,.18);color:#fff}
+  .hub.vt .lk.main .go{color:#fff}
+  .hub.vt .lk.destaque{border-color:rgba(255,138,150,.6);box-shadow:none}
+  .hub.vt .lk.destaque .ic.ic{background:#C8102E;color:#fff!important}
+  .hub.vt .lk:focus-visible{outline:2px solid #FF8A96;outline-offset:3px}
   .hub.vt .vtIndic{margin-top:18px;background:rgba(20,27,46,.76);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(251,247,236,.12);border-radius:22px;overflow:hidden;color:#FBF7EC}
-  .hub.vt .vtIndic > small{display:block;padding:16px 18px 0;font:700 10.5px/1 var(--f-ui);letter-spacing:.17em;text-transform:uppercase;color:#F2C230}
+  .hub.vt .vtIndic > small{display:block;padding:16px 18px 0;font:700 10.5px/1 var(--f-ui);letter-spacing:.17em;text-transform:uppercase;color:#FF8A96}
   .hub.vt .vtIndic > h2{margin:6px 18px 12px;font:700 21px/1.2 var(--f-display);color:#FBF7EC}
   .hub.vt .vtI{display:flex;align-items:center;gap:12px;padding:13px 18px;border-top:1px solid rgba(251,247,236,.1);color:#FBF7EC;text-decoration:none}
   .hub.vt .vtI:hover{background:rgba(251,247,236,.05)}
-  .hub.vt .vtI:focus-visible{outline:2px solid #F2C230;outline-offset:-2px}
-  .hub.vt .vtIic{width:36px;height:36px;flex:none;border-radius:12px;display:grid;place-items:center;background:rgba(242,194,48,.14);color:#F2C230}
+  .hub.vt .vtI:focus-visible{outline:2px solid #FF8A96;outline-offset:-2px}
+  .hub.vt .vtIic{width:36px;height:36px;flex:none;border-radius:12px;display:grid;place-items:center;background:rgba(200,16,46,.24);color:#FF8A96}
   .hub.vt .vtIic svg,.hub.vt .vtIwa svg{width:19px;height:19px}
   .hub.vt .vtItx{flex:1;min-width:0}
   .hub.vt .vtItx b{display:block;font-size:15px}

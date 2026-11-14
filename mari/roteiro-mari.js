@@ -479,14 +479,16 @@ async function rtMapas(raiz) {
     try {
       const pts = JSON.parse(el.dataset.pts || '[]').filter(p => isFinite(p[0]) && isFinite(p[1]));
       if (!pts.length) { el.remove(); continue; }
-      const m = L.map(el, { zoomControl: false, attributionControl: true, scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false, keyboard: false, zoomSnap: 0.25, fadeAnimation: false, zoomAnimation: false });
+      /* preferCanvas (14/11): a linha do caminho em SVG saía deslocada dos números no PDF (o html2canvas não acompanha
+         o deslocamento do SVG do Leaflet); desenhada em canvas, o PDF copia igual à tela */
+      const m = L.map(el, { zoomControl: false, attributionControl: true, scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false, keyboard: false, zoomSnap: 0.25, fadeAnimation: false, zoomAnimation: false, preferCanvas: true });
       m.attributionControl.setPrefix(false);
       const camada = L.tileLayer(RT_TILES, { maxZoom: 19, attribution: '© OpenStreetMap' });
       let carregou = 0; camada.on('tileload', () => { carregou++; el.classList.add('ok'); });
       camada.on('loading', () => el.classList.remove('pronto')); camada.on('load', () => el.classList.add('pronto'));
       camada.addTo(m);
       const ll = pts.map(p => [p[0], p[1]]);
-      if (ll.length > 1) L.polyline(ll, { color: '#E4572E', weight: 3.5, opacity: 0.95, dashArray: '7 7', interactive: false }).addTo(m);
+      if (ll.length > 1) L.polyline(ll, { color: '#C8102E', weight: 3.5, opacity: 0.95, dashArray: '7 7', interactive: false }).addTo(m);
       pts.forEach(p => L.marker([p[0], p[1]], { interactive: false, keyboard: false,
         icon: L.divIcon({ className: 'rt-mki', html: `<span class="rt-mk ${p[3] || ''}">${esc(String(p[2]))}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] }) }).addTo(m));
       if (ll.length === 1) m.setView(ll[0], 15); else m.fitBounds(ll, { padding: [28, 28], maxZoom: 16 });
@@ -523,107 +525,159 @@ function rtCss() {
   if (document.getElementById('rtCss')) return;
   const s = document.createElement('style'); s.id = 'rtCss';
   s.textContent = `
-  .rtDoc{--rt-lar:#F28C4B;--rt-ver:#E4572E;--rt-ink:#202020;--rt-ink2:#4a4a4a;--rt-ink3:#8b8b8b;font-family:"Karla",-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--rt-ink);-webkit-print-color-adjust:exact;print-color-adjust:exact;line-height:1.4}
+  /* 14/11/2026 — o visual novo, no estilo do roteiro editorial que a Mari mandou ("deixa nesse estilo"):
+     papel creme, títulos em serifa com um trecho em itálico colorido, olhos de seção espaçados,
+     fotos em arco e em círculo, caixas com a barra na esquerda. A cor é o VERMELHO DA DINAMARCA
+     (pedido dela), e a capa inteira é vermelha com a cruz da bandeira bem de leve por trás. */
+  .rtDoc{--rt-red:#C8102E;--rt-red2:#A50D26;--rt-paper:#F7F1E7;--rt-ink:#231F1B;--rt-ink2:#5F574E;--rt-ink3:#8E8478;--rt-line:#DCD2C2;--rt-box:#EFE7DA;font-family:"Karla",-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--rt-ink);-webkit-print-color-adjust:exact;print-color-adjust:exact;line-height:1.45}
   .rtDoc *{box-sizing:border-box}
   .rtDoc p,.rtDoc h1,.rtDoc h2,.rtDoc h3,.rtDoc figure{margin:0}
+  .rtDoc em{font-style:italic;color:var(--rt-red)}
   .rt-pages{width:210mm;margin:0 auto}
-  .rt-pg{width:210mm;height:297mm;background:#fff;position:relative;overflow:hidden;margin:0 auto 22px;box-shadow:0 22px 60px -30px rgba(0,0,0,.55)}
-  .rt-pg .rt-in{position:absolute;left:15mm;right:15mm;top:15mm;bottom:13mm}
-  .rt-pg.um .rt-in{top:6mm}
-  .rt-pg:not(.um)::before{content:"";position:absolute;inset:8mm;border:1.3px solid var(--rt-ver);pointer-events:none;z-index:2}
-  .rt-pe{position:absolute;left:0;right:0;bottom:3.2mm;text-align:center;font-size:7.5px;letter-spacing:.26em;text-transform:uppercase;color:#8f877e}
+  .rt-pg{width:210mm;height:297mm;background:var(--rt-paper);position:relative;overflow:hidden;margin:0 auto 22px;box-shadow:0 22px 60px -30px rgba(0,0,0,.55)}
+  .pdf-clone .rt-pg{margin:0!important;box-shadow:none!important}
+  .rt-pg .rt-in{position:absolute;left:16mm;right:16mm;top:21mm;bottom:17mm}
+  .rt-cab{position:absolute;left:16mm;right:16mm;top:9.5mm;display:flex;justify-content:space-between;align-items:baseline;gap:6mm;border-bottom:.6px solid var(--rt-line);padding-bottom:2.6mm}
+  .rt-cab span{font:700 7.6px/1.2 "Karla",sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--rt-red2)}
+  .rt-cab b{font:400 12px/1 "Playfair Display",Georgia,serif;color:var(--rt-ink3)}
+  .rt-pe{position:absolute;left:16mm;right:16mm;bottom:7mm;display:flex;justify-content:space-between;align-items:center;border-top:.6px solid var(--rt-line);padding-top:2.6mm;font:600 7.4px/1 "Karla",sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--rt-ink3)}
+  .rt-pe span{display:flex;align-items:center;gap:2.4mm}
+  .rt-pe img{width:4.6mm;height:4.6mm;border-radius:50%}
   .rt-b{display:flow-root;margin:0 0 6mm}
   .rt-b-map{margin-top:-2mm}
   .rt-medir{position:absolute;left:-12000px;top:0;visibility:hidden;pointer-events:none}
-  /* a faixa laranja da primeira página */
-  .rt-topo{margin:0 -9mm}
-  .rt-faixa{background:var(--rt-lar);color:#fff;text-align:center;padding:9mm 12mm 31mm}
-  .rt-faixa h1{font:400 44px/1.08 "Karla",-apple-system,sans-serif;letter-spacing:-.005em;color:#fff}
-  .rt-sub{font:italic 500 15.5px/1.4 "Playfair Display",Georgia,serif;margin-top:7px!important}
-  .rt-para{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;margin-top:9px!important;opacity:.95;font-weight:600}
-  .rt-polas-topo{display:flex;justify-content:center;align-items:flex-start;gap:4.5mm;margin:-25mm 2mm 0;position:relative}
-  .rt-polas-topo .rt-pola{width:41mm;height:32mm}
-  .rt-polas-topo .rt-pola:nth-child(2){width:45mm;height:35mm;margin-top:-3mm}
-  .rt-polas-topo .rt-pola:nth-child(3){margin-top:2mm}
-  .rt-polas-topo .rt-pola:nth-child(4){width:43mm;height:33mm;margin-top:-1mm}
-  /* polaroide */
-  .rt-pola{background:#fff;padding:2mm;box-shadow:0 6px 14px -4px rgba(0,0,0,.38),0 0 0 .4px rgba(0,0,0,.18);transform:rotate(var(--r,0deg));flex:none}
+  /* a capa: vermelha, com a cruz da bandeira em marca d'água */
+  .rt-pg.capa{background:var(--rt-red)}
+  .rt-pg.capa .rt-in{inset:0}
+  .rt-pg.capa .rt-b{margin:0}
+  .rt-capa{position:relative;height:297mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#FBF6EE;padding:0 22mm;background:var(--rt-red);overflow:hidden}
+  .rt-cruz{position:absolute;inset:0;pointer-events:none}
+  .rt-cruz i{position:absolute;background:rgba(255,255,255,.075)}
+  .rt-cruz i:first-child{top:0;bottom:0;left:30%;width:11mm}
+  .rt-cruz i:last-child{left:0;right:0;top:50%;height:11mm;margin-top:-5.5mm}
+  .rt-capa > *:not(.rt-cruz){position:relative}
+  .rt-capa .selo{width:34mm;height:34mm;border-radius:50%;box-shadow:0 0 0 2.4mm rgba(255,255,255,.16);display:block}
+  .rt-capa .eb{font:700 8.4px/1 "Karla",sans-serif;letter-spacing:.42em;text-transform:uppercase;color:#FBF6EE;opacity:.82;margin-top:12mm}
+  .rt-capa h1{font:400 60px/1.04 "Playfair Display",Georgia,serif;letter-spacing:-.005em;margin-top:6mm;color:#FBF6EE}
+  .rt-capa .sub{font:italic 400 21px/1.3 "Playfair Display",Georgia,serif;color:#FBF6EE;opacity:.9;margin-top:3.4mm;max-width:150mm}
+  .rt-capa hr{width:24mm;border:0;border-top:.8px solid rgba(251,246,238,.6);margin:9mm auto 8mm}
+  .rt-capa .para{font:italic 400 19px/1.3 "Playfair Display",Georgia,serif;color:#FBF6EE}
+  .rt-capa .qd{font:600 8.6px/1.4 "Karla",sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#FBF6EE;opacity:.85;margin-top:4mm}
+  .rt-capa .marca{position:absolute;bottom:13mm;left:0;right:0;font:600 7.6px/1 "Karla",sans-serif;letter-spacing:.42em;text-transform:uppercase;color:#FBF6EE;opacity:.65}
+  /* a página dos dias (quando a viagem tem mais de um) */
+  .rt-ind .rt-eb{display:block;font:700 8.4px/1 "Karla",sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--rt-red2)}
+  .rt-ind h2{font:400 34px/1.12 "Playfair Display",Georgia,serif;margin:3mm 0 4mm}
+  .rt-pg .rt-ind h2{margin-top:0}
+  .rt-pg .rt-b-indice{height:100%;margin:0}
+  .rt-pg .rt-ind{height:100%;display:flex;flex-direction:column}
+  .rt-pg .rt-banda{flex:1 1 auto;min-height:60mm;max-height:150mm}
+  .rt-ind .lead{font-size:13.4px;line-height:1.62;color:var(--rt-ink2);max-width:150mm}
+  .rt-ind ol{list-style:none;padding:0;margin:9mm 0 0;display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:column;column-gap:10mm}
+  .rt-ind li{display:grid;grid-template-columns:11mm 1fr;align-items:baseline;padding:3.4mm 0;border-bottom:.6px solid var(--rt-line)}
+  .rt-ind li > i{font:400 17px/1 "Playfair Display",Georgia,serif;font-style:normal;color:var(--rt-red)}
+  .rt-ind li b{display:block;font:600 13px/1.3 "Karla",sans-serif;color:var(--rt-ink)}
+  .rt-ind li small{display:block;font-size:10.6px;line-height:1.45;color:var(--rt-ink2);margin-top:1mm}
+  .rt-banda{margin-top:10mm;height:62mm;border-radius:2.6mm;overflow:hidden}
+  .rt-banda img{width:100%;height:100%;object-fit:cover;display:block}
+  /* as fotos: arco, círculo e retângulo de cantos suaves (no lugar das polaroides) */
+  .rt-pola{flex:none;overflow:hidden;background:var(--rt-box)}
   .rt-pola img{display:block;width:100%;height:100%;object-fit:cover}
-  .rt-pola.rt-selo span{display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#262b47}
-  .rt-pola.rt-selo img{width:auto;height:94%;object-fit:contain}
-  .rt-polas{display:flex;gap:6mm;justify-content:flex-end;padding:1.5mm 2mm 0;margin:0 0 6mm}
-  .rt-polas .rt-pola{width:47mm;height:35mm}
-  .rt-txt.rt-v1{display:grid;grid-template-columns:1fr 52mm;gap:4mm 8mm;align-items:start}
+  .rt-polas{display:flex;gap:5mm;justify-content:flex-end;align-items:flex-end;margin:0 0 6mm}
+  .rt-polas .rt-pola{width:40mm;height:46mm;border-radius:20mm 20mm 2mm 2mm}
+  .rt-polas .rt-pola:nth-child(2){width:38mm;height:38mm;border-radius:50%}
+  .rt-polas .rt-pola:nth-child(3){width:46mm;height:34mm;border-radius:2.6mm}
+  .rt-txt.rt-v1{display:grid;grid-template-columns:1fr 54mm;gap:4mm 9mm;align-items:start}
   .rt-txt.rt-v1 .rt-polas{flex-direction:column;align-items:center;justify-content:flex-start;gap:5mm;margin:0;grid-column:2;grid-row:1}
+  .rt-txt.rt-v1 .rt-polas .rt-pola:first-child{width:50mm;height:58mm;border-radius:25mm 25mm 2mm 2mm}
   .rt-txt.rt-v1 .rt-cols{grid-column:1;grid-row:1;column-count:1}
   .rt-lado{display:grid;grid-template-columns:1fr 92mm;gap:0 8mm;align-items:stretch}
   .rt-lado.inv{grid-template-columns:92mm 1fr}.rt-lado.inv .rt-lado-txt{order:2}
-  .rt-lado-txt{padding-top:2mm}
+  .rt-lado-txt{padding-top:1mm}
   .rt-lado-map{display:flex;flex-direction:column;min-width:0}
   .rt-lado-map .rt-mapbox{flex:1;display:flex;flex-direction:column}
   .rt-lado-map .rt-map{flex:1;min-height:66mm;height:auto}
-  .rt-lado-polas{display:flex;gap:4mm;justify-content:flex-end;margin:0 0 -10mm;padding:0 3mm;position:relative;z-index:3}
+  .rt-lado-polas{display:flex;gap:3mm;justify-content:flex-end;margin:0 3mm -9mm;position:relative;z-index:3}
   .rt-lado.inv .rt-lado-polas{justify-content:flex-start}
-  .rt-lado-polas .rt-pola{width:35mm;height:26mm}
+  .rt-lado-polas .rt-pola{width:24mm;height:24mm;border-radius:50%;box-shadow:0 0 0 1.4mm var(--rt-paper)}
   /* as paradas */
   .rt-cols{column-count:2;column-gap:11mm}
   .rt-cols.um{column-count:1}
-  .rt-st{break-inside:avoid;page-break-inside:avoid;padding:0 0 4.4mm;display:block}
-  .rt-st h3{display:flex;gap:3mm;align-items:baseline;font:600 14.5px/1.3 "Karla",-apple-system,sans-serif;color:#1c1c1c;margin:0 0 2.2mm}
-  .rt-st h3 .n{flex:none;min-width:6.5mm}
-  .rt-st h3 small{font-weight:400;font-size:12.5px;color:var(--rt-ink2)}
-  .rt-st .hr{display:block;font-size:9.5px;letter-spacing:.2em;font-weight:700;color:var(--rt-ver);margin:-1mm 0 1.6mm 9.5mm}
-  .rt-st .fr{font:italic 500 12.8px/1.45 "Playfair Display",Georgia,serif;color:#2a2a2a;margin:0 0 2mm 9.5mm}
-  .rt-st .tx{font-size:12.2px;line-height:1.5;color:#363636;margin-left:9.5mm}
+  .rt-st{break-inside:avoid;page-break-inside:avoid;padding:0 0 5mm;display:block}
+  .rt-st h3{display:flex;gap:2.6mm;align-items:baseline;flex-wrap:wrap;font:600 16.5px/1.25 "Playfair Display",Georgia,serif;color:var(--rt-ink);margin:0 0 1.6mm}
+  .rt-st h3 .n{flex:none;min-width:6mm;font:400 13.5px/1 "Playfair Display",Georgia,serif;color:var(--rt-red)}
+  .rt-st h3 .nm{flex:1 1 auto;min-width:0}
+  .rt-st h3 small{font:700 8.2px/1 "Karla",sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--rt-ink3)}
+  .rt-st h3 small.opc{color:var(--rt-red2)}
+  .rt-st .fr{font:italic 400 13.2px/1.45 "Playfair Display",Georgia,serif;color:var(--rt-ink2);margin:0 0 1.6mm 8.6mm}
+  .rt-st .tx{font-size:12px;line-height:1.6;color:#3A342E;margin-left:8.6mm}
   .rt-st.opc h3 .n{color:var(--rt-ink3)}
   /* o mapa e o link do trecho */
-  .rt-map{height:82mm;border:1px solid #e3dccf;background:#efeae1;position:relative;z-index:0;overflow:hidden}
+  .rt-map{height:82mm;border-radius:2.6mm;background:#E9E2D6;position:relative;z-index:0;overflow:hidden}
   .rt-map.falhou{display:none}
   .rt-map .leaflet-control-attribution{font-size:8px;background:rgba(255,255,255,.78)}
-  .rt-ml{display:flex;flex-wrap:wrap;gap:1.6mm 5mm;align-items:center;margin-top:2.4mm;font-size:11.5px;color:#444}
-  .rt-ml a{color:var(--rt-ver);text-decoration:underline;text-underline-offset:2px;font-weight:600}
-  .rt-ml .km{display:inline-flex;gap:1.6mm;align-items:center;font-weight:600;color:#333}
+  .rt-ml{display:flex;flex-wrap:wrap;gap:1.6mm 5mm;align-items:center;margin-top:2.4mm;font-size:10.8px;color:var(--rt-ink2)}
+  .rt-ml a{color:var(--rt-red2);text-decoration:underline;text-underline-offset:2px;font-weight:700}
+  .rt-ml .km{display:inline-flex;gap:1.6mm;align-items:center;font-weight:700;letter-spacing:.06em;color:var(--rt-ink)}
   .rt-ml svg{width:15px;height:15px;flex:none}
   .rt-mki{background:none!important;border:0!important}
-  .rt-mk{display:block;width:24px;height:24px;border-radius:50%;background:#F28C4B;color:#fff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);font:700 11.5px/20px "Karla",-apple-system,sans-serif;text-align:center}
-  .rt-mk.ant{background:#8f8f8f}
-  .rt-mk.opc{background:#fff;color:#E4572E;border-color:#F28C4B}
-  /* cabeçalho de cada dia, dicas e o fim */
-  .rt-dia{border-bottom:1.5px solid var(--rt-lar);padding:0 0 3mm}
-  .rt-dia small{display:block;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--rt-ver);font-weight:700}
-  .rt-dia h2{font:600 21px/1.2 "Karla",-apple-system,sans-serif;margin:1.4mm 0 1mm}
-  .rt-dia .km{font-size:11.5px;color:#555;display:flex;gap:1.6mm;align-items:center}.rt-dia .km svg{width:15px;height:15px}
-  .rt-obs{background:#FDF1E8;border-left:3px solid var(--rt-lar);padding:4mm 5mm}
-  .rt-obs h3{font:700 10.5px/1.2 "Karla",sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--rt-ver);margin:0 0 2mm}
-  .rt-obs p{font-size:12.2px;line-height:1.55}
-  .rt-fim{display:flex;gap:4mm;align-items:center;justify-content:center;color:#555;font-size:11.5px;text-align:left}
-  .rt-fim img{width:13mm;height:13mm;border-radius:50%;flex:none}
-  .rt-fim b{display:block;font:italic 600 16px "Playfair Display",Georgia,serif;color:#222}
+  .rt-mk{display:block;width:24px;height:24px;border-radius:50%;background:#C8102E;color:#fff;border:2px solid #FBF6EE;box-shadow:0 1px 4px rgba(0,0,0,.4);font:700 11.5px/20px "Karla",-apple-system,sans-serif;text-align:center}
+  .rt-mk.ant{background:#9A9088}
+  .rt-mk.opc{background:#FBF6EE;color:#C8102E;border-color:#C8102E}
+  /* o começo de cada dia */
+  .rt-dia{padding:0 0 1mm}
+  .rt-dia small{display:block;font:700 8.6px/1.3 "Karla",sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--rt-red2)}
+  .rt-dia h2{font:400 30px/1.14 "Playfair Display",Georgia,serif;color:var(--rt-ink);margin:2.6mm 0 3.6mm}
+  .rt-pg .rt-dia small,.rt-pg .rt-ind .rt-eb{display:none}
+  .rt-chips{display:flex;flex-wrap:wrap;gap:2mm}
+  .rt-chips span{display:inline-flex;align-items:center;gap:1.6mm;border:.7px solid var(--rt-line);border-radius:99px;padding:1.5mm 3.4mm;font-size:10.4px;color:var(--rt-ink2);background:#FBF7F0}
+  .rt-chips b{color:var(--rt-ink);font-weight:700}
+  .rt-chips svg{width:13px;height:13px;flex:none}
+  /* as dicas e o fim */
+  .rt-obs{background:var(--rt-box);border-left:2.4px solid var(--rt-red);border-radius:0 2mm 2mm 0;padding:5mm 6mm}
+  .rt-obs h3{font:700 8.6px/1 "Karla",sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--rt-red2);margin:0 0 2.6mm}
+  .rt-obs p{font-size:12.4px;line-height:1.62;color:var(--rt-ink)}
+  .rt-fim{display:grid;grid-template-columns:15mm 1fr;gap:5mm;align-items:center;border-top:.6px solid var(--rt-line);border-bottom:.6px solid var(--rt-line);padding:6mm 0}
+  .rt-fim img{width:15mm;height:15mm;border-radius:50%}
+  .rt-fim b{display:block;font:italic 400 19px/1.3 "Playfair Display",Georgia,serif;color:var(--rt-ink)}
+  .rt-fim span{display:block;font-size:11px;line-height:1.55;color:var(--rt-ink2);margin-top:1.4mm}
   /* no celular do cliente: o mesmo conteúdo, em coluna */
-  .rtFlow{max-width:190mm;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 18px 50px -30px rgba(0,0,0,.5);padding-bottom:6px}
-  .rtFlow .rt-b{margin:0 18px 24px}
-  .rtFlow .rt-b-topo{margin:0 0 22px}
+  .rtFlow{max-width:190mm;margin:0 auto;background:var(--rt-paper);border-radius:14px;overflow:hidden;box-shadow:0 18px 50px -30px rgba(0,0,0,.5);padding-bottom:6px}
+  .rtFlow .rt-b{margin:0 20px 26px}
+  .rtFlow .rt-b-topo{margin:0 0 28px}
   .rtFlow .rt-b-map{margin-top:-8px}
-  .rtFlow .rt-topo{margin:0}
-  .rtFlow .rt-faixa{padding:30px 18px 70px}
-  .rtFlow .rt-faixa h1{font-size:clamp(31px,8.6vw,44px)}
-  .rtFlow .rt-polas-topo{margin:-52px 10px 0;gap:8px}
-  .rtFlow .rt-polas-topo .rt-pola,.rtFlow .rt-polas-topo .rt-pola:nth-child(n){flex:1 1 0;min-width:0;max-width:150px;width:auto;height:auto;aspect-ratio:4/3;padding:5px;margin-top:0}
-  .rtFlow .rt-polas-topo .rt-pola:nth-child(2){margin-top:-8px}
-  .rtFlow .rt-polas{justify-content:center;padding:4px 0 0;gap:12px;margin-bottom:18px}
-  .rtFlow .rt-polas .rt-pola{flex:1 1 0;min-width:0;max-width:170px;width:auto;height:auto;aspect-ratio:4/3;padding:5px}
+  .rtFlow .rt-capa{height:auto;min-height:min(640px,86vh);padding:64px 24px 70px}
+  .rtFlow .rt-capa .selo{width:116px;height:116px;box-shadow:0 0 0 9px rgba(255,255,255,.16)}
+  .rtFlow .rt-capa .eb{margin-top:40px;font-size:10px}
+  .rtFlow .rt-capa h1{font-size:clamp(42px,12.5vw,60px);margin-top:20px}
+  .rtFlow .rt-capa .sub{font-size:20px}
+  .rtFlow .rt-capa hr{margin:30px auto 26px;width:70px}
+  .rtFlow .rt-capa .qd{font-size:10px}
+  .rtFlow .rt-capa .marca{bottom:26px;font-size:9px}
+  .rtFlow .rt-cruz i:first-child{width:34px}.rtFlow .rt-cruz i:last-child{height:34px;margin-top:-17px}
+  .rtFlow .rt-ind h2{font-size:30px}.rtFlow .rt-ind .rt-eb{font-size:10px}.rtFlow .rt-ind .lead{font-size:15px}
+  .rtFlow .rt-ind ol{grid-template-columns:1fr;grid-auto-flow:row;grid-template-rows:none!important;margin-top:22px}
+  .rtFlow .rt-ind li{grid-template-columns:40px 1fr;padding:12px 0}
+  .rtFlow .rt-ind li > i{font-size:20px}.rtFlow .rt-ind li b{font-size:16px}.rtFlow .rt-ind li small{font-size:13.5px}
+  .rtFlow .rt-banda{height:210px;margin-top:26px;border-radius:12px}
+  .rtFlow .rt-polas{justify-content:center;gap:12px;margin-bottom:20px;align-items:flex-end}
+  .rtFlow .rt-polas .rt-pola,.rtFlow .rt-txt.rt-v1 .rt-polas .rt-pola:first-child{flex:1 1 0;min-width:0;max-width:170px;width:auto;height:auto;aspect-ratio:5/6}
+  .rtFlow .rt-polas .rt-pola:nth-child(2){aspect-ratio:1/1}
+  .rtFlow .rt-polas .rt-pola:nth-child(3){aspect-ratio:6/5}
   .rtFlow .rt-txt.rt-v1{display:block}
-  .rtFlow .rt-txt.rt-v1 .rt-polas{flex-direction:row;align-items:flex-start;margin:0 0 18px}
+  .rtFlow .rt-txt.rt-v1 .rt-polas{flex-direction:row;align-items:flex-end;margin:0 0 20px}
   .rtFlow .rt-cols{column-count:1}
-  .rtFlow .rt-st{padding-bottom:18px}
-  .rtFlow .rt-st h3{font-size:17px}.rtFlow .rt-st .fr{font-size:15px}.rtFlow .rt-st .tx{font-size:15px;line-height:1.55}
-  .rtFlow .rt-st h3{gap:8px}.rtFlow .rt-st h3 .n{min-width:24px}
-  .rtFlow .rt-st .fr,.rtFlow .rt-st .tx,.rtFlow .rt-st .hr{margin-left:32px}
+  .rtFlow .rt-st{padding-bottom:20px}
+  .rtFlow .rt-st h3{font-size:20px;gap:10px}.rtFlow .rt-st h3 .n{min-width:24px;font-size:16px}.rtFlow .rt-st h3 small{font-size:10px}
+  .rtFlow .rt-st .fr{font-size:16px}.rtFlow .rt-st .tx{font-size:15px;line-height:1.6}
+  .rtFlow .rt-st .fr,.rtFlow .rt-st .tx{margin-left:34px}
   .rtFlow .rt-map{height:250px;border-radius:12px}
   .rtFlow .rt-ml{font-size:14px;gap:10px 14px}
-  .rtFlow .rt-ml a{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border:1.5px solid var(--rt-ver);border-radius:99px;text-decoration:none;background:#fff}
-  .rtFlow .rt-dia h2{font-size:22px}.rtFlow .rt-obs p{font-size:15px}
-  @media(min-width:700px){.rtFlow .rt-cols{column-count:2;column-gap:36px}.rtFlow .rt-map{height:330px}}
+  .rtFlow .rt-ml a{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border:1.5px solid var(--rt-red);border-radius:99px;text-decoration:none;background:#FBF7F0}
+  .rtFlow .rt-dia small{font-size:10.5px}.rtFlow .rt-dia h2{font-size:clamp(26px,7.4vw,32px)}
+  .rtFlow .rt-chips span{font-size:13px;padding:7px 12px}
+  .rtFlow .rt-obs{padding:18px 18px}.rtFlow .rt-obs h3{font-size:10.5px}.rtFlow .rt-obs p{font-size:15px}
+  .rtFlow .rt-fim{grid-template-columns:52px 1fr;gap:14px;padding:22px 0}.rtFlow .rt-fim img{width:52px;height:52px}.rtFlow .rt-fim b{font-size:21px}.rtFlow .rt-fim span{font-size:13.5px}
+  @media(min-width:700px){.rtFlow .rt-cols{column-count:2;column-gap:36px}.rtFlow .rt-map{height:330px}.rtFlow .rt-ind ol{grid-template-columns:1fr 1fr;column-gap:30px}}
   /* o editor (painel) */
   .rtLista .linha{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
   .rtLista .linha .tx{flex:1;min-width:200px}.rtLista .linha small{display:block;color:var(--ink-3)}
@@ -640,9 +694,9 @@ function rtCss() {
   .rtParadas{list-style:none;padding:0;margin:0;display:grid;gap:8px}
   .rtPa{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--surface);display:grid;gap:7px}
   .rtPa.opc{border-style:dashed;background:var(--surface-2)}
-  .rtPa.quebra{border-top:3px solid #F28C4B}
+  .rtPa.quebra{border-top:3px solid #C8102E}
   .rtPaCab{display:flex;gap:8px;align-items:center}
-  .rtPaN{flex:none;width:28px;height:28px;border-radius:50%;background:#D9652A;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .rtPaN{flex:none;width:28px;height:28px;border-radius:50%;background:#C8102E;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px}
   .rtPaFoto{flex:none;width:58px;height:44px;border-radius:7px;overflow:hidden;background:var(--surface-2);font-size:10px;color:var(--ink-3);border:1px dashed var(--line-2)}
   .rtPaFoto img{width:100%;height:100%;object-fit:cover;display:block}
   .rtPaCab .rtPaNome{flex:1;font-weight:600}
@@ -652,7 +706,7 @@ function rtCss() {
   .rtPaOp .rtHora input{width:84px;padding:5px 8px}
   .rtFotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px;max-height:240px;overflow:auto;padding:4px;background:var(--surface-2);border-radius:10px}
   .rtFotos button{height:54px;border-radius:6px;overflow:hidden;border:2px solid transparent;background:var(--surface);font-size:11px;color:var(--ink-3)}
-  .rtFotos button.on{border-color:#F28C4B}
+  .rtFotos button.on{border-color:#C8102E}
   .rtFotos img{width:100%;height:100%;object-fit:cover;display:block}
   .rtAdd{position:relative;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
   .rtAdd .rtBusca{flex:1;min-width:220px}
@@ -680,20 +734,46 @@ function rtCss() {
     .rtFlow .rt-st,.rtFlow .rt-b-map,.rtFlow .rt-pola,.rtFlow .rt-dia{break-inside:avoid;page-break-inside:avoid}
     .rtFlow .rt-map{width:var(--rt-wtela,100%);max-width:100%}
     .rtFlow .rt-ml a{border:0;padding:0;text-decoration:underline}
+    .rtFlow .rt-capa{min-height:0}
   }`;
   document.head.appendChild(s);
 }
 const rtMd = (s) => esc(s || '').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
 const rtPola = (src, rot) => `<figure class="rt-pola" style="--r:${rot}deg"><img src="${esc(src)}" alt="" decoding="async"></figure>`;
 const RT_ROT = [-4, 3.5, -1.5, 4, -3, 2];
-function rtTopoHtml(r, fotos) {
-  const para = [r.cliente && r.cliente.nome ? 'Para ' + r.cliente.nome : '', rtPeriodo(r)].filter(Boolean).join(' · ');
-  return `<header class="rt-topo"><div class="rt-faixa"><h1>${esc(r.titulo || RT_TITULO)}</h1>${r.subtitulo ? `<p class="rt-sub">${esc(r.subtitulo)}</p>` : ''}${para ? `<p class="rt-para">${esc(para)}</p>` : ''}</div>
-    <div class="rt-polas-topo"><figure class="rt-pola rt-selo" style="--r:-4deg"><span><img src="arte/selo-mari-circ.png" alt="Tour na Dinamarca"></span></figure>${fotos.map((f, k) => rtPola(f, [5, 0, 4][k] || 0)).join('')}</div></header>`;
+/* o título com um trecho em itálico vermelho, como no modelo ("A Copenhague clássica *de uma vez só*"):
+   se ela escrever *assim* no título, o itálico vai onde ela marcou; se não, nas últimas palavras */
+function rtTituloArte(t) {
+  t = String(t || '').trim(); if (!t) return '';
+  if (/\*[^*]+\*/.test(t)) return esc(t).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  const w = t.split(/\s+/); if (w.length < 2) return esc(t);
+  const n = w.length >= 4 ? 2 : 1;
+  return `${esc(w.slice(0, -n).join(' '))} <em>${esc(w.slice(-n).join(' '))}</em>`;
+}
+const rtDataCurta = (iso) => { const d = rtData(iso); return d ? `${d.getDate()} ${RT_MES[d.getMonth()].slice(0, 3)}` : ''; };
+function rtTopoHtml(r) {
+  const neg = (typeof guiaNegocio === 'function' && guiaNegocio()) || 'Tour na Dinamarca';
+  const grande = r.titulo && r.titulo !== RT_TITULO ? r.titulo : 'København';
+  return `<header class="rt-capa"><div class="rt-cruz" aria-hidden="true"><i></i><i></i></div>
+    <img class="selo" src="arte/selo-mari-circ.png" alt="${esc(neg)}">
+    <p class="eb">Roteiro personalizado</p><h1>${esc(grande)}</h1>${r.subtitulo ? `<p class="sub">${esc(r.subtitulo)}</p>` : ''}
+    ${r.cliente && r.cliente.nome || rtPeriodo(r) ? '<hr>' : ''}${r.cliente && r.cliente.nome ? `<p class="para">${esc(r.cliente.nome)}</p>` : ''}${rtPeriodo(r) ? `<p class="qd">${esc(rtPeriodo(r))}</p>` : ''}
+    <p class="marca">${esc(neg)}</p></header>`;
+}
+/* a página dos dias: o número de cada dia em vermelho, o título e por onde passa */
+function rtIndiceHtml(r, foto) {
+  const nome = r.cliente && r.cliente.nome ? r.cliente.nome : '';
+  const linhas = Math.ceil(r.dias.length / 2);
+  return `<section class="rt-ind"><span class="rt-eb">O seu roteiro</span><h2>${rtTituloArte(r.dias.length + ' dias em Copenhague')}</h2>
+    <p class="lead">${nome ? `Pensado para ${esc(nome)}, d` : 'D'}ia a dia, na ordem do caminho. Cada dia tem o seu mapa, e os números das paradas no texto são os mesmos do mapa.</p>
+    <ol style="grid-template-rows:repeat(${linhas},auto)">${r.dias.map((d, k) => {
+      const lugares = d.paradas.slice(0, 3).map(p => p.nome).join(' · ') + (d.paradas.length > 3 ? ' …' : '');
+      return `<li><i>${String(k + 1).padStart(2, '0')}</i><div><b>${esc((d.titulo || rtTituloDosLugares(d) || 'Dia ' + (k + 1)).replace(/\*/g, ''))}</b><small>${esc([rtDataCurta(d.data), lugares].filter(Boolean).join(' · '))}</small></div></li>`; }).join('')}</ol>
+    ${foto ? `<figure class="rt-banda"><img src="${esc(foto)}" alt="" decoding="async"></figure>` : ''}</section>`;
 }
 function rtParadaHtml(p, n) {
-  return `<article class="rt-st${p.opcional ? ' opc' : ''}"><h3><span class="n">${n}.</span><span>${esc(p.nome)}${p.opcional ? ' <small>(opcional)</small>' : ''}</span></h3>
-    ${p.hora ? `<span class="hr">${esc(p.hora)}</span>` : ''}${p.frase ? `<p class="fr">${esc(p.frase)}</p>` : ''}${p.texto ? `<p class="tx">${esc(p.texto)}</p>` : ''}</article>`;
+  return `<article class="rt-st${p.opcional ? ' opc' : ''}"><h3><span class="n">${String(n).padStart(2, '0')}</span><span class="nm">${esc(p.nome)}</span>${p.hora ? `<small>${esc(p.hora)}</small>` : ''}${p.opcional ? '<small class="opc">opcional</small>' : ''}</h3>
+    ${p.frase ? `<p class="fr">${esc(p.frase)}</p>` : ''}${p.texto ? `<p class="tx">${esc(p.texto)}</p>` : ''}</article>`;
 }
 function rtTxtHtml(paradas, de, fotos, variante) {
   const v = fotos.length && variante === 1 ? 1 : 0;
@@ -715,31 +795,39 @@ function rtLadoHtml(paradas, de, fotos, t, modo, inv) {
   return `<section class="rt-lado ${inv ? 'inv' : ''}"><div class="rt-lado-txt"><div class="rt-cols um">${paradas.map((p, k) => rtParadaHtml(p, de + k)).join('')}</div></div>
     <div class="rt-lado-map">${polas}${mb}</div></section>`;
 }
+function rtTituloDosLugares(d) {
+  const nomes = d.paradas.filter(p => !p.opcional).slice(0, 2).map(p => String(p.nome || '').replace(/\s*\(.*?\)\s*/g, ' ').trim()).filter(Boolean);
+  return nomes.length === 2 ? `${nomes[0]} e *${nomes[1]}*` : nomes[0] || '';
+}
+function rtDiaRotulo(r, d, k) { return [r.dias.length > 1 ? 'Dia ' + (k + 1) : '', rtDataLonga(d.data)].filter(Boolean).join(' · '); }
 function rtDiaHtml(r, d, k) {
-  const modo = rtModo(r, d), perc = rtPercurso(d.paradas, modo), n = d.paradas.length;
-  const cab = [r.dias.length > 1 ? 'Dia ' + (k + 1) : '', rtDataLonga(d.data)].filter(Boolean).join(' · ');
-  return `<div class="rt-dia">${cab ? `<small>${esc(cab)}</small>` : ''}${d.titulo ? `<h2>${esc(d.titulo)}</h2>` : ''}
-    <span class="km">${RT_IC[modo] || ''}${n} parada${n === 1 ? '' : 's'}${perc.km > 0 ? ` · ~${rtKm(perc.km)} · ~${rtTempo(perc.minutos)} ${RT_MODOS[modo].nome}` : ''}</span></div>`;
+  const modo = rtModo(r, d), perc = rtPercurso(d.paradas, modo), n = d.paradas.length, M = RT_MODOS[modo];
+  const cab = rtDiaRotulo(r, d, k);
+  const tit = d.titulo || (r.dias.length === 1 ? r.subtitulo : '') || rtTituloDosLugares(d);
+  const chips = [`${RT_IC[modo] || ''}<b>${n}</b> parada${n === 1 ? '' : 's'}`].concat(perc.km > 0 ? [`<b>~${rtKm(perc.km)}</b>`, `~${rtTempo(perc.minutos)} ${M.nome}`] : []);
+  return `<div class="rt-dia">${cab ? `<small>${esc(cab)}</small>` : ''}${tit ? `<h2>${rtTituloArte(tit)}</h2>` : ''}
+    <p class="rt-chips">${chips.map(c => `<span>${c}</span>`).join('')}</p></div>`;
 }
 function rtFimHtml() {
   const st = DB.settings || {}, nome = (typeof guiaNome === 'function' && guiaNome()) || 'Mari', neg = (typeof guiaNegocio === 'function' && guiaNegocio()) || 'Tour na Dinamarca';
   const whats = st.whats ? 'WhatsApp ' + st.whats : '', insta = st.insta ? '@' + String(st.insta).replace(/^@/, '') : '';
-  return `<div class="rt-fim"><img src="arte/selo-mari-circ.png" alt=""><div><b>Boa viagem!</b><span>Qualquer dúvida no caminho, me chame. — ${esc(nome)} · ${esc(neg)}${whats || insta ? '<br>' + esc([whats, insta].filter(Boolean).join(' · ')) : ''}</span></div></div>`;
+  return `<div class="rt-fim"><img src="arte/selo-mari-circ.png" alt=""><div><b>Boa viagem, e aproveitem cada parada.</b><span>Qualquer dúvida no caminho, me chame. — ${esc(nome)} · ${esc(neg)}${whats || insta ? '<br>' + esc([whats, insta].filter(Boolean).join(' · ')) : ''}</span></div></div>`;
 }
 /* os blocos do documento, na ordem; o A4 e o celular usam os mesmos */
 function rtBlocos(r, opts) {
   opts = opts || {};
   const B = [], usadas = new Set();
   const todas = r.dias.flatMap(d => d.paradas);
-  const topo = [...new Set(todas.map(p => p.foto).filter(Boolean))].slice(0, 3); topo.forEach(f => usadas.add(f));
-  B.push({ k: 'topo', html: rtTopoHtml(r, topo) });
+  B.push({ k: 'topo', html: rtTopoHtml(r) });
+  const indice = r.dias.length > 1;
+  if (indice) { const banda = todas.map(p => p.foto).find(Boolean); if (banda) usadas.add(banda); B.push({ k: 'indice', rotulo: 'O seu roteiro', html: rtIndiceHtml(r, banda) }); }
   let sec = 0;
   r.dias.forEach((d, di) => {
     const modo = rtModo(r, d);
-    if (r.dias.length > 1 || d.titulo || d.data) B.push({ k: 'dia', novaPagina: di > 0, html: rtDiaHtml(r, d, di) });
+    B.push({ k: 'dia', novaPagina: di > 0 || indice, rotulo: rtDiaRotulo(r, d, di) || 'Roteiro personalizado', html: rtDiaHtml(r, d, di) });
     if (!d.paradas.length) return;
     rtTrechos(d).forEach(t => {
-      const fotos = sec === 0 ? [] : [...new Set(t.paradas.map(p => p.foto).filter(f => f && !usadas.has(f)))].slice(0, t.paradas.length > 2 ? 3 : 2); fotos.forEach(f => usadas.add(f));
+      const fotos = [...new Set(t.paradas.map(p => p.foto).filter(f => f && !usadas.has(f)))].slice(0, t.paradas.length > 2 ? 3 : 2); fotos.forEach(f => usadas.add(f));
       const variante = sec++ % 2 === 1 && fotos.length <= 2 ? 1 : 0;
       const mh = rtMapBlocoHtml(t, modo, opts.semMapa);
       const lado = mh && !opts.semMapa && rtPontosMapa(t).length ? rtLadoHtml(t.paradas, t.de, fotos, t, modo, sec % 2 === 0) : '';
@@ -757,11 +845,12 @@ async function rtPaginas(r, alvo) {
   rtCss();
   let okL = false; try { await rtLeaflet(); okL = true; } catch (e) {}
   const blocos = rtBlocos(r, { semMapa: !okL });
+  const capa = blocos.shift();          /* a capa é uma folha inteira só dela */
   try { await Promise.race([document.fonts && document.fonts.ready, new Promise(ok => setTimeout(ok, 1500))]); } catch (e) {}
   const med = document.createElement('div'); med.className = 'rtDoc rt-medir';
   med.innerHTML = '<div class="rt-pages"><div class="rt-pg"><div class="rt-in"></div></div></div>'; document.body.appendChild(med);
-  const inn = med.querySelector('.rt-in'), mm = inn.getBoundingClientRect().width / 180;
-  const capUm = (297 - 6 - 13) * mm, cap = (297 - 15 - 13) * mm, gap = 6 * mm;
+  const inn = med.querySelector('.rt-in'), mm = inn.getBoundingClientRect().width / 178;
+  const cap = (297 - 21 - 17) * mm, gap = 6 * mm;
   const alt = (b) => { inn.innerHTML = rtEmBloco(b); const el = inn.firstElementChild; const cs = getComputedStyle(el); return el.getBoundingClientRect().height + Math.max(0, parseFloat(cs.marginTop) || 0) + gap; };
   /* grupos que andam juntos: o cabeçalho do dia com o 1º trecho; o texto de um trecho com o seu mapa */
   const grupos = [];
@@ -776,7 +865,7 @@ async function rtPaginas(r, alvo) {
   const altG = (g) => g.reduce((t, b) => t + H(b), 0);
   const folga = (g) => g.filter(b => b.k === 'map').reduce((t, b) => t + (b.mapPx || base) - MIN, 0);
   const encolhe = (g, falta) => { for (const m of g.filter(b => b.k === 'map')) { const t = Math.min((m.mapPx || base) - MIN, falta); if (t > 0) { m.mapPx = (m.mapPx || base) - t; falta -= t; } } };
-  const pags = [[]]; let livre = capUm;
+  const pags = [[]]; let livre = cap;
   const nova = () => { pags.push([]); livre = cap; };
   const vazia = () => !pags[pags.length - 1].length;
   const poe = (g) => { g.forEach(b => pags[pags.length - 1].push(b)); livre -= altG(g); };
@@ -810,13 +899,19 @@ async function rtPaginas(r, alvo) {
   pags.forEach(p => p.forEach((b, j) => { if (b.k === 'map' && b.mapPx) p[j] = Object.assign({}, b, { html: b.html.replace('<div class="rt-map"', `<div class="rt-map" style="height:${Math.round(b.mapPx)}px"`) }); }));
   med.remove();
   const neg = (typeof guiaNegocio === 'function' && guiaNegocio()) || 'Tour na Dinamarca';
-  alvo.innerHTML = `<div class="rt-pages">${pags.filter(p => p.length).map((p, k, l) => `<div class="rt-pg ${k === 0 ? 'um' : ''}"><div class="rt-in">${p.map(rtEmBloco).join('')}</div>
-    <div class="rt-pe">${esc(neg)} · ${esc(r.num || '')} · ${k + 1}/${l.length}</div></div>`).join('')}</div>`;
+  /* cada folha: em cima o dia em que ela está (o olho) e o número; embaixo o selo, o nome e "03 / 06" */
+  const cheias = pags.filter(p => p.length), total = cheias.length + 1, dois = (n) => String(n).padStart(2, '0');
+  let olho = 'Roteiro personalizado';
+  alvo.innerHTML = `<div class="rt-pages"><div class="rt-pg capa"><div class="rt-in">${rtEmBloco(capa)}</div></div>${cheias.map((p, k) => {
+    const b = p.find(x => x.rotulo); if (b) olho = b.rotulo;
+    return `<div class="rt-pg"><div class="rt-cab"><span>${esc(olho)}</span><b>${dois(k + 2)}</b></div><div class="rt-in">${p.map(rtEmBloco).join('')}</div>
+    <div class="rt-pe"><span><img src="arte/selo-mari-circ.png" alt="">${esc(neg)}</span><span>${esc(r.num ? r.num + ' · ' : '')}${dois(k + 2)} / ${dois(total)}</span></div></div>`; }).join('')}</div>`;
   /* a folha que sobrou espaço: os mapas crescem e ocupam (mais fáceis de ler, a folha fica cheia como a dela) */
   const folhas = [...alvo.querySelectorAll('.rt-pg')];
   folhas.forEach((pg, k) => {
     const inn = pg.querySelector('.rt-in'), mapas = [...inn.querySelectorAll('.rt-b-map .rt-map')], ult = inn.lastElementChild;
     if (!mapas.length || !ult) return;
+    if (pg.classList.contains('capa')) return;
     let sobra = inn.clientHeight - (ult.getBoundingClientRect().bottom - inn.getBoundingClientRect().top) - 2 * mm;
     if (k === folhas.length - 1) sobra = Math.min(sobra, 22 * mm);
     const cada = Math.min(sobra / mapas.length, 60 * mm);

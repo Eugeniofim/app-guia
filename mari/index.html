@@ -13,7 +13,7 @@
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Karla:wght@400;600&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Karla:wght@400;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,8 +24,8 @@
 (function(){try{var t=localStorage.getItem('vi_tema');
 if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="tokens.css?v=0.6.10">
-<link rel="stylesheet" href="assistente-voz.css?v=0.6.10">
+<link rel="stylesheet" href="tokens.css?v=0.6.11">
+<link rel="stylesheet" href="assistente-voz.css?v=0.6.11">
 <link rel="icon" type="image/png" href="arte/selo-mari-circ.png">
 <style>
 /* ============ base ============ */
@@ -670,8 +670,12 @@ body.sem-anima #app>*,body.sem-anima #app .stage,body.sem-anima #app .wrap,body.
 .splash{position:fixed;inset:0;z-index:999;display:grid;place-items:center;
   background:var(--brand-verde);
   /* leve profundidade: um halo quente atrás da marca */
-  /* azul-marinho da Mari, com um halo quente atrás do selo (06/10/2026) */
-  background-image:radial-gradient(120% 80% at 50% 38%, #2F4372 0%, #1D2A44 46%, #121A2C 100%);
+  /* 14/11/2026: o vermelho da Dinamarca na entrada (pedido da Mari), com a cruz da bandeira bem de leve
+     — a mesma da capa do roteiro e do cartão da vitrine. Antes era o azul-marinho. */
+  background-image:
+    linear-gradient(90deg,transparent calc(30% - 22px),rgba(255,255,255,.07) calc(30% - 22px),rgba(255,255,255,.07) calc(30% + 22px),transparent calc(30% + 22px)),
+    linear-gradient(180deg,transparent calc(50% - 22px),rgba(255,255,255,.07) calc(50% - 22px),rgba(255,255,255,.07) calc(50% + 22px),transparent calc(50% + 22px)),
+    radial-gradient(120% 80% at 50% 38%, #DA1C3E 0%, #C8102E 46%, #8C0A20 100%);
   perspective:1200px;perspective-origin:50% 42%;
   animation:spOut 760ms var(--ease) 3950ms forwards}
 .splash.gone{display:none}
@@ -684,7 +688,7 @@ body.sem-anima #app>*,body.sem-anima #app .stage,body.sem-anima #app .wrap,body.
 /* halo atras da marca — profundidade sem custo */
 .sp-mark::before{content:"";position:absolute;left:50%;top:52%;width:280px;height:280px;
   margin:-140px 0 0 -140px;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle,rgba(217,170,14,.30) 0%,rgba(217,170,14,.10) 42%,transparent 70%);
+  background:radial-gradient(circle,rgba(255,240,230,.26) 0%,rgba(255,240,230,.08) 42%,transparent 70%);
   animation:spGlow 2600ms var(--ease) both;z-index:-1}
 /* faixa de brilho cruzando o simbolo */
 .sp-mark::after{content:"";position:absolute;inset:-6% -30%;pointer-events:none;
@@ -713,7 +717,7 @@ body.sem-anima #app>*,body.sem-anima #app .stage,body.sem-anima #app .wrap,body.
   font-size:clamp(10px,2.7vw,12px);letter-spacing:.2em;color:rgba(255,255,255,.94);animation-delay:2520ms}
 .sp-region{margin-top:5px;font-family:var(--f-ui);font-size:clamp(9.5px,2.5vw,11px);
   letter-spacing:.19em;color:rgba(255,255,255,.7);animation-delay:2780ms}
-.sp-region i,.sp-lang i{font-style:normal;color:var(--brand-amarelo);margin:0 5px}
+.sp-region i,.sp-lang i{font-style:normal;color:#FBF6EE;margin:0 5px}
 .sp-lang{margin-top:20px;font-family:var(--f-display);font-weight:700;
   font-size:11px;letter-spacing:.22em;color:rgba(255,255,255,.6);animation-delay:3120ms}
 
@@ -1160,9 +1164,9 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 <div id="splash" class="splash">
   <div class="sp-stage">
     <div class="sp-mark">
-      <!-- o anel amarelo se desenha e o selo dela aparece dentro -->
+      <!-- o anel creme se desenha (14/11: era amarelo; no vermelho da abertura fica creme) e o selo dela aparece dentro -->
       <svg viewBox="0 0 200 200" width="190" height="190" fill="none"
-           stroke="#F2C230" stroke-width="8" stroke-linecap="round" aria-hidden="true">
+           stroke="#FBF6EE" stroke-width="8" stroke-linecap="round" aria-hidden="true">
         <path class="s-p s-x1" d="M100 8 a92 92 0 1 1 -0.1 0" style="--len:580"/>
       </svg>
       <img class="sp-selo" src="arte/selo-mari-circ.png" alt="" width="160" height="160">
@@ -1174,44 +1178,44 @@ td.tacts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-item
 </div>
 
 <div id="app"></div>
-<script src="config.js?v=0.6.10"></script>
-<script src="logo.js?v=0.6.10"></script>
-<script src="fx.js?v=0.6.10"></script>
-<script src="qrcode.js?v=0.6.10"></script>
-<script src="qr.js?v=0.6.10"></script>
-<script src="pix.js?v=0.6.10"></script>
-<script src="traduz.js?v=0.6.10"></script>
-<script src="idiomas.js?v=0.6.10"></script>
-<script src="store.js?v=0.6.10"></script>
-<script src="auth.js?v=0.6.10"></script>
-<script src="cloud.js?v=0.6.10"></script>
-<script src="i18n.js?v=0.6.10"></script>
-<script src="nuvem-itens.js?v=0.6.10"></script>
-<script src="app.js?v=0.6.10"></script>
-<script src="agenda-mari.js?v=0.6.10"></script>
-<script src="hoje-mari.js?v=0.6.10"></script>
-<script src="ficha.js?v=0.6.10"></script>
-<script src="clientes-mari.js?v=0.6.10"></script>
-<script src="brindes.js?v=0.6.10"></script>
-<script src="pdf-mari.js?v=0.6.10"></script>
-<script src="orcamento-mari.js?v=0.6.10"></script>
-<script src="publico-mari.js?v=0.6.10"></script>
-<script src="agencias-mari.js?v=0.6.10"></script>
-<script src="fatura-mari.js?v=0.6.10"></script>
-<script src="contrato-mari.js?v=0.6.10"></script>
-<script src="parceiros-mari.js?v=0.6.10"></script>
-<script src="equipe-mari.js?v=0.6.10"></script>
-<script src="voucher-mari.js?v=0.6.10"></script>
-<script src="pontos-mari.js?v=0.6.10"></script>
-<script src="roteiro-mari.js?v=0.6.10"></script>
-<script src="kit-mari.js?v=0.6.10"></script>
-<script src="mudanca-mari.js?v=0.6.10"></script>
-<script src="vitrine-mari.js?v=0.6.10"></script>
-<script src="ligar-mari.js?v=0.6.10"></script>
-<script src="prospecto.js?v=0.6.10"></script>
-<script src="assistente.js?v=0.6.10"></script>
-<script src="assistente-voz.js?v=0.6.10"></script>
-<script src="assistente-mari.js?v=0.6.10"></script>
+<script src="config.js?v=0.6.11"></script>
+<script src="logo.js?v=0.6.11"></script>
+<script src="fx.js?v=0.6.11"></script>
+<script src="qrcode.js?v=0.6.11"></script>
+<script src="qr.js?v=0.6.11"></script>
+<script src="pix.js?v=0.6.11"></script>
+<script src="traduz.js?v=0.6.11"></script>
+<script src="idiomas.js?v=0.6.11"></script>
+<script src="store.js?v=0.6.11"></script>
+<script src="auth.js?v=0.6.11"></script>
+<script src="cloud.js?v=0.6.11"></script>
+<script src="i18n.js?v=0.6.11"></script>
+<script src="nuvem-itens.js?v=0.6.11"></script>
+<script src="app.js?v=0.6.11"></script>
+<script src="agenda-mari.js?v=0.6.11"></script>
+<script src="hoje-mari.js?v=0.6.11"></script>
+<script src="ficha.js?v=0.6.11"></script>
+<script src="clientes-mari.js?v=0.6.11"></script>
+<script src="brindes.js?v=0.6.11"></script>
+<script src="pdf-mari.js?v=0.6.11"></script>
+<script src="orcamento-mari.js?v=0.6.11"></script>
+<script src="publico-mari.js?v=0.6.11"></script>
+<script src="agencias-mari.js?v=0.6.11"></script>
+<script src="fatura-mari.js?v=0.6.11"></script>
+<script src="contrato-mari.js?v=0.6.11"></script>
+<script src="parceiros-mari.js?v=0.6.11"></script>
+<script src="equipe-mari.js?v=0.6.11"></script>
+<script src="voucher-mari.js?v=0.6.11"></script>
+<script src="pontos-mari.js?v=0.6.11"></script>
+<script src="roteiro-mari.js?v=0.6.11"></script>
+<script src="kit-mari.js?v=0.6.11"></script>
+<script src="mudanca-mari.js?v=0.6.11"></script>
+<script src="vitrine-mari.js?v=0.6.11"></script>
+<script src="ligar-mari.js?v=0.6.11"></script>
+<script src="prospecto.js?v=0.6.11"></script>
+<script src="assistente.js?v=0.6.11"></script>
+<script src="assistente-voz.js?v=0.6.11"></script>
+<script src="assistente-mari.js?v=0.6.11"></script>
 <script>
 /* PWA — como a versão nova chega no celular dela.
 

@@ -94,6 +94,7 @@ async function pdfDoElemento(el, nome) {
       const semZoom = doc.createElement('style'); semZoom.textContent = `#${el.id}, #${el.id} *{zoom:1!important}`; doc.head.appendChild(semZoom);
       for (let p = c.parentElement; p; p = p.parentElement) p.style.zoom = '1';
       c.style.width = LARG + 'px'; c.style.maxWidth = LARG + 'px'; c.style.margin = '0';
+      c.classList.add('pdf-clone');        /* as folhas do roteiro ficam coladas uma na outra (sem a sombra e o vão da tela) */
       /* o que só serve na tela (botões, "pagar agora", "pôr na agenda") não vai para o papel */
       c.querySelectorAll('.kt-tela,[data-pdf-fora]').forEach(x => { x.style.display = 'none'; });
       c.querySelectorAll('*').forEach(x => { const cs = doc.defaultView.getComputedStyle(x); if (cs.boxShadow !== 'none') x.style.boxShadow = 'none'; });
