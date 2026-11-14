@@ -56,6 +56,29 @@ function pdfCortes(alturaTotal, folha, fins) {
   }
   return cortes;
 }
+/* 14/11/2026 — no iPhone o PDF saía com as letras embaraladas, uma palavra por cima da outra
+   ("Esta saindo assim o roteiro tbm"). O html2canvas mede onde cai cada palavra numa CÓPIA da
+   página e desenha com a fonte da página de verdade. No Safari a cópia ainda não tinha baixado
+   a Karla/Playfair quando era medida (o fonts.ready dele responde antes de a fonte começar a
+   carregar), então media com a fonte do sistema e desenhava com a Karla: tudo encavalado.
+   Agora a cópia pede cada fonte que o documento usa e espera chegar ANTES de medir. */
+async function pdfEsperaFontes(doc, raiz) {
+  const w = doc.defaultView;
+  if (!doc.fonts || !doc.fonts.load || !w) return;
+  /* as folhas de estilo da cópia (a das fontes vem do Google) precisam estar lidas */
+  const folhas = [...doc.querySelectorAll('link[rel="stylesheet"]')].filter(l => !l.sheet)
+    .map(l => new Promise(ok => { l.addEventListener('load', ok, { once: true }); l.addEventListener('error', ok, { once: true }); }));
+  const prazo = (ms) => new Promise(ok => setTimeout(ok, ms));
+  await Promise.race([Promise.all(folhas), prazo(4000)]);
+  const vistos = new Set(), pedidos = [];
+  for (const x of [raiz, ...raiz.querySelectorAll('*')]) {
+    if (![...x.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+    const cs = w.getComputedStyle(x), f = `${cs.fontStyle} ${cs.fontWeight} 16px ${cs.fontFamily}`;
+    if (!vistos.has(f)) { vistos.add(f); pedidos.push(doc.fonts.load(f, 'AaBbÇçãéõ 0123').catch(() => [])); }
+  }
+  await Promise.race([Promise.all(pedidos).then(() => doc.fonts.ready), prazo(6000)]);
+  await new Promise(ok => w.requestAnimationFrame(() => w.requestAnimationFrame(ok)));
+}
 async function pdfDoElemento(el, nome) {
   await pdfCarrega();
   try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
@@ -63,12 +86,18 @@ async function pdfDoElemento(el, nome) {
   let fins = [], altura = 0;
   const canvas = await window.html2canvas(el, {
     scale: 2, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false, windowWidth: 1100,
-    onclone: (doc) => {
+    onclone: async (doc) => {
       const c = el.id ? doc.getElementById(el.id) : null; if (!c) return;
+      /* 14/11: no celular o roteiro é ENCOLHIDO na tela com "zoom" (rtEscala) para caber. O html2canvas
+         não conhece zoom: media as palavras encolhidas e desenhava as letras no tamanho cheio — no
+         iPhone saía tudo encavalado. A cópia que vira PDF volta ao tamanho de verdade. */
+      const semZoom = doc.createElement('style'); semZoom.textContent = `#${el.id}, #${el.id} *{zoom:1!important}`; doc.head.appendChild(semZoom);
+      for (let p = c.parentElement; p; p = p.parentElement) p.style.zoom = '1';
       c.style.width = LARG + 'px'; c.style.maxWidth = LARG + 'px'; c.style.margin = '0';
       /* o que só serve na tela (botões, "pagar agora", "pôr na agenda") não vai para o papel */
       c.querySelectorAll('.kt-tela,[data-pdf-fora]').forEach(x => { x.style.display = 'none'; });
       c.querySelectorAll('*').forEach(x => { const cs = doc.defaultView.getComputedStyle(x); if (cs.boxShadow !== 'none') x.style.boxShadow = 'none'; });
+      try { await pdfEsperaFontes(doc, c); } catch (e) {}
       const topo = c.getBoundingClientRect().top;
       altura = c.getBoundingClientRect().height;
       fins = [...c.querySelectorAll(PDF_BLOCOS)].map(b => b.getBoundingClientRect().bottom - topo).filter(y => y > 0);
