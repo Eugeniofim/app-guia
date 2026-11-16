@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" preserveAspectRatio="xMidYMax slice">
+  <!-- FT: skyline de Londres em fio dourado — Big Ben, Westminster, London Eye,
+       St Paul's, The Gherkin, The Shard e a Tower Bridge. -->
+  <g fill="none" stroke="#C9A96A" stroke-width="1.4" stroke-linejoin="round" opacity=".55">
+    <path d="M0 258 H1200"/>
+    <!-- Westminster + Big Ben -->
+    <path d="M40 258 V200 H70 V188 H90 V200 H130 V258"/>
+    <path d="M150 258 V120 H158 V96 L166 70 L174 96 V120 H182 V258"/><circle cx="166" cy="108" r="7"/>
+    <!-- London Eye -->
+    <circle cx="270" cy="160" r="80"/><circle cx="270" cy="160" r="6"/>
+    <path d="M270 80 V240 M190 160 H350 M213 103 L327 217 M327 103 L213 217"/><path d="M240 258 L270 160 L300 258"/>
+    <!-- St Paul's -->
+    <path d="M420 258 V190 H520 V258"/><path d="M440 190 V172 H500 V190"/><path d="M445 172 A25 32 0 0 1 495 172"/><path d="M470 140 V128 M466 132 H474"/>
+    <!-- The Gherkin -->
+    <path d="M600 258 C585 200 590 150 615 120 C640 150 645 200 630 258"/><path d="M596 230 H634 M592 200 H638 M596 170 H634 M604 145 H626"/>
+    <!-- The Shard -->
+    <path d="M690 258 L735 40 L780 258"/><path d="M735 40 L738 20"/><path d="M712 160 L735 150 L758 160"/>
+    <!-- tower blocks -->
+    <path d="M800 258 V170 H840 V258 M850 258 V140 H880 V258"/>
+    <!-- Tower Bridge -->
+    <path d="M900 258 V230 H1180 V258"/>
+    <path d="M950 230 V130 H990 V230 M1090 230 V130 H1130 V230"/>
+    <path d="M950 130 L970 104 L990 130 M1090 130 L1110 104 L1130 130"/>
+    <path d="M990 150 H1090 M990 160 H1090"/><path d="M990 230 Q1040 205 1090 230"/>
+    <path d="M900 230 Q925 200 950 190 M1130 190 Q1155 200 1180 230"/>
+  </g>
+</svg>
