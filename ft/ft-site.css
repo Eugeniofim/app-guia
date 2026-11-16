@@ -322,3 +322,148 @@
 .ft-galeria img{width:100%;height:340px;object-fit:cover;border-radius:18px}
 .ft-galeria img:nth-child(even){margin-top:40px}
 @media (max-width:860px){.ft-galeria{grid-template-columns:1fr 1fr}.ft-galeria img{height:220px}.ft-galeria img:nth-child(even){margin-top:0}}
+
+/* =========================================================
+   VIBE PRA CIMA (16/11/2026) — a energia da Yalla com a marca da FT:
+   capa no pôr do sol, títulos fortes em Montserrat com a palavra-chave
+   em Cormorant itálico dourado, seções claras e quentes, cartões com foto,
+   botões dourados cheios. O verde-noite fica nos momentos de assinatura
+   (a estrada, a frota, o rodapé).
+   ========================================================= */
+.ft{--ft-marfim:#FBF8F2;--ft-marfim2:#F4EDE1;--ft-areia:#F3EBDD;--ft-ouro-txt:#A27D38;
+  --ft-ouro-grad:linear-gradient(135deg,#E8CF95 0%,#C9A96A 55%,#B8924F 100%)}
+.ft h1,.ft h2{font-family:var(--ft-sans);font-weight:700;letter-spacing:-.028em;line-height:1.04}
+.ft h1 em,.ft h2 em{font-family:var(--ft-serif);font-style:italic;font-weight:600;letter-spacing:0;color:var(--ft-ouro-txt);font-size:1.1em;line-height:.9}
+.ft-escuro h2 em,.ft-road h2 em,.ft-frota h2 em,.ft-final h2 em,.ft-hero h1 em,.ft-jr-hero h1 em{color:var(--ft-ouro2)}
+.ft-cab h2,.ft-sec h2{font-weight:700}
+.ft-rot{color:var(--ft-ouro-txt)}
+
+/* botões: cheios, dourados, frase normal (como a Yalla) */
+.ft-btn{min-height:54px;padding:0 30px;font:700 14.5px var(--ft-sans);letter-spacing:.01em;text-transform:none}
+.ft-btn-ouro{background:var(--ft-ouro-grad);color:#14110A;box-shadow:0 14px 34px -14px rgba(201,169,106,.85)}
+.ft-btn-ouro:hover{background:var(--ft-ouro-grad);filter:brightness(1.07);transform:translateY(-2px);box-shadow:0 18px 40px -14px rgba(201,169,106,.95)}
+.ft-btn-linha{backdrop-filter:blur(6px)}
+.ft-cta-top{min-height:44px;padding:0 22px;font-size:13px}
+.ft-mais{color:var(--ft-ouro-txt)}
+
+/* pular para o conteúdo */
+.ft-pular{position:fixed;left:16px;top:-80px;z-index:90;background:var(--ft-ouro);color:var(--ft-noite);padding:12px 18px;border-radius:999px;font:700 13px var(--ft-sans);transition:top .2s}
+.ft-pular:focus{top:12px}
+
+/* painel da equipe: no canto de cima, à esquerda */
+.ft-adm{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 13px 0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.28);
+  font:600 10.5px var(--ft-sans);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82);background:rgba(8,20,15,.25);backdrop-filter:blur(6px);transition:border-color .3s,color .3s,background .3s;flex:none}
+.ft-adm svg{width:15px;height:15px}
+.ft-adm:hover{border-color:var(--ft-ouro);color:var(--ft-ouro2);background:rgba(8,20,15,.5)}
+@media (max-width:1080px){.ft-adm{width:40px;height:40px;padding:0;justify-content:center}.ft-adm span{display:none}}
+.ft-menu a.ativo{opacity:1;color:var(--ft-ouro2)}.ft-menu a.ativo::after{transform:scaleX(1)}
+.ft-gaveta>a:not(.ft-btn){font:700 30px var(--ft-sans);letter-spacing:-.02em}
+
+/* capa no pôr do sol */
+.ft-hero-img img{object-position:72% 40%}
+.ft-hero-veu{background:linear-gradient(90deg,rgba(18,10,2,.72) 0%,rgba(18,10,2,.42) 38%,rgba(18,10,2,0) 66%),linear-gradient(180deg,rgba(8,20,15,.45) 0%,rgba(8,20,15,0) 22%,rgba(8,20,15,0) 58%,rgba(8,20,15,.92) 100%)}
+.ft-hero h1{font-size:clamp(44px,7.6vw,108px);line-height:.98;font-weight:800;animation:none;letter-spacing:-.035em}
+.ft-hero h1 em{font-weight:600;font-size:1.06em}
+.ft-l{display:block;overflow:hidden;padding:.02em 0 .1em;margin-bottom:-.1em}
+.ft-l>span{display:inline-block;animation:ftLinha 1.15s var(--ft-ease) both;animation-delay:calc(.3s + var(--i,0) * .16s)}
+@keyframes ftLinha{from{transform:translateY(108%)}to{transform:none}}
+.ft-olho{color:#F3D9A0}
+.ft-sub{color:rgba(255,255,255,.9)}
+.ft-rolar{position:absolute;right:max(20px,calc((100vw - 1180px)/2));bottom:118px;z-index:2;display:flex;flex-direction:column;align-items:center;gap:10px;font:600 10px var(--ft-sans);letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.8)}
+.ft-rolar span{writing-mode:vertical-rl}
+.ft-rolar i{display:block;width:1px;height:56px;background:rgba(255,255,255,.25);position:relative;overflow:hidden}
+.ft-rolar i::after{content:"";position:absolute;left:0;top:0;width:1px;height:40%;background:var(--ft-ouro2);animation:ftDesce 1.8s var(--ft-ease) infinite}
+@keyframes ftDesce{from{transform:translateY(-100%)}to{transform:translateY(260%)}}
+@media (max-width:760px){.ft-rolar{display:none}.ft-hero-veu{background:linear-gradient(180deg,rgba(18,10,2,.35) 0%,rgba(18,10,2,0) 30%,rgba(18,10,2,.55) 60%,rgba(8,20,15,.95) 100%)}}
+@media (prefers-reduced-motion:reduce){.ft-l>span,.ft-hero-img img,.ft-rolar i::after{animation:none}}
+
+/* serviços: cartões com foto */
+.ft-servs{gap:22px;background:none;border:0}
+.ft-serv{padding:0 0 26px;border-radius:24px;background:#fff;box-shadow:0 1px 0 rgba(22,32,28,.06),0 24px 50px -32px rgba(60,40,10,.35);overflow:hidden;gap:10px;transition:transform .5s var(--ft-ease),box-shadow .5s var(--ft-ease)}
+.ft-serv>b,.ft-serv>span:not(.ft-serv-foto){margin:0 26px}
+.ft-serv-foto{position:relative;display:block;width:100%;height:210px;margin-bottom:18px}
+.ft-serv-foto img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 1.2s var(--ft-ease)}
+.ft-serv .ft-ic{position:absolute;left:22px;bottom:-24px;background:var(--ft-noite);border:2px solid #fff;color:var(--ft-ouro2);width:52px;height:52px}
+.ft-serv b{font:700 22px var(--ft-sans);letter-spacing:-.02em;margin-top:12px!important}
+.ft-serv:hover{background:#fff;color:inherit;transform:translateY(-6px);box-shadow:0 1px 0 rgba(22,32,28,.06),0 34px 60px -30px rgba(60,40,10,.45)}
+.ft-serv:hover>span:not(.ft-ic):not(.ft-mais){color:var(--ft-tinta2)}
+.ft-serv:hover .ft-serv-foto img{transform:scale(1.07)}
+.ft-serv:hover .ft-ic{background:var(--ft-ouro);color:var(--ft-noite)}
+.ft-serv:hover .ft-mais{color:var(--ft-ouro-txt)}
+@media (max-width:580px){.ft-serv{padding:0 0 22px}.ft-serv-foto{height:180px}}
+
+/* a estrada */
+.ft-road-cab h2{font-weight:700}
+.ft-road-pular{display:inline-block;margin-top:14px;pointer-events:auto;font:600 12px var(--ft-sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ft-ouro2);border-bottom:1px solid rgba(227,203,151,.5);padding-bottom:3px}
+.ft-parada h3{font-family:var(--ft-serif)}
+@media (max-width:760px){.ft-road-pular{margin-top:8px}}
+
+/* destinos: títulos fortes */
+.ft-cat b{font:700 24px var(--ft-sans);letter-spacing:-.02em}
+.ft-cat.grande b{font-size:40px}
+
+/* viagens: seção clara + carrossel */
+.ft-areia{background:var(--ft-areia)}
+.ft-cab-lado{max-width:none;display:flex;justify-content:space-between;align-items:flex-end;gap:30px}
+.ft-cab-lado>div:first-child{max-width:720px}
+.ft-setas{display:flex;align-items:center;gap:14px;flex:none;font:600 12px var(--ft-sans);letter-spacing:.16em;color:var(--ft-tinta2)}
+.ft-setas button{width:54px;height:54px;border-radius:50%;border:1px solid rgba(22,32,28,.2);background:#fff;color:var(--ft-tinta);font-size:20px;cursor:pointer;transition:background .3s,color .3s,transform .3s var(--ft-ease)}
+.ft-setas button:hover{background:var(--ft-noite);color:var(--ft-ouro2);transform:scale(1.05)}
+.ft-viagens{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:min(390px,82vw);gap:22px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0;padding:6px 2px 30px;scrollbar-width:none;overscroll-behavior-x:contain}
+.ft-viagens::-webkit-scrollbar{display:none}
+.ft-viagens:focus-visible{outline:2px solid var(--ft-ouro);outline-offset:6px;border-radius:24px}
+.ft-viagem{scroll-snap-align:start;background:#fff;color:var(--ft-tinta);border:0;border-radius:24px;box-shadow:0 24px 50px -32px rgba(60,40,10,.4)}
+.ft-viagem-img{height:300px}
+.ft-viagem b{font:700 24px var(--ft-sans);letter-spacing:-.02em}
+.ft-viagem small{color:var(--ft-tinta2)}
+.ft-chips i{border-color:rgba(162,125,56,.45);color:var(--ft-ouro-txt);background:rgba(201,169,106,.1)}
+.ft-viagem:hover{transform:translateY(-6px)}
+@media (max-width:760px){.ft-cab-lado{flex-direction:column;align-items:flex-start}.ft-setas button{width:46px;height:46px}.ft-viagem-img{height:230px}}
+
+/* para quem / passos */
+.ft-passos b{font:700 18px var(--ft-sans);letter-spacing:-.01em}
+.ft-passos li>span{font-style:italic;font-weight:600}
+
+/* faixa dourada */
+.ft-sol{background:var(--ft-ouro-grad);color:#14110A;overflow:hidden;padding:26px 0}
+.ft-sol-faixa>div{display:flex;align-items:center;gap:34px;width:max-content;animation:ftCorre 40s linear infinite}
+.ft-sol-faixa span{font:800 clamp(30px,4.4vw,60px) var(--ft-sans);letter-spacing:-.035em;white-space:nowrap}
+.ft-sol-faixa span:nth-child(4n+3){font:italic 600 clamp(34px,5vw,68px) var(--ft-serif);letter-spacing:0}
+.ft-sol-faixa img{width:44px;height:44px;opacity:.85}
+@media (prefers-reduced-motion:reduce){.ft-sol-faixa>div{animation:none}}
+
+/* frota, sobre, avaliações, final */
+.ft-frota h2{font-weight:700}
+.ft-carros b{font:700 20px var(--ft-sans);letter-spacing:-.01em}
+.ft-final h2{font-weight:800;letter-spacing:-.035em}
+.ft-final>img{opacity:.75}
+.ft-final::after{background:radial-gradient(60% 70% at 50% 50%,rgba(18,10,2,.25),rgba(8,20,15,.85))}
+.ft-faq summary{font:600 18px var(--ft-sans);letter-spacing:-.01em}
+.ft-nota{background:var(--ft-noite);box-shadow:0 30px 60px -30px rgba(8,20,15,.6)}
+
+/* rodapé com a marca gigante */
+.ft-gigante{grid-column:1/-1;margin:34px 0 4px!important;font:800 clamp(44px,8.6vw,132px)/.92 var(--ft-sans);letter-spacing:-.045em;
+  background:linear-gradient(180deg,#E8CF95,#9C7B3F);-webkit-background-clip:text;background-clip:text;color:transparent;max-width:none!important}
+.ft-gigante em{font:italic 500 1.02em var(--ft-serif);letter-spacing:-.01em}
+
+/* páginas internas no mesmo tom */
+.ft-jr-hero h1{font-weight:800;letter-spacing:-.035em}
+.ft-dias b,.ft-ofertas b,.ft-jr-cta b{font-family:var(--ft-sans);font-weight:700;letter-spacing:-.015em;font-size:21px}
+.ft-fatos b{font-family:var(--ft-sans);font-weight:700;font-size:18px}
+/* a torre vai para a direita: o título respira no céu */
+@media (min-width:701px){
+  .ft-hero-img img{object-position:0% 55%;transform-origin:0% 55%;animation:ftKenSol 18s var(--ft-ease) both}
+  @keyframes ftKenSol{from{transform:scale(1.4)}to{transform:scale(1.28)}}
+}
+@media (min-width:701px) and (prefers-reduced-motion:reduce){.ft-hero-img img{animation:none;transform:scale(1.28)}}
+.ft-hero h1 em{text-shadow:0 2px 28px rgba(18,10,2,.45)}
+.ft-rodape .ft-gigante{font-size:clamp(44px,8.6vw,132px);max-width:none;margin:40px 0 6px!important;line-height:.92}
+/* o carrossel vaza até a borda da tela (sinal de que tem mais) */
+.ft-viagens{margin-right:calc((100vw - min(1180px,100vw - 40px)) / -2);padding-right:calc((100vw - min(1180px,100vw - 40px)) / 2)}
+.ft-hero h1 em{text-shadow:none}
+@media (max-width:700px){
+  .ft-hero-img img{object-position:50% 30%}
+  .ft-hero-veu{background:linear-gradient(180deg,rgba(18,10,2,.5) 0%,rgba(18,10,2,.35) 30%,rgba(18,10,2,.6) 58%,rgba(8,20,15,.95) 100%)}
+  .ft-hero h1 em{color:#F6E2B4}
+  .ft-olho{letter-spacing:.24em}
+}

@@ -119,7 +119,7 @@ const ftTxt = (o) => (o && (o[LANG] || o.en || o.pt)) || '';
 
 /* ---------- a estrada (scroll 3D): as paradas com foto ---------- */
 const FT_ROAD = [
-  { c: 'London', foto: 'arte/f/westminster-night.jpg', t: { en: 'London', pt: 'Londres', it: 'Londra' },
+  { c: 'London', foto: 'arte/f/big-ben-sunset-m.jpg', t: { en: 'London', pt: 'Londres', it: 'Londra' },
     d: { en: 'We start where you land: Heathrow, St Pancras or your hotel door in Mayfair.', pt: 'Começamos onde você chega: Heathrow, St Pancras ou a porta do seu hotel.', it: 'Partiamo da dove arrivi: Heathrow, St Pancras o la porta del tuo hotel.' } },
   { c: 'Windsor', foto: 'arte/f/windsor.jpg', t: { en: 'Windsor', pt: 'Windsor', it: 'Windsor' },
     d: { en: 'The oldest inhabited castle in the world, forty minutes away.', pt: 'O castelo habitado mais antigo do mundo, a quarenta minutos.', it: 'Il castello abitato più antico del mondo, a quaranta minuti.' } },
@@ -183,9 +183,11 @@ function ftTopo(transparente) {
   const idiomas = `<div class="ft-langs" role="group" aria-label="Language">${['en', 'pt', 'it'].map(c =>
     `<button type="button" data-lang="${c}" class="${LANG === c ? 'on' : ''}" aria-pressed="${LANG === c}" title="${FT_LANG_NOME[c]}">${FT_FLAG[c]}<span>${c === 'pt' ? 'PT' : c.toUpperCase()}</span></button>`).join('')}</div>`;
   return `
+  <a class="ft-pular" href="#ftConteudo">${L4('Skip to content', 'Pular para o conteúdo', 'Vai al contenuto')}</a>
   <header class="ft-top ${transparente ? '' : 'solido'}" id="ftTop">
     <div class="ft-wrap ft-top-in">
-      <a class="ft-marca" href="#/" aria-label="FT Travel & Experiences — home"><img src="arte/ft-horizontal.png" alt="FT Concierge & Experiences" width="300" height="63"></a>
+      <a class="ft-adm" href="#/adm" title="${L4('Team panel', 'Painel da equipe', 'Area riservata')}" aria-label="${L4('Team panel', 'Painel da equipe', 'Area riservata')}">${FT_IC.cadeado}<span>${L4('Panel', 'Painel', 'Area')}</span></a>
+      <a class="ft-marca" href="#/" aria-label="FT Travel & Experiences — home"><img src="arte/ft-horizontal.png" alt="FT Travel & Experiences" width="300" height="63"></a>
       <nav class="ft-menu" aria-label="Main menu">${MENU.map(([id, n]) => `<a href="#/" data-ir="${id}">${n}</a>`).join('')}</nav>
       ${idiomas}
       <a class="ft-btn ft-btn-ouro ft-cta-top" href="#/roteiro">${L4('Plan my trip', 'Planejar a viagem', 'Pianifica il viaggio')}</a>
@@ -209,12 +211,12 @@ function viewHub() {
   const insta = (st.insta || GUIA_CFG.insta || '').replace(/^@/, '');
   const faq = (Array.isArray(st.faq) ? st.faq : []).filter(f => ftTxt(f.p) && ftTxt(f.r));
   const SERV = [
-    [FT_IC.carro, L4('Private chauffeur', 'Chauffeur particular', 'Autista privato'), L4('A Mercedes and your driver by the hour: shopping, meetings, dinners, the West End.', 'Um Mercedes e o seu motorista por hora: compras, reuniões, jantares, o West End.', 'Una Mercedes e il tuo autista a ore: shopping, riunioni, cene.'), 'chauffeur'],
-    [FT_IC.aviao, L4('Airport & rail transfers', 'Transfers de aeroporto e trem', 'Transfer da aeroporti e stazioni'), L4('Heathrow, Gatwick, St Pancras, Southampton — met with your name, flight tracked.', 'Heathrow, Gatwick, St Pancras, Southampton — com plaquinha e voo acompanhado.', 'Heathrow, Gatwick, St Pancras — con cartello e volo monitorato.'), 'transfer-aeroporto'],
-    [FT_IC.mapa, L4('Private day tours', 'Passeios privativos', 'Tour privati'), L4('Windsor, Oxford, Stonehenge, Bath, the Cotswolds — your driver is your guide.', 'Windsor, Oxford, Stonehenge, Bath, Cotswolds — o motorista é o seu guia.', 'Windsor, Oxford, Stonehenge, Bath — l’autista è la tua guida.'), 'tours'],
-    [FT_IC.rota, L4('Multi-day journeys', 'Viagens de vários dias', 'Viaggi di più giorni'), L4('Scotland, England and Europe, planned day by day and driven door to door.', 'Escócia, Inglaterra e Europa, planejadas dia a dia, de porta a porta.', 'Scozia, Inghilterra ed Europa, pianificate giorno per giorno.'), 'viagens'],
-    [FT_IC.sino, L4('Concierge', 'Concierge', 'Concierge'), L4('Restaurants, West End shows, Harry Potter Studios, stadium tours, hotels.', 'Restaurantes, musicais, estúdios Harry Potter, tours de estádio, hotéis.', 'Ristoranti, spettacoli, studi Harry Potter, stadi, hotel.'), 'concierge'],
-    [FT_IC.pasta, L4('Corporate & events', 'Empresas e eventos', 'Aziende ed eventi'), L4('Roadshows, delegations and VIP guests with a single point of contact.', 'Roadshows, delegações e convidados VIP com um único contato.', 'Roadshow, delegazioni e ospiti VIP con un solo referente.'), 'evento'],
+    [FT_IC.carro, L4('Private chauffeur', 'Chauffeur particular', 'Autista privato'), L4('A Mercedes and your driver by the hour: shopping, meetings, dinners, the West End.', 'Um Mercedes e o seu motorista por hora: compras, reuniões, jantares, o West End.', 'Una Mercedes e il tuo autista a ore: shopping, riunioni, cene.'), 'chauffeur', 'mercedes-e'],
+    [FT_IC.aviao, L4('Airport & rail transfers', 'Transfers de aeroporto e trem', 'Transfer da aeroporti e stazioni'), L4('Heathrow, Gatwick, St Pancras, Southampton — met with your name, flight tracked.', 'Heathrow, Gatwick, St Pancras, Southampton — com plaquinha e voo acompanhado.', 'Heathrow, Gatwick, St Pancras — con cartello e volo monitorato.'), 'transfer-aeroporto', 'tower-bridge'],
+    [FT_IC.mapa, L4('Private day tours', 'Passeios privativos', 'Tour privati'), L4('Windsor, Oxford, Stonehenge, Bath, the Cotswolds — your driver is your guide.', 'Windsor, Oxford, Stonehenge, Bath, Cotswolds — o motorista é o seu guia.', 'Windsor, Oxford, Stonehenge, Bath — l’autista è la tua guida.'), 'tours', 'windsor'],
+    [FT_IC.rota, L4('Multi-day journeys', 'Viagens de vários dias', 'Viaggi di più giorni'), L4('Scotland, England and Europe, planned day by day and driven door to door.', 'Escócia, Inglaterra e Europa, planejadas dia a dia, de porta a porta.', 'Scozia, Inghilterra ed Europa, pianificate giorno per giorno.'), 'viagens', 'eilean-donan'],
+    [FT_IC.sino, L4('Concierge', 'Concierge', 'Concierge'), L4('Restaurants, West End shows, Harry Potter Studios, stadium tours, hotels.', 'Restaurantes, musicais, estúdios Harry Potter, tours de estádio, hotéis.', 'Ristoranti, spettacoli, studi Harry Potter, stadi, hotel.'), 'concierge', 'harry-potter'],
+    [FT_IC.pasta, L4('Corporate & events', 'Empresas e eventos', 'Aziende ed eventi'), L4('Roadshows, delegations and VIP guests with a single point of contact.', 'Roadshows, delegações e convidados VIP com um único contato.', 'Roadshow, delegazioni e ospiti VIP con un solo referente.'), 'evento', 'hampton-court'],
   ];
   const PARA = [
     L4('You want the best of Britain without driving on the left', 'Quer o melhor da Grã-Bretanha sem dirigir do lado esquerdo', 'Vuoi il meglio della Gran Bretagna senza guidare a sinistra'),
@@ -233,19 +235,20 @@ function viewHub() {
 
   app.innerHTML = `<div class="ft">
   ${ftTopo(true)}
-  <main>
+  <main id="ftConteudo">
   <section class="ft-hero" aria-labelledby="ftH1">
-    <div class="ft-hero-img" id="ftHeroImg"><img src="arte/f/westminster-night.jpg" alt="${L4('The Houses of Parliament and Big Ben at night across the Thames', 'O Parlamento e o Big Ben à noite, do outro lado do Tâmisa', 'Il Parlamento e il Big Ben di notte sul Tamigi')}" fetchpriority="high"></div>
+    <div class="ft-hero-img" id="ftHeroImg"><picture><source media="(max-width:700px)" srcset="arte/f/big-ben-sunset-m.jpg"><img src="arte/f/big-ben-sunset.jpg" alt="${L4('Big Ben and the Houses of Parliament at golden sunset from Westminster Bridge', 'O Big Ben e o Parlamento no pôr do sol dourado, vistos da ponte de Westminster', 'Il Big Ben e il Parlamento al tramonto dorato dal ponte di Westminster')}" fetchpriority="high"></picture></div>
     <div class="ft-hero-veu"></div>
     <div class="ft-wrap ft-hero-in">
       <p class="ft-olho">London · England · Scotland · Europe</p>
-      <h1 id="ftH1">${L4('Britain,<br><em>beautifully driven.</em>', 'A Grã-Bretanha,<br><em>com motorista e com história.</em>', 'La Gran Bretagna,<br><em>con autista e con storia.</em>')}</h1>
+      <h1 id="ftH1" class="ft-linhas">${[L4('Britain,', 'A Grã-Bretanha,', 'La Gran Bretagna,'), `<em>${L4('beautifully driven.', 'com motorista e com história.', 'con autista e con storia.')}</em>`].map((l, i) => `<span class="ft-l"><span style="--i:${i}">${l}</span></span>`).join('')}</h1>
       <p class="ft-sub">${esc(ftTxt(st.homeText))}</p>
       <div class="ft-acoes">
         <a class="ft-btn ft-btn-ouro" href="#/roteiro">${L4('Plan my trip', 'Planejar a minha viagem', 'Pianifica il mio viaggio')}</a>
         <a class="ft-btn ft-btn-linha" href="#/" data-ir="ft-estrada">${L4('Take the road north', 'Percorra a estrada', 'Percorri la strada')} ${FT_IC.seta}</a>
       </div>
     </div>
+    <a class="ft-rolar" href="#/" data-ir="ft-servicos" aria-label="${L4('Scroll down', 'Rolar para baixo', 'Scorri in basso')}"><span>${L4('Scroll', 'Role', 'Scorri')}</span><i></i></a>
     <div class="ft-hero-pe">
       <div class="ft-wrap ft-difs">
         <div><b>2008</b><small>${L4('in London since', 'em Londres desde', 'a Londra dal')}</small></div>
@@ -261,10 +264,10 @@ function viewHub() {
   <section class="ft-sec" id="ft-servicos" aria-labelledby="ftServ">
     <div class="ft-wrap">
       <div class="ft-cab ft-rv"><span class="ft-rot">${L4('Services', 'Serviços', 'Servizi')}</span>
-        <h2 id="ftServ">${L4('One number for every road in Britain.', 'Um contato para todas as estradas da Grã-Bretanha.', 'Un solo contatto per ogni strada della Gran Bretagna.')}</h2>
+        <h2 id="ftServ">${L4('One number for <em>every road</em> in Britain.', 'Um contato para <em>todas as estradas</em> da Grã-Bretanha.', 'Un solo contatto per <em>ogni strada</em> della Gran Bretagna.')}</h2>
         <p>${L4('From the airport kerb to the Isle of Skye, everything is organised by the same people — and driven in the same comfort.', 'Do desembarque no aeroporto à Ilha de Skye, tudo organizado pelas mesmas pessoas — e com o mesmo conforto.', 'Dall’aeroporto all’Isola di Skye, tutto organizzato dalle stesse persone.')}</p></div>
-      <div class="ft-servs">${SERV.map(([ic, b, p, k], i) => `<button type="button" class="ft-serv ft-rv" style="--d:${i * 70}ms" data-serv="${k}">
-        <span class="ft-ic">${ic}</span><b>${b}</b><span>${p}</span><span class="ft-mais">${L4('Discover', 'Conhecer', 'Scopri')} ${FT_IC.seta}</span></button>`).join('')}</div>
+      <div class="ft-servs">${SERV.map(([ic, b, p, k, f], i) => `<button type="button" class="ft-serv ft-rv" style="--d:${i * 70}ms" data-serv="${k}">
+        <span class="ft-serv-foto"><img src="arte/f/${f}.jpg" alt="" loading="lazy"><span class="ft-ic">${ic}</span></span><b>${b}</b><span>${p}</span><span class="ft-mais">${L4('Discover', 'Conhecer', 'Scopri')} ${FT_IC.seta}</span></button>`).join('')}</div>
     </div>
   </section>
 
@@ -272,8 +275,9 @@ function viewHub() {
     <div class="ft-road-sticky">
       <div class="ft-road-stage" id="ftStage"><div class="ft-road-plano" id="ftPlano">${ftMapaSvg(FT_ROAD.map(s => s.c), { carro: true, idRota: 'ftRota', europa: true, rotulos: paradas.map(s => s.c).concat(['Paris', 'Amsterdam']), aria: 'From London to the Isle of Skye' })}</div></div>
       <div class="ft-road-cab"><span class="ft-rot">${L4('The Road North', 'A estrada para o norte', 'La strada verso nord')}</span>
-        <h2 id="ftRoad">${L4('From Big Ben to the Isle of Skye.', 'Do Big Ben à Ilha de Skye.', 'Dal Big Ben all’Isola di Skye.')}</h2>
-        <p class="ft-road-dica">${L4('Scroll — the car drives.', 'Role a página — o carro anda.', 'Scorri — l’auto guida.')}</p></div>
+        <h2 id="ftRoad">${L4('From Big Ben to <em>the Isle of Skye.</em>', 'Do Big Ben à <em>Ilha de Skye.</em>', 'Dal Big Ben <em>all’Isola di Skye.</em>')}</h2>
+        <p class="ft-road-dica">${L4('Scroll — the car drives.', 'Role a página — o carro anda.', 'Scorri — l’auto guida.')}</p>
+        <a class="ft-road-pular" href="#/" data-ir="ft-destinos">${L4('Skip the map', 'Pular o mapa', 'Salta la mappa')} ↓</a></div>
       <div class="ft-road-cartoes">${paradas.map((s, i) => `<article class="ft-parada" data-i="${i}">
         <img src="${s.foto}" alt="" loading="lazy"><div><span class="ft-n">${String(i + 1).padStart(2, '0')} / ${String(paradas.length).padStart(2, '0')}</span><h3>${esc(ftTxt(s.t))}</h3><p>${esc(ftTxt(s.d))}</p></div></article>`).join('')}
         <article class="ft-parada ft-parada-fim" data-i="${paradas.length}"><div><span class="ft-n">+ Europe</span><h3>${L4('And Europe, from London.', 'E a Europa, a partir de Londres.', 'E l’Europa, da Londra.')}</h3>
@@ -286,19 +290,20 @@ function viewHub() {
   <section class="ft-sec" id="ft-destinos" aria-labelledby="ftDest">
     <div class="ft-wrap">
       <div class="ft-cab ft-rv"><span class="ft-rot">${L4('Destinations', 'Destinos', 'Destinazioni')}</span>
-        <h2 id="ftDest">${L4('Where shall we take you?', 'Para onde vamos levar você?', 'Dove ti portiamo?')}</h2></div>
+        <h2 id="ftDest">${L4('Where shall we <em>take you?</em>', 'Para onde vamos <em>levar você?</em>', 'Dove <em>ti portiamo?</em>')}</h2></div>
       <div class="ft-cats">${cats.map((c, i) => `<button type="button" class="ft-cat ft-rv ${i === 0 ? 'grande' : ''}" style="--d:${i * 60}ms" data-cat="${esc(c.id)}">
         <img src="${esc(c.foto)}" alt="" loading="lazy"><span><b>${esc(ftTxt(c.nome))}</b><small>${esc(ftTxt(c.desc))}</small>
         <span class="ft-mais">${temCat(c.id) ? L4('See experiences', 'Ver experiências', 'Vedi esperienze') : L4('Request a proposal', 'Pedir proposta', 'Richiedi proposta')} ${FT_IC.seta}</span></span></button>`).join('')}</div>
     </div>
   </section>
 
-  <section class="ft-sec ft-escuro" id="ft-viagens" aria-labelledby="ftViag">
+  <section class="ft-sec ft-areia" id="ft-viagens" aria-labelledby="ftViag">
     <div class="ft-wrap">
-      <div class="ft-cab ft-rv"><span class="ft-rot">${L4('Signature journeys', 'Viagens assinadas', 'Viaggi firmati')}</span>
-        <h2 id="ftViag">${L4('Days that become the story of the trip.', 'Dias que viram a história da viagem.', 'Giorni che diventano la storia del viaggio.')}</h2>
+      <div class="ft-cab ft-cab-lado ft-rv"><div><span class="ft-rot">${L4('Signature journeys', 'Viagens assinadas', 'Viaggi firmati')}</span>
+        <h2 id="ftViag">${L4('Days that become <em>the story of the trip.</em>', 'Dias que viram <em>a história da viagem.</em>', 'Giorni che diventano <em>la storia del viaggio.</em>')}</h2>
         <p>${L4('Planned day by day, driven door to door. Every journey can be shortened, stretched or mixed with another.', 'Planejadas dia a dia, de porta a porta. Toda viagem pode encurtar, crescer ou se misturar com outra.', 'Pianificati giorno per giorno, porta a porta. Ogni viaggio si può accorciare, allungare o combinare.')}</p></div>
-      <div class="ft-viagens">${FT_JOURNEYS.map((j, i) => `<a class="ft-viagem ft-rv" style="--d:${i * 80}ms" href="#/journey/${j.id}">
+        <div class="ft-setas"><button type="button" data-car="-1" aria-label="${L4('Previous', 'Anterior', 'Precedente')}">←</button><span id="ftCarN">01 / ${String(FT_JOURNEYS.length).padStart(2, '0')}</span><button type="button" data-car="1" aria-label="${L4('Next', 'Próxima', 'Successivo')}">→</button></div></div>
+      <div class="ft-viagens" id="ftCarrossel" tabindex="0" aria-label="${L4('Journeys', 'Viagens', 'Viaggi')}">${FT_JOURNEYS.map((j, i) => `<a class="ft-viagem ft-rv" style="--d:${i * 80}ms" href="#/journey/${j.id}">
         <span class="ft-viagem-img"><img src="${j.foto}" alt="" loading="lazy"></span>
         <span class="ft-viagem-tx"><span class="ft-chips"><i>${j.dias} ${L4('days', 'dias', 'giorni')}</i><i>${j.rota.filter((k, ii, a) => a.indexOf(k) === ii).length} ${L4('stops', 'paradas', 'tappe')}</i></span>
         <b>${esc(ftTxt(j.nome))}</b><small>${esc(ftTxt(j.epoca))}</small><span class="ft-mais">${L4('View the journey', 'Ver a viagem', 'Vedi il viaggio')} ${FT_IC.seta}</span></span></a>`).join('')}</div>
@@ -308,7 +313,7 @@ function viewHub() {
   <section class="ft-sec" aria-labelledby="ftPara">
     <div class="ft-wrap ft-duas">
       <div class="ft-rv"><span class="ft-rot">${L4('Is this for you?', 'É para você?', 'Fa per te?')}</span>
-        <h2 id="ftPara">${L4('Made for travellers who would rather enjoy the view than read the map.', 'Feito para quem prefere curtir a paisagem a ler o mapa.', 'Per chi preferisce godersi il panorama piuttosto che leggere la mappa.')}</h2>
+        <h2 id="ftPara">${L4('Made for travellers who would rather <em>enjoy the view</em> than read the map.', 'Feito para quem prefere <em>curtir a paisagem</em> a ler o mapa.', 'Per chi preferisce <em>godersi il panorama</em> piuttosto che leggere la mappa.')}</h2>
         <ul class="ft-para">${PARA.map(p => `<li>${p}</li>`).join('')}</ul></div>
       <div class="ft-rv"><span class="ft-rot">${L4('How it works', 'Como funciona', 'Come funziona')}</span>
         <ol class="ft-passos">${PASSOS.map(([b, s], i) => `<li><span>${i + 1}</span><div><b>${b}</b><small>${s}</small></div></li>`).join('')}</ol>
@@ -316,11 +321,15 @@ function viewHub() {
     </div>
   </section>
 
+  <section class="ft-sol" aria-label="FT">
+    <div class="ft-sol-faixa"><div>${Array(2).fill([L4('Your driver', 'O seu motorista', 'Il tuo autista'), L4('Your language', 'A sua língua', 'La tua lingua'), L4('Your pace', 'O seu ritmo', 'Il tuo ritmo'), L4('Your Britain', 'A sua Grã-Bretanha', 'La tua Gran Bretagna')].map(s => `<span>${s}</span><img src="arte/ft-mark-escura.png" alt="">`).join('')).join('')}</div></div>
+  </section>
+
   <section class="ft-frota" id="ft-frota" aria-labelledby="ftFrota">
     <img class="ft-frota-img" src="arte/f/mercedes.jpg" alt="${L4('A black Mercedes saloon', 'Um Mercedes sedã preto', 'Una berlina Mercedes nera')}" loading="lazy">
     <div class="ft-wrap ft-frota-in ft-rv">
       <span class="ft-rot">${L4('The fleet', 'A frota', 'La flotta')}</span>
-      <h2 id="ftFrota">${L4('Quiet cabins. Spotless cars. Always a Mercedes.', 'Cabine silenciosa. Carro impecável. Sempre um Mercedes.', 'Abitacolo silenzioso. Auto impeccabili. Sempre una Mercedes.')}</h2>
+      <h2 id="ftFrota">${L4('Quiet cabins. Spotless cars. <em>Always a Mercedes.</em>', 'Cabine silenciosa. Carro impecável. <em>Sempre um Mercedes.</em>', 'Abitacolo silenzioso. Auto impeccabili. <em>Sempre una Mercedes.</em>')}</h2>
       <div class="ft-carros">
         <div><b>S-Class</b><small>${L4('The flagship · up to 3 guests', 'O topo de linha · até 3 pessoas', 'L’ammiraglia · fino a 3 ospiti')}</small></div>
         <div><b>E-Class</b><small>${L4('Couples & executives · up to 3', 'Casais e executivos · até 3', 'Coppie e manager · fino a 3')}</small></div>
@@ -334,7 +343,7 @@ function viewHub() {
     <div class="ft-wrap ft-sobre">
       <div class="ft-sobre-fotos ft-rv"><img src="arte/f/westminster-arch.jpg" alt="" loading="lazy"><img src="arte/f/edinburgh-close.jpg" alt="" loading="lazy"></div>
       <div class="ft-rv"><span class="ft-rot">${L4('About FT', 'Sobre a FT', 'Chi siamo')}</span>
-        <h2 id="ftSobre" class="ft-serif">${L4('Local knowledge. Brazilian warmth.', 'Conhecimento local. Calor brasileiro.', 'Conoscenza locale. Calore brasiliano.')}</h2>
+        <h2 id="ftSobre" class="ft-serif">${L4('Local knowledge. <em>Brazilian warmth.</em>', 'Conhecimento local. <em>Calor brasileiro.</em>', 'Conoscenza locale. <em>Calore brasiliano.</em>')}</h2>
         ${ftTxt(st.bio).split(/\n\s*\n/).filter(Boolean).slice(0, 2).map(p => `<p class="ft-lead">${esc(p)}</p>`).join('')}
         <blockquote class="ft-citacao">${L4('“Do it so well that people want to come back — and bring others with them.”', '“Faça tão bem feito que as pessoas queiram voltar — e trazer outras com elas.”', '“Fallo così bene che la gente voglia tornare — e portare altri con sé.”')}<cite>Roberto Rivelino</cite></blockquote>
       </div>
@@ -344,7 +353,7 @@ function viewHub() {
   <section class="ft-sec ft-claro" aria-labelledby="ftAval">
     <div class="ft-wrap ft-aval ft-rv">
       <div><span class="ft-rot">${L4('Reviews', 'Avaliações', 'Recensioni')}</span>
-        <h2 id="ftAval">${L4('Five stars, every road.', 'Cinco estrelas em todas as estradas.', 'Cinque stelle su ogni strada.')}</h2>
+        <h2 id="ftAval">${L4('Five stars, <em>every road.</em>', 'Cinco estrelas <em>em todas as estradas.</em>', 'Cinque stelle <em>su ogni strada.</em>')}</h2>
         <p>${L4('Travellers rate FT 5.0 on TripAdvisor — for the drivers, the cars and the care.', 'Os viajantes dão nota 5,0 à FT no TripAdvisor — pelos motoristas, pelos carros e pelo cuidado.', 'I viaggiatori danno a FT 5,0 su TripAdvisor — per gli autisti, le auto e la cura.')}</p></div>
       <div class="ft-nota"><b>5.0</b><span class="ft-estrelas">${FT_IC.estrela.repeat(5)}</span><small>TripAdvisor</small>
         <a class="ft-btn ft-btn-linha" href="https://www.tripadvisor.com/Attraction_Review-g186338-d10024491-Reviews-Freddy_Turismo-London_England.html" target="_blank" rel="noopener">${L4('Read the reviews', 'Ler as avaliações', 'Leggi le recensioni')} ↗</a>
@@ -356,10 +365,10 @@ function viewHub() {
     <div class="ft-faq">${faq.map(f => `<details><summary>${esc(ftTxt(f.p))}</summary><p>${esc(ftTxt(f.r)).replace(/\n/g, '<br>')}</p></details>`).join('')}</div></div></section>` : ''}
 
   <section class="ft-final" aria-labelledby="ftFinal">
-    <img src="arte/f/glencoe-mist.jpg" alt="" loading="lazy">
+    <img src="arte/f/highlands-sunset.jpg" alt="" loading="lazy">
     <div class="ft-wrap ft-rv">
       <img class="ft-final-mark" src="arte/ft-mark.png" alt="" width="84" height="84">
-      <h2 id="ftFinal">${L4('Where does your road begin?', 'Onde começa a sua estrada?', 'Dove inizia la tua strada?')}</h2>
+      <h2 id="ftFinal">${L4('Where does <em>your road</em> begin?', 'Onde começa <em>a sua estrada?</em>', 'Dove inizia <em>la tua strada?</em>')}</h2>
       <p>${L4('Tell us when you arrive and what you would love to see. We answer the same day.', 'Conte quando chega e o que gostaria de ver. A gente responde no mesmo dia.', 'Dicci quando arrivi e cosa ti piacerebbe vedere. Rispondiamo in giornata.')}</p>
       <div class="ft-acoes"><a class="ft-btn ft-btn-ouro" href="#/roteiro">${L4('Plan my trip', 'Planejar a viagem', 'Pianifica il viaggio')}</a>
         <a class="ft-btn ft-btn-linha" href="${esc(waLink(L4('Hello Roberto! I would like to plan a trip with FT.', 'Olá, Roberto! Quero planejar uma viagem com a FT.', 'Ciao Roberto! Vorrei organizzare un viaggio con FT.')))}" target="_blank" rel="noopener">${ICONE_WA} WhatsApp</a></div>
@@ -393,7 +402,7 @@ function ftRodape(email, insta) {
   insta = insta || (st.insta || GUIA_CFG.insta || '').replace(/^@/, '');
   return `<footer class="ft-rodape">
     <div class="ft-wrap ft-rodape-in">
-      <div><img src="arte/ft-logo.png" alt="FT Concierge & Experiences" width="220" height="160" loading="lazy">
+      <div><img src="arte/ft-logo.png" alt="FT Travel & Experiences" width="220" height="160" loading="lazy">
         <p>${L4('Chauffeur, concierge and private journeys across England, Scotland and Europe.', 'Chauffeur, concierge e viagens privativas pela Inglaterra, Escócia e Europa.', 'Autista, concierge e viaggi privati in Inghilterra, Scozia ed Europa.')}</p></div>
       <div><h3>${L4('Journeys', 'Viagens', 'Viaggi')}</h3>${FT_JOURNEYS.map(j => `<a href="#/journey/${j.id}">${esc(ftTxt(j.nome))}</a>`).join('')}</div>
       <div><h3>FT</h3><a href="#/tours">${L4('All experiences', 'Todas as experiências', 'Tutte le esperienze')}</a><a href="#/roteiro">${L4('Tailor-made trip', 'Viagem sob medida', 'Viaggio su misura')}</a><a href="#/about">${L4('About Roberto', 'Sobre o Roberto', 'Chi è Roberto')}</a><a href="#/avaliacoes">${L4('Reviews', 'Avaliações', 'Recensioni')}</a></div>
@@ -402,6 +411,7 @@ function ftRodape(email, insta) {
         ${email ? `<a href="mailto:${esc(email)}">${esc(email)}</a>` : ''}
         ${insta ? `<a href="https://instagram.com/${esc(insta)}" target="_blank" rel="noopener">@${esc(insta)}</a>` : ''}
         <span>London, United Kingdom</span></div>
+      <p class="ft-gigante" aria-hidden="true">FT <em>Travel &amp; Experiences</em></p>
       <div class="ft-base"><span>© ${new Date().getFullYear()} FT Travel & Experiences · Freddy Turismo Ltd</span>
         <span><a href="privacidade.html">${L4('Privacy', 'Privacidade', 'Privacy')}</a> · <span class="ft-creditos">${L4('Photos: Unsplash and Wikimedia Commons contributors (CC BY / CC BY-SA)', 'Fotos: Unsplash e colaboradores do Wikimedia Commons (CC BY / CC BY-SA)', 'Foto: Unsplash e Wikimedia Commons (CC BY / CC BY-SA)')}</span>
         · <a class="ft-painel" href="#/adm">${FT_IC.cadeado} ${L4('Team panel', 'Painel da equipe', 'Area riservata')}</a></span></div>
@@ -426,6 +436,23 @@ function ftLiga() {
   });
   const io = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
   $$('.ft-rv', app).forEach(el => io.observe(el));
+  /* carrossel das viagens: setas + contador */
+  const car = document.getElementById('ftCarrossel'), num = document.getElementById('ftCarN');
+  if (car) {
+    const passo = () => { const c = car.querySelector('.ft-viagem'); return c ? c.getBoundingClientRect().width + 22 : 320; };
+    $$('[data-car]', app).forEach(b => b.onclick = () => car.scrollBy({ left: passo() * Number(b.dataset.car), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
+    const conta = () => { if (!num) return; const n = car.querySelectorAll('.ft-viagem').length; const i = Math.min(n, Math.round(car.scrollLeft / passo()) + 1); num.textContent = String(i).padStart(2, '0') + ' / ' + String(n).padStart(2, '0'); };
+    car.addEventListener('scroll', () => requestAnimationFrame(conta), { passive: true });
+    car.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); car.scrollBy({ left: passo() * (e.key === 'ArrowRight' ? 1 : -1), behavior: 'smooth' }); } });
+  }
+  /* menu acompanha a seção visível */
+  const links = $$('.ft-menu a[data-ir]', app);
+  if (links.length) {
+    const spy = new IntersectionObserver((es) => es.forEach(e => {
+      if (e.isIntersecting) links.forEach(a => a.classList.toggle('ativo', a.dataset.ir === e.target.id));
+    }), { rootMargin: '-45% 0px -50% 0px' });
+    links.forEach(a => { const el = document.getElementById(a.dataset.ir); if (el) spy.observe(el); });
+  }
 }
 /* o cabeçalho fica sólido quando a foto passa; a foto da capa sobe devagar */
 addEventListener('scroll', () => {

@@ -127,7 +127,7 @@ const CONTEUDO = {
      (categoria vazia NUNCA vira página vazia). Fotos do material dela —
      as de 220px pedem a foto real e autorizada. */
   categorias: [
-    { id: 'london', foto: 'arte/f/westminster-night.jpg',
+    { id: 'london', foto: 'arte/f/london-day.jpg',
       nome: { en: 'London, your way', pt: 'Londres do seu jeito', it: 'Londra a modo tuo' },
       desc: { en: 'Chauffeur by the hour and the city tour by Mercedes.', pt: 'Chauffeur por hora e o city tour de Mercedes.', it: 'Autista a ore e city tour in Mercedes.' } },
     { id: 'england', foto: 'arte/f/stonehenge.jpg',
@@ -223,7 +223,7 @@ Chegue alguns minutos antes no ponto de encontro. Leve um casaco leve e guarda-c
 Que a sua viagem seja inesquecível. Estamos à disposição para o que precisar.
 
 Roberto
-FT · CONCIERGE & EXPERIENCES
+FT TRAVEL & EXPERIENCES
 @freddyturismolondon`,
   },
   /* para escolher o bloco de transfer do voucher */

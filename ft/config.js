@@ -1,7 +1,7 @@
 /* Identidade deste app: o UNICO lugar que sabe qual banco usar e de quem
    e o app. cloud.js, auth.js, store.js e app.js leem daqui.
 
-   FT CONCIERGE & EXPERIENCES — Roberto Rivelino (Freddy Turismo, Londres).
+   FT TRAVEL & EXPERIENCES — Roberto Rivelino (Freddy Turismo, Londres).
    16/11/2026: o site novo dele, na base do app da Yalla (site + painel
    identicos), com a marca FT. Ingles como lingua principal, depois
    portugues e italiano. Inglaterra, Escocia e Europa.
