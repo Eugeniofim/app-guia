@@ -23,6 +23,8 @@ function ftLinguaDaTela() {
 }
 
 /* ---------- bandeiras (vetor: emoji de bandeira não aparece no Windows) ---------- */
+ftLinguaDaTela._site = window.__ftSiteLang || '';
+
 const FT_FLAG = {
   en: '<svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="ftuk"><path d="M0 0v30h60V0z"/></clipPath><g clip-path="url(#ftuk)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" stroke="#C8102E" stroke-width="2.4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>',
   pt: '<svg viewBox="0 0 60 42" aria-hidden="true"><path fill="#009C3B" d="M0 0h60v42H0z"/><path fill="#FFDF00" d="M30 4 56 21 30 38 4 21z"/><circle cx="30" cy="21" r="8.6" fill="#002776"/><path d="M21.6 19.6a17 17 0 0 1 16.9 3.3" stroke="#fff" stroke-width="1.4" fill="none"/></svg>',

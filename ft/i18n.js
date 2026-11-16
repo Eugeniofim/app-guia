@@ -931,7 +931,12 @@ const STR = {
   tutDone: { pt: 'Pronto! Qualquer dúvida, o tutorial volta pelos Ajustes.', en: 'Done! You can replay this anytime from Settings.' },
 };
 
-let LANG = (function () { try { return JSON.parse(localStorage.getItem(DB_KEY))?.settings?.lang || 'en'; } catch (e) { return 'en'; } })();
+let LANG = (function () {
+  let l = 'en'; try { l = JSON.parse(localStorage.getItem(DB_KEY))?.settings?.lang || 'en'; } catch (e) { }
+  /* FT: o painel é sempre em português, mesmo abrindo direto em #/adm (o site guarda a língua dele) */
+  if (/^#\/(adm|login|novasenha)/.test(location.hash) && l !== 'pt') { window.__ftSiteLang = l; return 'pt'; }
+  return l;
+})();
 
 function t(key, vars) {
   const e = STR[key];
