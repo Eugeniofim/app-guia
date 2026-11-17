@@ -10,7 +10,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="FT Travel & Experiences — Britain, beautifully driven.">
 <meta property="og:description" content="Chauffeur, concierge and private journeys across England, Scotland and Europe, in executive Mercedes.">
-<meta property="og:image" content="https://guia.eugeniofim.com/ft/og.jpg?v=2">
+<meta property="og:image" content="https://guia.eugeniofim.com/ft/og.jpg?v=3">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta property="og:url" content="https://guia.eugeniofim.com/ft/">
 <meta property="og:site_name" content="FT Travel & Experiences">
@@ -694,6 +694,8 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
 .sp-logo{display:block;width:min(232px,58vw);height:auto;margin:26px auto 0;
   animation:spUp 950ms var(--ease) both;animation-delay:2150ms}
 .sp-word,.sp-role,.sp-region,.sp-lang{color:#fff;animation:spUp 950ms var(--ease) both}
+/* FT: a assinatura (logo em pé) já traz o nome — a palavra solta sai */
+.sp-word{display:none!important}
 .sp-word{margin-top:26px;font-family:"Cormorant Garamond",var(--f-display);font-weight:600;
   font-size:clamp(36px,9vw,64px);line-height:1.03;letter-spacing:.01em;animation-delay:2150ms}
 .sp-role{margin-top:16px;font-family:var(--f-display);font-weight:600;color:#E3CB97!important;text-transform:uppercase;
@@ -1234,7 +1236,7 @@ body.sem-anima #app>*,body.sem-anima #app .stage,body.sem-anima #app .wrap,body.
 <div id="splash" class="splash">
   <div class="sp-stage">
     <div class="sp-mark">
-      <img src="arte/ft-mark.png" width="170" height="170" alt="" aria-hidden="true" style="display:block;margin:0 auto">
+      <img src="arte/ft-logo.png" width="330" height="178" alt="FT Travel &amp; Experiences, London" style="display:block;margin:0 auto;max-width:78vw;height:auto">
     </div>
     <!-- o nome do negocio e a credencial vem do config.js (app.js preenche) -->
     <div class="sp-word" id="spWord"></div>

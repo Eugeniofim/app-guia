@@ -189,7 +189,7 @@ function ftTopo(transparente) {
   <header class="ft-top ${transparente ? '' : 'solido'}" id="ftTop">
     <div class="ft-wrap ft-top-in">
       <a class="ft-adm" href="#/adm" title="${L4('Team panel', 'Painel da equipe', 'Area riservata')}" aria-label="${L4('Team panel', 'Painel da equipe', 'Area riservata')}">${FT_IC.cadeado}<span>${L4('Panel', 'Painel', 'Area')}</span></a>
-      <a class="ft-marca" href="#/" aria-label="FT Travel & Experiences — home"><img src="arte/ft-horizontal.png" alt="FT Travel & Experiences" width="300" height="63"></a>
+      <a class="ft-marca" href="#/" aria-label="FT Travel & Experiences — home"><img src="arte/ft-horizontal.png" alt="FT Travel & Experiences, London" width="260" height="40"></a>
       <nav class="ft-menu" aria-label="Main menu">${MENU.map(([id, n]) => `<a href="#/" data-ir="${id}">${n}</a>`).join('')}</nav>
       ${idiomas}
       <a class="ft-btn ft-btn-ouro ft-cta-top" href="#/roteiro">${L4('Plan my trip', 'Planejar a viagem', 'Pianifica il viaggio')}</a>
@@ -324,7 +324,7 @@ function viewHub() {
   </section>
 
   <section class="ft-sol" aria-label="FT">
-    <div class="ft-sol-faixa"><div>${Array(2).fill([L4('Your driver', 'O seu motorista', 'Il tuo autista'), L4('Your language', 'A sua língua', 'La tua lingua'), L4('Your pace', 'O seu ritmo', 'Il tuo ritmo'), L4('Your Britain', 'A sua Grã-Bretanha', 'La tua Gran Bretagna')].map(s => `<span>${s}</span><img src="arte/ft-mark-escura.png" alt="">`).join('')).join('')}</div></div>
+    <div class="ft-sol-faixa"><div>${Array(2).fill([L4('Your driver', 'O seu motorista', 'Il tuo autista'), L4('Your language', 'A sua língua', 'La tua lingua'), L4('Your pace', 'O seu ritmo', 'Il tuo ritmo'), L4('Your Britain', 'A sua Grã-Bretanha', 'La tua Gran Bretagna')].map(s => `<span>${s}</span><i class="ft-sol-sep">◆</i>`).join('')).join('')}</div></div>
   </section>
 
   <section class="ft-frota" id="ft-frota" aria-labelledby="ftFrota">
@@ -369,7 +369,7 @@ function viewHub() {
   <section class="ft-final" aria-labelledby="ftFinal">
     <img src="arte/f/highlands-sunset.jpg" alt="" loading="lazy">
     <div class="ft-wrap ft-rv">
-      <img class="ft-final-mark" src="arte/ft-mark.png" alt="" width="84" height="84">
+      <img class="ft-final-mark" src="arte/ft-mark.png" alt="" width="120" height="120">
       <h2 id="ftFinal">${L4('Where does <em>your road</em> begin?', 'Onde começa <em>a sua estrada?</em>', 'Dove inizia <em>la tua strada?</em>')}</h2>
       <p>${L4('Tell us when you arrive and what you would love to see. We answer the same day.', 'Conte quando chega e o que gostaria de ver. A gente responde no mesmo dia.', 'Dicci quando arrivi e cosa ti piacerebbe vedere. Rispondiamo in giornata.')}</p>
       <div class="ft-acoes"><a class="ft-btn ft-btn-ouro" href="#/roteiro">${L4('Plan my trip', 'Planejar a viagem', 'Pianifica il viaggio')}</a>
@@ -404,7 +404,7 @@ function ftRodape(email, insta) {
   insta = insta || (st.insta || GUIA_CFG.insta || '').replace(/^@/, '');
   return `<footer class="ft-rodape">
     <div class="ft-wrap ft-rodape-in">
-      <div><img src="arte/ft-logo.png" alt="FT Travel & Experiences" width="220" height="160" loading="lazy">
+      <div><img src="arte/ft-logo.png" alt="FT Travel & Experiences, London" width="220" height="119" loading="lazy">
         <p>${L4('Chauffeur, concierge and private journeys across England, Scotland and Europe.', 'Chauffeur, concierge e viagens privativas pela Inglaterra, Escócia e Europa.', 'Autista, concierge e viaggi privati in Inghilterra, Scozia ed Europa.')}</p></div>
       <div><h3>${L4('Journeys', 'Viagens', 'Viaggi')}</h3>${FT_JOURNEYS.map(j => `<a href="#/journey/${j.id}">${esc(ftTxt(j.nome))}</a>`).join('')}</div>
       <div><h3>FT</h3><a href="#/tours">${L4('All experiences', 'Todas as experiências', 'Tutte le esperienze')}</a><a href="#/roteiro">${L4('Tailor-made trip', 'Viagem sob medida', 'Viaggio su misura')}</a><a href="#/about">${L4('About Roberto', 'Sobre o Roberto', 'Chi è Roberto')}</a><a href="#/avaliacoes">${L4('Reviews', 'Avaliações', 'Recensioni')}</a></div>
@@ -413,7 +413,7 @@ function ftRodape(email, insta) {
         ${email ? `<a href="mailto:${esc(email)}">${esc(email)}</a>` : ''}
         ${insta ? `<a href="https://instagram.com/${esc(insta)}" target="_blank" rel="noopener">@${esc(insta)}</a>` : ''}
         <span>London, United Kingdom</span></div>
-      <p class="ft-gigante" aria-hidden="true">FT <em>Travel &amp; Experiences</em></p>
+      <p class="ft-gigante" aria-hidden="true"><b>F T</b> <em>Travel &amp; Experiences</em></p>
       <div class="ft-base"><span>© ${new Date().getFullYear()} FT Travel & Experiences · Freddy Turismo Ltd</span>
         <span><a href="privacidade.html">${L4('Privacy', 'Privacidade', 'Privacy')}</a> · <span class="ft-creditos">${L4('Photos: Unsplash and Wikimedia Commons contributors (CC BY / CC BY-SA)', 'Fotos: Unsplash e colaboradores do Wikimedia Commons (CC BY / CC BY-SA)', 'Foto: Unsplash e Wikimedia Commons (CC BY / CC BY-SA)')}</span>
         · <a class="ft-painel" href="#/adm">${FT_IC.cadeado} ${L4('Team panel', 'Painel da equipe', 'Area riservata')}</a></span></div>
