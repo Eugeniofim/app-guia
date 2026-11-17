@@ -527,7 +527,7 @@ function viewHub() {
     [YL.sino, L3('Concierge e reservas', 'Concierge & bookings', 'Concierge y reservas'), L3('Restaurantes, beach clubs, fotógrafo, videomaker e outras solicitações.', 'Restaurants, beach clubs, photographer, videographer and other requests.', 'Restaurantes, beach clubs, fotógrafo, videomaker y otras solicitudes.'),
       L3('Fazer um pedido', 'Make a request', 'Hacer un pedido'), 'data-rt-precisa="ingressos"'],
   ];
-  const hotelMsg = L3(`Olá, ${guiaNome()}! Pode me indicar um hotel em Dubai?`, `Hi ${guiaNome()}! Could you recommend a hotel in Dubai?`, `¡Hola, ${guiaNome()}! ¿Me recomiendas un hotel en Dubái?`);
+  const hotelMsg = L3(`Olá, ${guiaNome()}! Pode me indicar um hotel em Londres?`, `Hi ${guiaNome()}! Could you recommend a hotel in London?`, `¡Hola, ${guiaNome()}! ¿Me recomiendas un hotel en Londres?`);
 
   app.innerHTML = `
   <div class="vt">
@@ -2367,7 +2367,7 @@ function admTours(modo) {
       <button class="cta sm" id="newTour">${trf ? '+ Novo transfer' : t('newTour')}</button></div>
     ${trf ? '<p class="why">Cada trajeto uma vez (ex.: Heathrow → hotel em Londres), com o preço por carro conforme o número de pessoas. No orçamento, o botão <b>Transfer</b> puxa daqui, igual ao Passeio.</p>' : ''}
     ${tours.length > 5 ? `<div class="tfiltro" role="search">
-      <label class="fld tf-q"><span class="sr">Buscar passeio</span><input id="tfQ" type="search" value="${esc(F.q)}" placeholder="Buscar: deserto, Burj, Abu Dhabi…" autocomplete="off" aria-label="Buscar passeio"></label>
+      <label class="fld tf-q"><span class="sr">Buscar passeio</span><input id="tfQ" type="search" value="${esc(F.q)}" placeholder="Buscar: Windsor, Stonehenge, Harry Potter…" autocomplete="off" aria-label="Buscar passeio"></label>
       <label class="fld"><span class="sr">Situação</span><select id="tfSt" aria-label="Situação">${opt('', 'Todos', F.st)}${opt('live', 'No ar', F.st)}${opt('draft', 'Rascunho', F.st)}</select></label>
       ${regs.length > 1 ? `<label class="fld"><span class="sr">Onde</span><select id="tfReg" aria-label="Onde">${opt('', 'Lugar', F.reg)}${regs.map(r => opt(r, regiaoLabel(r), F.reg)).join('')}</select></label>` : ''}
       ${tipos.length > 1 ? `<label class="fld"><span class="sr">Tipo</span><select id="tfTipo" aria-label="Tipo">${opt('', 'Tipo', F.tipo)}${tipos.map(k => opt(k, tipoLabel(k), F.tipo)).join('')}</select></label>` : ''}
@@ -3349,8 +3349,8 @@ function regEd(r) {
   const usados = r[0] ? Tours.all().filter(x => x.region === r[0]).length : 0;
   return `<div class="edrow" data-cod="${v(r[0])}">
     <div class="frow">
-      <label class="fld">${t('apRegNome')}<input class="rp" value="${v(r[1])}" placeholder="Abu Dhabi"></label>
-      <label class="fld">${t('apRegNome')} (EN)<input class="re" value="${v(r[2])}" placeholder="Florence"></label>
+      <label class="fld">${t('apRegNome')}<input class="rp" value="${v(r[1])}" placeholder="Escócia"></label>
+      <label class="fld">${t('apRegNome')} (EN)<input class="re" value="${v(r[2])}" placeholder="Scotland"></label>
       ${usados ? `<small class="why regn">${usados} ${t('apRegUsos')}</small>`
                : `<button type="button" class="mini ico danger" data-del aria-label="${t('edRemove')}">✕</button>`}
     </div>

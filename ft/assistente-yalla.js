@@ -58,7 +58,7 @@ if (typeof iaSistema === 'function') {
 
 ## VOCÊ APRENDE COM ELA
 - A Memória (acima) é o que ela já te ensinou: siga sempre, em toda conversa.
-- Quando ela CORRIGIR você ou disser como prefere ("não, é…", "sempre…", "nunca…", "prefiro…", "da próxima vez…", "o certo é…"): faça a correção e, na MESMA resposta, chame guardar_memoria com a regra curta e geral (ex.: "Burj Khalifa: usar a opção prime, a não ser que ela diga outra"). O cartão de confirmação deixa ela aceitar com um toque.
+- Quando ela CORRIGIR você ou disser como prefere ("não, é…", "sempre…", "nunca…", "prefiro…", "da próxima vez…", "o certo é…"): faça a correção e, na MESMA resposta, chame guardar_memoria com a regra curta e geral (ex.: "Harry Potter: sempre o ingresso com transporte, a não ser que ele diga outra"). O cartão de confirmação deixa ela aceitar com um toque.
 - Não guarde na Memória dado de um cliente só (isso é anotar_cliente) nem coisa de um dia (isso é anotar_tarefa).` });
     return b;
   };
@@ -74,7 +74,7 @@ function iaSabeHtml() {
         <textarea rows="2" aria-label="O que ele sabe">${esc(x.texto)}</textarea>
         <button type="button" class="mini ghost danger" data-mrm="${esc(x.id)}" aria-label="Esquecer">esquecer</button></div>`).join('')
       : '<p class="empty">Ainda nada. Ensine pelo chat ("lembra que…") ou escreva abaixo.</p>'}</div>
-    <div class="frow"><label class="fld grow"><span class="sr">Ensinar</span><input id="iaSabeNovo" autocomplete="off" placeholder="Ex.: traslado sempre com guia brasileiro; Burj sempre na opção prime" aria-label="Ensinar algo novo"></label><button type="button" class="mini strong" id="iaSabeAdd">ensinar</button></div>
+    <div class="frow"><label class="fld grow"><span class="sr">Ensinar</span><input id="iaSabeNovo" autocomplete="off" placeholder="Ex.: transfer de Heathrow sempre com placa com o nome; V-Class para grupos de 4+" aria-label="Ensinar algo novo"></label><button type="button" class="mini strong" id="iaSabeAdd">ensinar</button></div>
   </section>`;
 }
 function iaSabeLiga() {

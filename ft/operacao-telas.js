@@ -638,7 +638,7 @@ function admGuias(arg) {
         <label class="fld">Cidades que atende<input id="geCid" value="${esc(ed ? (ed.cidades || []).join(', ') : (S.cidade || baseNome()))}" placeholder="Londres, Escócia"></label>
         <label class="fld">Idiomas<input id="geIdi" value="${esc(ed ? ed.idiomas : '')}" placeholder="português, inglês, árabe"></label>
       </div>
-      <label class="fld">Observação<input id="geObs" value="${esc(ed ? ed.obs : '')}" placeholder="ex.: ótima com crianças, não faz deserto"></label>
+      <label class="fld">Observação<input id="geObs" value="${esc(ed ? ed.obs : '')}" placeholder="ex.: ótimo com crianças, não faz Escócia"></label>
       <div class="btnrow"><button class="cta sm" id="geSalva">${ed ? 'Salvar' : 'Cadastrar'}</button>${ed ? '<button class="mini" id="geCancela">cancelar</button>' : ''}</div>
       <div class="rulesep"></div>
       <span class="op-lbl">Ordem de preferência — ${S.tipo === 'motorista' ? 'motoristas' : 'guias'}</span>
@@ -2078,7 +2078,7 @@ function opAjustesHtml() {
         <div class="tacts">${linkMapa(p) ? `<a class="mini" target="_blank" rel="noopener" href="${esc(linkMapa(p))}">mapa</a>` : ''}<button class="mini" data-pted="${esc(p.id)}">editar</button><button class="mini ghost danger" data-ptrm="${esc(p.id)}">✕</button></div></div>`).join('') || '<p class="why">Nenhum ponto ainda.</p>'}
       <div class="svc-form" id="ptForm">
         <input type="hidden" id="ptId">
-        <div class="frow"><label class="fld">Nome<input id="ptNome" placeholder="Harrods — entrada principal"></label><label class="fld">Endereço<input id="ptEnd" placeholder="Financial Centre Rd, Downtown Dubai"></label></div>
+        <div class="frow"><label class="fld">Nome<input id="ptNome" placeholder="Harrods — entrada principal"></label><label class="fld">Endereço<input id="ptEnd" placeholder="87–135 Brompton Rd, Knightsbridge, London"></label></div>
         <label class="fld">Link do mapa (opcional)<input id="ptMapa" placeholder="https://maps.app.goo.gl/…"></label>
         <label class="fld">Instruções para o cliente<textarea id="ptIns" rows="2" placeholder="Em frente à entrada; a guia estará com a plaquinha ${esc(guiaNegocio())}. Chegue 15 min antes."></textarea></label>
         <button class="cta sm" id="ptSalva">Salvar ponto</button></div>
@@ -2183,7 +2183,7 @@ function viewPedido() {
       ${tot ? `<p class="why">${L('Valor de referência pela tabela', 'Reference price', 'Precio de referencia')}: <b>${eur(tot)}</b>. ${L('O orçamento final vem de ' + esc(guiaNome()) + '.', 'The final quote comes from ' + esc(guiaNome()) + '.')}</p>` : ''}
     </section>
     <section class="card">
-      <label class="fld">${L('O que mais você quer?', 'Anything else?', '¿Qué más quieres?')}<textarea id="pdMais" rows="3" placeholder="${L('Ex.: passeio em Abu Dhabi dia 14, transfer de saída, jantar no deserto...', 'E.g.: Abu Dhabi tour on the 14th, departure transfer, desert dinner...', 'Ej.: paseo en Abu Dabi el 14, traslado de salida, cena en el desierto...')}"></textarea></label>
+      <label class="fld">${L('O que mais você quer?', 'Anything else?', '¿Qué más quieres?')}<textarea id="pdMais" rows="3" placeholder="${L('Ex.: Windsor no dia 14, transfer para Heathrow, jantar no West End...', 'E.g.: Windsor on the 14th, Heathrow transfer, dinner in the West End...', 'Ej.: paseo en Abu Dabi el 14, traslado de salida, cena en el desierto...')}"></textarea></label>
       <div class="frow">
         <label class="fld">${t('fullName')}<input id="pdNome" autocomplete="name"></label>
         <label class="fld">${t('whatsLbl')}<input id="pdWa" placeholder="+55 ..."></label>
@@ -3516,7 +3516,7 @@ function avAjustesHtml() {
     <details><summary><b>+ Colar uma avaliação</b></summary>
       <div class="frow"><label class="fld">Nome<input id="avNome"></label><label class="fld">Cidade / país<input id="avCid" placeholder="São Paulo"></label></div>
       <div class="frow"><label class="fld">Estrelas<select id="avNota">${[5, 4, 3, 2, 1].map(n => `<option value="${n}">${'★'.repeat(n)} (${n})</option>`).join('')}</select></label>
-        <label class="fld">Passeio<input id="avPas" list="avPasL" placeholder="Safári no deserto"></label></div>
+        <label class="fld">Passeio<input id="avPas" list="avPasL" placeholder="Stonehenge e Bath"></label></div>
       <datalist id="avPasL">${Tours.all().filter(x => x.status !== 'draft').map(x => `<option value="${esc(x.name.pt)}">`).join('')}</datalist>
       <div class="frow"><label class="fld">Data<input id="avData" placeholder="dd/mm/aaaa"></label><label class="fld">De onde<input id="avFonte" placeholder="Google, WhatsApp…"></label></div>
       <label class="fld">O que o cliente escreveu<textarea id="avTxt" rows="4"></textarea></label>

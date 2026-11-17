@@ -53,17 +53,17 @@ const rtP = (t) => esc(String(t || '').trim()).replace(/\n+/g, '<br>');
 function rtDocHtml(d) {
   const sv = (d.servicos || []).slice().sort((a, b) => ((a.data || '') + (a.hora || '')).localeCompare((b.data || '') + (b.hora || '')));
   /* a cidade da capa e de "Sua base em…": a que ela escreveu no kit, senão a do hotel / ponto de encontro (05/11/2026) */
-  const neg = d.negocio || guiaNegocio(), base = String(d.base || '').trim() || (typeof kitBaseAuto === 'function' && kitBaseAuto(sv)) || (typeof baseNome === 'function' && baseNome()) || 'Dubai';
+  const neg = d.negocio || guiaNegocio(), base = String(d.base || '').trim() || (typeof kitBaseAuto === 'function' && kitBaseAuto(sv)) || (typeof baseNome === 'function' && baseNome()) || 'Londres';
   const insta = d.insta ? '@' + String(d.insta).replace(/^@/, '') : '';
   const pes = Math.max(0, ...sv.map(s => +s.pessoas || 0));
   const linhaCli = [d.nome, pes ? pes + (pes > 1 ? ' pessoas' : ' pessoa') : ''].filter(Boolean).join(' | ');
   const mesAno = sv[0] && sv[0].data ? new Date(sv[0].data + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(' de ', ' ') : '';
-  const fotoTopo = (sv.find(s => s.foto && s.tipo !== 'transfer') || sv.find(s => s.foto) || {}).foto || 'arte/skyline.jpg';
+  const fotoTopo = (sv.find(s => s.foto && s.tipo !== 'transfer') || sv.find(s => s.foto) || {}).foto || 'arte/f/big-ben-sunset.jpg';
   const hotel = (sv.find(s => s.hotel) || {}).hotel || '';
   const enc = (() => { const c = {}; for (const s of sv) if (s.tipo !== 'transfer' && s.encontro) c[s.encontro] = (c[s.encontro] || 0) + 1; return Object.keys(c).sort((a, b) => c[b] - c[a])[0] || ''; })();
   const trf = sv.filter(s => s.tipo === 'transfer'), passeios = sv.filter(s => s.tipo !== 'transfer');
   const pagina = (kick, titulo, sub, foto, corpo, cls) => `<section class="rt-pg kt-bl ${cls || ''}">
-      <div class="rt-faixa"><img src="arte/logo-yalla-escuro.png" alt="${esc(neg)}"><span>${esc([d.nome, mesAno].filter(Boolean).join(' • ').toUpperCase())}</span></div>
+      <div class="rt-faixa"><img src="${esc((typeof GUIA_CFG !== 'undefined' && GUIA_CFG.logoHorizontal) || 'arte/ft-horizontal.png')}" alt="${esc(neg)}"><span>${esc([d.nome, mesAno].filter(Boolean).join(' • ').toUpperCase())}</span></div>
       <div class="rt-miolo">
         ${kick ? `<p class="rt-kick">${esc(kick)}</p>` : ''}
         <h2 class="rt-tit">${esc(titulo)}</h2>
@@ -157,11 +157,11 @@ function rtCss() {
   if (document.getElementById('rtCss')) return;
   const s = document.createElement('style'); s.id = 'rtCss';
   s.textContent = `
-  .rtDoc{--rt-f:#F4F3F0;--rt-c:#E9D7AE;--rt-o:#9A7A2E;--rt-n:#1E1E1E;--rt-t:#3A3A3A;--rt-l:#D8C9A0;max-width:794px;margin:0 auto;background:transparent;color:var(--rt-n);font-family:Montserrat,var(--f-ui),system-ui,sans-serif;border-radius:0;box-shadow:none;padding:0}
+  .rtDoc{--rt-f:#F6F2EA;--rt-c:#08140F;--rt-o:#8C7240;--rt-n:#0B1A15;--rt-t:#3A3F3C;--rt-l:#DCCFB0;max-width:794px;margin:0 auto;background:transparent;color:var(--rt-n);font-family:Montserrat,var(--f-ui),system-ui,sans-serif;border-radius:0;box-shadow:none;padding:0}
   .rt-pg{background:var(--rt-f);margin:0 0 18px;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
   .rt-faixa{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--rt-c);padding:16px 7%}
-  .rt-faixa img{height:44px;width:auto;display:block}
-  .rt-faixa span{font-weight:700;font-size:12px;letter-spacing:.06em;color:#7A6020;text-align:right}
+  .rt-faixa img{height:36px;width:auto;display:block;max-width:58%}
+  .rt-faixa span{font-weight:700;font-size:12px;letter-spacing:.06em;color:#E3CB97;text-align:right}
   .rt-miolo{padding:26px 7% 10px}
   .rt-kick{margin:0 0 10px;color:var(--rt-o);font-size:14px;letter-spacing:.04em;text-transform:uppercase}
   .rtDoc .rt-tit{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(30px,6.4vw,44px);line-height:1.12;margin:0 0 10px;color:var(--rt-n)}

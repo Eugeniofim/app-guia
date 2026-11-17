@@ -34,12 +34,12 @@ const PP_CONDICOES = 'Parcelamento em até 12x no cartão.\nHora extra: £ 70, q
 const PP_DIFERENCIAL = 'Em Londres desde 2008. Mercedes executivos licenciados pela TfL. Motorista-guia que fala português, inglês, italiano e espanhol. Roteiros planejados para conforto e otimização do tempo, com acompanhamento e suporte no seu idioma.';
 /* a mensagem que vai com o link da proposta (13/11/2026, o texto dela: "preciso que seja essa resposta").
    {nome} = o primeiro nome do cliente, {link} = o link da proposta, {negocio} = o nome do negócio. */
-const PP_MSG_WHATS = 'Olá, {nome}! Tudo bem?\n\nPreparei a sua proposta de experiências com a {negocio}: os passeios com fotos, o que está incluso e o investimento:\n{link}\n\n⚠️Lembrando que:\n\n✅ Empresa é licenciada nos Emirados\n✅ Guias, motoristas e parceiros são devidamente licenciados\n✅ Trabalhamos com Plano de pagamento bem flexível em até 12x no cartão! 🙌\n\nDá uma olhada e me diga se tiver alguma dúvida e/ou feedback, por gentileza?\n\nGratidão!🙏';
+const PP_MSG_WHATS = 'Olá, {nome}! Tudo bem?\n\nPreparei a sua proposta de experiências com a {negocio}: os passeios com fotos, o que está incluso e o investimento:\n{link}\n\n⚠️Lembrando que:\n\n✅ Empresa registrada no Reino Unido, em Londres desde 2008\n✅ Motoristas licenciados pela TfL, em Mercedes executivos\n✅ Pagamento flexível, em até 12x no cartão! 🙌\n\nDá uma olhada e me diga se tiver alguma dúvida e/ou feedback, por gentileza?\n\nGratidão!🙏';
 const ppTextoPadrao = (k) => {
   const s = DB.settings || {};
   return k === 'politica' ? (s.propPolitica || PP_POLITICA) : k === 'condicoes' ? (s.propCondicoes || PP_CONDICOES) : (s.propDiferencial || PP_DIFERENCIAL);
 };
-const PP_MOEDA_NOME = { USD: 'dólares americanos', AED: 'dirhams dos Emirados', EUR: 'euros', BRL: 'reais' };
+const PP_MOEDA_NOME = { GBP: 'libras esterlinas', USD: 'dólares americanos', EUR: 'euros', BRL: 'reais' };
 
 /* ---------- 1. o modelo: o que cada serviço guarda a mais ---------- */
 const _oyItemBase = Orc._item;
@@ -64,7 +64,7 @@ Orc._item = function (i) {
    serviços − desconto = subtotal; + VAT de 5% no fim (28/10/2026, pedido
    dele: "no final do orçamento adicionar 5% de VAT"). O VAT é por orçamento
    (vatPct, em Mais opções), 5% se ela não mudar. */
-const OY_VAT = 5;
+const OY_VAT = 0; /* FT: sem VAT na proposta, a não ser que o Roberto ponha (Mais opções) */
 const oyCent = (v) => Math.round((+v || 0) * 100) / 100;
 /* COM OU SEM VAT (28/10/2026, ele: "colocar opção de incluir ou não o VAT"): semVat desliga só neste orçamento */
 const oyVatPct = (o) => o && o.semVat ? 0 : o && o.vatPct != null && o.vatPct !== '' ? Math.max(0, +o.vatPct || 0) : OY_VAT;
@@ -82,7 +82,7 @@ function oyHoteis(o, comVazios) {
 }
 /* SÓ DÓLAR (28/10/2026, pedido dele: "deixar tudo em dólares, somente
    dólares"): o orçamento, a proposta e as reservas que saem dele são em USD */
-const OY_MOEDA = 'USD';
+const OY_MOEDA = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.moeda) || 'GBP';
 /* lembretes do app para ELA (nunca vão para o cliente): "Sem preço na tabela", "O cliente pediu — escolha…",
    "Defina o valor…". 29/10/2026: o do pedido da conversa aparecia na proposta da cliente. */
 const OY_OBS_INTERNA = /^(Sem preço na tabela|O cliente pediu — escolha|Defina o valor)/;
@@ -263,7 +263,8 @@ function oyHorasDe(x, hora) {
 const oyMoeda = () => OY_MOEDA;
 function oyM(v, m) {
   const n = Number(v) || 0;
-  return m + ' ' + n.toLocaleString('pt-BR', n % 1 === 0 ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const sim = { GBP: '£', USD: 'US$', EUR: '€', BRL: 'R$' }[m] || m;
+  return sim + ' ' + n.toLocaleString('pt-BR', n % 1 === 0 ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 const oyPax = (o) => ((+o.adultos || 0) + (+o.criancas || 0)) || +o.pax || 0;
 function oyPaxTexto(o) {
@@ -651,7 +652,7 @@ const ppEsc = (t) => esc(String(t || '')).replace(/\n/g, '<br>');
 const ppFotoUrl = (f) => /^https?:|^\//.test(f) ? f : f;   /* arte/… é relativo ao site: funciona no app e no domínio dela */
 function ppHtml(d) {
   const fotos = [...new Set(d.itens.map(i => i.foto).filter(Boolean))];
-  const capa = [...fotos, 'arte/capa-arco.jpg', 'arte/skyline.jpg', 'arte/capa.jpg'].filter((f, k, l) => l.indexOf(f) === k).slice(0, 3);
+  const capa = [...fotos, 'arte/f/big-ben-sunset.jpg', 'arte/f/highlands-sunset.jpg', 'arte/f/windsor.jpg'].filter((f, k, l) => l.indexOf(f) === k).slice(0, 3);
   const cidades = [...new Set(d.itens.map(i => i.cidade).filter(Boolean))];
   const linha = [d.nome, d.pessoas].filter(Boolean).join(' | ');
   /* os serviços por dia; sem dia vai para o fim */
@@ -679,7 +680,7 @@ function ppHtml(d) {
       ${capa.map((f, k) => `<div class="pp-f pp-f${k + 1}" style="background-image:url('${esc(ppFotoUrl(f))}')"></div>`).join('')}
       <i class="pp-corte pp-c1"></i><i class="pp-corte pp-c2"></i>
     </div>
-    <div class="pp-logo"><img src="arte/logo-yalla-escuro.png" alt="${esc(d.negocio)}"></div>
+    <div class="pp-logo"><img src="${esc((typeof GUIA_CFG !== 'undefined' && GUIA_CFG.logoHorizontal) || 'arte/ft-horizontal.png')}" alt="${esc(d.negocio)}"></div>
     <div class="pp-capatxt">
       <p class="pp-capak">${esc(d.negocio)}${cidades.length ? ' <i>|</i> ' + esc(cidades.join(' & ')) : ''}</p>
       <h1>Proposta de<br>experiências</h1>
@@ -712,10 +713,10 @@ function ppCss() {
   if (document.getElementById('ppCss')) return;
   const s = document.createElement('style'); s.id = 'ppCss';
   s.textContent = `
-  .pp{--pp-fundo:#F5E8C7;--pp-ouro:#C9A23B;--pp-ouro-t:#7A6232;--pp-n:#0D1B17;--pp-t:#4A4335;
+  .pp{--pp-fundo:#F6F2EA;--pp-ouro:#C9A96A;--pp-ouro-t:#8C7240;--pp-n:#08140F;--pp-t:#4A4335;
     background:var(--pp-fundo);color:var(--pp-n);font-family:Montserrat,var(--f-ui),system-ui,sans-serif;max-width:794px;margin:0 auto;padding-bottom:28px}
   .pp p{margin:0 0 8px;font-size:14.5px;line-height:1.55;color:var(--pp-t)}
-  .pp-capa{position:relative;width:100%;aspect-ratio:794/1123;min-height:480px;overflow:hidden;background:#EADBB6;margin-bottom:26px}
+  .pp-capa{position:relative;width:100%;aspect-ratio:794/1123;min-height:480px;overflow:hidden;background:#E6DCC8;margin-bottom:26px}
   /* na tela a capa cabe na tela (o nome e as datas aparecem sem rolar); no PDF ocupa a folha inteira */
   /* com a altura limitada à tela, a largura não encolhe junto (sobrava uma faixa vazia ao lado no computador, 29/10/2026) */
   .pp-pg .pp-capa{max-height:calc(100svh - 56px)}
@@ -725,11 +726,11 @@ function ppCss() {
   .pp-f1{top:0;height:38%}
   .pp-f2{top:33%;height:34%}
   .pp-f3{top:61%;bottom:0}
-  .pp-corte{position:absolute;left:-10%;width:120%;height:16px;background:#FBEDE3}
+  .pp-corte{position:absolute;left:-10%;width:120%;height:16px;background:#F6F2EA}
   .pp-c1{top:34.6%;transform:rotate(-4deg)}
   .pp-c2{top:61.6%;transform:rotate(3deg)}
-  .pp-logo{position:absolute;top:4%;left:5.5%;background:#fff;border-radius:16px;padding:16px 26px}
-  .pp-logo img{display:block;height:54px;width:auto}
+  .pp-logo{position:absolute;top:4%;left:5.5%;background:#08140F;border-radius:16px;padding:16px 24px;box-shadow:0 10px 30px -14px rgba(8,20,15,.6)}
+  .pp-logo img{display:block;height:40px;width:auto;max-width:62vw}
   .pp-capatxt{position:absolute;left:0;right:0;bottom:0;padding:26px 6% 34px;background:rgba(20,20,20,.62);color:#fff}
   .pp-capatxt p{color:#fff;margin:6px 0 0;font-size:15px}
   .pp-capak{font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--pp-ouro)!important;font-size:12.5px!important;margin:0 0 10px!important}
@@ -742,9 +743,9 @@ function ppCss() {
   .pp-h2 span{color:var(--pp-n)}
   .pp-card,.pp-box{background:#fff;border-radius:18px;padding:18px 18px 12px;margin:0 0 16px}
   .pp-box{margin:0 5.5% 16px}
-  .pp-tag{background:var(--pp-ouro);color:#1a1405;border-radius:8px;padding:7px 11px;font-weight:800;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px}
+  .pp-tag{background:var(--pp-ouro);color:#0B1A15;border-radius:8px;padding:7px 11px;font-weight:800;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px}
   .pp-tit{font-size:17px;font-weight:800;margin:0 0 10px;color:var(--pp-n);line-height:1.3}
-  .pp-foto{height:230px;border-radius:10px;background-size:cover;background-position:center;margin:0 0 12px;background-color:#EADBB6}
+  .pp-foto{height:230px;border-radius:10px;background-size:cover;background-position:center;margin:0 0 12px;background-color:#E6DCC8}
   .pp-inc{font-size:13.5px!important}
   .pp-inc b{color:var(--pp-n);font-weight:700}
   .pp-box h3{font-size:16px;font-weight:800;margin:4px 0 10px;color:var(--pp-n)}
@@ -756,34 +757,34 @@ function ppCss() {
   .pp-preco{float:right;margin-left:12px;font-weight:800;white-space:nowrap;color:#0D1B17}
   .pp-invg small{display:block;color:var(--pp-ouro);font-weight:800;letter-spacing:.05em;text-transform:uppercase;font-size:12px}
   .pp-invg b{display:block;font-size:clamp(24px,6vw,34px);font-weight:800;margin-top:6px;color:#fff;letter-spacing:-.01em}
-  .pp-vat{color:#E9DFC6!important;font-size:13px!important;margin:-6px 0 14px!important}
-  .pp-obs{display:flex;gap:10px;align-items:flex-start;margin:6px 0 10px;padding:11px 14px;border-radius:14px 14px 14px 4px;background:#FBF3DC;border:1px solid #EAD9A6}
+  .pp-vat{color:#E9E2D3!important;font-size:13px!important;margin:-6px 0 14px!important}
+  .pp-obs{display:flex;gap:10px;align-items:flex-start;margin:6px 0 10px;padding:11px 14px;border-radius:14px 14px 14px 4px;background:#FAF6EE;border:1px solid #E3D3AE}
   .pp-obs svg{flex:none;width:18px;height:18px;margin-top:2px;color:var(--pp-ouro-t)}
   .pp-obs p{margin:0!important;color:var(--pp-n)!important;font-size:14px!important}
   .pp-aparte{font-weight:500;color:var(--pp-t);font-size:14px}
-  .pp-hot{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:6px 0;border-top:1px solid #EFE6CF}
+  .pp-hot{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:6px 0;border-top:1px solid #EDE6D8}
   .pp-hot:first-of-type{border-top:0}
   .pp-hot b{color:var(--pp-n)}
   .pp-hot span{color:var(--pp-t);font-size:13.5px}
   .pp-hot em{font-style:normal;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--pp-ouro-t)}
-  .pp-pago{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 14px;color:#E9DFC6;font-size:14px}
+  .pp-pago{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 14px;color:#E9E2D3;font-size:14px}
   .pp-pago b{color:#fff}
-  .pp-ind{background:var(--pp-ouro);color:#1a1405;border-radius:10px;padding:14px;text-align:center;font-weight:800;letter-spacing:.02em}
+  .pp-ind{background:var(--pp-ouro);color:#0B1A15;border-radius:10px;padding:14px;text-align:center;font-weight:800;letter-spacing:.02em}
   .pp-pe{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 0;font-size:12.5px;color:var(--pp-t);padding:18px 0 4px}
   .pp-pe span{white-space:nowrap}
   .pp-pe i{font-style:normal;margin:0 8px;opacity:.6}
   /* a página do cliente: barra de cima (PDF) e o botão de reservar */
-  .pp-pg{background:var(--pp-fundo,#F5E8C7);min-height:100svh;padding-bottom:96px}
-  .pp-topo{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top)) 16px 10px;background:rgba(245,232,199,.92);backdrop-filter:blur(10px);border-bottom:1px solid rgba(138,109,30,.18)}
+  .pp-pg{background:var(--pp-fundo,#F6F2EA);min-height:100svh;padding-bottom:96px}
+  .pp-topo{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top)) 16px 10px;background:rgba(246,242,234,.92);backdrop-filter:blur(10px);border-bottom:1px solid rgba(140,114,64,.18)}
   .pp-topo img{height:26px;width:auto}
   .pp-topo .mini{margin-left:auto}
   .pp-cta{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:60;display:flex;gap:8px;width:min(560px,calc(100% - 28px))}
   .pp-cta a,.pp-cta button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:999px;font-weight:800;font-size:15px;text-decoration:none;border:0;cursor:pointer}
-  .pp-cta .pp-zap{background:#1a1405;color:#E9D7AE;box-shadow:0 14px 30px -14px rgba(0,0,0,.6)}
+  .pp-cta .pp-zap{background:#0B1A15;color:#E6D8B8;box-shadow:0 14px 30px -14px rgba(0,0,0,.6)}
   .pp-cta .pp-zap svg{width:22px;height:22px}
-  .pp-cta .pp-pg-pagar{background:#C9A23B;color:#1a1405;box-shadow:0 14px 30px -14px rgba(0,0,0,.5)}
+  .pp-cta .pp-pg-pagar{background:#C9A96A;color:#0B1A15;box-shadow:0 14px 30px -14px rgba(0,0,0,.5)}
   .pp-pagar{display:flex;align-items:center;justify-content:center;min-height:52px;margin-top:12px;border-radius:999px;background:#fff;color:#0D1B17;font-weight:800;text-decoration:none}
-  .pp-pagar:focus-visible{outline:3px solid #C9A23B;outline-offset:3px}
+  .pp-pagar:focus-visible{outline:3px solid #C9A96A;outline-offset:3px}
   .pp-cta a:focus-visible,.pp-cta button:focus-visible{outline:3px solid var(--pp-ouro-t,#7A6232);outline-offset:3px}
   .pp-pg .pdfPronto{margin:12px auto}
   @media(min-width:700px){.pp-foto{height:300px}.pp-card,.pp-box{padding:22px 24px 14px}}
@@ -833,11 +834,11 @@ function ppPagina(d) {
   const nome = d.nome || '';
   document.title = 'Proposta de experiências' + (nome ? ' · ' + nome : '') + ' · ' + (d.negocio || guiaNegocio());
   app.innerHTML = `<div class="pp-pg">
-    <header class="pp-topo"><img src="arte/logo-horizontal-escuro.png" alt="${esc(d.negocio || guiaNegocio())}"><button class="mini" id="ppPdf" type="button">Baixar PDF</button></header>
+    <header class="pp-topo"><img src="${esc((typeof GUIA_CFG !== 'undefined' && GUIA_CFG.logoHorizontalEscuro) || 'arte/ft-horizontal-escura.png')}" alt="${esc(d.negocio || guiaNegocio())}"><button class="mini" id="ppPdf" type="button">Baixar PDF</button></header>
     <main class="pp" id="ppDoc">${ppHtml(d)}</main>
     <div class="pp-cta" data-pdf-fora>${ppBotoesPagar(d, 'pp-pg-pagar', true)}<a class="pp-zap" target="_blank" rel="noopener" href="${esc(waLink(`Olá! Vi a proposta ${d.num || ''}${nome ? ' (' + nome + ')' : ''} e quero reservar.`))}">${ICONE_WA} ${d.pagar ? 'Falar' : 'Quero reservar'}</a></div>
   </div>`;
-  if (typeof pdfLiga === 'function') pdfLiga($('#ppPdf'), () => $('#ppDoc'), () => 'Yalla_Proposta_' + (nome || 'cliente').replace(/\s+/g, '_'));
+  if (typeof pdfLiga === 'function') pdfLiga($('#ppPdf'), () => $('#ppDoc'), () => (((typeof GUIA_CFG !== 'undefined' && GUIA_CFG.prefixo) || 'FT') + '_Proposta_') + (nome || 'cliente').replace(/\s+/g, '_'));
   document.querySelectorAll('#vtZap').forEach(e => e.remove());
   scrollTo(0, 0);
 }
@@ -871,7 +872,7 @@ async function ppAdm(id) {
     ${(() => { const f = o.itens.filter(i => i.sugestao); return f.length ? `<p class="alert warn pp-adwhy">${f.length === 1 ? 'Ficou fora desta proposta' : `Ficaram fora desta proposta ${f.length} pedidos`} da conversa, ainda sem valor: ${esc(f.map(i => i.desc).join(', '))}. Volte em ← editar, ponha o valor (ou apague).</p>` : ''; })()}
     <main class="pp" id="ppDoc">${ppHtml(ppDados(o))}</main>
   </div>`;
-  if (typeof pdfLiga === 'function') pdfLiga($('#ppPdf'), () => $('#ppDoc'), () => 'Yalla_Proposta_' + (o.cliente.nome || o.num).replace(/\s+/g, '_'),
+  if (typeof pdfLiga === 'function') pdfLiga($('#ppPdf'), () => $('#ppDoc'), () => (((typeof GUIA_CFG !== 'undefined' && GUIA_CFG.prefixo) || 'FT') + '_Proposta_') + (o.cliente.nome || o.num).replace(/\s+/g, '_'),
     { aoEntregar: () => oyMarcaEnviado(o) });
   scrollTo(0, 0);
   const pk = $('#ppKit'); if (pk) pk.onclick = () => { const b = Bookings.get(o.bookingIds[0]); if (b) Kit.abrir(Kit.daReserva(b)); };
@@ -934,7 +935,7 @@ function oyTela(id) {
         <label class="fld">Incluso<textarea data-k="incluso" rows="2">${esc(i.incluso)}</textarea></label>
         <label class="fld">Não incluso<textarea data-k="naoIncluso" rows="2">${esc(i.naoIncluso || '')}</textarea></label>
         <div class="oy-rap" role="group" aria-label="Não incluso de um toque">${oyRapidos().map(t => `<button type="button" class="chip ${oyTemFrase(i.naoIncluso, t) ? 'on' : ''}" data-rap="${esc(t)}" aria-pressed="${oyTemFrase(i.naoIncluso, t)}">${esc(t)}</button>`).join('')}</div>
-        <label class="fld">Observação <small class="why">(aparece num balão na proposta e no roteiro)</small><textarea data-k="obs" rows="2" placeholder="Ex.: volta para o hotel por conta do cliente · Sugestão: jantar em Dubai Marina">${esc(OY_OBS_INTERNA.test(i.obs || '') ? '' : (i.obs || ''))}</textarea></label>
+        <label class="fld">Observação <small class="why">(aparece num balão na proposta e no roteiro)</small><textarea data-k="obs" rows="2" placeholder="Ex.: volta para o hotel por conta do cliente · Sugestão: jantar em Covent Garden">${esc(OY_OBS_INTERNA.test(i.obs || '') ? '' : (i.obs || ''))}</textarea></label>
         <label class="optin oy-aparte"><input type="checkbox" data-k="aParte" ${i.aParte ? 'checked' : ''}><span><b>À parte</b><small>entra no roteiro, por conta do cliente, sem valor (ex.: Beach Club, brunch)</small></span></label>
         ${x ? (() => { const pc = oyPrecoCrianca(x, i.opcao), idade = +((oyOpcoes(x)[+i.opcao || 0] || {}).idadeCrianca || x.idadeCrianca || 0);
           return `<div class="oy-g3 oy-opc">
@@ -1370,7 +1371,7 @@ function oyCatalogo(o, diaFixo) {
   const d = opJanela('Acrescentar passeio', `
     <div class="oy-cdias">${dias.length ? `<span class="op-lbl">Para o dia</span><div class="chips" id="oyCDias">${dias.map(x => `<button type="button" class="chip ${x === C.dia ? 'on' : ''}" data-cdia="${x}">${esc(oyDiaCurto(x))}</button>`).join('')}</div>`
       : `<label class="fld">Para o dia<input type="date" id="oyCDia" value="${esc(C.dia)}"></label>`}</div>
-    <label class="oy-busca">${oyIc('busca')}<span class="sr">Buscar passeio</span><input type="search" id="oyCQ" placeholder="Buscar: deserto, Burj, Abu Dhabi…" autocomplete="off"></label>
+    <label class="oy-busca">${oyIc('busca')}<span class="sr">Buscar passeio</span><input type="search" id="oyCQ" placeholder="Buscar: Windsor, Stonehenge, Harry Potter…" autocomplete="off"></label>
     <div class="chips oy-creg" id="oyCReg"><button type="button" class="chip on" data-creg="">Todos</button>${regioes().filter(r => Tours.all().some(x => x.region === r[0])).map(r => `<button type="button" class="chip" data-creg="${r[0]}">${esc(r[1])}</button>`).join('')}</div>
     <div class="oy-clista" id="oyCL"></div>
     <div class="btnrow oy-cpe"><span class="why" id="oyCN" aria-live="polite"></span><button type="button" class="cta sm" id="oyCOk">Pronto</button></div>`);
@@ -1435,7 +1436,7 @@ function oyTransfer(o) {
     <div class="oy-tdir" role="radiogroup" aria-label="Que transfer">${[['chegada', 'Chegada', temCh], ['saida', 'Saída', temSa], ['outro', 'Outro dia', true]].map(([k, n, ok]) =>
       `<button type="button" class="oy-tdb" role="radio" data-tdir="${k}" ${ok ? '' : 'disabled'}><b>${n}</b><small>${k === 'outro' ? 'entre hotéis, à disposição…' : esc(quando(k))}</small></button>`).join('')}</div>
     <div id="oyTDias"></div>
-    <label class="oy-busca">${oyIc('busca')}<span class="sr">Buscar transfer</span><input type="search" id="oyTQ" placeholder="Buscar: aeroporto, Abu Dhabi, van…" autocomplete="off"></label>
+    <label class="oy-busca">${oyIc('busca')}<span class="sr">Buscar transfer</span><input type="search" id="oyTQ" placeholder="Buscar: Heathrow, St Pancras, van…" autocomplete="off"></label>
     <div class="oy-clista" id="oyTL"></div>
     <div class="btnrow oy-cpe"><span class="why" id="oyTN" aria-live="polite"></span><button type="button" class="cta sm" id="oyTOk">Pronto</button></div>
     <div class="oy-tsem"><span class="why">Sem cadastro, com o valor à mão:</span><button type="button" class="mini ghost" data-tsem="chegada">Traslado de chegada</button><button type="button" class="mini ghost" data-tsem="saida">Traslado de saída</button><a class="mini" href="#/adm/transfers">Cadastrar transfers</a></div>`);
@@ -1602,7 +1603,7 @@ function oyCss() {
   .oy-it.aberto .oy-chev svg{transform:rotate(90deg)}
   .oy-ited{padding:4px 12px 12px;border-top:1px solid var(--line)}
   .oy-ited textarea{resize:vertical}
-  .oy-aviso{margin:0 0 8px;padding:8px 10px;border-radius:10px;background:var(--warn-wash,#FFF4DA);color:var(--ink);font-size:var(--fs-2)}
+  .oy-aviso{margin:0 0 8px;padding:8px 10px;border-radius:10px;background:var(--warn-wash,#FBF8F2);color:var(--ink);font-size:var(--fs-2)}
   .oy-fotos{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;margin-bottom:4px}
   .oy-ft{flex:none;width:64px;height:48px;border-radius:8px;border:2px solid transparent;background:var(--surface-2) center/cover;cursor:pointer;font:inherit;font-size:11px;color:var(--ink-2)}
   .oy-ft.on{border-color:var(--accent)}
@@ -1661,8 +1662,8 @@ function oyCss() {
   .oy-shh{background:#0D1B17;color:#C9A96A;font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
   .oy-shh > span{padding:9px 12px}
   .oy-r{text-align:right}
-  .oy-band{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F7E9BE;color:#1a1405;font-weight:700;font-size:13.5px;padding:5px 8px 5px 12px;border-top:1px solid rgba(138,109,30,.25)}
-  .oy-band-add{border:1px solid rgba(138,109,30,.35);background:rgba(255,255,255,.6);color:#5C4812;border-radius:999px;min-height:30px;padding:0 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .oy-band{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#EFE5CF;color:#0B1A15;font-weight:700;font-size:13.5px;padding:5px 8px 5px 12px;border-top:1px solid rgba(140,114,64,.25)}
+  .oy-band-add{border:1px solid rgba(140,114,64,.35);background:rgba(255,255,255,.6);color:#6E5A30;border-radius:999px;min-height:30px;padding:0 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
   .oy-band-add:hover{background:#fff}
   .oy-band-add:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .oy-diah{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -1774,7 +1775,7 @@ opDocOrc = (id) => go('/adm/proposta/' + id);
   const ITEM_EXTRA = { hora_fim: { type: 'string', description: 'SÓ se ela disse o horário de término' }, texto: { type: 'string', description: 'SOMENTE o texto que ELA escreveu, copiado. Nunca escreva um texto seu. Passeio do catálogo já vem com o texto dele; serviço fora do catálogo sem texto dela fica sem texto.' },
     incluso: { type: 'string' }, destaque: { type: 'string', description: 'ex.: manhã livre, à noite' }, voo: { type: 'string' },
     nao_incluso: { type: 'string', description: 'o NÃO INCLUSO do serviço, como ela escreveu' },
-    obs: { type: 'string', description: 'observação do serviço (vira um balão na proposta), ex.: "Não incluso volta para o hotel (por conta da cliente)", "Sugestão: jantar em Dubai Marina"' },
+    obs: { type: 'string', description: 'observação do serviço (vira um balão na proposta), ex.: "Não incluso volta para o hotel (por conta da cliente)", "Sugestão: jantar em Covent Garden"' },
     a_parte: { type: 'boolean', description: 'serviço "(a parte)": entra no roteiro, por conta do cliente, sem valor' },
     opcao: { type: 'string', description: 'a opção do passeio, pelo nome (ex.: "prime", "17 minutos", "com serviço de mesa") — ver_passeios mostra as opções' },
     criancas: { type: 'integer', description: 'quantas das pessoas são crianças (o preço de criança entra sozinho)' },
@@ -2011,9 +2012,9 @@ opDocOrc = (id) => go('/adm/proposta/' + id);
     b.push({ type: 'text', text: `## ORÇAMENTO E PROPOSTA (o jeito dela, desde 28/10/2026)
 - Antes de criar, tenha o BÁSICO: nome do cliente, WhatsApp, quantas pessoas (adultos e crianças), hotel e os dias de chegada e partida (com hora e voo, se ela souber). Falta algum? Pergunte UMA coisa por vez — mas não trave: com nome e pessoas já dá para criar e completar depois com editar_orcamento.
 - Monte o roteiro DIA A DIA: cada serviço com data e hora. Passeio do catálogo SEMPRE com passeio_id (de ver_passeios): traz preço, foto, texto e incluso. Passeio com opções (prime/non-prime, minutos de voo, com/sem serviço de mesa): passe opcao com o nome; tem criança no grupo? passe criancas — o preço de criança entra sozinho. Traslado de aeroporto: item com traslado:"chegada" ou "saida" (pega o voo e o hotel). Fora do catálogo: descricao com o nome que ELA deu (texto só se ela escreveu).
-- NUNCA ESCREVA NADA SEU NO ORÇAMENTO (vai para o cliente como verdade): nada de descrição, incluso, não incluso, horário ou dia que ela não deu. Não sabe o horário? Deixe sem — nada de 09:00/10:00 por conta própria, nem fim calculado. Dia: exatamente o que ela disse; nunca mova um serviço de dia. Observação dela num serviço ("Início às 15:00", "Término no Dubai Mall", "sem guia brasileiro") vai em obs, sempre — e se for horário de início, também em hora. Refazendo um orçamento que já existe: copie os serviços, dias, horários e observações dele, sem tirar nada. O app confere e tira o que não veio dela.
+- NUNCA ESCREVA NADA SEU NO ORÇAMENTO (vai para o cliente como verdade): nada de descrição, incluso, não incluso, horário ou dia que ela não deu. Não sabe o horário? Deixe sem — nada de 09:00/10:00 por conta própria, nem fim calculado. Dia: exatamente o que ela disse; nunca mova um serviço de dia. Observação dela num serviço ("Início às 15:00", "Término em Covent Garden", "sem guia brasileiro") vai em obs, sempre — e se for horário de início, também em hora. Refazendo um orçamento que já existe: copie os serviços, dias, horários e observações dele, sem tirar nada. O app confere e tira o que não veio dela.
 - RESPEITE O QUE ELA MANDOU, SEM RECRIAR NADA: se ela passou os serviços, os dias, os horários, os textos (descrição, INCLUSO, NÃO INCLUSO), os valores ou o TOTAL, use EXATAMENTE isso. Valor de cada serviço que ela disse → valor; o total dela → total_informado (o app usa esse número e põe o VAT dentro). NUNCA recalcule pela tabela o que ela deu, nunca acrescente nem tire serviço, nunca troque data, hora ou texto, nunca resuma o texto dela. Do catálogo, só complete o que ela NÃO disse (foto; texto/incluso se ela não escreveu). Serviço "(a parte)" → a_parte:true, sem valor. Hotéis por período ("07-11/11 Sofitel *a parte") → hoteis. Cola uma planilha/texto inteiro? Monte tudo de uma vez num criar_orcamento só.
-- Moeda: SOMENTE DÓLAR (USD), sempre. Nunca escreva valor em dirham, real ou euro. Os valores dos serviços são SEM imposto: o app soma 5% de VAT no fim sozinho (nunca some de novo). Ela disse "sem VAT" / "não cobrar VAT"? com_vat:false (e com_vat:true volta). Total, por adulto e por criança saem sozinhos (não existe "por casal").
+- Moeda: SEMPRE LIBRA (GBP, £). Nunca escreva valor em dólar, real ou euro. Os valores dos serviços já são o preço final: o app NÃO soma VAT, a não ser que ele peça. Ela disse "sem VAT" / "não cobrar VAT"? com_vat:false (e com_vat:true volta). Total, por adulto e por criança saem sozinhos (não existe "por casal").
 - "(Indicação: CÓDIGO)" na conversa = veio pelo link de um parceiro: o app liga o orçamento a ele sozinho e a comissão entra em Indicações e cupons.
 - Depois de criar ou mudar, ofereça em uma linha: "Quer que eu abra a proposta para gerar o PDF ou mandar o link?" → proposta_orcamento. Quem manda é ela.` });
     return b;

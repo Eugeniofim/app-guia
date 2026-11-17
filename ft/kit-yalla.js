@@ -335,7 +335,7 @@ function kitGoogle(s, d) {
 function kitIcs(d) {
   const z = (iso, hm) => iso.replace(/-/g, '') + 'T' + kitHm(hm).replace(':', '') + '00';
   const e = (s) => String(s || '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
-  const ev = d.servicos.map(s => ['BEGIN:VEVENT', 'UID:' + s.code + '@yallaexperiences.com', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
+  const ev = d.servicos.map(s => ['BEGIN:VEVENT', 'UID:' + s.code + '@travelexperiences.london', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
     s.hora ? 'DTSTART;TZID=Europe/London:' + z(s.data, s.hora) : 'DTSTART;VALUE=DATE:' + s.data.replace(/-/g, ''),
     s.hora ? 'DTEND;TZID=Europe/London:' + z(s.data, kitSoma(s.hora, s.durMin)) : 'DTEND;VALUE=DATE:' + addDays(s.data, 1).replace(/-/g, ''),
     'SUMMARY:' + e(s.nome + ' · ' + d.negocio), 'LOCATION:' + e(s.encontro || s.hotel || ''), 'DESCRIPTION:' + e('Código ' + s.code + (s.voo ? ' · voo/trem ' + s.voo : '')),
@@ -344,10 +344,10 @@ function kitIcs(d) {
 }
 function kitBaixaIcs(d) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([kitIcs(d)], { type: 'text/calendar' }));
-  a.download = 'viagem-' + (kitPrim(d.nome) || 'dubai').toLowerCase() + '.ics'; document.body.appendChild(a); a.click(); a.remove();
+  a.download = 'viagem-' + (kitPrim(d.nome) || 'londres').toLowerCase() + '.ics'; document.body.appendChild(a); a.click(); a.remove();
 }
 /* o mapa: o link do ponto; sem ele, a busca pelo lugar (se for um lugar, não "combinado pelo WhatsApp") */
-const kitMapaDe = (s, cidade) => s.mapa || (s.encontro && !/whats|combinad|confirm|após|apos|hotel|hospedagem|aeroporto|airport|desembarque|navio|instru/i.test(s.encontro) ? mapLink(s.encontro + (kitCidadeEm(s.encontro) ? '' : ', ' + (cidade || 'Dubai'))) : '');
+const kitMapaDe = (s, cidade) => s.mapa || (s.encontro && !/whats|combinad|confirm|após|apos|hotel|hospedagem|aeroporto|airport|desembarque|navio|instru/i.test(s.encontro) ? mapLink(s.encontro + (kitCidadeEm(s.encontro) ? '' : ', ' + (cidade || 'London'))) : '');
 /* o valor na moeda do serviço (US$ nos tours da planilha); o kit do servidor não traz a moeda: vem do passeio com o mesmo nome */
 function kitMoeda(s, d) {
   if (s && s.moeda) return s.moeda;
