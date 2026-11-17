@@ -32,9 +32,12 @@ var APP_CONFIG = {
   /* Cofre (repositorio guia-cofre, no Supabase do Eugenio): o assistente
      "ao vivo" usa o Claude de verdade por ali, com limite por dia, sem a
      Milla colar chave nenhuma. Na entrega, troca pela chave dela. */
-  cofre: 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre',
-  clienteCofre: 'demo',
-  /* o assistente vem no pacote dela (orçamento de 01/10/2026): sem selo de "extra" */
+  /* 17/11/2026: a FT é SÓ site + app de gestão — sem o assistente de IA (o
+     Roberto não pediu). Sem cofre, o app não chama a IA; assistente:false
+     esconde o botão, a gaveta e as dicas dele (ft-site.js). */
+  cofre: '',
+  clienteCofre: 'ft',
+  assistente: false,
   assistenteIncluido: true,
   /* ela contratou o atendimento automático: a aba Atendimento aparece no menu */
   atendimento: false,

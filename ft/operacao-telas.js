@@ -397,9 +397,9 @@ function hjBoasVindas() {
     <h2 class="bvTit">Boas-vindas ao seu app, ${esc(nome)}!</h2>
     <p class="bvSub">Aqui é o seu lado: o painel onde você comanda tudo. Os seus clientes, as suas reservas e os seus números moram aqui. Dê uma volta à vontade; nada quebra.</p>
     <div class="bvPassos">
-      <a class="bvP" href="#/adm/tours"><span class="bvN">1</span><span><b>Veja as suas experiências</b><small>Os quatro pilares já estão aqui. Toque para ajustar fotos, textos e preços.</small></span></a>
+      <a class="bvP" href="#/adm/tours"><span class="bvN">1</span><span><b>Veja as suas experiências</b><small>Os seus passeios e transfers já estão aqui. Toque para ajustar fotos, textos e preços.</small></span></a>
       <button class="bvP" type="button" id="bvAssist"><span class="bvN">2</span><span><b>Fale com o assistente</b><small>O botão no canto. Peça por escrito ou por voz: ele mexe em todas as abas e mostra antes de gravar.</small></span></button>
-      <a class="bvP" href="#/" target="_blank" rel="noopener"><span class="bvN">3</span><span><b>Veja o que o cliente vê</b><small>Abre a primeira tela do app, do jeito que o seu cliente abre.</small></span></a>
+      <a class="bvP" href="#/" target="_blank" rel="noopener"><span class="bvN">${typeof APP_CONFIG !== 'undefined' && APP_CONFIG.assistente === false ? 2 : 3}</span><span><b>Veja o que o cliente vê</b><small>Abre a primeira tela do app, do jeito que o seu cliente abre.</small></span></a>
     </div>
     <button class="cta bvOk" id="bvOk">Vamos começar</button>
   </section>`;

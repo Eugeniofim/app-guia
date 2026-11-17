@@ -612,5 +612,14 @@ function viewAbout() {
 window.ROTAS_EXTRA = window.ROTAS_EXTRA || {};
 ROTAS_EXTRA.journey = (partes) => viewJourney(partes[0]);
 
+/* sem o assistente de IA (config assistente:false): some o botão do menu, o flutuante,
+   a gaveta, o "O que o assistente sabe" e o passo dele nas boas-vindas */
+if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.assistente === false) {
+  const st = document.createElement('style'); st.id = 'ftSemIa';
+  st.textContent = '#nbAssist,#iaFab,#iaGaveta,.ia-gaveta,#iaSabe,#bvAssist,[data-pede]{display:none!important}';
+  document.head.appendChild(st);
+  window.iaAbre = function () {};
+}
+
 /* o app.js já desenhou a tela ao carregar (com a capa antiga): redesenha com a da FT */
 if (typeof route === 'function' && !/^#\/adm/.test(location.hash)) { try { route(); } catch (e) { console.error(e); } }
