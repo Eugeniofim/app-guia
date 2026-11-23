@@ -113,7 +113,7 @@ var APP_CONFIG = {
     depoimentosVideoTxt: '',
     badge: 'Guia oficial Blue Badge · Londres',
     prefixo: 'LL',                 /* codigo da reserva: LL-4821 */
-    idiomas: 'Português · English',
+    idiomas: 'Português',
     /* Dois turnos: 4h de manha ou de tarde. Pacote de 6h ou 8h so de manha
        (ocupa o dia). Reuniao 28/09: "pacote de 4 horas e o de 8 horas… eu
        preciso fazer o pacote de 6 horas tambem". */

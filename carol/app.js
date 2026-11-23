@@ -704,7 +704,7 @@ function viewTour(id) {
           <div><small>${t('fGroup')}</small><b>${grupoTxt(x)}</b>
             ${x.privativo ? `<small class="sub">${t('privateSub')}</small>`
               : x.min > 1 ? `<small class="sub">${t('minNote', { n: x.min })}</small>` : ''}</div>
-          <div><small>${t('fLang')}</small><b>${esc((typeof APP_CONFIG !== 'undefined' && APP_CONFIG.guia && APP_CONFIG.guia.idiomas) || 'PT · EN')}</b></div>
+          <div><small>${t('fLang')}</small><b>${esc(x.idiomas || (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.guia && APP_CONFIG.guia.idiomas) || 'Português')}</b></div>
         </div>
       </div>
 
@@ -1410,6 +1410,7 @@ function admTourEdit(id) {
         <p class="why">${t('edRouteWhy')}</p>
         <div class="frow">
           <label class="fld">${t('edDuration')}<input id="fDur" value="${esc(x.duration || '')}" placeholder="2h30"></label>
+          <label class="fld">${t('fLang')}<input id="fIdiomas" value="${esc(x.idiomas || '')}" placeholder="${esc((typeof APP_CONFIG !== 'undefined' && APP_CONFIG.guia && APP_CONFIG.guia.idiomas) || 'Português')}"><small class="why">Vazio = só Português. Quando tiver habilitação em outro idioma, escreva aqui — ex.: Português · English · Español.</small></label>
           <label class="fld">${t('edDistance')}<input id="fDist" value="${esc(x.distance || '')}" placeholder="3 km"></label>
         </div>
         <div id="stopList"></div>
@@ -1597,6 +1598,7 @@ function admTourEdit(id) {
       trSig: x.trSig || {},
       photo: newPhoto || x.photo, status,
       duration: $('#fDur').value.trim(), distance: $('#fDist').value.trim(),
+      idiomas: $('#fIdiomas') ? $('#fIdiomas').value.trim() : (x.idiomas || ''),
       tagline:   par('#fTagPt', '#fTagEn'),
       priceNote: par('#fPNotePt', '#fPNoteEn'),
       cancel:    par('#fCancelPt', '#fCancelEn'),
