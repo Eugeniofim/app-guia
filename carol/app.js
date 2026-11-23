@@ -528,7 +528,7 @@ function viewShowcase() {
   const regs = [...new Set(tours.map(x => x.region).filter(Boolean))];
   const onde = regs.includes(viewShowcase._r) ? viewShowcase._r : 'all';
   const base = onde === 'all' ? tours : tours.filter(x => x.region === onde);
-  const tipos = ['walk', 'museum', 'exclusivo', 'day', 'photo', 'bike', 'session'].filter(f => base.some(x => x.type === f));
+  const tipos = ['walk', 'day', 'museum', 'exclusivo', 'carro', 'van', 'microonibus', 'onibus', 'transfer'].filter(f => base.some(x => x.type === f));
   const filter = tipos.includes(viewShowcase._f) ? viewShowcase._f : 'all';
   const list = filter === 'all' ? base : base.filter(x => x.type === filter);
   app.innerHTML = `
@@ -1031,6 +1031,7 @@ function renderBook() {
         <b>${t('peopleLbl')}</b>
         <div class="pm"><button id="mn">−</button><span id="pax">${S.pax}</span><button id="pl">+</button></div>
       </div>
+      ${pacote ? `<p class="why avisoReal">${t('avisoGrupoReal')}</p>` : ''}
       <div class="sums">
         <div><span>${fmtDate(S.date)} · ${typeof janelaDoTour === 'function' ? janelaDoTour(S) : S.time}</span></div>
         ${S.discount ? `<div><span>${t('couponOk', { c: S.coupon })}</span><b>−${eur(S.discount)}</b></div>` : ''}
@@ -1333,18 +1334,29 @@ function admTourEdit(id) {
   const isNew = id === 'new';
   const x = isNew
     ? { type: 'walk', region: regioes()[0][0], name: { pt: '', en: '' }, desc: { pt: '', en: '' },
-        meeting: { pt: '', en: '' }, photo: 'fotos/spree-panorama.jpg', photoCr: 'Foto: ArildV · CC BY-SA 4.0 · Wikimedia Commons', price: 0, priceMode: 'pp', min: 2, max: 12,
+        meeting: { pt: '', en: '' }, photo: 'fotos/spree-panorama.jpg', photoCr: 'Foto: ArildV · CC BY-SA 4.0 · Wikimedia Commons', price: 0, priceMode: 'pacote', min: 1, max: 15,
         payPolicy: 'split', status: 'draft' }
     : Tours.get(id);
   if (!x) return go('/adm/tours');
 
   const selOpts = (opts, cur) => opts.map(([v, k]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${t(k)}</option>`).join('');
+
+  /* tipos oferecidos no painel (a pé, bate-volta, por dentro, exclusivo e os com veículo).
+     Sempre inclui o tipo atual do passeio, mesmo que não esteja na lista (ex.: consultoria),
+     pra não trocar o tipo sem querer ao salvar. */
+  const tiposEditor = ['walk', 'day', 'museum', 'exclusivo', 'carro', 'van', 'microonibus', 'onibus', 'transfer'];
+  if (!tiposEditor.includes(x.type)) tiposEditor.push(x.type);
+  const tiposComVeiculo = ['carro', 'van', 'microonibus', 'onibus', 'transfer'];
+
+  /* faixas de preço por tamanho de grupo já gravadas (pacote) */
+  const fx0 = (x.pacotes && x.pacotes[0] && Array.isArray(x.pacotes[0].faixas)) ? x.pacotes[0].faixas : [];
+  const fxVal = (i) => (fx0[i] && fx0[i].v != null && +fx0[i].v > 0) ? fx0[i].v : '';
   admShell('tours', `
     <button class="linkbtn" id="bkT" aria-label="${t('admTours')}">← ${t('admTours')}</button>
     <h1 class="pageh">${isNew ? t('newTour').replace('+ ', '') : esc(x.name.pt)}</h1>
     <div class="formgrid">
       <section class="card">
-        <label class="fld">${t('tType')}<select id="fType">${selOpts([['walk', tipoLabel('walk')], ['day', tipoLabel('day')], ['photo','tPhotoT'],['session','tSession'],['bike','tBike']], x.type)}</select></label>
+        <label class="fld">${t('tType')}<select id="fType">${tiposEditor.map(k => `<option value="${k}" ${x.type === k ? 'selected' : ''}>${esc(tipoLabel(k))}</option>`).join('')}</select></label>
         <label class="fld">${t('tRegion')}<select id="fRegion">${regiaoOpts(x.region)}</select></label>
         <label class="fld">${t('tName')}<input id="fNamePt" value="${esc(x.name.pt)}"></label>
         ${soUmaLingua() ? '' : `<label class="optin enswitch"><input type="checkbox" id="verEn">
@@ -1368,9 +1380,20 @@ function admTourEdit(id) {
       </section>
       <section class="card">
         <h3>${t('edMoney')}</h3>
-        <div class="frow">
-          <label class="fld">${t('tPrice')}<input id="fPrice" type="number" min="0" value="${x.price}"><small class="hint">${t('tPriceZero')}</small></label>
-          <label class="fld">${t('tPriceMode')}<select id="fMode">${selOpts([['pp','perPerson'],['session','perSession']], x.priceMode)}</select></label>
+        <label class="fld">${t('tPriceMode')}<select id="fMode">${selOpts([['pacote','modeGrupo'],['pp','perPerson'],['session','perSession']], x.priceMode === 'pacote' ? 'pacote' : x.priceMode)}</select></label>
+
+        <div id="precoGrupo">
+          <p class="why">${t('grupoAjuda')}</p>
+          <div class="frow">
+            <label class="fld">1 a 4 pessoas (£)<input id="fFx1" type="number" min="0" value="${fxVal(0)}" placeholder="450"></label>
+            <label class="fld">5 a 8 pessoas (£)<input id="fFx2" type="number" min="0" value="${fxVal(1)}" placeholder="650"></label>
+            <label class="fld">9 a 15 pessoas (£)<input id="fFx3" type="number" min="0" value="${fxVal(2)}" placeholder="900"></label>
+          </div>
+          <p class="why">${t('grupoAcima')}</p>
+        </div>
+
+        <div id="precoSimples" class="frow">
+          <label class="fld">${t('tPrice')}<input id="fPrice" type="number" min="0" value="${+x.price || 0}"><small class="hint">${t('tPriceZero')}</small></label>
         </div>
 
         <div class="rulesep"></div>
@@ -1580,6 +1603,22 @@ function admTourEdit(id) {
   $('#verEn')?.addEventListener('change', aplicaEn);
   aplicaEn();
 
+  /* mostra os 3 campos de faixa só no modo "por tamanho de grupo"; nos outros
+     modos mostra o campo único de preço. */
+  const aplicaModoPreco = () => {
+    const grupo = $('#fMode').value === 'pacote';
+    const g = $('#precoGrupo'), s = $('#precoSimples');
+    if (g) g.style.display = grupo ? '' : 'none';
+    if (s) s.style.display = grupo ? 'none' : '';
+  };
+  $('#fMode')?.addEventListener('change', aplicaModoPreco);
+  aplicaModoPreco();
+
+  /* tipos com veículo já vêm com "busca no hotel" marcado (ela pode desmarcar) */
+  $('#fType')?.addEventListener('change', () => {
+    if (tiposComVeiculo.includes($('#fType').value) && $('#fPick') && !$('#fPick').checked) $('#fPick').checked = true;
+  });
+
   $('#savePub2').onclick   = () => $('#savePub').click();
   $('#saveDraft2').onclick = () => $('#saveDraft').click();
 
@@ -1589,8 +1628,8 @@ function admTourEdit(id) {
       name: { pt: $('#fNamePt').value.trim(), en: $('#fNameEn').value.trim() || $('#fNamePt').value.trim() },
       desc: { pt: $('#fDescPt').value.trim(), en: $('#fDescEn').value.trim() || $('#fDescPt').value.trim() },
       meeting: par('#fMeetPt', '#fMeetEn'),
-      price: +$('#fPrice').value || 0, priceMode: $('#fMode').value,
-      min: +$('#fMin').value || 1, max: +$('#fMax').value || 1,
+      ...precoFields(),
+      min: +$('#fMin').value || 1,
       privativo: $('#fPriv').checked, pickup: $('#fPick').checked,
       payPolicy: $('#fPay').value,
       /* guarda qual portugues gerou o ingles atual: se nao mudar,
@@ -1614,6 +1653,28 @@ function admTourEdit(id) {
   }
   function itens(sel) {
     return $(sel).value.split('\n').map(l => l.trim()).filter(Boolean);
+  }
+  /* preço: "por tamanho de grupo" vira faixas (até 4 / até 8 / até 15); os outros
+     modos (por pessoa / por sessão) usam o campo único. Preenche só as faixas que
+     ela ofereceu — acima da última, o cálculo já trata como "sob consulta". */
+  function horasDoTexto(txt) {
+    const m = String(txt || '').match(/(\d+(?:[.,]\d+)?)\s*h/i);
+    return m ? (Math.round(+m[1].replace(',', '.')) || 4) : 4;
+  }
+  function precoFields() {
+    const mode = $('#fMode').value;
+    if (mode === 'pacote') {
+      const brs = [[4, '#fFx1'], [8, '#fFx2'], [15, '#fFx3']]
+        .map(([ate, sel]) => ({ ate, v: +$(sel).value || 0 }))
+        .filter(f => f.v > 0);
+      if (!brs.length) return { priceMode: 'pacote', pacotes: [], price: 0, max: +$('#fMax').value || 15 };
+      /* aplica as mesmas faixas a cada duração já existente (o preço é por grupo,
+         não muda com a duração); se o passeio ainda não tinha pacote, cria um. */
+      const hs = (x.pacotes && x.pacotes.length) ? x.pacotes.map(p => +p.h) : [horasDoTexto($('#fDur').value)];
+      const pacotes = hs.map(h => ({ h, faixas: brs.map(f => ({ ...f })) }));
+      return { priceMode: 'pacote', pacotes, price: Math.min(...brs.map(f => f.v)), max: brs[brs.length - 1].ate };
+    }
+    return { priceMode: mode, price: +$('#fPrice').value || 0, pacotes: [], max: +$('#fMax').value || 1 };
   }
   /* par de campos PT/EN: se o ingles ficar vazio, repete o portugues em vez
      de deixar o cliente estrangeiro sem nada na tela. */
