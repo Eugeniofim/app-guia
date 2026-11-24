@@ -79,13 +79,21 @@ async function pdfEsperaFontes(doc, raiz) {
   await Promise.race([Promise.all(pedidos).then(() => doc.fonts.ready), prazo(6000)]);
   await new Promise(ok => w.requestAnimationFrame(() => w.requestAnimationFrame(ok)));
 }
-async function pdfDoElemento(el, nome) {
-  await pdfCarrega();
-  try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
-  const LARG = 794;                       /* a folha A4 a 96 dpi */
-  let fins = [], altura = 0;
-  const canvas = await window.html2canvas(el, {
-    scale: 2, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false, windowWidth: 1100,
+/* 24/11/2026 — PDF EM BRANCO NO IPHONE (Mari: "está saindo em branco quando eu tento enviar para o
+   cliente", roteiro da Ramona). O Safari do iPhone não desenha um canvas acima de ~16,7 milhões de
+   pixels (4096 × 4096) — e não dá erro: a imagem simplesmente sai branca. O roteiro novo (14/11) tem
+   10 folhas ou mais; fotografado inteiro na escala 2 dava 35 milhões de pixels. Agora:
+   - documento feito de folhas prontas (.rt-pg, o roteiro) é fotografado UMA FOLHA POR VEZ
+     (3,6 milhões de pixels cada), e cada folha vira uma página do PDF;
+   - os outros documentos, se passarem do limite, também saem uma folha por vez (recorte no lugar
+     onde a folha vira), na mesma nitidez de sempre;
+   - uma folha que voltar toda branca vira aviso na tela, nunca um PDF vazio mandado ao cliente.
+   O teste no Mac não pegava: o navegador do computador não tem esse limite. */
+const PDF_LARG = 794;                     /* a folha A4 a 96 dpi */
+const PDF_AREA_MAX = 16000000;            /* um pouco abaixo dos 16.777.216 pixels do iPhone */
+function pdfOpcoes(el, escala, medida) {
+  return {
+    scale: escala, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false, windowWidth: 1100,
     onclone: async (doc) => {
       const c = el.id ? doc.getElementById(el.id) : null; if (!c) return;
       /* 14/11: no celular o roteiro é ENCOLHIDO na tela com "zoom" (rtEscala) para caber. O html2canvas
@@ -93,36 +101,92 @@ async function pdfDoElemento(el, nome) {
          iPhone saía tudo encavalado. A cópia que vira PDF volta ao tamanho de verdade. */
       const semZoom = doc.createElement('style'); semZoom.textContent = `#${el.id}, #${el.id} *{zoom:1!important}`; doc.head.appendChild(semZoom);
       for (let p = c.parentElement; p; p = p.parentElement) p.style.zoom = '1';
-      c.style.width = LARG + 'px'; c.style.maxWidth = LARG + 'px'; c.style.margin = '0';
+      c.style.width = PDF_LARG + 'px'; c.style.maxWidth = PDF_LARG + 'px'; c.style.margin = '0';
       c.classList.add('pdf-clone');        /* as folhas do roteiro ficam coladas uma na outra (sem a sombra e o vão da tela) */
       /* o que só serve na tela (botões, "pagar agora", "pôr na agenda") não vai para o papel */
       c.querySelectorAll('.kt-tela,[data-pdf-fora]').forEach(x => { x.style.display = 'none'; });
       c.querySelectorAll('*').forEach(x => { const cs = doc.defaultView.getComputedStyle(x); if (cs.boxShadow !== 'none') x.style.boxShadow = 'none'; });
       try { await pdfEsperaFontes(doc, c); } catch (e) {}
+      if (!medida) return;
       const topo = c.getBoundingClientRect().top;
-      altura = c.getBoundingClientRect().height;
-      fins = [...c.querySelectorAll(PDF_BLOCOS)].map(b => b.getBoundingClientRect().bottom - topo).filter(y => y > 0);
+      medida.altura = c.getBoundingClientRect().height;
+      medida.fins = [...c.querySelectorAll(PDF_BLOCOS)].map(b => b.getBoundingClientRect().bottom - topo).filter(y => y > 0);
+      /* grande demais para uma foto só no iPhone: para aqui (antes de desenhar à toa) e refaz folha por folha */
+      if (PDF_LARG * medida.altura * escala * escala > PDF_AREA_MAX) throw Object.assign(new Error('grande demais'), { refazer: true });
     },
-  });
+  };
+}
+/* a foto voltou vazia? (canvas que passou do limite fica transparente ou todo branco) */
+function pdfEmBranco(canvas) {
+  try {
+    if (!canvas || !canvas.width || !canvas.height) return true;
+    const lw = 200, lh = Math.max(8, Math.min(400, Math.round(lw * canvas.height / canvas.width)));
+    const p = document.createElement('canvas'); p.width = lw; p.height = lh;
+    const g = p.getContext('2d'); g.drawImage(canvas, 0, 0, lw, lh);
+    const d = g.getImageData(0, 0, lw, lh).data;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 8 && (d[i] < 250 || d[i + 1] < 250 || d[i + 2] < 250)) return false;
+    return true;
+  } catch (e) { return false; }      /* não deu para olhar: não acusa */
+}
+const pdfSolta = (c) => { if (c) { c.width = 0; c.height = 0; } };   /* o iPhone também tem teto de memória para canvas */
+async function pdfDoElemento(el, nome, aoAndar) {
+  await pdfCarrega();
+  try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
   const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight();
-  const pxPorCss = canvas.width / LARG, folhaCss = LARG * H / W;
-  altura = altura || canvas.height / pxPorCss;
-  /* passou só um pouquinho de uma folha: encolhe para caber numa (o modelo dela é de 1 folha) */
-  if (altura > folhaCss && altura <= folhaCss * 1.12) {
-    const k = folhaCss / altura;
-    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (W - W * k) / 2, 0, W * k, H);
-  } else {
-    const cortes = pdfCortes(altura, folhaCss, fins), limites = [0, ...cortes, altura];
-    for (let i = 0; i < limites.length - 1; i++) {
-      const y0 = Math.round(limites[i] * pxPorCss), y1 = Math.min(canvas.height, Math.round(limites[i + 1] * pxPorCss));
-      if (y1 - y0 < 4) continue;
-      const fatia = document.createElement('canvas'); fatia.width = canvas.width; fatia.height = y1 - y0;
-      const g = fatia.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, fatia.width, fatia.height);
-      g.drawImage(canvas, 0, y0, canvas.width, y1 - y0, 0, 0, canvas.width, y1 - y0);
+  const folhas = [...el.querySelectorAll('.rt-pg')];
+  if (folhas.length) {
+    /* o roteiro já vem em folhas A4: uma foto por folha */
+    for (let i = 0; i < folhas.length; i++) {
+      if (aoAndar) aoAndar(i + 1, folhas.length);
+      const canvas = await window.html2canvas(folhas[i], pdfOpcoes(el, 2, null));
+      if (pdfEmBranco(canvas)) { pdfSolta(canvas); throw new Error(`a folha ${i + 1} de ${folhas.length} saiu em branco`); }
       if (i) pdf.addPage();
-      pdf.addImage(fatia.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, W, (y1 - y0) / pxPorCss * W / LARG);
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, W, Math.min(H * 1.02, canvas.height / canvas.width * W));
+      pdfSolta(canvas);
+    }
+  } else {
+    const medida = {}, folhaCss = PDF_LARG * H / W;
+    let canvas = null;
+    try { canvas = await window.html2canvas(el, pdfOpcoes(el, 2, medida)); }
+    catch (e) { if (!e || !e.refazer || !medida.altura) throw e; }
+    if (canvas) {
+      if (pdfEmBranco(canvas)) { pdfSolta(canvas); throw new Error('o documento saiu em branco'); }
+      const pxPorCss = canvas.width / PDF_LARG;
+      const altura = medida.altura || canvas.height / pxPorCss, fins = medida.fins || [];
+      /* passou só um pouquinho de uma folha: encolhe para caber numa (o modelo dela é de 1 folha) */
+      if (altura > folhaCss && altura <= folhaCss * 1.12) {
+        const k = folhaCss / altura;
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (W - W * k) / 2, 0, W * k, H);
+      } else {
+        const cortes = pdfCortes(altura, folhaCss, fins), limites = [0, ...cortes, altura];
+        for (let i = 0; i < limites.length - 1; i++) {
+          const y0 = Math.round(limites[i] * pxPorCss), y1 = Math.min(canvas.height, Math.round(limites[i + 1] * pxPorCss));
+          if (y1 - y0 < 4) continue;
+          const fatia = document.createElement('canvas'); fatia.width = canvas.width; fatia.height = y1 - y0;
+          const g = fatia.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, fatia.width, fatia.height);
+          g.drawImage(canvas, 0, y0, canvas.width, y1 - y0, 0, 0, canvas.width, y1 - y0);
+          if (i) pdf.addPage();
+          pdf.addImage(fatia.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, W, (y1 - y0) / pxPorCss * W / PDF_LARG);
+          pdfSolta(fatia);
+        }
+      }
+      pdfSolta(canvas);
+    } else {
+      /* grande demais para uma foto só no iPhone: uma foto por folha, recortada no mesmo lugar onde
+         a folha viraria — mesma nitidez (escala 2) de sempre */
+      const limites = [0, ...pdfCortes(medida.altura, folhaCss, medida.fins || []), medida.altura], n = limites.length - 1;
+      let pag = 0;
+      for (let i = 0; i < n; i++) {
+        const y0 = limites[i], alt = limites[i + 1] - y0; if (alt < 2) continue;
+        if (aoAndar) aoAndar(i + 1, n);
+        const c = await window.html2canvas(el, { ...pdfOpcoes(el, 2, null), y: y0, width: PDF_LARG, height: Math.ceil(alt) });
+        if (pdfEmBranco(c)) { pdfSolta(c); throw new Error(`a folha ${i + 1} de ${n} saiu em branco`); }
+        if (pag++) pdf.addPage();
+        pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, W, c.height / c.width * W);
+        pdfSolta(c);
+      }
     }
   }
   const arquivo = String(nome || 'documento').replace(/[\\/:*?"<>|]+/g, '-').trim() + '.pdf';
@@ -152,7 +216,8 @@ function pdfLiga(botao, alvo, nome, opts) {
     if (!painel) { painel = document.createElement('div'); painel.id = 'pdfPronto'; painel.className = 'pdfPronto'; (botao.closest('.orcBarra,.fatBarra,.voBarra,.rtBarra,header,.topbar') || botao.parentNode).insertAdjacentElement('afterend', painel); }
     painel.hidden = false; painel.innerHTML = '<p>Preparando o PDF… (1 ou 2 segundos)</p>';
     try {
-      const r = await pdfDoElemento(el, typeof nome === 'function' ? nome() : nome);
+      const r = await pdfDoElemento(el, typeof nome === 'function' ? nome() : nome,
+        (i, n) => { if (n > 1) painel.innerHTML = `<p>Preparando o PDF… folha ${i} de ${n}</p>`; });
       const share = pdfCelular() && pdfPodeCompartilhar(r);
       painel.innerHTML = `<p><b>PDF pronto:</b> ${esc(r.arquivo)}</p>
         <div class="pdfAcs">${share ? '<button type="button" class="cta sm" data-pdf="enviar">Enviar (WhatsApp, e-mail…)</button>' : ''}
