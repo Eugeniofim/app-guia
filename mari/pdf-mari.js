@@ -91,9 +91,13 @@ async function pdfEsperaFontes(doc, raiz) {
    O teste no Mac não pegava: o navegador do computador não tem esse limite. */
 const PDF_LARG = 794;                     /* a folha A4 a 96 dpi */
 const PDF_AREA_MAX = 16000000;            /* um pouco abaixo dos 16.777.216 pixels do iPhone */
-function pdfOpcoes(el, escala, medida) {
+function pdfOpcoes(el, escala, medida, so) {
   return {
     scale: escala, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false, windowWidth: 1100,
+    /* 24/11 (2ª rodada): a cópia de cada folha levava o roteiro INTEIRO junto (21 folhas, fotos, 6 mapas) —
+       21 cópias pesadas seguidas esgotam a memória de imagens do iPhone. Agora a cópia leva só a folha
+       da vez (e o que está em volta dela até o <body>); o <head>, com as fontes e os estilos, vai inteiro. */
+    ignoreElements: so ? (n) => n !== so && !so.contains(n) && !n.contains(so) && !!(n.closest && n.closest('body')) : undefined,
     onclone: async (doc) => {
       const c = el.id ? doc.getElementById(el.id) : null; if (!c) return;
       /* 14/11: no celular o roteiro é ENCOLHIDO na tela com "zoom" (rtEscala) para caber. O html2canvas
@@ -140,11 +144,12 @@ async function pdfDoElemento(el, nome, aoAndar) {
     /* o roteiro já vem em folhas A4: uma foto por folha */
     for (let i = 0; i < folhas.length; i++) {
       if (aoAndar) aoAndar(i + 1, folhas.length);
-      const canvas = await window.html2canvas(folhas[i], pdfOpcoes(el, 2, null));
+      const canvas = await window.html2canvas(folhas[i], pdfOpcoes(el, 2, null, folhas[i]));
       if (pdfEmBranco(canvas)) { pdfSolta(canvas); throw new Error(`a folha ${i + 1} de ${folhas.length} saiu em branco`); }
       if (i) pdf.addPage();
       pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, W, Math.min(H * 1.02, canvas.height / canvas.width * W));
       pdfSolta(canvas);
+      await new Promise(ok => setTimeout(ok, 40));     /* respiro para o celular liberar a memória da cópia */
     }
   } else {
     const medida = {}, folhaCss = PDF_LARG * H / W;

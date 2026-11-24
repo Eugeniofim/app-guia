@@ -880,11 +880,23 @@ function rtBlocos(r, opts) {
       if (mh) B.push({ k: 'map', html: mh });
     });
   });
-  if (r.obs) B.push({ k: 'obs', html: `<div class="rt-obs"><h3>Dicas da ${esc((typeof guiaNome === 'function' && guiaNome()) || 'Mari')}</h3><p>${rtMd(r.obs)}</p></div>` });
+  if (r.obs) B.push({ k: 'obs', html: rtObsHtml(r.obs), txt: r.obs });
   B.push({ k: 'fim', html: rtFimHtml() });
   return B;
 }
 const rtEmBloco = (b) => `<div class="rt-b rt-b-${b.k}">${b.html}</div>`;
+/* a caixa "Dicas da Mari"; o pedaço que continua na folha seguinte diz que é continuação */
+const rtObsHtml = (txt, cont) => `<div class="rt-obs"><h3>Dicas da ${esc((typeof guiaNome === 'function' && guiaNome()) || 'Mari')}${cont ? ' (continuação)' : ''}</h3><p>${rtMd(txt)}</p></div>`;
+/* 24/11: as dicas em pedaços que podem virar de folha — frases, cada uma sabendo se abre parágrafo novo.
+   Juntar os pedaços devolve o texto exatamente como ela escreveu. */
+function rtObsPedacos(txt) {
+  const out = [];
+  String(txt || '').split(/\n\s*\n/).map(x => x.trim()).filter(Boolean).forEach((par, i) => {
+    (par.match(/[^.!?]+(?:[.!?]+|$)\s*/g) || [par]).forEach((f, j) => out.push({ t: f, sep: j ? '' : (i ? '\n\n' : '') }));
+  });
+  return out;
+}
+const rtObsJunta = (u) => u.map((x, i) => (i ? x.sep : '') + x.t).join('').trim();
 /* monta as páginas A4: mede cada bloco e vai enchendo a folha (o texto de um trecho fica junto do seu mapa) */
 async function rtPaginas(r, alvo) {
   rtCss();
@@ -903,6 +915,7 @@ async function rtPaginas(r, alvo) {
     const g = [blocos[i]];
     if (blocos[i].k === 'dia' && blocos[i + 1] && blocos[i + 1].k === 'txt') g.push(blocos[++i]);
     if (g[g.length - 1].k === 'txt' && blocos[i + 1] && blocos[i + 1].k === 'map') g.push(blocos[++i]);
+    if (blocos[i].k === 'obs' && blocos[i + 1] && blocos[i + 1].k === 'fim') g.push(blocos[++i]);   /* o "boa viagem" vai com o fim das dicas */
     grupos.push(g);
   }
   const base = 82 * mm, MIN = 58 * mm;          /* o mapa pode encolher até ~58 mm para o trecho caber na folha */
@@ -914,6 +927,26 @@ async function rtPaginas(r, alvo) {
   const encolhe = (g, falta) => {
     for (const m of g.filter(b => b.k === 'map')) { const t = Math.min((m.mapPx || base) - MIN, falta); if (t > 0) { m.mapPx = (m.mapPx || base) - t; falta -= t; } }
     for (const x of g.filter(b => b.k === 'txt' && fil(b))) { const t = Math.min(((x.ft || FT) - FT_MIN) * mm * fil(x), falta); if (t > 0) { x.ft = (x.ft || FT) - t / (mm * fil(x)); falta -= t; } }
+  };
+  /* 24/11 — DICAS QUE NÃO CABEM (roteiro da Ramona: a caixa era maior que uma folha inteira e o fim do texto
+     era CORTADO, por cima do rodapé; e o "boa viagem" ficava sozinho numa folha). Devolve [o que fica nesta
+     folha, o resto] ou null: enche o espaço que sobra com o máximo de frases, de preferência fechando um
+     parágrafo; o resto continua na folha seguinte com "(continuação)" e o "boa viagem" junto. */
+  const partirDicas = (g) => {
+    const io = g.findIndex(b => b.k === 'obs'); if (io < 0) return null;
+    const b = g[io], un = rtObsPedacos(b.txt), n = un.length; if (n < 2) return null;
+    const pre = g.slice(0, io);
+    const parte = (q) => { const t = rtObsJunta(un.slice(0, q)); return { k: 'obs', html: rtObsHtml(t, b.cont), txt: t, cont: b.cont }; };
+    const cabe = (q) => altG(pre.concat([parte(q)])) <= livre;
+    let lo = 0, hi = n - 1;                       /* o maior pedaço que cabe (a altura só cresce com mais frases) */
+    while (lo < hi) { const m = Math.ceil((lo + hi) / 2); if (cabe(m)) lo = m; else hi = m - 1; }
+    let q = lo; if (!q) return null;
+    let qp = q; while (qp > 0 && un[qp].sep !== '\n\n') qp--;    /* fechar o parágrafo, se não desperdiçar muito */
+    if (qp > 0 && altG([parte(q)]) - altG([parte(qp)]) < 0.25 * cap) q = qp;
+    else while (q > 0 && un[q - 1].t.trim().length < 4) q--;     /* não quebrar depois de "A." (A.C. Perch's) */
+    if (!q) return null;
+    const t = rtObsJunta(un.slice(q));
+    return [pre.concat([parte(q)]), [{ k: 'obs', html: rtObsHtml(t, true), txt: t, cont: true }].concat(g.slice(io + 1))];
   };
   const pags = [[]]; let livre = cap;
   const nova = () => { pags.push([]); livre = cap; };
@@ -932,10 +965,14 @@ async function rtPaginas(r, alvo) {
       if (tx && tx.lado && g.some(b => b.k === 'map')) { const gl = g.filter(b => b.k === 'dia').concat([{ k: 'lado', html: tx.lado }]); if (altG(gl) <= livre) { poe(gl); continue; } }
       /* 3) as dicas e o "boa viagem" não ficam sozinhos numa folha: os mapas desta folha cedem o espaço */
       if (g.every(b => b.k === 'obs' || b.k === 'fim')) { const f = pags[pags.length - 1]; if (h - livre <= folga(f) && h - livre <= 45 * mm) { encolhe(f, h - livre); livre = h; poe(g); continue; } }
+      /* 4) as dicas enchem o resto desta folha e continuam na próxima */
+      if (livre >= 40 * mm) { const pt = partirDicas(g); if (pt) { poe(pt[0]); nova(); grupos.splice(gi, 1, pt[1]); gi--; continue; } }
       nova(); h = altG(g);
     }
     if (h <= livre) { poe(g); continue; }
     if (h - livre <= folga(g)) { encolhe(g, h - livre); poe(g); continue; }
+    /* as dicas maiores que uma folha inteira: a folha cheia de dicas e o resto na seguinte */
+    { const pt = partirDicas(g); if (pt) { poe(pt[0]); nova(); grupos.splice(gi, 1, pt[1]); gi--; continue; } }
     /* nem numa folha inteira: divide as paradas do trecho em duas partes — a primeira com o MÁXIMO de cartões
        que cabem no resto da folha (de preferência fileiras inteiras), não mais pela metade (14/11) */
     const k = g.findIndex(b => b.k === 'txt' && b.paradas.length > 1);
