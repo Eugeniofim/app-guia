@@ -4,7 +4,7 @@
    Para publicar uma atualização: subir os arquivos novos e trocar a VERSION. */
 'use strict';
 
-const VERSION = 'ft-v0.3.3';
+const VERSION = 'ft-v0.4.0';
 const CORE = [
   './', './index.html', './config.js', './app.js', './fx.js', './pix.js', './qr.js', './qrcode.js', './traduz.js', './store.js', './auth.js', './logo.js', './cloud.js', './nuvem-itens.js', './i18n.js', './es.js', './conteudo.js', './operacao.js', './operacao-telas.js', './precos.js', './assistente.js', './assistente-ingrid.js', './guia-link.js', './pdf-yalla.js', './publico-yalla.js', './kit-yalla.js', './orcamento-yalla.js', './roteiro-yalla.js', './assistente-yalla.js', './ft-site.js', './ft-site.css', './tokens.css', './operacao.css', './marca.css', './manifest.webmanifest', './og.jpg',
   './arte/ft-mark.png', './arte/ft-mark-escura.png', './arte/ft-logo.png', './arte/ft-logo-escura.png', './arte/ft-horizontal.png', './arte/ft-horizontal-escura.png',
