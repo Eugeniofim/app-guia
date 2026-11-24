@@ -694,6 +694,16 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
 .sp-logo{display:block;width:min(232px,58vw);height:auto;margin:26px auto 0;
   animation:spUp 950ms var(--ease) both;animation-delay:2150ms}
 .sp-word,.sp-role,.sp-region,.sp-lang{color:#fff;animation:spUp 950ms var(--ease) both}
+/* FT: a entrada "F T · World Travel & Experiences" (24/11/2026) */
+.sp-ft{display:flex;flex-direction:column;align-items:center;text-align:center;color:#E3CB97;font-family:"Cormorant Garamond",Georgia,serif}
+.sp-ft-l{font-weight:500;font-size:clamp(64px,17vw,112px);line-height:.9;letter-spacing:.32em;margin-right:-.32em;
+  background:linear-gradient(180deg,#F1DEB0,#B8924F);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sp-ft-fio{display:block;width:min(260px,62vw);height:1.5px;margin:20px 0 18px;background:linear-gradient(90deg,transparent,#C9A96A,transparent)}
+.sp-ft-w{font-weight:500;font-size:clamp(30px,8.4vw,48px);line-height:1.02;color:#fff;letter-spacing:.01em}
+.sp-ft-e{font-style:italic;font-weight:500;font-size:clamp(26px,7vw,40px);line-height:1.1;color:#E3CB97}
+.sp-ft > *{animation:spUp 950ms var(--ease) both}
+.sp-ft-fio{animation-delay:350ms}.sp-ft-w{animation-delay:550ms}.sp-ft-e{animation-delay:700ms}.sp-ft-w:last-child{animation-delay:850ms}
+@media (prefers-reduced-motion:reduce){.sp-ft > *{animation:none}}
 /* FT: a assinatura (logo em pé) já traz o nome — a palavra solta sai */
 .sp-word{display:none!important}
 .sp-word{margin-top:26px;font-family:"Cormorant Garamond",var(--f-display);font-weight:600;
@@ -1236,7 +1246,11 @@ body.sem-anima #app>*,body.sem-anima #app .stage,body.sem-anima #app .wrap,body.
 <div id="splash" class="splash">
   <div class="sp-stage">
     <div class="sp-mark">
-      <img src="arte/ft-logo.png" width="330" height="178" alt="FT Travel &amp; Experiences, London" style="display:block;margin:0 auto;max-width:78vw;height:auto">
+      <!-- 24/11/2026: a entrada pedida — F T, o fio e "World Travel & Experiences" em três linhas -->
+      <div class="sp-ft" role="img" aria-label="FT World Travel &amp; Experiences">
+        <span class="sp-ft-l">F T</span><i class="sp-ft-fio"></i>
+        <span class="sp-ft-w">World Travel</span><span class="sp-ft-e">&amp;</span><span class="sp-ft-w">Experiences</span>
+      </div>
     </div>
     <!-- o nome do negocio e a credencial vem do config.js (app.js preenche) -->
     <div class="sp-word" id="spWord"></div>

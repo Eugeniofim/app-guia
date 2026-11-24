@@ -180,7 +180,7 @@ function ftMapaSvg(rotaIds, opts = {}) {
    A CAPA
    ===================================================== */
 function ftTopo(transparente) {
-  const MENU = [['ft-servicos', L4('Services', 'Serviços', 'Servizi')], ['ft-estrada', L4('The Road North', 'A estrada', 'La strada')],
+  const MENU = [['ft-servicos', L4('Services', 'Serviços', 'Servizi')], ['ft-estrada', L4('The Road North', 'A estrada', 'La strada')], ['ft-passeios', L4('Day tours', 'Passeios', 'Tour')],
     ['ft-viagens', L4('Journeys', 'Viagens', 'Viaggi')], ['ft-frota', L4('Fleet', 'Frota', 'Flotta')], ['ft-sobre', L4('About', 'Sobre', 'Chi siamo')]];
   const idiomas = `<div class="ft-langs" role="group" aria-label="Language">${['en', 'pt', 'it'].map(c =>
     `<button type="button" data-lang="${c}" class="${LANG === c ? 'on' : ''}" aria-pressed="${LANG === c}" title="${FT_LANG_NOME[c]}">${FT_FLAG[c]}<span>${c === 'pt' ? 'PT' : c.toUpperCase()}</span></button>`).join('')}</div>`;
@@ -298,6 +298,37 @@ function viewHub() {
         <span class="ft-mais">${temCat(c.id) ? L4('See experiences', 'Ver experiências', 'Vedi esperienze') : L4('Request a proposal', 'Pedir proposta', 'Richiedi proposta')} ${FT_IC.seta}</span></span></button>`).join('')}</div>
     </div>
   </section>
+
+  ${(() => {
+    /* OS PASSEIOS DO ROBERTO (24/11/2026): os 8 de um dia saindo de Londres, foto cheia e o valor dele */
+    const IDS = ['london-city-tour', 'windsor-oxford', 'stonehenge-bath', 'cotswolds', 'cambridge', 'liverpool', 'canterbury', 'football'];
+    const ps = IDS.map(id => Tours.get(id)).filter(x => x && x.status !== 'draft');
+    if (!ps.length) return '';
+    const valor = (x) => {
+      const v = typeof precoVitrine === 'function' ? precoVitrine(x) : +x.price || 0;
+      if (!(v > 0)) return L4('On request', 'Sob consulta', 'Su richiesta');
+      const n = '£' + v.toLocaleString('en-GB');
+      return Array.isArray(x.opcoes) && x.opcoes.length > 1 ? L4('from ', 'a partir de ', 'da ') + n : n;
+    };
+    return `<section class="ft-sec ft-tours" id="ft-passeios" aria-labelledby="ftTours">
+    <div class="ft-wrap">
+      <div class="ft-cab ft-cab-lado ft-rv"><div><span class="ft-rot">${L4('Day tours from London', 'Passeios saindo de Londres', 'Tour in giornata da Londra')}</span>
+        <h2 id="ftTours">${L4('One day, <em>a whole new England.</em>', 'Um dia, <em>uma Inglaterra inteira.</em>', 'Un giorno, <em>un’altra Inghilterra.</em>')}</h2>
+        <p>${L4('Private tours in an executive Mercedes with Roberto, your Brazilian driver-guide — hotel pick-up, photos at every stop and the stories behind each place. Prices are per car, not per person.',
+                'Passeios privativos em Mercedes executivo com o Roberto, o seu motorista-guia brasileiro — busca no hotel, fotos em cada parada e a história de cada lugar. Valores por carro, não por pessoa.',
+                'Tour privati in Mercedes executive con Roberto, il tuo autista-guida brasiliano — prelievo in hotel, foto a ogni tappa e la storia di ogni luogo. Prezzi per auto, non a persona.')}</p></div>
+        <a class="ft-btn ft-btn-linha ft-btn-escuro" href="#/tours">${L4('All tours', 'Todos os passeios', 'Tutti i tour')} ${FT_IC.seta}</a></div>
+      <div class="ft-tgrid">${ps.map((x, i) => `<a class="ft-tcard ft-rv ${i === 0 ? 'grande' : i === ps.length - 1 && ps.length % 2 === 0 ? 'largo' : ''}" style="--d:${(i % 4) * 70}ms" href="#/tour/${esc(x.id)}">
+        <img src="${esc(x.photo)}" alt="" loading="lazy">
+        <span class="ft-tcard-tx">
+          <span class="ft-tcard-top"><i>${esc(String(x.duration || '').replace(/ or more$/, '+'))}</i><em>${esc(valor(x))}</em></span>
+          <b>${esc(tl(x.name))}</b>
+          ${tl(x.tagline) ? `<small>${esc(tl(x.tagline))}</small>` : ''}
+          <span class="ft-mais">${L4('See the tour', 'Ver o passeio', 'Vedi il tour')} ${FT_IC.seta}</span>
+        </span></a>`).join('')}</div>
+    </div>
+  </section>`;
+  })()}
 
   <section class="ft-sec ft-areia" id="ft-viagens" aria-labelledby="ftViag">
     <div class="ft-wrap">

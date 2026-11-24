@@ -333,10 +333,15 @@ function _seed() {
   const consulta = () => Array(20).fill(0);
   const NOTA_CONSULTA = { en: 'On request: every journey is built around you.', pt: 'Sob consulta: cada viagem é montada para você.', it: 'Su richiesta: ogni viaggio è costruito per te.' };
   const NOTA_EX = { en: 'Price per car (not per person). Example prices — confirmed on booking.', pt: 'Valor por carro (não por pessoa). Valores de exemplo — confirmados na reserva.', it: 'Prezzo per auto (non a persona). Prezzi di esempio — confermati alla prenotazione.' };
+  /* os valores reais do Roberto (24/11/2026): total do passeio privativo, por carro */
+  const NOTA_REAL = { en: 'Total price for the private tour — per car, not per person. Attraction tickets not included.', pt: 'Valor total do passeio privativo — por carro, não por pessoa. Ingressos das atrações à parte.', it: 'Prezzo totale del tour privato — per auto, non a persona. Biglietti delle attrazioni esclusi.' };
+  const NOTA_2 = { en: 'Total price for 2 guests. Larger groups: ask us.', pt: 'Valor total para 2 pessoas. Grupos maiores: consulte.', it: 'Prezzo totale per 2 persone. Gruppi più grandi: chiedici.' };
+  const NOTA_CONSULTA_DIA = { en: 'On request: tell us your two stadiums and the date.', pt: 'Sob consulta: diga os 2 estádios e a data.', it: 'Su richiesta: indicaci i due stadi e la data.' };
   const INC = { en: ['Executive Mercedes with driver-guide', 'Pick-up and drop-off at your hotel', 'Wi-Fi, water and umbrella', 'Your photos at every stop'],
                 pt: ['Mercedes executivo com motorista-guia', 'Busca e volta no seu hotel', 'Wi-Fi, água e guarda-chuva', 'Fotos de vocês em cada parada'],
                 it: ['Mercedes executive con autista-guida', 'Prelievo e rientro in hotel', 'Wi-Fi, acqua e ombrello', 'Le vostre foto a ogni tappa'] };
   const NAO = { en: ['Attraction tickets', 'Meals'], pt: ['Ingressos das atrações', 'Refeições'], it: ['Biglietti delle attrazioni', 'Pasti'] };
+  const POR_CARRO = { en: 'per car', pt: 'por carro', it: 'per auto' };
   const T = (o) => Object.assign({ distance: '', effort: 'easy', includes: INC, notIncludes: NAO, stops: [], min: 1, max: 7, payPolicy: 'split', status: 'live',
     meeting: 'At your hotel in London' }, o);
   db.tours = [
@@ -347,49 +352,124 @@ function _seed() {
               pt: 'Um Mercedes e o seu motorista à disposição: compras, reuniões, jantares, um musical no West End. Você decide o plano, a gente cuida do resto.',
               it: 'Una Mercedes e il tuo autista a disposizione: shopping, riunioni, cene, uno spettacolo nel West End. Tu decidi il programma, al resto pensiamo noi.' },
       duration: 'From 4 hours', price: 70, priceMode: 'hora', minHoras: 4, priceNote: NOTA_EX }),
-    T({ id: 'london-city-tour', type: 'walk', region: 'londres', categoria: 'london', order: 2, photo: 'arte/f/westminster-night.jpg',
-      name: { en: 'London City Tour by Mercedes', pt: 'City Tour de Londres de Mercedes', it: 'City Tour di Londra in Mercedes' },
-      desc: { en: 'All of London in one day without tired legs: Westminster, Buckingham and the Changing of the Guard, Trafalgar, Notting Hill, Abbey Road, St Paul’s, the Tower and Tower Bridge — a stop for photos and a story at each one.',
-              pt: 'Londres inteira num dia, sem cansar as pernas: Westminster, Buckingham e a Troca da Guarda, Trafalgar, Notting Hill, Abbey Road, St Paul’s, a Torre e a Tower Bridge — parada para foto e história em cada um.',
-              it: 'Tutta Londra in un giorno senza stancarsi: Westminster, Buckingham e il Cambio della Guardia, Trafalgar, Notting Hill, Abbey Road, St Paul’s, la Torre e il Tower Bridge.' },
-      duration: '8 hours', price: 480, priceMode: 'session', priceNote: NOTA_EX }),
     T({ id: 'harry-potter', type: 'walk', region: 'londres', categoria: 'special', order: 3, photo: 'arte/f/harry-potter.jpg',
       name: { en: 'Harry Potter Studios', pt: 'Estúdios Harry Potter', it: 'Studi di Harry Potter' },
       desc: { en: 'Door to door to the Warner Bros. studios at Leavesden, with a stop at Platform 9¾ on request. We wait for you until the end of the visit.',
               pt: 'Porta a porta até os estúdios da Warner em Leavesden, com parada na Plataforma 9¾ se quiser. Esperamos até o fim da visita.',
               it: 'Porta a porta agli studi Warner Bros. di Leavesden, con sosta al Binario 9¾ su richiesta. Vi aspettiamo fino alla fine della visita.' },
       duration: '6 hours', price: 380, priceMode: 'session', priceNote: NOTA_EX }),
-    T({ id: 'football', type: 'walk', region: 'londres', categoria: 'special', order: 4, photo: 'arte/f/tower-bridge.jpg',
-      name: { en: 'London Football Tour', pt: 'Tour do Futebol em Londres', it: 'Tour del calcio a Londra' },
-      desc: { en: 'Two legendary stadium tours of your choice — Chelsea, Arsenal, Tottenham or Wembley — with the landmarks of London in between.',
-              pt: 'Dois tours de estádio à sua escolha — Chelsea, Arsenal, Tottenham ou Wembley — com os cartões-postais de Londres no caminho.',
-              it: 'Due tour di stadi a scelta — Chelsea, Arsenal, Tottenham o Wembley — con i luoghi simbolo di Londra in mezzo.' },
-      duration: '8 hours', price: 480, priceMode: 'session', priceNote: NOTA_EX }),
+    /* ---------- OS PASSEIOS DO ROBERTO (24/11/2026, a lista dele pelo WhatsApp) ----------
+       Valores dele, em libra, o total do passeio privativo (por carro, não por pessoa).
+       Ingressos das atrações à parte (o de Windsor ele mesmo informou: £38 por adulto). */
+    T({ id: 'london-city-tour', unidade: { en: 'for 2 guests', pt: 'para 2 pessoas', it: 'per 2 persone' }, type: 'walk', region: 'londres', categoria: 'london', order: 2, photo: 'arte/f/big-ben-sunset.jpg',
+      fotos: ['arte/f/notting-hill.jpg', 'arte/f/tower-bridge.jpg', 'arte/f/london-day.jpg', 'arte/f/westminster-night.jpg'],
+      name: { en: 'London City Tour with a Brazilian guide', pt: 'City Tour de Londres com guia brasileiro', it: 'City Tour di Londra con guida brasiliana' },
+      tagline: { en: 'All of London’s icons in one day — a stop, a photo and a story at each one.', pt: 'Todos os ícones de Londres num dia — parada, foto e história em cada um.', it: 'Tutte le icone di Londra in un giorno — una sosta, una foto e una storia a ognuna.' },
+      desc: { en: 'Driving and stopping at London’s great landmarks: Big Ben and Westminster Abbey, the London Eye, Buckingham Palace and the Changing of the Guard, Notting Hill and Portobello Road, Abbey Road, Tower Bridge and the Tower of London (home of the Crown Jewels), Harrods, St Paul’s Cathedral — where Charles and Diana were married — Hyde Park, Piccadilly, Covent Garden and Trafalgar Square, with stops for explanations and photos.',
+              pt: 'Passando e parando pelos principais pontos turísticos de Londres: Big Ben e a Abadia de Westminster, London Eye, o Palácio de Buckingham e a Troca da Guarda, Notting Hill e a Portobello Road, Abbey Road, Tower Bridge e a Torre de Londres (onde estão as joias da Coroa), Harrods, a Catedral de St Paul’s — onde Charles e Diana se casaram —, Hyde Park, Piccadilly, Covent Garden e Trafalgar Square, com paradas para explicações e fotos.',
+              it: 'Passando e fermandosi nei grandi luoghi simbolo di Londra: il Big Ben e l’Abbazia di Westminster, il London Eye, Buckingham Palace e il Cambio della Guardia, Notting Hill e Portobello Road, Abbey Road, il Tower Bridge e la Torre di Londra (con i Gioielli della Corona), Harrods, la Cattedrale di St Paul — dove si sposarono Carlo e Diana —, Hyde Park, Piccadilly, Covent Garden e Trafalgar Square, con soste per spiegazioni e foto.' },
+      stops: [
+        { n: { en: 'Big Ben & Westminster', pt: 'Big Ben e Westminster', it: 'Big Ben e Westminster' }, d: { en: 'Parliament, the Abbey and the London Eye across the river.', pt: 'O Parlamento, a Abadia e a London Eye do outro lado do rio.', it: 'Il Parlamento, l’Abbazia e il London Eye sull’altra riva.' }, ph: 'arte/f/big-ben-sunset.jpg' },
+        { n: { en: 'Buckingham Palace', pt: 'Palácio de Buckingham', it: 'Buckingham Palace' }, d: { en: 'The King’s London home and the Changing of the Guard.', pt: 'A casa do rei em Londres e a Troca da Guarda.', it: 'La residenza londinese del Re e il Cambio della Guardia.' }, ph: '' },
+        { n: { en: 'Notting Hill & Portobello Road', pt: 'Notting Hill e Portobello Road', it: 'Notting Hill e Portobello Road' }, d: { en: 'Pastel houses, the famous market and the film locations.', pt: 'As casinhas coloridas, a feira famosa e os cenários do filme.', it: 'Le case color pastello, il mercato famoso e i luoghi del film.' }, ph: 'arte/f/notting-hill.jpg' },
+        { n: { en: 'Abbey Road', pt: 'Abbey Road', it: 'Abbey Road' }, d: { en: 'The Beatles’ zebra crossing — yes, we take the photo.', pt: 'A faixa de pedestres dos Beatles — sim, a gente tira a foto.', it: 'Le strisce pedonali dei Beatles — sì, facciamo la foto.' }, ph: '' },
+        { n: { en: 'Tower Bridge & the Tower of London', pt: 'Tower Bridge e Torre de Londres', it: 'Tower Bridge e Torre di Londra' }, d: { en: 'Where the Crown Jewels are kept.', pt: 'Onde estão as joias da Coroa.', it: 'Dove sono custoditi i Gioielli della Corona.' }, ph: 'arte/f/tower-bridge.jpg' },
+        { n: { en: 'St Paul’s & the City', pt: 'St Paul’s e a City', it: 'St Paul e la City' }, d: { en: 'The cathedral of Charles and Diana’s wedding, among the skyscrapers.', pt: 'A catedral do casamento de Charles e Diana, entre os arranha-céus.', it: 'La cattedrale del matrimonio di Carlo e Diana, tra i grattacieli.' }, ph: 'arte/f/london-day.jpg' },
+        { n: { en: 'Harrods, Hyde Park & Piccadilly', pt: 'Harrods, Hyde Park e Piccadilly', it: 'Harrods, Hyde Park e Piccadilly' }, d: { en: 'Knightsbridge, the park and the lights of Piccadilly Circus.', pt: 'Knightsbridge, o parque e os letreiros de Piccadilly Circus.', it: 'Knightsbridge, il parco e le luci di Piccadilly Circus.' }, ph: '' },
+        { n: { en: 'Covent Garden & Trafalgar Square', pt: 'Covent Garden e Trafalgar Square', it: 'Covent Garden e Trafalgar Square' }, d: { en: 'Street performers, the market and Nelson’s Column.', pt: 'Artistas de rua, o mercado e a Coluna de Nelson.', it: 'Artisti di strada, il mercato e la Colonna di Nelson.' }, ph: 'arte/f/westminster-night.jpg' },
+      ],
+      duration: '5 or 8 hours', price: 350, priceMode: 'session', priceNote: NOTA_2,
+      opcoes: [
+        { nome: { en: 'Full day · 8 hours', pt: 'Dia inteiro · 8 horas', it: 'Giornata intera · 8 ore' }, desc: { en: 'Every stop, at a relaxed pace.', pt: 'Todas as paradas, com calma.', it: 'Tutte le soste, con calma.' }, preco: 450 },
+        { nome: { en: 'Half day · 5 hours', pt: 'Meio dia · 5 horas', it: 'Mezza giornata · 5 ore' }, desc: { en: 'The essential London.', pt: 'A Londres essencial.', it: 'La Londra essenziale.' }, preco: 350 },
+      ] }),
+    T({ id: 'football', type: 'walk', region: 'londres', categoria: 'special', order: 4, photo: 'arte/f/wembley.jpg', fotos: ['arte/f/wembley-inside.jpg', 'arte/f/emirates.jpg'],
+      name: { en: 'London Football Stadium Tour', pt: 'Tour dos Estádios de Futebol de Londres', it: 'Tour degli stadi di calcio di Londra' },
+      tagline: { en: 'Pick two of London’s great stadiums — dressing rooms, tunnel and pitch-side.', pt: 'Escolha 2 dos maiores estádios de Londres — vestiário, túnel e beira do gramado.', it: 'Scegli due dei grandi stadi di Londra — spogliatoi, tunnel e bordo campo.' },
+      desc: { en: 'A day for football lovers: choose two of London’s legendary stadiums to visit — Stamford Bridge (Chelsea), the Emirates Stadium (Arsenal) or Wembley — and we drive you between them, with the city’s landmarks along the way.',
+              pt: 'Um dia para quem ama futebol: escolha 2 dos maiores estádios de Londres para visitar — Stamford Bridge (Chelsea), Emirates Stadium (Arsenal) ou Wembley — e a gente leva vocês de um ao outro, passando pelos cartões-postais da cidade.',
+              it: 'Una giornata per chi ama il calcio: scegli due stadi leggendari di Londra — Stamford Bridge (Chelsea), l’Emirates Stadium (Arsenal) o Wembley — e ti portiamo dall’uno all’altro, tra i luoghi simbolo della città.' },
+      stops: [
+        { n: { en: 'Stamford Bridge · Chelsea', pt: 'Stamford Bridge · Chelsea', it: 'Stamford Bridge · Chelsea' }, d: { en: 'The Blues’ home in west London.', pt: 'A casa dos Blues, no oeste de Londres.', it: 'La casa dei Blues, a ovest di Londra.' }, ph: '' },
+        { n: { en: 'Emirates Stadium · Arsenal', pt: 'Emirates Stadium · Arsenal', it: 'Emirates Stadium · Arsenal' }, d: { en: 'The Gunners’ stadium in north London.', pt: 'O estádio dos Gunners, no norte de Londres.', it: 'Lo stadio dei Gunners, a nord di Londra.' }, ph: 'arte/f/emirates.jpg' },
+        { n: { en: 'Wembley', pt: 'Wembley', it: 'Wembley' }, d: { en: 'The home of English football and its famous arch.', pt: 'A casa do futebol inglês e o seu arco famoso.', it: 'La casa del calcio inglese e il suo arco famoso.' }, ph: 'arte/f/wembley-inside.jpg' },
+      ],
+      notIncludes: { en: ['Stadium tour tickets', 'Meals'], pt: ['Ingressos dos tours dos estádios', 'Refeições'], it: ['Biglietti dei tour degli stadi', 'Pasti'] },
+      duration: '8 hours', price: 0, priceMode: 'tabela', tabela: consulta(), priceNote: NOTA_CONSULTA_DIA }),
     /* ---------- ENGLAND ---------- */
-    T({ id: 'windsor-oxford', type: 'day', region: 'inglaterra', categoria: 'england', order: 10, photo: 'arte/f/windsor.jpg',
-      name: { en: 'Windsor & Oxford', pt: 'Windsor e Oxford', it: 'Windsor e Oxford' },
-      desc: { en: 'The King’s castle in the morning, the dreaming spires of Oxford in the afternoon — colleges, the Radcliffe Camera and the corners that became Hogwarts.',
-              pt: 'O castelo do rei de manhã e os colégios de Oxford à tarde — a Radcliffe Camera e os cantos que viraram Hogwarts.',
-              it: 'Il castello del Re al mattino, i college di Oxford nel pomeriggio — la Radcliffe Camera e gli angoli diventati Hogwarts.' },
-      duration: '9 hours', price: 560, priceMode: 'session', priceNote: NOTA_EX }),
-    T({ id: 'stonehenge-bath', type: 'day', region: 'inglaterra', categoria: 'england', order: 11, photo: 'arte/f/stonehenge.jpg',
-      name: { en: 'Stonehenge & Bath', pt: 'Stonehenge e Bath', it: 'Stonehenge e Bath' },
-      desc: { en: 'From the 5,000-year-old stones to the Roman Baths and the honey-coloured Georgian crescents of Bath — the most beautiful day out of London.',
-              pt: 'Das pedras de 5 mil anos às termas romanas e às casas georgianas cor de mel de Bath — o dia mais bonito fora de Londres.',
-              it: 'Dalle pietre di 5.000 anni alle Terme Romane e alle case georgiane color miele di Bath.' },
-      duration: '10 hours', price: 650, priceMode: 'session', priceNote: NOTA_EX }),
-    T({ id: 'cotswolds', type: 'day', region: 'inglaterra', categoria: 'england', order: 12, photo: 'arte/f/cotswolds.jpg',
+    T({ id: 'windsor-oxford', unidade: POR_CARRO, type: 'day', region: 'inglaterra', categoria: 'england', order: 10, photo: 'arte/f/windsor.jpg',
+      name: { en: 'Windsor Castle', pt: 'Castelo de Windsor', it: 'Castello di Windsor' },
+      tagline: { en: 'Inside the King’s castle, St George’s Chapel and the little town of Windsor.', pt: 'Por dentro do castelo do rei, a Capela de São Jorge e a cidadezinha de Windsor.', it: 'Dentro il castello del Re, la Cappella di San Giorgio e la cittadina di Windsor.' },
+      desc: { en: 'A visit inside Windsor Castle, the official residence of the King, through its state rooms and halls. We also visit St George’s Chapel — the setting of the latest royal weddings — and stroll through the charming town of Windsor.',
+              pt: 'Visita interna ao Castelo de Windsor, residência oficial do rei, com todos os seus salões e quartos de Estado. Visitamos também a Capela de São Jorge — onde foram os últimos casamentos reais — e a pequena e charmosa cidade de Windsor.',
+              it: 'Visita all’interno del Castello di Windsor, residenza ufficiale del Re, con i suoi saloni e appartamenti di Stato. Visitiamo anche la Cappella di San Giorgio — teatro degli ultimi matrimoni reali — e la piccola, graziosa città di Windsor.' },
+      stops: [
+        { n: { en: 'Windsor Castle', pt: 'Castelo de Windsor', it: 'Castello di Windsor' }, d: { en: 'The State Apartments, halls and royal rooms.', pt: 'Os apartamentos de Estado, salões e quartos reais.', it: 'Gli appartamenti di Stato, i saloni e le stanze reali.' }, ph: 'arte/f/windsor.jpg' },
+        { n: { en: 'St George’s Chapel', pt: 'Capela de São Jorge', it: 'Cappella di San Giorgio' }, d: { en: 'Gothic masterpiece and stage of royal weddings.', pt: 'Obra-prima gótica, palco de casamentos reais.', it: 'Capolavoro gotico, teatro di matrimoni reali.' }, ph: '' },
+        { n: { en: 'The town of Windsor', pt: 'A cidade de Windsor', it: 'La città di Windsor' }, d: { en: 'Cobbled streets, the Long Walk and the river.', pt: 'Ruas de pedra, a Long Walk e o rio.', it: 'Vie acciottolate, il Long Walk e il fiume.' }, ph: '' },
+      ],
+      notIncludes: { en: ['Windsor Castle tickets (£38 per adult)', 'Meals'], pt: ['Ingressos do Castelo de Windsor (£ 38 por adulto)', 'Refeições'], it: ['Biglietti del Castello di Windsor (£38 per adulto)', 'Pasti'] },
+      duration: '6 hours', price: 450, priceMode: 'session', priceNote: NOTA_REAL }),
+    T({ id: 'cotswolds', unidade: POR_CARRO, type: 'day', region: 'inglaterra', categoria: 'england', order: 11, photo: 'arte/f/cotswolds.jpg', fotos: ['arte/f/broadway-tower.jpg', 'arte/f/bourton.jpg', 'arte/f/stratford.jpg'],
       name: { en: 'Cotswolds & Stratford-upon-Avon', pt: 'Cotswolds e Stratford-upon-Avon', it: 'Cotswolds e Stratford-upon-Avon' },
-      desc: { en: 'Golden-stone villages, rivers and little bridges, and Shakespeare’s birthplace — England as you imagine it.',
-              pt: 'Vilarejos de pedra dourada, riachos e pontezinhas, e a cidade natal de Shakespeare — a Inglaterra que você imagina.',
-              it: 'Villaggi di pietra dorata, ruscelli e ponticelli, e la città natale di Shakespeare.' },
-      duration: '10 hours', price: 650, priceMode: 'session', priceNote: NOTA_EX }),
-    T({ id: 'canterbury', type: 'day', region: 'inglaterra', categoria: 'england', order: 13, photo: 'arte/f/canterbury.jpg',
-      name: { en: 'Leeds Castle & Canterbury', pt: 'Leeds Castle e Canterbury', it: 'Leeds Castle e Canterbury' },
-      desc: { en: 'The “loveliest castle in the world” on its lake, then the medieval walls and the great cathedral of Canterbury.',
-              pt: 'O “castelo mais bonito do mundo”, no meio de um lago, e depois as muralhas medievais e a catedral de Canterbury.',
-              it: 'Il “castello più bello del mondo” sul suo lago, poi le mura medievali e la cattedrale di Canterbury.' },
-      duration: '9 hours', price: 560, priceMode: 'session', priceNote: NOTA_EX }),
+      tagline: { en: 'Medieval villages where no bus or train goes — and Shakespeare’s town.', pt: 'Vilas medievais onde não chega ônibus nem trem — e a cidade de Shakespeare.', it: 'Villaggi medievali dove non arrivano bus né treni — e la città di Shakespeare.' },
+      desc: { en: 'The Cotswolds is a protected landscape of villages between 800 and 1,500 years old. The route winds through enchanting places that buses and trains don’t reach: Chipping Campden, Broadway and Broadway Tower, Bourton-on-the-Water — and finally Shakespeare’s town, Stratford-upon-Avon, where we visit the house where he was born and the ancient church where he is buried.',
+              pt: 'O Cotswolds é uma região tombada da Inglaterra, com vilas de 800 a 1.500 anos. O passeio faz uma rota por essas vilas, com paisagens e cidades encantadoras — detalhe: lugares onde não chegam ônibus nem trem. Vilas como Chipping Campden, Broadway e a Broadway Tower, Bourton-on-the-Water e, por fim, a cidade de Shakespeare, Stratford-upon-Avon, onde visitamos a casa onde ele nasceu e a igreja antiga onde está o seu túmulo.',
+              it: 'Le Cotswolds sono una regione protetta con villaggi di 800–1.500 anni. Il percorso attraversa luoghi incantevoli dove non arrivano bus né treni: Chipping Campden, Broadway e la Broadway Tower, Bourton-on-the-Water — e infine la città di Shakespeare, Stratford-upon-Avon, con la sua casa natale e l’antica chiesa dove è sepolto.' },
+      stops: [
+        { n: { en: 'Chipping Campden', pt: 'Chipping Campden', it: 'Chipping Campden' }, d: { en: 'The golden high street of the wool merchants.', pt: 'A rua principal dourada dos mercadores de lã.', it: 'La via dorata dei mercanti di lana.' }, ph: 'arte/f/cotswolds.jpg' },
+        { n: { en: 'Broadway & Broadway Tower', pt: 'Broadway e Broadway Tower', it: 'Broadway e Broadway Tower' }, d: { en: 'The village and the tower with a view over 16 counties.', pt: 'A vila e a torre com vista para 16 condados.', it: 'Il villaggio e la torre con vista su 16 contee.' }, ph: 'arte/f/broadway-tower.jpg' },
+        { n: { en: 'Bourton-on-the-Water', pt: 'Bourton-on-the-Water', it: 'Bourton-on-the-Water' }, d: { en: 'The “Venice of the Cotswolds”, its river and low bridges.', pt: 'A “Veneza dos Cotswolds”, com o riacho e as pontezinhas.', it: 'La “Venezia delle Cotswolds”, il fiume e i ponticelli.' }, ph: 'arte/f/bourton.jpg' },
+        { n: { en: 'Stratford-upon-Avon', pt: 'Stratford-upon-Avon', it: 'Stratford-upon-Avon' }, d: { en: 'Shakespeare’s birthplace and his tomb in Holy Trinity Church.', pt: 'A casa onde Shakespeare nasceu e o seu túmulo na Igreja da Santíssima Trindade.', it: 'La casa natale di Shakespeare e la sua tomba nella Holy Trinity Church.' }, ph: 'arte/f/stratford.jpg' },
+      ],
+      duration: '8 hours or more', price: 580, priceMode: 'session', priceNote: NOTA_REAL }),
+    T({ id: 'cambridge', unidade: POR_CARRO, type: 'day', region: 'inglaterra', categoria: 'england', order: 12, photo: 'arte/f/cambridge.jpg', fotos: ['arte/f/cambridge-punt.jpg'],
+      name: { en: 'Cambridge', pt: 'Cambridge', it: 'Cambridge' },
+      tagline: { en: 'The historic centre, the famous colleges and — May to September — punting on the Cam.', pt: 'O centro histórico, os colleges famosos e — de maio a setembro — gôndola pelo Rio Cam.', it: 'Il centro storico, i famosi college e — da maggio a settembre — in barchino sul Cam.' },
+      desc: { en: 'A visit to Cambridge through its historic centre and some of the most famous colleges of the University of Cambridge, and a 900-year-old church of the city. Between May and September we can also take a guided punt along the River Cam.',
+              pt: 'Visita à cidade de Cambridge passando pelo centro histórico e por alguns dos mais famosos colleges que formam a Universidade de Cambridge. Visita à igreja de 900 anos da cidade e, entre maio e setembro, também podemos fazer um passeio guiado de gôndola (punting) pelo Rio Cam.',
+              it: 'Visita di Cambridge tra il centro storico e alcuni dei più famosi college dell’Università di Cambridge, e una chiesa di 900 anni. Da maggio a settembre possiamo anche fare un giro guidato in barchino (punting) sul fiume Cam.' },
+      stops: [
+        { n: { en: 'The colleges', pt: 'Os colleges', it: 'I college' }, d: { en: 'King’s, Trinity, St John’s and the Backs.', pt: 'King’s, Trinity, St John’s e os jardins à beira-rio.', it: 'King’s, Trinity, St John’s e i giardini sul fiume.' }, ph: 'arte/f/cambridge.jpg' },
+        { n: { en: 'Punting on the River Cam', pt: 'Gôndola no Rio Cam', it: 'Punting sul fiume Cam' }, d: { en: 'May to September, with a guide on board.', pt: 'De maio a setembro, com guia a bordo.', it: 'Da maggio a settembre, con guida a bordo.' }, ph: 'arte/f/cambridge-punt.jpg' },
+      ],
+      duration: '8 hours or more', price: 580, priceMode: 'session', priceNote: NOTA_REAL }),
+    T({ id: 'stonehenge-bath', unidade: POR_CARRO, type: 'day', region: 'inglaterra', categoria: 'england', order: 13, photo: 'arte/f/stonehenge.jpg', fotos: ['arte/f/bath.jpg'],
+      name: { en: 'Stonehenge, Salisbury Cathedral & Bath', pt: 'Stonehenge, Catedral de Salisbury e Bath', it: 'Stonehenge, Cattedrale di Salisbury e Bath' },
+      tagline: { en: '5,000-year-old stones, the Magna Carta and the Roman Baths — in one day.', pt: 'Pedras de 5 mil anos, a Magna Carta e as termas romanas — num dia só.', it: 'Pietre di 5.000 anni, la Magna Carta e le Terme Romane — in un giorno.' },
+      desc: { en: 'Stonehenge, the stone circle in the English countryside over 5,000 years old; then Salisbury Cathedral, home of the best-preserved original Magna Carta and the world’s oldest working clock; and finally Bath, with its ancient abbey and the famous Roman Baths, about 2,000 years old. Back in London at the end of the day.',
+              pt: 'Visita a Stonehenge, o círculo de pedras no interior da Inglaterra com mais de 5.000 anos; em seguida a Catedral de Salisbury, onde está a cópia mais bem preservada da Magna Carta e o relógio mais antigo do mundo em funcionamento; e por último a cidade de Bath, com a sua abadia milenar e as famosas Termas Romanas, de cerca de 2.000 anos. Retorno a Londres no fim do dia.',
+              it: 'Stonehenge, il cerchio di pietre di oltre 5.000 anni; poi la Cattedrale di Salisbury, con la Magna Carta originale meglio conservata e l’orologio funzionante più antico del mondo; infine Bath, con la sua antica abbazia e le famose Terme Romane, di circa 2.000 anni. Rientro a Londra a fine giornata.' },
+      stops: [
+        { n: { en: 'Stonehenge', pt: 'Stonehenge', it: 'Stonehenge' }, d: { en: 'The mysterious stone circle, over 5,000 years old.', pt: 'O misterioso círculo de pedras, com mais de 5 mil anos.', it: 'Il misterioso cerchio di pietre, oltre 5.000 anni.' }, ph: 'arte/f/stonehenge.jpg' },
+        { n: { en: 'Salisbury Cathedral', pt: 'Catedral de Salisbury', it: 'Cattedrale di Salisbury' }, d: { en: 'The Magna Carta and the oldest working clock in the world.', pt: 'A Magna Carta e o relógio mais antigo do mundo em funcionamento.', it: 'La Magna Carta e l’orologio funzionante più antico del mondo.' }, ph: '' },
+        { n: { en: 'Bath', pt: 'Bath', it: 'Bath' }, d: { en: 'The abbey, the Roman Baths and the Georgian crescents.', pt: 'A abadia, as termas romanas e as casas georgianas.', it: 'L’abbazia, le Terme Romane e le case georgiane.' }, ph: 'arte/f/bath.jpg' },
+      ],
+      duration: '8 hours or more', price: 600, priceMode: 'session', priceNote: NOTA_REAL }),
+    T({ id: 'liverpool', unidade: POR_CARRO, type: 'day', region: 'inglaterra', categoria: 'special', order: 14, photo: 'arte/f/liverpool.jpg', fotos: ['arte/f/beatles.jpg', 'arte/f/liver-building.jpg'],
+      name: { en: 'Liverpool & The Beatles', pt: 'Liverpool e os Beatles', it: 'Liverpool e i Beatles' },
+      tagline: { en: 'From John’s and Paul’s childhood homes to two hours of live music at The Cavern Club.', pt: 'Das casas de John e Paul a 2 horas de música ao vivo no Cavern Club.', it: 'Dalle case di John e Paul a due ore di musica dal vivo al Cavern Club.' },
+      desc: { en: 'A day in Liverpool, starting at John’s and Paul’s homes, then Strawberry Field, Penny Lane, Liverpool Cathedral, the historic docks, the Beatles museum and Liverpool FC’s stadium — ending at the famous Cavern Club, with two hours of great music (Beatles covers). We leave London at 7am and return around 10pm.',
+              pt: 'Visita à cidade de Liverpool partindo das casas do John e do Paul, Strawberry Fields, Penny Lane, a Catedral de Liverpool, o porto histórico, o museu dos Beatles, o estádio do Liverpool e, por fim, o famoso The Cavern Club, onde teremos 2 horas de muita música (covers dos Beatles). Saída de Londres às 7h e retorno por volta das 22h.',
+              it: 'Una giornata a Liverpool: le case di John e Paul, Strawberry Field, Penny Lane, la Cattedrale di Liverpool, il porto storico, il museo dei Beatles e lo stadio del Liverpool — per finire al famoso Cavern Club, con due ore di musica (cover dei Beatles). Partenza da Londra alle 7 e rientro verso le 22.' },
+      stops: [
+        { n: { en: 'John’s & Paul’s homes', pt: 'As casas do John e do Paul', it: 'Le case di John e Paul' }, d: { en: 'Where the Beatles story began.', pt: 'Onde a história dos Beatles começou.', it: 'Dove è iniziata la storia dei Beatles.' }, ph: '' },
+        { n: { en: 'Strawberry Field & Penny Lane', pt: 'Strawberry Field e Penny Lane', it: 'Strawberry Field e Penny Lane' }, d: { en: 'The places that became songs.', pt: 'Os lugares que viraram música.', it: 'I luoghi diventati canzoni.' }, ph: '' },
+        { n: { en: 'The waterfront & the Beatles museum', pt: 'O porto histórico e o museu dos Beatles', it: 'Il porto storico e il museo dei Beatles' }, d: { en: 'Royal Albert Dock and the Liver Building.', pt: 'O Royal Albert Dock e o Liver Building.', it: 'Il Royal Albert Dock e il Liver Building.' }, ph: 'arte/f/liverpool.jpg' },
+        { n: { en: 'The Cavern Club', pt: 'The Cavern Club', it: 'The Cavern Club' }, d: { en: 'Two hours of live Beatles music to close the day.', pt: '2 horas de música dos Beatles ao vivo para fechar o dia.', it: 'Due ore di musica dei Beatles dal vivo per chiudere la giornata.' }, ph: 'arte/f/beatles.jpg' },
+      ],
+      duration: '7am – 10pm', price: 750, priceMode: 'session', priceNote: NOTA_REAL }),
+    T({ id: 'canterbury', unidade: POR_CARRO, type: 'day', region: 'inglaterra', categoria: 'england', order: 15, photo: 'arte/f/leeds-castle.jpg', fotos: ['arte/f/canterbury.jpg'],
+      name: { en: 'Leeds Castle & Canterbury', pt: 'Castelo de Leeds e Canterbury', it: 'Castello di Leeds e Canterbury' },
+      tagline: { en: 'A castle on a mirror-like lake and the mother church of the Anglican world.', pt: 'Um castelo num lago que parece um espelho e a catedral-mãe do anglicanismo.', it: 'Un castello su un lago a specchio e la chiesa madre dell’anglicanesimo.' },
+      desc: { en: 'Leeds Castle, in Kent, rises from a lake like a mirror among beautiful lawns — its history goes back to 857 AD. The visit includes the castle, the gardens and the maze. Then Canterbury and its cathedral, founded in 597 by a mission sent from Rome, the great centre of Anglicanism in England, with one of the country’s richest collections of stained glass.',
+              pt: 'Situado em Kent, em meio a belos gramados, no centro de um lago que parece um espelho, o Castelo de Leeds tem origem no ano 857 d.C. A visita inclui o castelo, os jardins e o labirinto. Depois, a cidade e a Catedral de Canterbury, que começou a ser construída em 597 d.C. por uma missão enviada de Roma e se tornou o maior centro do anglicanismo da Inglaterra, com uma das maiores riquezas em vitrais do país.',
+              it: 'Il Castello di Leeds, nel Kent, sorge su un lago a specchio tra bellissimi prati — la sua storia risale all’857 d.C. La visita comprende il castello, i giardini e il labirinto. Poi Canterbury e la sua cattedrale, fondata nel 597 da una missione inviata da Roma, grande centro dell’anglicanesimo, con una delle più ricche collezioni di vetrate d’Inghilterra.' },
+      stops: [
+        { n: { en: 'Leeds Castle', pt: 'Castelo de Leeds', it: 'Castello di Leeds' }, d: { en: 'The castle, the gardens and the maze.', pt: 'O castelo, os jardins e o labirinto.', it: 'Il castello, i giardini e il labirinto.' }, ph: 'arte/f/leeds-castle.jpg' },
+        { n: { en: 'Canterbury Cathedral', pt: 'Catedral de Canterbury', it: 'Cattedrale di Canterbury' }, d: { en: 'Founded in 597 — the heart of the Church of England.', pt: 'Fundada em 597 — o coração da Igreja da Inglaterra.', it: 'Fondata nel 597 — il cuore della Chiesa d’Inghilterra.' }, ph: 'arte/f/canterbury.jpg' },
+      ],
+      duration: '8 hours or more', price: 600, priceMode: 'session', priceNote: NOTA_REAL }),
     /* ---------- SCOTLAND ---------- */
     T({ id: 'edinburgh-highlands', type: 'day', region: 'escocia', categoria: 'scotland', order: 20, photo: 'arte/f/edinburgh.jpg', max: 7,
       name: { en: 'Edinburgh & the Highlands · 5 days', pt: 'Edimburgo e Highlands · 5 dias', it: 'Edimburgo e Highlands · 5 giorni' },
@@ -533,7 +613,7 @@ let DB = null;
 
    So vale para a DEMONSTRACAO e sem nuvem: dados de verdade nunca sao
    trocados por exemplo. Os pedidos de roteiro feitos no aparelho ficam. */
-const SEED_VER = 5;   /* 5: ingressos por idade (18/09/2026) */
+const SEED_VER = 6;   /* 6: os passeios reais do Roberto, com valores e fotos (24/11/2026) */
 
 function load() {
   try { DB = JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch (e) { DB = null; }
