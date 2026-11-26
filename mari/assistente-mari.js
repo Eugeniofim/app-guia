@@ -1109,7 +1109,8 @@ async function mariPede(vai) {
   if (falha) throw new Error(falha.name === 'AbortError' ? 'A resposta demorou demais (mais de 90 s). Tente de novo — se já tiver feito algo, está gravado.' : iaTraduzErro(0));
   return { r, corpo };
 }
-const MARI_MODELO_CHAVE = 'claude-opus-5-5', MARI_SEM_PRO = IA_NS + 'ia_sem_pro';
+/* 26/11: era claude-opus-5-5 (US$ 4/20) — com a chave dela isso custaria ~40× o Haiku. Mesmo modelo do cofre. */
+const MARI_MODELO_CHAVE = 'claude-haiku-5-5', MARI_SEM_PRO = IA_NS + 'ia_sem_pro';
 async function mariChamarChave(mensagens) {
   let modelo = MARI_MODELO_CHAVE; try { if (localStorage.getItem(MARI_SEM_PRO) === '1') modelo = IA_MODELO; } catch (e) {}
   const vai = (m, comWeb) => () => iaFetch('https://api.anthropic.com/v1/messages', { method: 'POST',
@@ -1122,7 +1123,7 @@ async function mariChamarChave(mensagens) {
     modelo = IA_MODELO; ({ r, corpo } = await mariPede(vai(modelo, true)));
   }
   if (!r.ok) throw new Error(iaTraduzErro(r.status, corpo));
-  if (modelo === MARI_MODELO_CHAVE) { IA_PRECO.in = 5; IA_PRECO.out = 25; } else { IA_PRECO.in = 1; IA_PRECO.out = 5; }
+  if (modelo === MARI_MODELO_CHAVE) { IA_PRECO.in = 0.1; IA_PRECO.out = 0.5; } else { IA_PRECO.in = 1; IA_PRECO.out = 5; }
   iaSomaGasto(corpo.usage);
   return mariCortado(corpo);
 }

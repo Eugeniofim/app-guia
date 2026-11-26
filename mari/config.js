@@ -27,6 +27,9 @@ var APP_CONFIG = {
      e usa o modelo forte (guia-cofre/_comum/pro.js, APPS_PRO.mari). */
   cofre: 'https://uopfqlogjzuqpabptxkb.supabase.co/functions/v1/cofre',
   clienteCofre: 'mari',
+  /* 26/11/2026: a IA do assistente na conta DELA na Claude (ia-conta-mari.js). Desligado de propósito: por enquanto
+     ela segue com a IA da Ti Artes. Ligar = true (em janeiro, quando a mensalidade começar). */
+  iaPropria: false,
   /* conta de Instagram onde o agente do demo responde de verdade (pelo cofre) */
   agenteInstagram: '',
   /* número do WhatsApp do agente do demo (só dígitos; o de teste da Meta não entrega para o Brasil) */
